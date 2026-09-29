@@ -1,0 +1,59 @@
+# vesmaro-cortex — development library for the mnema-cortex decision model
+# (ADR 0001 + owner addendum P2: dual-epoch delivery; this repo is the
+# TRAIN-EPOCH library. The runtime epoch is a single self-contained ONNX
+# artifact bundled into the engine — this package is never a runtime dep
+# of the engine and is NOT published to PyPI before the A5 verdict).
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "vesmaro-cortex"
+version = "0.1.0"
+description = "Development library for mnema-cortex — the local is-duplicate decision model (features, D/N training, selection, export, single-shot eval)"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "TBD" }
+# License is an owner decision (charter §6); family default is Apache-2.0.
+
+# Dependency rationale (ADR 0001, addendum P2 — heavy deps live ONLY here):
+# - numpy/onnxruntime — feature math, artifact validation and eval-side
+#   inference; pins mirror the engine core (onnxruntime>=1.20, NM-1c) so
+#   export targets the same runtime that will load the artifact.
+# - lightgbm — candidate D (gradient boosting over pair features).
+# - scikit-learn — CV machinery + balanced-accuracy/Brier metrics.
+# - skl2onnx — ONNX export of the D candidate.
+# - torch — train-only extra (CPU): candidate N head + torch.onnx export;
+#   matches the engine's training-extra isolation (ADR-0021 pattern).
+# - blake2/sha256 need NO dependency: hashlib covers both from stdlib.
+dependencies = [
+    "numpy>=1.26",
+    "onnxruntime>=1.20",
+    "lightgbm>=4.5",
+    "scikit-learn>=1.5",
+    "skl2onnx>=1.17",
+]
+
+[project.optional-dependencies]
+train = [
+    "torch>=2.2",
+]
+
+# PEP 735 dependency group (NOT an extra): `uv run pytest` must work on a
+# fresh clone without flags — uv installs dev groups by default, extras only
+# with --extra. Caught on the TL gate (agent ran with a preset PYTHONPATH).
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+# CLI stubs (A3a): export-corpus / pretrain / train / select /
+# export-artifact / eval — see cortex/cli/main.py.
+cortex = "cortex.cli.main:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/cortex"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
