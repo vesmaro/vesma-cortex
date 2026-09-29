@@ -560,6 +560,21 @@ wheels = [
 ]
 
 [[package]]
+name = "onnxmltools"
+version = "1.16.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "onnx" },
+    { name = "protobuf" },
+    { name = "skl2onnx" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/41/3e/85a40b6e56a8aaa45bffc9eb00f93182b87841b4dc5a4198ea609993e17c/onnxmltools-1.16.0.tar.gz", hash = "sha256:cd76e0a7ba6a3c4ca4acf3b4c7973cda6a70f2edc146ab11d4efc3dfbee6805a", size = 208397, upload-time = "2026-01-30T12:45:06.1Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fb/e6/6713d9a089a6861b4bf748f02a6238cb2759968aadf672dccef3e960376b/onnxmltools-1.16.0-py3-none-any.whl", hash = "sha256:7b27196e7dcc0d9de29110f211e7941ad1c71dd97606baa729144d9acd105d3c", size = 303991, upload-time = "2026-01-30T12:45:04.809Z" },
+]
+
+[[package]]
 name = "onnxruntime"
 version = "1.30.0"
 source = { registry = "https://pypi.org/simple" }
@@ -884,6 +899,7 @@ source = { editable = "." }
 dependencies = [
     { name = "lightgbm" },
     { name = "numpy" },
+    { name = "onnxmltools" },
     { name = "onnxruntime" },
     { name = "scikit-learn" },
     { name = "skl2onnx" },
@@ -903,6 +919,7 @@ dev = [
 requires-dist = [
     { name = "lightgbm", specifier = ">=4.5" },
     { name = "numpy", specifier = ">=1.26" },
+    { name = "onnxmltools", specifier = ">=1.16.0" },
     { name = "onnxruntime", specifier = ">=1.20" },
     { name = "scikit-learn", specifier = ">=1.5" },
     { name = "skl2onnx", specifier = ">=1.17" },

@@ -59,9 +59,13 @@ def manifest_bytes(entries: Iterable[tuple[str, str]]) -> bytes:
     """Manifest bytes: ``pair_id <sha256>`` lines, sorted by pair_id.
 
     Sorting is part of the frozen scheme (byte-identical manifests for
-    identical corpora regardless of generation order).
+    identical corpora regardless of generation order). Every line is
+    ``\\n``-terminated, including the last (data-contract.md §5.3).
     """
-    raise NotImplementedError("A3b+: assembled by export-corpus / eval runner")
+    lines = [f"{pair_id} {digest}" for pair_id, digest in sorted(entries)]
+    if not lines:
+        return b""
+    return ("\n".join(lines) + "\n").encode("utf-8")
 
 
 def corpus_fingerprint(manifest: bytes) -> str:
