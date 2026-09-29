@@ -38,6 +38,11 @@ dependencies = [
 train = [
     "torch>=2.2",
 ]
+
+# PEP 735 dependency group (NOT an extra): `uv run pytest` must work on a
+# fresh clone without flags — uv installs dev groups by default, extras only
+# with --extra. Caught on the TL gate (agent ran with a preset PYTHONPATH).
+[dependency-groups]
 dev = [
     "pytest>=8.0",
 ]
