@@ -1,0 +1,19 @@
+# Data hygiene: no raw store content ever enters this repo (charter §6)
+data/
+*.db
+datasets/
+artifacts/weights/
+*.pt
+*.onnx
+*.safetensors
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Local env / scratch
+.local/
+.env
