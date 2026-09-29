@@ -20,6 +20,8 @@ DECLINE — честный исход, прецедент W4c.
 | [docs/charter.md](docs/charter.md) | чартер A0: строим / не строим, критерии успеха, порядок волн |
 | [docs/status.md](docs/status.md) | живая доска состояния |
 | [docs/decisions/](docs/decisions/) | ADR репозитория |
+| [docs/specs/inference-v1.md](docs/specs/inference-v1.md) | инференс-контракт `mnema-cortex-v1`: вход/выход, ONNX-артефакт, загрузка (паттерн NanoProvider), коды `CORTEX-E-*` |
+| [docs/specs/data-contract.md](docs/specs/data-contract.md) | контракт данных: pair-манифесты, фингерпринты (BLAKE2b-256), гигиена экспорта, каталог data/ + artifacts/ |
 
 - **Размещение:** local git; GitHub — решение владельца.
 - **Лицензия:** решение владельца (семейный дефолт — Apache-2.0, пока не
