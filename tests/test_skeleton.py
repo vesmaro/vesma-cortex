@@ -8,17 +8,17 @@ Pins the slice's own deliverables:
 4. grid caps (≤ 8 per ADR 0001 V1);
 5. zero network imports across src/cortex — the repo-side twin of the
    engine's tests/test_mcp_core_isolation.py AST tripwire;
-6. CLI subcommands exist and fail loud (exit 2), never fake success;
-7. algorithm stubs raise NotImplementedError (honest skeleton — no
-   silent partial implementations).
+6. CLI surface: export-corpus is the only remaining stub (A2); the A3b
+   commands are implemented and fail loud on bad input (exit 2, stderr
+   message) — never fake success. End-to-end command contracts live in
+   tests/test_cli.py.
 """
 
 from __future__ import annotations
 
+import argparse
 import ast
 import inspect
-import subprocess
-import sys
 from pathlib import Path
 
 import pytest
@@ -26,6 +26,12 @@ import pytest
 SRC = Path(__file__).resolve().parent.parent / "src" / "cortex"
 
 # ── 1. Modules import and signatures exist ────────────────────────────────────
+
+
+def _disputed_pair():
+    from cortex.data.holdout import SplitPair
+
+    return SplitPair("a--b", "P1", "disputed", "x", "y", "z")
 
 
 def test_package_imports() -> None:
@@ -81,19 +87,21 @@ def test_candidate_surface() -> None:
             assert hasattr(cls, method), f"{cls.__name__}.{method} missing"
 
 
-def test_stubs_raise_not_implemented() -> None:
-    from cortex.artifacts import build_metadata_props, sha256_file
+def test_algorithm_modules_implemented() -> None:
+    """A3b replaced the honest stubs: the contracted entry points now
+    execute (or validate loudly) instead of raising NotImplementedError.
+    Only export-corpus remains a stub (A2, see tests/test_cli.py)."""
+    from cortex.artifacts import build_metadata_props
     from cortex.data.holdout import split_holdout
-    from cortex.features.pair import features
+    from cortex.features.pair import PairRecord, features
 
-    with pytest.raises(NotImplementedError):
-        features(None, None, 0.5)  # type: ignore[arg-type]
-    with pytest.raises(NotImplementedError):
-        sha256_file(Path("."))  # type: ignore[arg-type]
-    with pytest.raises(NotImplementedError):
+    # contract violations surface as ValueError (typed), never as a stub
+    with pytest.raises(ValueError):
+        features(PairRecord("a", "b"), PairRecord("a", "b"), similarity=1.5)
+    with pytest.raises(ValueError):
+        split_holdout([_disputed_pair()])
+    with pytest.raises(ValueError):
         build_metadata_props(embedder_pin="", corpus_fingerprint="", trained_at="", candidate="x", feature_names=())
-    with pytest.raises(NotImplementedError):
-        split_holdout([])
 
 
 # ── 2. ARTIFACT_NAME single source ────────────────────────────────────────────
@@ -205,37 +213,51 @@ def test_zero_network_imports() -> None:
     )
 
 
-# ── 6. CLI surface: stubs fail loud ───────────────────────────────────────────
+# ── 6. CLI surface: export-corpus stubbed (A2), A3b commands real ────────────
+
+
+def test_cli_subcommands_surface() -> None:
+    from cortex.cli.main import build_parser
+
+    parser = build_parser()
+    subcommands = set()
+    for action in parser._actions:
+        if isinstance(action, argparse._SubParsersAction):
+            subcommands = set(action.choices)
+    assert subcommands == {
+        "export-corpus",
+        "pretrain",
+        "train",
+        "select",
+        "export-artifact",
+        "eval",
+    }
+
+
+def test_cli_export_corpus_still_stubbed(tmp_path: Path) -> None:
+    """export-corpus is the ONLY stub left — A2 owns it (prereg hygiene,
+    store export). It must fail loud (exit 2) naming A2, never fake success."""
+    from cortex.cli.main import main
+
+    code = main(["export-corpus", "--store-uri", "file:x?mode=ro", "--out", str(tmp_path / "x")])
+    assert code == 2
 
 
 @pytest.mark.parametrize(
     "argv",
     [
-        ["export-corpus", "--store-uri", "file:x?mode=ro", "--out", "data/x"],
-        ["pretrain", "--corpus", "c"],
-        ["train", "--train-manifest", "m"],
-        ["select", "--train-manifest", "m"],
-        ["export-artifact", "--model", "m", "--out", "o"],
-        ["eval", "--artifact", "a", "--holdout", "h", "--run-log", "r"],
+        ["pretrain", "--corpus", "does-not-exist.jsonl", "--out", "x"],
+        ["train", "--train-manifest", "does-not-exist.jsonl", "--out", "x"],
+        ["select", "--train-manifest", "does-not-exist.jsonl"],
+        ["eval", "--artifact", "does-not-exist.onnx", "--holdout", "h", "--run-log", "r"],
     ],
 )
-def test_cli_subcommands_are_stubbed(argv: list[str]) -> None:
-    from cortex.cli.main import NOT_IMPLEMENTED_EXIT, main
+def test_cli_implemented_commands_fail_loud(argv: list[str], capsys: pytest.CaptureFixture) -> None:
+    """The A3b commands are implemented: a missing input is a loud usage
+    error (exit 2 + stderr), NOT the A3a stub path and never success."""
+    from cortex.cli.main import main
 
-    assert main(argv) == NOT_IMPLEMENTED_EXIT
-
-
-def test_cli_stub_message_on_stderr() -> None:
-    code = (
-        "import sys; sys.path.insert(0, 'src'); "
-        "from cortex.cli.main import main; "
-        "raise SystemExit(main(['train', '--train-manifest', 'm']))"
-    )
-    result = subprocess.run(
-        [sys.executable, "-c", code],
-        capture_output=True,
-        text=True,
-        cwd=str(Path(__file__).resolve().parent.parent),
-    )
-    assert result.returncode == 2
-    assert "not implemented in A3a" in result.stderr
+    assert main(argv) == 2
+    stderr = capsys.readouterr().err
+    assert stderr.strip(), "failures must be loud on stderr"
+    assert "A3a" not in stderr, "implemented commands must not claim stub status"

@@ -23,7 +23,9 @@ license = "Apache-2.0"
 #   export targets the same runtime that will load the artifact.
 # - lightgbm — candidate D (gradient boosting over pair features).
 # - scikit-learn — CV machinery + balanced-accuracy/Brier metrics.
-# - skl2onnx — ONNX export of the D candidate.
+# - skl2onnx + onnxmltools — ONNX export of the D candidate. skl2onnx >= 1.20
+#   no longer bundles the LightGBM converter; onnxmltools ships it (A3b
+#   lesson: convert_sklearn alone cannot convert LGBMClassifier).
 # - torch — train-only extra (CPU): candidate N head + torch.onnx export;
 #   matches the engine's training-extra isolation (ADR-0021 pattern).
 # - blake2/sha256 need NO dependency: hashlib covers both from stdlib.
@@ -33,6 +35,7 @@ dependencies = [
     "lightgbm>=4.5",
     "scikit-learn>=1.5",
     "skl2onnx>=1.17",
+    "onnxmltools>=1.16",
 ]
 
 [project.optional-dependencies]
