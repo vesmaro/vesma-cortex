@@ -1,8 +1,10 @@
-# Data hygiene: no raw store content ever enters this repo (charter §6)
-data/
+# Data hygiene: no raw store content ever enters this repo (charter §6).
+# Root-anchored on purpose: a bare "data/" pattern would also ignore
+# src/cortex/data/ — the fingerprints/holdout CONTRACT code (A3a lesson).
+/data/
 *.db
-datasets/
-artifacts/weights/
+/datasets/
+/artifacts/weights/
 *.pt
 *.onnx
 *.safetensors
