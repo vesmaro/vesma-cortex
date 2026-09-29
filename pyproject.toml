@@ -43,6 +43,19 @@ train = [
     "torch>=2.2",
 ]
 
+# torch MUST resolve to the CPU wheel (A3c): the default PyPI linux wheel
+# is the CUDA build (~4 GB of nvidia-*/triton deps on a machine with no
+# NVIDIA GPU — charter §6 locality). Explicit torch-only CPU index; the
+# XPU walkthrough environment installs torch separately (runbook,
+# docs/runbooks/xpu-walkthrough.md) and never uses this lock.
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
 # PEP 735 dependency group (NOT an extra): `uv run pytest` must work on a
 # fresh clone without flags — uv installs dev groups by default, extras only
 # with --extra. Caught on the TL gate (agent ran with a preset PYTHONPATH).
