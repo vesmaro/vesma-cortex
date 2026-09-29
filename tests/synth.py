@@ -108,3 +108,78 @@ def write_manifest(path: Path, rows: list[dict]) -> Path:
 def unit_vec(rng: np.random.RandomState, dim: int = 384) -> np.ndarray:
     vec = rng.normal(size=dim).astype(np.float32)
     return vec / np.linalg.norm(vec)
+
+
+# ── synthetic store vectors (A3c: candidate N input side) ────────────────────
+
+
+def _stable_seed(key: str) -> int:
+    """Deterministic 32-bit seed from text content (order-independent)."""
+    import hashlib
+
+    return int(hashlib.sha256(key.encode("utf-8")).hexdigest()[:8], 16)
+
+
+def store_vector(key: str, seed: int = 7) -> np.ndarray:
+    """Deterministic 384-dim unit 'store embedding' for an arbitrary key.
+
+    Mirrors the store contract (mnema-embed-v1: 384-dim float32
+    unit-normalized) for smoke data that never touches the real store.
+    """
+    return unit_vec(np.random.RandomState(_stable_seed(key) ^ seed))
+
+
+def attach_store_vectors(rows: list[dict], seed: int = 7, noise: float = 0.05) -> list[dict]:
+    """Return rows with deterministic vec_a/vec_b (384-dim unit vectors).
+
+    Vectors are BY CONSTRUCTION consistent with the label — the synthetic
+    analogue of store embeddings (the N candidate consumes them; the D
+    candidate never sees them):
+
+    - record side: the anchor title's vector (``make_pair_rows`` builds
+      every record side on one of the frozen topical anchors);
+    - duplicate candidate: the SAME anchor vector plus a deterministic
+      whisper of noise (same memory → near-identical store vector);
+    - not-duplicate candidate: its own title's anchor vector — the other
+      topic (different memory).
+
+    The smoke built on this checks the MECHANISM of the N ladder, not N's
+    superiority over D (ADR 0001 V1); the W4c hard zone (globally close,
+    semantically different) stays a scalar-feature story by design.
+    """
+    out: list[dict] = []
+    for i, row in enumerate(rows):
+        vec_a = store_vector(row["record"]["title"], seed)
+        if row["label"] == "duplicate":
+            rng = np.random.RandomState(_stable_seed(f"{row['candidate']['title']}#{i}") ^ seed)
+            vec_b = unit_vec(rng) * noise + vec_a
+            vec_b = (vec_b / np.linalg.norm(vec_b)).astype(np.float32)
+        else:
+            vec_b = store_vector(row["candidate"]["title"], seed)
+        out.append({**row, "vec_a": vec_a.tolist(), "vec_b": vec_b.tolist()})
+    return out
+
+
+def write_records_jsonl(path: Path, records: list[PairRecord], seed: int = 7) -> Path:
+    """Records jsonl for ``cortex pretrain`` — one row per record, each with
+    its deterministic store ``vec`` (the pretrain self-pair convention
+    propagates it to both sides, cortex.cli.main _cmd_pretrain)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(
+        "\n".join(
+            json.dumps(
+                {
+                    "title": r.title,
+                    "body": r.body,
+                    "tags": list(r.tags),
+                    "language": r.language,
+                    "record_type": r.record_type,
+                    "vec": store_vector(f"{r.title}|{r.body}", seed).tolist(),
+                },
+                ensure_ascii=False,
+            )
+            for r in records
+        ),
+        encoding="utf-8",
+    )
+    return path
