@@ -13,8 +13,9 @@ version = "0.1.0"
 description = "Development library for mnema-cortex — the local is-duplicate decision model (features, D/N training, selection, export, single-shot eval)"
 readme = "README.md"
 requires-python = ">=3.12"
-license = { text = "TBD" }
-# License is an owner decision (charter §6); family default is Apache-2.0.
+license = "Apache-2.0"
+# Owner decision 2026-09-29 (Apache-2.0 vs MIT at TL discretion; Apache-2.0
+# chosen: patent grant + family default — the engine and canon are Apache-2.0).
 
 # Dependency rationale (ADR 0001, addendum P2 — heavy deps live ONLY here):
 # - numpy/onnxruntime — feature math, artifact validation and eval-side
