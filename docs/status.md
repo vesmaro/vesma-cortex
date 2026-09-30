@@ -8,8 +8,8 @@
 | A1 | АрхКом: архитектура модели + нейминг-онтология | ✅ done (ADR 0001) | docs/decisions/0001-archcom-a1-verdicts.md |
 | A2 | pretrain-корпус из стора + A2s синтетика | ✅ done (export 9ff011a: пул 794 + пары-базы; синт 2e04bf0+f3a6bbe: 1350 пар `621cb23f`) | docs/synth.md, artifacts/manifests/ |
 | A3 | реализация: A3a контракты ✅ (d379159) · A3b алгоритмы ✅ (649e5ce) · A3c смоук+ранбук ✅ (c8041a9) — 125/114 тестов, смоук 4,6с/86с, детерминизм | ✅ done | src/cortex/, scripts/smoke_pipeline.py |
-| A4 | стадия 1 обучена ✅ (D > N на синтетике, абляция претрейна +2.65 п.п.); стадия 2 — после разметки; XPU-walkthrough опционален | 🔄 в работе | artifacts/manifests/stage1-run.md |
-| A5 | single-shot оценка по препрегу v2 | backlog, кросс-гейт W5b (разметка 196 пар владельцем) | — |
+| A4 | стадия 1 обучена ✅; стадия 2 ГОТОВА К ПУСКУ (оркестратор scripts/stage2_run.py, dry-run зелёный, векторы реального корпуса досчитаны) — ждёт разметку; XPU-walkthrough опционален | 🔄 в работе | artifacts/manifests/stage1-run.md |
+| A5 | single-shot оценка по препрегу v2 | готова механика (eval = отдельная команда с single-shot-гейтом), ждёт разметку 196 пар | scripts/stage2_run.py |
 | A6 | артефакт + провенанс → хендофф canon W5d | backlog | — |
 
 ## Ждут владельца
