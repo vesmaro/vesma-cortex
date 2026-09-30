@@ -1,10 +1,12 @@
 # Синтетический корпус стадии 1 (A2s)
 
-- **Статус:** реализовано (срез A2s, ветка `feat/a2s-synthetic`)
+- **Статус:** реализовано (срез A2s, ветки `feat/a2s-synthetic` →
+  `feat/a2s-cloud-package`)
 - **Рамка:** ADR 0001, аддендум владельца П3 (2026-09-29); контракты —
   [data-contract.md](specs/data-contract.md) §5 (фингерпринты)
 - **Код:** `src/cortex/synth/generate.py` (чистый, без сети) +
-  `scripts/gen_synth_corpus.py` (CLI с ollama — единственное место с HTTP)
+  `scripts/gen_synth_corpus.py` (CLI с облачными провайдерами и ollama —
+  единственное место с HTTP)
 
 ## Что это
 
@@ -38,17 +40,48 @@
 ## Команды
 
 ```bash
-# 1. СЭМПЛ ДЛЯ ВЛАДЕЛЬЦА (гейт): 24 пары = 8/8/4/4, ~5–15 мин на CPU
-uv run python scripts/gen_synth_corpus.py --sample 24 --out-dir data/synth-sample
+# 0. ВАЛИДАЦИОННЫЙ СЭМПЛ ВЛАДЕЛЬЦА (30 пар = 10/10/5/5) из готового корпуса:
+uv run python scripts/gen_synth_corpus.py --render-review data/synth/pairs.jsonl
 
-# 2. ПОЛНЫЙ КОРПУС — только после валидации сэмпла владельцем
-uv run python scripts/gen_synth_corpus.py --pairs-per-strategy 300   # ~1200 пар
+# 1. ПОЛНЫЙ КОРПУС ЧЕРЕЗ ОБЛАКО (батчи по 8, JSON-массив; ключ — из env):
+OPENROUTER_API_KEY=... uv run python scripts/gen_synth_corpus.py --pairs-per-strategy 400
+
+# 2. ОФФЛАЙН — локальный ollama (последовательные вызовы, как раньше):
+uv run python scripts/gen_synth_corpus.py --provider ollama --pairs-per-strategy 300
 ```
 
-Ключевые флаги: `--seed` (по умолчанию 7), `--model` (по умолчанию
-`qwen2.5:7b-instruct`), `--host` (по умолчанию `http://127.0.0.1:11434`),
-`--num-predict`, `--timeout`, `--force` (перезаписать существующий корпус —
-по умолчанию отказ: зафингерпринченный корпус не затирается).
+Провайдеры (OpenAI-совместимый chat/completions; HTTP живёт только в скрипте):
+
+| `--provider` | Endpoint | Модель по умолчанию | Ключ (env) |
+|---|---|---|---|
+| `openrouter` (default) | `https://openrouter.ai/api/v1` | `z-ai/glm-5.3-flash` | `OPENROUTER_API_KEY` |
+| `groq` | `https://api.groq.com/openai/v1` | `qwen/qwen3.8-27b` | `GROQ_API_KEY` |
+| `ollama` | `http://127.0.0.1:11434` | `qwen2.5:7b-instruct` | — |
+
+Облачная механика: записи генерируются БАТЧАМИ (по 8 промптов на вызов,
+контракт — JSON-массив `{"title","body"}`; кривой JSON ретраится целиком,
+счётчик `llm_json_retries`). У reasoning-моделей (glm-5.3-flash) бюджет
+вывода на вызов — clamp(2048…8192) токенов, иначе reasoning съедает ответ;
+HTTP 400 по max_tokens гасится делением бюджета пополам. Повторные отказы
+провайдера (429/5xx/транспорт/мусор) — экспоненциальный бэкофф до
+`--rate-retries` (5), затем ЛИПКИЙ фолбэк на `--fallback-provider`
+(для openrouter — groq); переключение фиксируется в
+`provenance.fallback_events`. Ключ читается только из env (`--env-var`) и
+никогда не печатается и не пишется в артефакты. urllib ходит с явным
+User-Agent — дефолтный Python-urllib Cloudflare банит (groq 403/1010).
+
+Протокольная зачистка: модели иногда помечают строки «Заголовок:/Тело:/Теги:»
+(и EN-близнецами) вместо контракта «строка 1 — заголовок»;
+`cortex.synth.strip_protocol_markers` снимает их детерминированно ДО парсинга,
+каждая зачистка считается в `llm_strips` провенанса — это гигиена протокола,
+не молчаливая правка контента.
+
+Ключевые флаги: `--seed` (по умолчанию 7), `--batch-size` (8),
+`--json-retries` (3), `--rate-retries` (5), `--deadline-min` (90; 0 = без
+лимита — при истечении пишется ЧАСТИЧНЫЙ корпус со `"status": "incomplete"`
+и код выхода 3), `--num-predict`, `--timeout`, `--force` (перезаписать
+существующий корпус — по умолчанию отказ: зафингерпринченный корпус не
+затирается).
 
 ## Выход (data/synth*/ — gitignored, контент в репу НЕ коммитится)
 
@@ -56,11 +89,14 @@ uv run python scripts/gen_synth_corpus.py --pairs-per-strategy 300   # ~1200 п�
   (`duplicate`/`not-duplicate`), `record`, `candidate`, `seed`;
 - `manifest.txt` — строки `pair_id <sha256>`, отсортированы (схема §5
   data-contract);
-- `report.json` — **корпусный фингерпринт BLAKE2b-256** от манифеста,
-  счётчики стратегий и отбросов (`dropped_empty/length/identical/duplicate/
-  same_topic`, `llm_calls`), баланс меток и полный провенанс: модель + digest
-  из `/api/tags`, options (temperature=0, seed = master seed + номер вызова,
-  num_predict), `PROMPT_VERSION`, время.
+- `report.json` — **корпусный фингерпринт BLAKE2b-256** от манифеста, статус
+  (`complete`/`incomplete`), счётчики стратегий и отбросов
+  (`dropped_empty/length/identical/duplicate/same_topic`), счётчики LLM-части
+  (`llm_calls`, `llm_batches`, `llm_json_retries`, `llm_strips`), баланс
+  меток и полный провенанс: провайдер + model id, цепочка использования и
+  fallback-события, options (temperature=0, seed = master seed + номер батча,
+  batch_size, бюджет токенов), `PROMPT_VERSION`, время. Имя env-переменной
+  ключа — да, значение ключа — никогда.
 
 Воспроизводимость: процедурные стратегии детерминированы по сиду строго;
 LLM-часть пиннится temperature=0 + per-call seed — повторяемо на той же
