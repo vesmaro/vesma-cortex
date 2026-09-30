@@ -6,7 +6,7 @@
 |---|---|---|---|
 | A0 | чартер + скелет репы | ✅ done (8e3c12b) | docs/charter.md |
 | A1 | АрхКом: архитектура модели + нейминг-онтология | ✅ done (ADR 0001) | docs/decisions/0001-archcom-a1-verdicts.md |
-| A2 | pretrain-корпус из стора (export-corpus) + A2s синтетика (ADR П3) | backlog (контракты готовы) | docs/specs/data-contract.md |
+| A2 | pretrain-корпус из стора (export-corpus) + A2s синтетика | A2s ✅ (f3a6bbe: корпус 1350 пар `621cb23f`, сэмпл ждёт владельца); export-corpus — следующий срез | docs/synth.md, artifacts/manifests/synth-stage1.md |
 | A3 | реализация: A3a контракты ✅ (d379159) · A3b алгоритмы ✅ (649e5ce) · A3c смоук+ранбук ✅ (c8041a9) — 125/114 тестов, смоук 4,6с/86с, детерминизм | ✅ done | src/cortex/, scripts/smoke_pipeline.py |
 | A4 | контрольный прогон обучения: CPU — основной путь; XPU-walkthrough опционален (решение владельца: на усмотрение TL) | backlog | — |
 | A5 | single-shot оценка по препрегу v2 | backlog, кросс-гейт W5b (разметка 196 пар владельцем) | — |
