@@ -1,4 +1,4 @@
-"""cortex CLI — pipeline entry points (bodies landed in A3b).
+"""cortex CLI — pipeline entry points.
 
 Subcommands mirror the pipeline order: export-corpus (A2, prereg hygiene +
 fingerprints) → pretrain (A3b, corruption pairs) → train (A3b, D/N) →
@@ -8,7 +8,7 @@ eval (A5, single-shot runner).
 Exit codes (machine-checkable, latin-only on stderr):
 
 - 0 — success;
-- 2 — usage error / not-implemented stub (export-corpus until A2);
+- 2 — usage error / invalid input (bad store, contract violation);
 - 3 — train-env dependency missing (torch for the N candidate);
 - 4 — single-shot run refused (this corpus was already evaluated).
 
@@ -24,6 +24,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
+import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -39,21 +41,15 @@ from cortex.features.pair import FEATURE_NAMES, PairRecord, features
 
 __all__ = ["main", "build_parser"]
 
-#: Exit code for a not-yet-implemented subcommand (stub contract).
-NOT_IMPLEMENTED_EXIT: Final[int] = 2
-
 #: Exit code for a missing train-env dependency (torch extra).
 ENV_MISSING_EXIT: Final[int] = 3
 
 #: Exit code for a refused single-shot run (prereg guard).
 RUN_REFUSED_EXIT: Final[int] = 4
 
-_STUB_MESSAGE = "not implemented in A3a — scheduled for A2 (see docs/specs/data-contract.md)"
-
-
-def _stub(command: str) -> int:
-    print(f"cortex {command}: {_STUB_MESSAGE}", file=sys.stderr)
-    return NOT_IMPLEMENTED_EXIT
+#: corpus-id shape (data-contract §2 + ADR 0001 V4: machine strings are
+#: latin-only; also a path-safety guard — it becomes a directory name).
+_CORPUS_ID_RE: Final[re.Pattern[str]] = re.compile(r"^[a-z0-9][a-z0-9-]{0,63}$")
 
 
 # ── shared loading helpers (train-side manifest) ──────────────────────────────
@@ -132,6 +128,57 @@ def _n_config_by_name(name: str):
 
 
 # ── command handlers ──────────────────────────────────────────────────────────
+
+
+def _cmd_export_corpus(args: argparse.Namespace) -> int:
+    from cortex.data.store_export import (
+        export_store_corpus,
+        make_scanner,
+    )
+
+    if args.min_cosine >= args.max_cosine:
+        raise ValueError(
+            f"--min-cosine must be < --max-cosine, got [{args.min_cosine}, {args.max_cosine})"
+        )
+    if args.limit_pool <= 0:
+        raise ValueError(f"--limit-pool must be positive, got {args.limit_pool}")
+    if (args.store_path is None) == (args.store_uri is None):
+        raise ValueError("exactly one of --store-path / --store-uri is required")
+    corpus_id = args.corpus_id or f"pretrain-{datetime.now(timezone.utc).strftime('%Y%m%d')}"
+    if not _CORPUS_ID_RE.fullmatch(corpus_id):
+        raise ValueError(
+            f"--corpus-id must match {_CORPUS_ID_RE.pattern!r} (machine string, ADR 0001 V4), "
+            f"got {corpus_id!r}"
+        )
+
+    scanner = make_scanner(args.engine_src)
+    if scanner.provenance != "engine":
+        print(
+            f"cortex export-corpus: WARNING scanner provenance is {scanner.provenance!r} — "
+            "the prereg hygiene expects the ENGINE detectors (--engine-src / $CORTEX_ENGINE_SRC); "
+            "any report built from this export must disclose the fallback",
+            file=sys.stderr,
+        )
+
+    def progress(message: str) -> None:
+        print(f"cortex export-corpus: {message}", file=sys.stderr)
+
+    result = export_store_corpus(
+        store_path=args.store_path,
+        store_uri=args.store_uri,
+        out_dir=args.out,
+        corpus_id=corpus_id,
+        scanner=scanner,
+        limit_pool=args.limit_pool,
+        min_cosine=args.min_cosine,
+        max_cosine=args.max_cosine,
+        with_pairs=not args.no_pairs,
+        progress=progress,
+    )
+    if result.corpus_fingerprint is None:
+        progress("near-duplicate pair bases skipped (--no-pairs)")
+    print(json.dumps(result.summary(), ensure_ascii=False))
+    return 0
 
 
 def _cmd_pretrain(args: argparse.Namespace) -> int:
@@ -648,8 +695,20 @@ def build_parser() -> argparse.ArgumentParser:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p = sub.add_parser("export-corpus", help="export eval/pretrain corpus from the store (prereg hygiene, fingerprints)")
-    p.add_argument("--store-uri", required=True, help="read-only store URI: file:...?mode=ro")
-    p.add_argument("--out", required=True, help="output directory under data/")
+    p.add_argument("--store-path", default=None,
+                   help="store data DIRECTORY holding mnemos.db + vectors.db (opened strictly read-only)")
+    p.add_argument("--store-uri", default=None,
+                   help="contract-form read-only URI of mnemos.db (file:...?mode=ro); vectors.db is its sibling")
+    p.add_argument("--out", "--out-dir", dest="out", required=True,
+                   help="output root under data/ (corpus lands in <out>/pretrain/<corpus-id>/)")
+    p.add_argument("--corpus-id", default=None, help="default: pretrain-<UTC date>")
+    p.add_argument("--limit-pool", type=int, default=800, help="max records in the pool (default 800)")
+    p.add_argument("--min-cosine", type=float, default=0.85, help="near-dup pair band lower bound (inclusive)")
+    p.add_argument("--max-cosine", type=float, default=0.97, help="near-dup pair band upper bound (exclusive)")
+    p.add_argument("--no-pairs", action="store_true", help="skip near-duplicate pair bases")
+    p.add_argument("--engine-src", default=None,
+                   help="engine source tree for the hygiene detectors (default: $CORTEX_ENGINE_SRC); "
+                   "absent → local fallback scanner, disclosed in provenance")
 
     p = sub.add_parser("pretrain", help="generate corruption pretrain pairs (candidate N)")
     p.add_argument("--corpus", required=True, help="records jsonl (title/body/tags/language/record_type rows)")
@@ -685,6 +744,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 _HANDLERS = {
+    "export-corpus": _cmd_export_corpus,
     "pretrain": _cmd_pretrain,
     "train": _cmd_train,
     "select": _cmd_select,
@@ -697,11 +757,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     handler = _HANDLERS.get(args.command)
-    if handler is None:
-        return _stub(args.command)
+    if handler is None:  # pragma: no cover - argparse enforces the surface
+        print(f"cortex: unknown command {args.command!r}", file=sys.stderr)
+        return 2
     try:
         return handler(args)
-    except (ValueError, RuntimeError, FileNotFoundError) as exc:
+    except (ValueError, RuntimeError, FileNotFoundError, sqlite3.Error) as exc:
         print(f"cortex {args.command}: {exc}", file=sys.stderr)
         return 2
 
