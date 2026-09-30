@@ -74,6 +74,7 @@ Exit codes: 0 ok · 2 usage error / missing key env · 1 backend failure ·
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import os
 import sys
@@ -354,7 +355,14 @@ def chat_completion(
             raise ProviderDown(
                 f"HTTP {exc.code} from {name} (fatal, no retry): {detail}"
             ) from exc
-        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+        except (
+            urllib.error.URLError,
+            TimeoutError,
+            OSError,
+            http.client.HTTPException,
+        ) as exc:
+            # HTTPException covers IncompleteRead/BadStatusLine: chunked
+            # responses from long cloud generations do drop mid-read.
             last_error = ProviderDown(
                 f"transport failure ({name}) after "
                 f"{time.monotonic() - started:.0f}s: {exc}"
