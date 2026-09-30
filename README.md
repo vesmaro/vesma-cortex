@@ -33,3 +33,20 @@ DECLINE — честный исход, прецедент W4c.
   семейный дефолт).
 - **Дисциплина данных:** ни одной сырой строки стора в репе; секрет-скан и
   `no-federate` до экспорта любых данных (гигиена препрега v2).
+
+## Quickstart
+
+```bash
+git clone https://github.com/vesmaro/vesmaro-cortex && cd vesmaro-cortex
+uv sync                                   # дефолтная среда (без torch)
+uv run pytest tests/ -q                   # контрактные тесты (N-тесты скипаются)
+uv run python scripts/smoke_pipeline.py   # CPU-смоук полного контура (~5 с)
+
+uv sync --extra train                     # + CPU-torch: нейроголова N
+uv run --extra train pytest tests/ -q     # все тесты, включая N
+uv run --extra train python scripts/smoke_pipeline.py --with-n   # полный смоук (~90 с)
+```
+
+XPU-прогон — опциональный walkthrough для владельца:
+[docs/runbooks/xpu-walkthrough.md](docs/runbooks/xpu-walkthrough.md)
+(оценка A5 от него не зависит, ADR 0001 V6).

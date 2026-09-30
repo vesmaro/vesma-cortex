@@ -128,10 +128,14 @@ def test_pretrain_then_train_overrides() -> None:
 
 
 def test_architecture_change_between_stages_refused() -> None:
+    # GRID_N[3] pretrains hidden (64,); the supervised stage must use a
+    # DIFFERENT architecture for the refusal to apply — A3b wrote this
+    # against GRID_N[0] (also (64,)), which never reached the guard until
+    # the train extra actually ran the module (A3c fix).
     model = NHeadModel()
     model.pretrain(list(zip(VECTORS[:10], BLOCKS[:10])), GRID_N[3], labels=[1, 0] * 5)
     with pytest.raises(ValueError, match="architecture changed"):
-        model.train(VECTORS, LABELS, GRID_N[0], vector_blocks=BLOCKS)
+        model.train(VECTORS, LABELS, GRID_N[2], vector_blocks=BLOCKS)  # n-h64-32: (64, 32)
 
 
 # ── export (inference-v1.md §4, variant N) ────────────────────────────────────
@@ -150,8 +154,13 @@ def test_export_onnx_roundtrip(tmp_path: Path) -> None:
     assert {op.domain for op in loaded.graph.node if op.op_type == "Sigmoid"}
     assert {opset.domain: opset.version for opset in loaded.opset_import}[""] == 15
     assert [i.name for i in loaded.graph.input] == ["scalars", "vectors"]
-    assert loaded.graph.input[1].type.tensor_type.shape.dim[1].dim_value == 4
-    assert loaded.graph.input[1].type.tensor_type.shape.dim[2].dim_value == 384
+    # inference-v1.md §4 contract: vectors is exactly float32[4, 384] (2-D,
+    # no batch dim — the smoke-inference feeds zeros(4, 384)). A3b wrote
+    # dim[1]==4/dim[2]==384 against a phantom batch axis that the legacy
+    # exporter never emitted (A3c fix, first real torch run).
+    assert loaded.graph.input[1].type.tensor_type.shape.dim[0].dim_value == 4
+    assert loaded.graph.input[1].type.tensor_type.shape.dim[1].dim_value == 384
+    assert len(loaded.graph.input[1].type.tensor_type.shape.dim) == 2
     assert out.stat().st_size <= 5 * 1024 * 1024
 
     session = onnxruntime.InferenceSession(str(out), providers=["CPUExecutionProvider"])
