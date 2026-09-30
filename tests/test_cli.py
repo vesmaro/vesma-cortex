@@ -314,10 +314,25 @@ def test_eval_rejects_foreign_artifact(trained_d: Path, holdout_dir: Path, tmp_p
     assert code == 2
 
 
-# ── export-corpus: the A2 stub ────────────────────────────────────────────────
+# ── export-corpus: implemented in A2 (store export, prereg hygiene) ──────────
 
 
-def test_export_corpus_stub_names_a2(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+def test_export_corpus_missing_store_fails_loud(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    """A2 landed the real exporter: a missing store is a loud usage error
+    naming the problem — never fake success, never a stub claim."""
     code = main(["export-corpus", "--store-uri", "file:x?mode=ro", "--out", str(tmp_path / "c")])
     assert code == 2
-    assert "A2" in capsys.readouterr().err
+    stderr = capsys.readouterr().err
+    assert stderr.strip()
+    assert "not implemented" not in stderr.lower()
+
+
+def test_export_corpus_requires_single_store_source(tmp_path: Path) -> None:
+    """--store-path and --store-uri are mutually exclusive (read-only both)."""
+    code = main([
+        "export-corpus",
+        "--store-path", str(tmp_path),
+        "--store-uri", "file:x?mode=ro",
+        "--out", str(tmp_path / "c"),
+    ])
+    assert code == 2

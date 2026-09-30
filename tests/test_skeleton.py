@@ -8,10 +8,9 @@ Pins the slice's own deliverables:
 4. grid caps (≤ 8 per ADR 0001 V1);
 5. zero network imports across src/cortex — the repo-side twin of the
    engine's tests/test_mcp_core_isolation.py AST tripwire;
-6. CLI surface: export-corpus is the only remaining stub (A2); the A3b
-   commands are implemented and fail loud on bad input (exit 2, stderr
-   message) — never fake success. End-to-end command contracts live in
-   tests/test_cli.py.
+6. CLI surface: all six subcommands implemented (A2 landed export-corpus);
+   every command fails loud on bad input (exit 2, stderr message) — never
+   fake success. End-to-end command contracts live in tests/test_cli.py.
 """
 
 from __future__ import annotations
@@ -90,7 +89,7 @@ def test_candidate_surface() -> None:
 def test_algorithm_modules_implemented() -> None:
     """A3b replaced the honest stubs: the contracted entry points now
     execute (or validate loudly) instead of raising NotImplementedError.
-    Only export-corpus remains a stub (A2, see tests/test_cli.py)."""
+    export-corpus landed in A2 (see tests/test_store_export.py)."""
     from cortex.artifacts import build_metadata_props
     from cortex.data.holdout import split_holdout
     from cortex.features.pair import PairRecord, features
@@ -213,7 +212,7 @@ def test_zero_network_imports() -> None:
     )
 
 
-# ── 6. CLI surface: export-corpus stubbed (A2), A3b commands real ────────────
+# ── 6. CLI surface: all six commands implemented (A2 landed export-corpus) ───
 
 
 def test_cli_subcommands_surface() -> None:
@@ -234,13 +233,16 @@ def test_cli_subcommands_surface() -> None:
     }
 
 
-def test_cli_export_corpus_still_stubbed(tmp_path: Path) -> None:
-    """export-corpus is the ONLY stub left — A2 owns it (prereg hygiene,
-    store export). It must fail loud (exit 2) naming A2, never fake success."""
+def test_cli_export_corpus_missing_store_fails_loud(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+    """export-corpus is implemented (A2): a missing store is a loud usage
+    error (exit 2 + stderr), never fake success and never a stub claim."""
     from cortex.cli.main import main
 
     code = main(["export-corpus", "--store-uri", "file:x?mode=ro", "--out", str(tmp_path / "x")])
     assert code == 2
+    stderr = capsys.readouterr().err
+    assert stderr.strip()
+    assert "stub" not in stderr.lower()
 
 
 @pytest.mark.parametrize(
