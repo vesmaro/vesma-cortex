@@ -19,9 +19,11 @@ labels BY CONSTRUCTION — never a judge and never a language teacher:
   procedural (no LLM).
 
 Purity contract (tests/test_skeleton.py AST tripwire): this module is
-NETWORK-FREE. The LLM enters ONLY as an injected callback
-``llm_fn: Callable[[str], str]]``; the ollama HTTP client lives outside
-src/cortex (scripts/gen_synth_corpus.py).
+NETWORK-FREE. The LLM enters ONLY as an injected callback — either the
+one-prompt form ``llm_fn: Callable[[str], str]]`` (local ollama) or the
+batched form ``llm_batch_fn: Callable[[Sequence[str]], Sequence[str]]``
+(cloud chat/completions backends, 6–8 records per HTTP call); the HTTP
+clients live outside src/cortex (scripts/gen_synth_corpus.py).
 
 Determinism / provenance (П3): generation is seed-deterministic for the
 procedural part; prompts carry PROMPT_VERSION; RU records get RU prompts,
@@ -60,6 +62,7 @@ produces a DERIVED corpus with its own fingerprint.
 from __future__ import annotations
 
 import random
+import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Callable, Final, NamedTuple
@@ -111,7 +114,10 @@ __all__ = [
     "BODY_RATIO_MIN",
     "BODY_RATIO_MAX",
     "MAX_ATTEMPTS",
+    "MARKER_LINE_RE",
+    "MARKER_PREFIX_RE",
     "parse_llm_record",
+    "strip_protocol_markers",
     "validate_candidate",
     "label_name",
     "pair_row",
@@ -211,7 +217,13 @@ class SynthPair:
 
 @dataclass
 class SynthStats:
-    """Generation counters — dropped pairs are counted, never hidden."""
+    """Generation counters — dropped pairs are counted, never hidden.
+
+    ``llm_calls`` counts RECORD prompts (one per LLM slot attempt), while
+    ``llm_batches``/``llm_json_retries`` are HTTP-level counters owned by the
+    transport wrapper (0 on the sequential ollama path); ``llm_strips``
+    counts protocol-marker cleanups (see :func:`strip_protocol_markers`).
+    """
 
     attempts: int = 0
     emitted: int = 0
@@ -221,6 +233,9 @@ class SynthStats:
     dropped_duplicate: int = 0
     dropped_same_topic: int = 0
     llm_calls: int = 0
+    llm_batches: int = 0
+    llm_json_retries: int = 0
+    llm_strips: int = 0
 
     def drop(self, reason: str) -> None:
         if reason == "empty":
@@ -246,6 +261,9 @@ class SynthStats:
             "dropped_duplicate": self.dropped_duplicate,
             "dropped_same_topic": self.dropped_same_topic,
             "llm_calls": self.llm_calls,
+            "llm_batches": self.llm_batches,
+            "llm_json_retries": self.llm_json_retries,
+            "llm_strips": self.llm_strips,
         }
 
 
@@ -353,6 +371,60 @@ def _build_prompt(base: SynthRecord, *, paraphrase: bool, variant: int = 0) -> s
 
 
 # ── LLM output validation (drop-with-counter, never silent repair) ────────────
+
+
+#: Protocol markers some models write instead of following the bare
+#: "line 1 title + body" contract (observed on 16/24 sides of the qwen2.5:7b
+#: owner sample: «Заголовок:/Тело:/Теги:» and their EN twins). Case-insensitive;
+#: ASCII and full-width colons.
+_MARKER_TOKEN: Final[str] = r"(?P<token>заголовок|тело|теги|title|body|tags)"
+MARKER_PREFIX_RE: Final[re.Pattern[str]] = re.compile(
+    _MARKER_TOKEN + r"\s*[:：]\s*", re.IGNORECASE
+)
+MARKER_LINE_RE: Final[re.Pattern[str]] = re.compile(
+    _MARKER_TOKEN + r"\s*[:：]\s*", re.IGNORECASE
+)
+
+
+def strip_protocol_markers(raw: str) -> tuple[str, int]:
+    """Strip protocol-marker noise from an LLM output; returns ``(text, strips)``.
+
+    Deterministic PROTOCOL CLEANUP over the marker set
+    {Заголовок, Тело, Теги, Title, Body, Tags} — counted in provenance
+    (``llm_strips``), never a content repair; anything else still dies at
+    validation. Rules, applied line by line (start-of-string is line 0):
+
+    1. a line that is ONLY a marker (``"Тело:"``) is dropped whole;
+    2. a line starting with a marker prefix loses the prefix
+       (``"Заголовок: X"`` → ``"X"``, chained prefixes collapse);
+       a ``Теги/Tags:``-prefixed line is dropped WHOLE — the model-invented
+       tag list is protocol noise (the candidate inherits base tags).
+
+    Mid-line markers are content and are never touched; an empty input maps
+    to itself with zero strips.
+    """
+    if not raw:
+        return raw, 0
+    count = 0
+    out: list[str] = []
+    for line in raw.splitlines():
+        work = line.strip()
+        if not work:
+            out.append(work)
+            continue
+        if MARKER_LINE_RE.fullmatch(work) is not None:
+            count += 1
+            continue
+        match = MARKER_PREFIX_RE.match(work)
+        if match is not None and match.group("token").lower() in ("теги", "tags"):
+            count += 1
+            continue  # model-invented tag list — dropped whole
+        while match is not None:
+            count += 1
+            work = work[match.end():]
+            match = MARKER_PREFIX_RE.match(work)
+        out.append(work)
+    return "\n".join(out), count
 
 
 def parse_llm_record(raw: str) -> tuple[str, str] | None:
@@ -648,7 +720,9 @@ def _llm_candidate(
     """
     stats.llm_calls += 1
     raw = llm_fn(_build_prompt(base, paraphrase=paraphrase, variant=variant))
-    parsed = parse_llm_record(raw)
+    clean, strips = strip_protocol_markers(raw)
+    stats.llm_strips += strips
+    parsed = parse_llm_record(clean)
     if parsed is None:
         stats.drop("empty")
         return None
@@ -663,6 +737,100 @@ def _llm_candidate(
     )
 
 
+def _generate_llm_strategy_batched(
+    strategy: str,
+    quota: int,
+    ordinal: int,
+    pairs_per_strategy: int,
+    pool: Sequence[SynthRecord],
+    master: random.Random,
+    llm_batch_fn: Callable[[Sequence[str]], Sequence[str]],
+    batch_size: int,
+    counters: SynthStats,
+    seen_ids: set[str],
+    next_variant: dict[tuple[str, int], int],
+) -> list[SynthPair]:
+    """One LLM strategy through the BATCHED callback, in rounds (cloud path).
+
+    Mirrors the sequential slot loop's semantics: monotonic variant numbers
+    per base, at most MAX_ATTEMPTS prompts per slot, corridor drops are NOT
+    retried (temperature 0 cannot fix validation), pair-id collisions retry
+    in the NEXT round with a bumped variant and drop with a counter on
+    exhaustion. Pair seeds are drawn from ``master`` in (round, slot) order —
+    a collision-free, corridor-free run draws exactly the same sequence as
+    the sequential loop, so equal prompts ⇒ equal corpus.
+    """
+    paraphrase = strategy == STRATEGY_PARAPHRASE
+    base_indices = [(ordinal * pairs_per_strategy + i) % len(pool) for i in range(quota)]
+    sent: dict[int, int] = {i: 0 for i in range(quota)}
+    corridor_dropped: set[int] = set()
+    duplicate_dropped: set[int] = set()
+    results: dict[int, SynthPair] = {}
+
+    for _round in range(MAX_ATTEMPTS):
+        active = [
+            i for i in range(quota)
+            if i not in results and i not in corridor_dropped
+            and i not in duplicate_dropped and sent[i] < MAX_ATTEMPTS
+        ]
+        if not active:
+            break
+        jobs: list[tuple[int, SynthRecord, int, str]] = []
+        for i in active:
+            base = pool[base_indices[i]]
+            pair_seed = master.getrandbits(32)
+            variant_key = (strategy, base_indices[i])
+            variant = next_variant.get(variant_key, 0)
+            next_variant[variant_key] = variant + 1
+            jobs.append((
+                i, base, pair_seed,
+                _build_prompt(base, paraphrase=paraphrase, variant=variant),
+            ))
+        for start in range(0, len(jobs), batch_size):
+            chunk = jobs[start:start + batch_size]
+            counters.llm_calls += len(chunk)
+            counters.llm_batches += 1
+            outputs = llm_batch_fn([job[3] for job in chunk])
+            if len(outputs) != len(chunk):
+                raise ValueError(
+                    f"llm_batch_fn returned {len(outputs)} outputs for "
+                    f"{len(chunk)} prompts — a batched callback must keep "
+                    "count and order"
+                )
+            for (i, base, pair_seed, _prompt), raw in zip(chunk, outputs):
+                sent[i] += 1
+                clean, strips = strip_protocol_markers(raw)
+                counters.llm_strips += strips
+                parsed = parse_llm_record(clean)
+                if parsed is None:
+                    counters.drop("empty")
+                    corridor_dropped.add(i)
+                    continue
+                title, body = parsed
+                reason = validate_candidate(base, title, body)
+                if reason is not None:
+                    counters.drop(reason)
+                    corridor_dropped.add(i)
+                    continue
+                candidate = SynthRecord(
+                    title=title, body=body, tags=base.tags,
+                    language=base.language, record_type=base.record_type,
+                )
+                if paraphrase:
+                    pair_rng = random.Random(pair_seed)
+                    candidate = pair_rng.choice(_WEAK_ON_TOP).apply(candidate, pair_rng)
+                label = LABEL_DUPLICATE if paraphrase else LABEL_NOT_DUPLICATE
+                try:
+                    results[i] = _emit(seen_ids, base, candidate, label, strategy, pair_seed)
+                except ValueError:
+                    if sent[i] >= MAX_ATTEMPTS:
+                        duplicate_dropped.add(i)
+
+    for _slot in duplicate_dropped:
+        counters.drop("duplicate")
+    return [results[i] for i in sorted(results)]
+
+
 def generate_corpus(
     topics: Sequence[SynthTopic],
     pairs_per_strategy: int,
@@ -671,6 +839,9 @@ def generate_corpus(
     *,
     quotas: Mapping[str, int] | None = None,
     stats: SynthStats | None = None,
+    llm_batch_fn: Callable[[Sequence[str]], Sequence[str]] | None = None,
+    batch_size: int = 8,
+    emit_callback: Callable[[SynthPair], None] | None = None,
 ) -> list[SynthPair]:
     """Generate the stage-1 synth corpus (ADR 0001 П3) — pure, no network.
 
@@ -679,10 +850,21 @@ def generate_corpus(
             testability); cycled deterministically per strategy.
         pairs_per_strategy: uniform quota per strategy (overridden per
             strategy by ``quotas``).
-        llm_fn: INJECTED text generator ``prompt -> output``; required when
-            any LLM-strategy quota is positive, ignored otherwise. The
-            callback may raise on transport failures — that aborts the
-            generation loudly (a transport outage is not a droppable pair).
+        llm_fn: INJECTED text generator ``prompt -> output`` (sequential
+            mode, local ollama); required when any LLM-strategy quota is
+            positive AND ``llm_batch_fn`` is None. The callback may raise on
+            transport failures — that aborts the generation loudly (a
+            transport outage is not a droppable pair).
+        llm_batch_fn: INJECTED batched generator ``[prompt] -> [output]``
+            (cloud mode): receives a list of record prompts, returns the
+            SAME number of raw outputs in the same order. Exactly one of
+            ``llm_fn``/``llm_batch_fn`` must be supplied when an LLM
+            strategy quota is positive. Failure semantics match ``llm_fn``.
+        batch_size: max prompts per ``llm_batch_fn`` call (cloud batching,
+            6–8 keeps one chat/completions call within output limits).
+        emit_callback: optional ``SynthPair -> None`` hook called for every
+            emitted pair IN EMISSION ORDER — the transport-side durability
+            checkpoint (script-side partial-corpus journal).
         seed: master seed; every pair draws its own sub-seed from it.
         quotas: optional per-strategy override (strategy name → quota).
         stats: optional counter sink (mutated in place, returned via
@@ -694,8 +876,10 @@ def generate_corpus(
 
     Raises:
         ValueError: on negative quotas, unknown strategy names, an empty
-            topic list while a quota is positive, or a missing ``llm_fn``
-            for an LLM strategy. Duplicate pair ids survive MAX_ATTEMPTS
+            topic list while a quota is positive, a missing ``llm_fn``/
+            ``llm_batch_fn`` for an LLM strategy, both callbacks at once,
+            a ``batch_size`` < 1, or a batched callback that breaks
+            count/order. Duplicate pair ids survive MAX_ATTEMPTS
             retries only as a counted drop — a raise here would mean the
             retry mechanics itself is broken.
     """
@@ -703,11 +887,19 @@ def generate_corpus(
     topic_list = tuple(topics)
     if any(resolved[s] > 0 for s in STRATEGIES) and not topic_list:
         raise ValueError("topics is empty but at least one quota is positive")
-    if any(resolved[s] > 0 for s in LLM_STRATEGIES) and llm_fn is None:
-        raise ValueError(
-            f"llm_fn is required for LLM strategies {list(LLM_STRATEGIES)} "
-            "(src/cortex is network-free — inject the callback)"
-        )
+    if any(resolved[s] > 0 for s in LLM_STRATEGIES):
+        if llm_fn is None and llm_batch_fn is None:
+            raise ValueError(
+                f"llm_fn (or llm_batch_fn) is required for LLM strategies "
+                f"{list(LLM_STRATEGIES)} (src/cortex is network-free — "
+                "inject the callback)"
+            )
+        if llm_fn is not None and llm_batch_fn is not None:
+            raise ValueError(
+                "pass either llm_fn or llm_batch_fn — one callback mode per run"
+            )
+    if llm_batch_fn is not None and batch_size < 1:
+        raise ValueError(f"batch_size must be >= 1, got {batch_size}")
     counters = stats if stats is not None else SynthStats()
     master = random.Random(seed)
     pool = tuple(topic.as_record() for topic in topic_list)
@@ -722,6 +914,18 @@ def generate_corpus(
 
     for ordinal, strategy in enumerate(STRATEGIES):
         quota = resolved[strategy]
+        if quota == 0:
+            continue
+        if strategy in LLM_STRATEGIES and llm_batch_fn is not None:
+            for pair in _generate_llm_strategy_batched(
+                strategy, quota, ordinal, pairs_per_strategy, pool, master,
+                llm_batch_fn, batch_size, counters, seen_ids, next_variant,
+            ):
+                pairs.append(pair)
+                counters.emitted += 1
+                if emit_callback is not None:
+                    emit_callback(pair)
+            continue
         for i in range(quota):
             base_index = (ordinal * pairs_per_strategy + i) % len(pool)
             base = pool[base_index]
@@ -806,6 +1010,8 @@ def generate_corpus(
 
             pairs.append(emitted)
             counters.emitted += 1
+            if emit_callback is not None:
+                emit_callback(emitted)
 
     return pairs
 

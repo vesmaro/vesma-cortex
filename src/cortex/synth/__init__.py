@@ -17,6 +17,8 @@ from cortex.synth.generate import (
     MAX_TITLE_CHARS,
     MIN_BODY_CHARS,
     MIN_TITLE_CHARS,
+    MARKER_LINE_RE,
+    MARKER_PREFIX_RE,
     NEAR_TOPIC_PROMPT_EN,
     NEAR_TOPIC_PROMPT_RU,
     PARAPHRASE_PROMPT_EN,
@@ -45,6 +47,7 @@ from cortex.synth.generate import (
     pair_row_json,
     parse_llm_record,
     sample_quotas,
+    strip_protocol_markers,
     validate_candidate,
 )
 
@@ -76,7 +79,10 @@ __all__ = [
     "BODY_RATIO_MIN",
     "BODY_RATIO_MAX",
     "MAX_ATTEMPTS",
+    "MARKER_LINE_RE",
+    "MARKER_PREFIX_RE",
     "parse_llm_record",
+    "strip_protocol_markers",
     "validate_candidate",
     "label_name",
     "pair_row",

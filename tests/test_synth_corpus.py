@@ -12,6 +12,7 @@ run, never in tests.
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 import sys
@@ -38,6 +39,7 @@ from cortex.synth import (
     pair_row_json,
     parse_llm_record,
     sample_quotas,
+    strip_protocol_markers,
     validate_candidate,
 )
 
@@ -370,6 +372,208 @@ def test_prompts_follow_record_language() -> None:
     assert "вариант" not in paraphrase_ru
 
 
+# ── protocol-marker cleanup (llm_strips provenance counter) ───────────────────
+
+
+def test_strip_protocol_markers_removes_prefixes_and_marker_lines() -> None:
+    raw = (
+        "Заголовок: Настройка ruff\n"
+        "Тело: Конфиг в pyproject, длина строки сто.\n"
+        "Теги: tools, linting"
+    )
+    assert strip_protocol_markers(raw) == (
+        "Настройка ruff\nКонфиг в pyproject, длина строки сто.",
+        3,
+    )
+    raw_en = (
+        "Title: Ruff setup\n"
+        "Body: The config lives in pyproject, line length one hundred.\n"
+        "Tags: tools"
+    )
+    assert strip_protocol_markers(raw_en) == (
+        "Ruff setup\nThe config lives in pyproject, line length one hundred.",
+        3,
+    )
+
+
+def test_strip_protocol_markers_edge_cases() -> None:
+    # marker-only line
+    assert strip_protocol_markers("Тело:\nТекст после пустого маркера.") == (
+        "Текст после пустого маркера.",
+        1,
+    )
+    # chained prefixes collapse with one strip per marker
+    assert strip_protocol_markers("Заголовок: Заголовок: Двойной") == ("Двойной", 2)
+    # case-insensitive EN
+    assert strip_protocol_markers("TITLE: X\nBODY: Y") == ("X\nY", 2)
+    # clean text, empty text and mid-line markers pass through untouched
+    clean = "Просто заголовок\nТело записи не помечено маркером."
+    assert strip_protocol_markers(clean) == (clean, 0)
+    assert strip_protocol_markers("") == ("", 0)
+    mixed = "Заголовок\nВ тексте упомянуто Тело: посреди строки — это контент."
+    assert strip_protocol_markers(mixed) == (mixed, 0)
+
+
+# ── batched cloud path (llm_batch_fn) ─────────────────────────────────────────
+
+
+def _batch_mock(prompts: list[str]) -> list[str]:
+    return [_mock_llm(prompt) for prompt in prompts]
+
+
+def test_batched_path_matches_sequential_on_clean_mock() -> None:
+    """Collision-free run: same prompts, same seed-draw order, same corpus."""
+    quotas = {STRATEGY_PARAPHRASE: 3, STRATEGY_NEAR_TOPIC: 3}
+    sequential = [
+        pair_row(p) for p in generate_corpus(TOPICS_TEST, 0, _mock_llm, 9, quotas=quotas)
+    ]
+    batched = [
+        pair_row(p)
+        for p in generate_corpus(TOPICS_TEST, 0, None, 9, quotas=quotas, llm_batch_fn=_batch_mock)
+    ]
+    assert batched == sequential
+
+
+def test_batched_path_counts_batches_and_enforces_count_order() -> None:
+    stats = SynthStats()
+    calls: list[list[str]] = []
+
+    def tracking_mock(prompts: list[str]) -> list[str]:
+        calls.append(list(prompts))
+        return _batch_mock(prompts)
+
+    pairs = generate_corpus(
+        TOPICS_TEST, 0, None, 5,
+        quotas={STRATEGY_PARAPHRASE: 3}, stats=stats,
+        llm_batch_fn=tracking_mock, batch_size=2,
+    )
+    assert len(pairs) == 3
+    counters = stats.as_dict()
+    assert counters["llm_batches"] == 2  # ceil(3/2)
+    assert counters["llm_calls"] == 3
+    assert [len(chunk) for chunk in calls] == [2, 1]
+
+    def bad_count(prompts: list[str]) -> list[str]:
+        return _batch_mock(prompts)[:-1]
+
+    with pytest.raises(ValueError, match="count and order"):
+        generate_corpus(
+            TOPICS_TEST, 0, None, 5,
+            quotas={STRATEGY_PARAPHRASE: 1}, llm_batch_fn=bad_count,
+        )
+
+
+def test_batched_corridor_drops_are_not_retried_transport_aborts_loudly() -> None:
+    stats = SynthStats()
+
+    def empty(prompts: list[str]) -> list[str]:
+        return [""] * len(prompts)
+
+    pairs = generate_corpus(
+        TOPICS_TEST, 0, None, 5,
+        quotas={STRATEGY_NEAR_TOPIC: 2}, stats=stats, llm_batch_fn=empty,
+    )
+    assert pairs == []
+    counters = stats.as_dict()
+    assert counters["dropped_empty"] == 2
+    assert counters["llm_calls"] == 2  # corridor drops get no second round
+
+    def broken(prompts: list[str]) -> list[str]:
+        raise ConnectionError("provider down")
+
+    with pytest.raises(ConnectionError):
+        generate_corpus(
+            TOPICS_TEST, 0, None, 5,
+            quotas={STRATEGY_NEAR_TOPIC: 1}, llm_batch_fn=broken,
+        )
+
+
+def test_callback_modes_are_mutually_exclusive_and_batch_size_validated() -> None:
+    with pytest.raises(ValueError, match="one callback mode"):
+        generate_corpus(
+            TOPICS_TEST, 0, _mock_llm, 5,
+            quotas={STRATEGY_PARAPHRASE: 1}, llm_batch_fn=_batch_mock,
+        )
+    with pytest.raises(ValueError, match="batch_size"):
+        generate_corpus(
+            TOPICS_TEST, 0, None, 5,
+            quotas={STRATEGY_PARAPHRASE: 1}, llm_batch_fn=_batch_mock, batch_size=0,
+        )
+
+
+def test_emit_callback_receives_every_pair_in_order() -> None:
+    seen: list[str] = []
+    pairs = generate_corpus(
+        TOPICS_TEST, 0, _mock_llm, 21,
+        quotas={s: 3 for s in (STRATEGY_PARAPHRASE, STRATEGY_NEAR_TOPIC,
+                               STRATEGY_BROKEN_FIELD, STRATEGY_TRIVIAL_NEGATIVE)},
+        emit_callback=lambda pair: seen.append(pair.pair_id),
+    )
+    assert seen == [pair.pair_id for pair in pairs]
+
+
+# ── cloud batch JSON contract (script-side parser) ────────────────────────────
+
+
+def _script_module():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location("gen_synth_corpus_under_test", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_parse_batch_json_tolerates_fences_and_trailing_commentary() -> None:
+    g = _script_module()
+    raw = (
+        "```json\n"
+        '[\n  {"title": "А", "body": "Первое тело.\\nТеги: t"},\n'
+        '  {"title": "Б", "body": "Второе тело."}\n]\n'
+        "```\n\n"
+        "Обратите внимание: выше приведён формат для наглядности."
+    )
+    assert g.parse_batch_json(raw, 2) == ["А\nПервое тело.\nТеги: t", "Б\nВторое тело."]
+
+
+def test_parse_batch_json_rejects_malformed_and_maps_bad_items_to_empty() -> None:
+    g = _script_module()
+    with pytest.raises(ValueError, match="no JSON array"):
+        g.parse_batch_json("Просто текст без массива.", 1)
+    with pytest.raises(ValueError, match="expected 2"):
+        g.parse_batch_json('[{"title": "А", "body": "Б"}]', 2)
+    # non-object items and missing fields map to "" → dropped at validation
+    assert g.parse_batch_json('[{"title": "А", "body": "Б"}, 5, {"title": "В"}]', 3) == [
+        "А\nБ",
+        "",
+        "",
+    ]
+
+
+def test_chat_completion_wall_cap_aborts_a_stalled_call(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A gateway that defeats the socket inactivity timeout (openrouter keeps
+    the connection warm while the model generates) is still bounded by the
+    SIGALRM wall cap: the attempt aborts at ~timeout and ProviderDown wins."""
+    import time as time_mod
+    import urllib.request as urlreq
+
+    g = _script_module()
+
+    def stalled(_request, timeout=None):  # noqa: ANN001 — urllib signature
+        time_mod.sleep(3.0)
+        raise TimeoutError("should have been killed by the wall cap first")
+
+    monkeypatch.setattr(urlreq, "urlopen", stalled)
+    started = time_mod.monotonic()
+    with pytest.raises(g.ProviderDown, match="wall cap|transport failure"):
+        g.chat_completion(
+            "ping", name="openrouter", base_url="https://x/v1", model="m",
+            api_key="k", seed=1, max_tokens=16, timeout=1.0, rate_retries=1,
+        )
+    # two attempts at ~1s wall cap each (no full 3s sleeper completion ×2)
+    assert time_mod.monotonic() - started < 5.0
+
+
 # ── CLI wrapper surface (backend itself is the owner sample gate) ─────────────
 
 
@@ -390,3 +594,47 @@ def test_script_rejects_bad_sample_size() -> None:
         [sys.executable, str(SCRIPT), "--sample", "0"], capture_output=True, text=True, timeout=60
     )
     assert proc.returncode == 2
+
+
+def test_script_cloud_provider_without_key_exits_two(tmp_path: Path) -> None:
+    """Missing provider key = usage error (exit 2) BEFORE any generation;
+    the error names the env var, never a value."""
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if k not in ("OPENROUTER_API_KEY", "GROQ_API_KEY")
+    }
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT), "--pairs-per-strategy", "1",
+         "--out-dir", str(tmp_path / "synth")],
+        capture_output=True, text=True, timeout=60, env=env,
+    )
+    assert proc.returncode == 2
+    assert "OPENROUTER_API_KEY" in proc.stderr
+    assert not list(tmp_path.rglob("pairs.jsonl"))
+
+
+def test_script_render_review_labels_are_not_inverted(tmp_path: Path) -> None:
+    """The old hand-rendered REVIEW.md showed paraphrase as «НЕ дубликат» —
+    the renderer pins the true mapping (duplicate → «дубликат»)."""
+    pairs = generate_corpus(
+        TOPICS, 0, _mock_llm, 3,
+        quotas={s: 4 for s in (STRATEGY_PARAPHRASE, STRATEGY_NEAR_TOPIC,
+                               STRATEGY_BROKEN_FIELD, STRATEGY_TRIVIAL_NEGATIVE)},
+    )
+    corpus = tmp_path / "pairs.jsonl"
+    corpus.write_text(
+        "\n".join(pair_row_json(p) for p in pairs) + "\n", encoding="utf-8"
+    )
+    out = tmp_path / "REVIEW.md"
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT), "--render-review", str(corpus),
+         "--review-out", str(out), "--review-n", "10"],
+        capture_output=True, text=True, timeout=120,
+    )
+    assert proc.returncode == 0, proc.stderr
+    text = out.read_text(encoding="utf-8")
+    assert "## Пара 1 [paraphrase] — метка: дубликат" in text
+    assert "[near-topic] — метка: НЕ дубликат" in text
+    assert "[broken-field]" in text
+    assert "[trivial-negative]" in text
