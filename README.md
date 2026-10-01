@@ -19,6 +19,7 @@ DECLINE — честный исход, прецедент W4c.
 | Документ | Что содержит |
 |---|---|
 | [docs/charter.md](docs/charter.md) | чартер A0: строим / не строим, критерии успеха, порядок волн |
+| [docs/roadmap-v2.md](docs/roadmap-v2.md) | дорожная карта v2: расширение обязанностей модели (фазы R/D/T, волны B0–B5) |
 | [docs/status.md](docs/status.md) | живая доска состояния |
 | [docs/decisions/](docs/decisions/) | ADR репозитория |
 | [docs/specs/inference-v1.md](docs/specs/inference-v1.md) | инференс-контракт `vesma-cortex-v1`: вход/выход, ONNX-артефакт, загрузка (паттерн NanoProvider), коды `CORTEX-E-*` |
