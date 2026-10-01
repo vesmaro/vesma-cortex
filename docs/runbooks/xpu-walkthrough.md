@@ -79,7 +79,7 @@ scripts/smoke_pipeline.py --with-n`) и сравните метрики `eval`-�
 
 ```bash
 # в контейнере:
-cp <workdir>/smoke_report.json /root/vesmaro-cortex/artifacts/runs/xpu-walkthrough-$(date -u +%Y%m%dT%H%M%SZ).json
+cp <workdir>/smoke_report.json /root/vesma-cortex/artifacts/runs/xpu-walkthrough-$(date -u +%Y%m%dT%H%M%SZ).json
 # затем на хост/репо:
 podman cp <container>:/root/vesma-cortex/artifacts/runs/ ./artifacts/runs/
 git -C /var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex add artifacts/runs/
