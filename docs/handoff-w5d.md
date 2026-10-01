@@ -1,56 +1,83 @@
-# Хендофф в vesma-canon: волна W5d (VesmaProvider + аддендумы)
+# Бриф W5d: подключение vesma-cortex-v1 в движок vesma (VesmaProvider)
 
-> От TL-сессии vesma-cortex к TL-сессии vesma-canon. Дата: 2026-10-01.
-> Назначение: у канона есть всё, чтобы строить движковую ногу (W5d)
-> ПАРАЛЛЕЛЬНО с финальным спринтом cortex (стадия 2 + A5 ждут только
-> владельческой разметки). Провайдер собирается по контракту артефакта
-> уже сейчас; веса придут позже по вердикту A5.
+> От TL-сессии vesma-cortex к исполнителю W5d (движок vesma / канон).
+> Дата: 2026-10-01. Вердикт калибровки: **ADOPT** (все 6 условий замороженного
+> правила, single-shot по запечатанному holdout 300; отчёт:
+> `docs/experiments/calibration-ds1000-a5.md`). Артефакт готов к бандлингу.
+> Этот документ — ЕДИНСТВЕННЫЙ бриф на подключение; инференс-спека —
+> технический контракт.
 
-## 1. Главный документ — инференс-спека
+## 0. Состояние сторон (пост-ребрендинг, проверено 2026-10-01)
 
-`vesma-cortex/docs/specs/inference-v1.md` (main cortex `5f71702`) —
-полный контракт артефакта `vesma-cortex-v1`: вход (канонический JSON пары:
-два `CanonRecordView`-среза + `similarity`; вариант N добавляет векторы —
-gated), выход (Noul `{question, probability}` + Score `record-quality`
-0.5/0.5 placeholder), ONNX ≤5 МБ self-contained, `metadata_props` (8
-ключей, вкл. `embedder_pin` и `feature_set_sha256`), загрузка 8 шагов
-паттерном NanoProvider, коды `CORTEX-E-SIZE/LOAD/META/PIN/SCHEMA/INFER`,
-fail-open на `DeterministicProvider` + warn, версионирование 1 → 1.<n> → v2.
+| Сторона | Где | Состояние |
+|---|---|---|
+| Модель-репа | `github.com/vesmaro/vesma-cortex` (публичная, Apache-2.0; локально `Project-Vesma/vesma-cortex`), main `b29f045` | A0–A6 закрыты, ADOPT |
+| Движок | `Project-Vesma/vesma`, main `b03ae74` | обновлён владельцем; python-пакет — `src/vesmaro/` (import НЕ переименовывался) |
+| Артефакт | `vesma-cortex/docs/../data/stage2/artifact-ds1000/` — `model.onnx` + `model.manifest.json` (локальные, в репу не коммитятся) | sha256 `281bd0fd39bf9935c86a8b32fed68191fa9b7da95a83b53eb10844a5fd100ac7`, 97 738 байт |
+| Канон | `vesmaro/vesma-canon`, аддендум 2 = `8b24212` | пороги/правило не менялись |
 
-## 2. Требование-гейт: аддендум ADR 0004 о передаче векторов (OQ-3)
+Именование: артефакт и обёртка — **vesma-cortex-v1 / VesmaProvider**
+(переименовано владельцем из mnema-*; рефакторы `45b4297`, `c341698`).
+Пакетные имена (`vesmaro`, `vesmaro-cortex`) и стор (`~/.mnemos/data`) —
+НЕ переименовывались, не трогать.
 
-`CanonRecordView` не несёт эмбеддинги, `CanonState.similarity` — «providers
-consume it, never re-measure». Вариант N (нейроголова) потребляет векторы:
-нужен аддендум ADR 0004 канона — векторы (плюс пин эмбеддера) передаются
-retrieval-ногой как prepared evidence. Путь self-embed отклонён (drift:
-стор-вектор мог быть посчитан до правки записи). **Вариант D от аддендума
-не зависит; оценка A5 не блокирована.** Рекомендация: аддендум бандлит
-сразу два evidence-расширения — векторы (OQ-3) и будущий graph-evidence
-(карточка cortex-graph-track) — одна правка интерфейса вместо двух.
+## 1. Что подключаем
 
-## 3. Открытые вопросы, ждущие точки канона
+`vesma-cortex-v1` — градиентный бустинг (кандидат D, конфиг `d-l7-lr010`)
+над 13 замороженными признаками пары: вход — канонический JSON
+(`{record, candidate, similarity}` — два `CanonRecordView`-среза +
+измеренный косинус), выход — `probability ∈ [0,1]` (P-duplicate).
+Вариант N (нейроголова с векторами) НЕ подключается: победил D — аддендум
+ADR 0004 о передаче векторов не требуется. Полный контракт:
+`vesma-cortex/docs/specs/inference-v1.md`.
 
-- **OQ-1 (Noul confidence):** примитив `Noul` движка — `{question,
-  probability}` без confidence. Рекомендация cortex: НЕ расширять —
-  калиброванная probability сама несёт уверенность бинарного вопроса.
-  Если канон решит расширять — маппинг `confidence = max(p, 1−p)`.
-- **OQ-2 (time-фича):** `CanonRecordView` не несёт `created_at` —
-  time-фича исключена из замороженного `FEATURE_NAMES`. Если понадобится —
-  сначала аддендум о расширении CanonRecordView, потом фича.
+## 2. Шаги подключения (движок)
 
-## 4. Что НЕ нужно канону от cortex до A5
+1. **Бандл:** `src/vesmaro/models/vesma-cortex-v1/{model.onnx, manifest.json}`
+   — скопировать артефакт из cortex-репы (см. §0), manifest по образцу
+   бандла `vesma-embed-v1`; fingerprint весов = sha256 файла.
+2. **`VesmaProvider`** (рядом с `DeterministicProvider` в
+   `src/vesmaro/decision_provider.py`) — загрузка по спеке §6, шаги 1–8:
+   eager init; валидация `metadata_props` (name=`vesma-cortex`,
+   version-мажор 1, `feature_set_sha256`); гейт ≤5 МБ; sha256 в телеметрию;
+   ассерт `embedder_pin` (`nano:sha256:3b752e06…`) против живого fingerprint
+   эмбеддера — несовпадение = `CORTEX-E-PIN`, громкий отказ (событие
+   перекалибровки, не штатная деградация); ORT CPU-сессия
+   (`VESMARO_ORT_THREADS`); smoke-inference на старте.
+3. **Сборка признаков** в обёртке: 13 core-фич по замороженному
+   `FEATURE_NAMES` (пин в metadata артефакта), детерминированный python,
+   ноль сети; полевые косинусы — gated OFF (не реализовывать).
+4. **Включение за флагом:** `decision_provider` получает реализацию
+   `vesma`; дефолт остаётся `deterministic` — флип флага = решение
+   владельца после опытной обкатки.
+5. **Fail-open (спека §7):** любой `CORTEX-E-*` → деградация на
+   `DeterministicProvider` + машино-парсируемый warn; ingest не
+   блокируется. Порог применения вердикта — политика W5d (конфиг), не
+   артефакт.
+6. **Тесты:** AST-изоляция сети (паттерн `test_mcp_core_isolation`);
+   unit на загрузку/валидацию metadata/код ошибок; интеграционный
+   smoke-вердикт на реальных записях; полный сьют движка зелёный; docs
+   (EN/RU) синхронно.
 
-- Ничего: веса не поставляются до вердикта A5 (ADOPT/DECLINE); сборка
-  провайдера идёт по спеке против контрольного ONNX-артефакта, который
-  cortex выставит по запросу (синтетический smoke-артефакт — отдельно
-  договоримся, это НЕ модель).
+## 3. Справочные числа (holdout 300, single-shot)
 
-## 5. Состояние cortex (кратко)
+Sensitivity 1.0 · Specificity 0.98 · Brier 0.0053 · Balanced accuracy 0.99
+против baseline 0.81 (косинус 0.92 тем же раннером) · типизированность и
+record-quality 1.0. Прруф-отчёты: `docs/reports/vesma-cortex-model-report.md`
+(модель), `docs/reports/vesma-embed-model-report.md` (эмбеддер).
 
-main `5f71702`, публичная репа github.com/vesmaro/vesma-cortex
-(Apache-2.0): A0–A3 влиты, данные все три стадии готовы (синтетика 1350
-`621cb23f`/производный `f6171b50`; стор-пул 794 + пары-базы, фингерпринты
-`e2449dd6`/`9cf1c9f2`; оценочный корпус 196 пар канона `bcdc6e31` — метки
-ждут владельца). Стадия 1 обучена (предварительно D > N; абляция
-претрейна +2.65 п.п. BA). Гейты владельца: разметка 196 пар → стадия 2 →
-A5 single-shot → артефакт (этот репо A6) → сюда, в W5d.
+## 4. Не требуется / отложено
+
+- Векторный аддендум ADR 0004 (нужен только варианту N) — снято с гейтов;
+  при будущем N — бандлить вместе с graph-evidence.
+- `Noul.confidence` — рекомендация: не расширять (probability достаточно).
+- record-quality — плейсхолдер 0.5/0.5 (NO-DATA-дисциплина препрега).
+- Публикация пакета `vesmaro-cortex` на PyPI — после отдельного решения
+  владельца; на подключение не влияет.
+
+## 5. Приёмка W5d
+
+Артефакт грузится (пин совпал) → smoke-вердикт осмыслен → fail-open
+проверен (битый артефакт → DeterministicProvider + `CORTEX-E-LOAD`) →
+полный сьют зелёный → docs EN/RU синхронны → флаг выключен по умолчанию,
+владелец решает момент включения.
