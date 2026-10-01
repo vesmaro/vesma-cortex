@@ -127,4 +127,4 @@ main ДО любого прогона оценки.
 - canon `docs/decisions/0004-decision-provider.md` + аддендум W5a.
 - canon `docs/experiments/provider-jev-calibration-w4c.md` (вердикт DECLINE
   действует), `docs/references/jev-provider-analysis.md`.
-- Стор задач: `~/.gcw/tasks/vesmaro-cortex/tasks.yaml`.
+- Стор задач: `~/.gcw/tasks/vesma-cortex/tasks.yaml`.
