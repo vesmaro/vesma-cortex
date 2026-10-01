@@ -1,4 +1,4 @@
-"""cortex — development library for the mnema-cortex decision model.
+"""cortex — development library for the vesma-cortex decision model.
 
 Dual-epoch delivery (ADR 0001, owner addendum P2):
 
@@ -6,7 +6,7 @@ Dual-epoch delivery (ADR 0001, owner addendum P2):
   candidate training, internal CV selection, ONNX export, single-shot
   evaluation (preregistration v2, frozen).
 - The runtime epoch is a single self-contained ONNX artifact
-  (``mnema-cortex-v1``) bundled into the engine by the NanoProvider
+  (``vesma-cortex-v1``) bundled into the engine by the NanoProvider
   pattern — the engine never imports this package.
 
 Contracts: docs/specs/inference-v1.md (artifact), docs/specs/data-contract.md

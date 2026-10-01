@@ -121,7 +121,7 @@ FEATURE_NAMES: Final[tuple[str, ...]] = (
 )
 
 #: Optional field cosines (ablation variant; appended AFTER the core block
-#: in this fixed order). Computed by the bundle embedder (mnema-embed-v1)
+#: in this fixed order). Computed by the bundle embedder (vesma-embed-v1)
 #: over single fields — docomputed on CPU in A2, short fields are a weak
 #: signal by ADR 0001 (accepted risk).
 FIELD_COSINE_FEATURES: Final[tuple[str, ...]] = (
@@ -208,7 +208,7 @@ def features(
         record_b: candidate record (canonical pair JSON ``candidate``).
         similarity: MEASURED vector-leg cosine over the pair (never
             recomputed here — CanonState "consume, never re-measure").
-        vec_a/vec_b: store embeddings (384-dim float32, mnema-embed-v1);
+        vec_a/vec_b: store embeddings (384-dim float32, vesma-embed-v1);
             required input for candidate N's vector block — accepted here
             so the pair-feature pass is single-source (asserted non-empty
             and equal-length when given).

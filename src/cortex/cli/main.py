@@ -690,7 +690,7 @@ def build_parser() -> argparse.ArgumentParser:
     the charter's CPU-smoke gate reference them); options may grow later."""
     parser = argparse.ArgumentParser(
         prog="cortex",
-        description="mnema-cortex development pipeline (train epoch library)",
+        description="vesma-cortex development pipeline (train epoch library)",
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
@@ -728,7 +728,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--candidate", choices=["d", "n", "both"], default="both")
     p.add_argument("--out", default=None, help="selection report json path")
 
-    p = sub.add_parser("export-artifact", help="export the winning candidate as mnema-cortex-v1 ONNX")
+    p = sub.add_parser("export-artifact", help="export the winning candidate as vesma-cortex-v1 ONNX")
     p.add_argument("--model", required=True, help="trained model directory (train --out)")
     p.add_argument("--out", required=True, help="output model.onnx path")
     p.add_argument("--embedder-pin", required=True, help="live engine embedder fingerprint (nano:sha256:<hex>)")

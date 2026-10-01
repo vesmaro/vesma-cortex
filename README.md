@@ -4,15 +4,15 @@
 «кора» = ассоциативные и исполнительные функции над памятью, а не хранение.
 
 **Стартовый скоуп (волна A0, [charter.md](docs/charter.md)):** обучение с нуля
-локальной модели решений **mnema-cortex** (решение владельца 2026-09-29;
+локальной модели решений **vesma-cortex** (решение владельца 2026-09-29;
 историческое имя трека в прозе canon — «mnema-роутер») — пара записей памяти →
 типизированный вердикт `is-duplicate(a, b)` + скор уверенности [0, 1]. Не LLM,
 не SFT готовой модели, не генерация текста. Инференс — ноль сети; подключение
-в движок — `MnemaProvider` (волна W5d vesmaro-canon) по интерфейсу
-[ADR 0004 decision-provider](https://github.com/vesmaro/vesmaro-canon).
+в движок — `VesmaProvider` (волна W5d vesma-canon) по интерфейсу
+[ADR 0004 decision-provider](https://github.com/vesmaro/vesma-canon).
 
 Оценка модели — только по замороженной
-[препегистрации v2](https://github.com/vesmaro/vesmaro-canon) калибровки
+[препегистрации v2](https://github.com/vesmaro/vesma-canon) калибровки
 (7 стратов / 200 пар, holdout 30 % single-shot, baseline = косинус 0.92);
 DECLINE — честный исход, прецедент W4c.
 
@@ -21,7 +21,7 @@ DECLINE — честный исход, прецедент W4c.
 | [docs/charter.md](docs/charter.md) | чартер A0: строим / не строим, критерии успеха, порядок волн |
 | [docs/status.md](docs/status.md) | живая доска состояния |
 | [docs/decisions/](docs/decisions/) | ADR репозитория |
-| [docs/specs/inference-v1.md](docs/specs/inference-v1.md) | инференс-контракт `mnema-cortex-v1`: вход/выход, ONNX-артефакт, загрузка (паттерн NanoProvider), коды `CORTEX-E-*` |
+| [docs/specs/inference-v1.md](docs/specs/inference-v1.md) | инференс-контракт `vesma-cortex-v1`: вход/выход, ONNX-артефакт, загрузка (паттерн NanoProvider), коды `CORTEX-E-*` |
 | [docs/specs/data-contract.md](docs/specs/data-contract.md) | контракт данных: pair-манифесты, фингерпринты (BLAKE2b-256), гигиена экспорта, каталог data/ + artifacts/ |
 
 - **Размещение:** github.com/vesmaro/vesmaro-cortex — публичная репа

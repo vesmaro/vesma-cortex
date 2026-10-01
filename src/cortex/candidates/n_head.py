@@ -1,4 +1,4 @@
-"""Candidate N — small MLP head over frozen mnema-embed-v1 vectors.
+"""Candidate N — small MLP head over frozen vesma-embed-v1 vectors.
 
 ADR 0001 V1: head ≤ ~0.5M parameters over [a, b, |a−b|, a⊙b] (4×384)
 plus the scalar feature block; corruption pretrain (cortex.pretrain),
@@ -84,7 +84,7 @@ def vector_block(vec_a: Sequence[float], vec_b: Sequence[float]) -> np.ndarray:
     """Assemble the [a, b, |a−b|, a⊙b] block — shape (4, dim), float32.
 
     Store vectors must be non-empty twins; unit-normalization is the store
-    contract (mnema-embed-v1) and is NOT re-imposed here (never re-measure
+    contract (vesma-embed-v1) and is NOT re-imposed here (never re-measure
     — the block mirrors what the engine would pass).
     """
     a = np.asarray(vec_a, dtype=np.float32)

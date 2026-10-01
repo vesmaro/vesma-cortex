@@ -2,7 +2,7 @@
 
 ADR 0001 V1 ablation "with/without field cosines": the three optional
 features (``cos_title``, ``cos_body``, ``cos_tags``) are docomputed by the
-bundle embedder (mnema-embed-v1) on CPU — this library carries no embedder
+bundle embedder (vesma-embed-v1) on CPU — this library carries no embedder
 (cortex.features.pair refuses ``field_cosines=True`` loudly). The docompute
 itself runs OUTSIDE ``src/cortex`` in ``scripts/a2_field_cosines.py`` under
 the ENGINE's environment (onnxruntime + tokenizers live there), so the

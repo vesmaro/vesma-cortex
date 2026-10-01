@@ -1,4 +1,4 @@
-"""Artifact contract: mnema-cortex-v1 identity, metadata, fingerprint.
+"""Artifact contract: vesma-cortex-v1 identity, metadata, fingerprint.
 
 Single source of truth for the artifact NAME (ADR 0001 П1: the constant
 lives in exactly ONE place — see tests/test_skeleton.py guard). The full
@@ -31,12 +31,12 @@ __all__ = [
 
 #: Artifact identity, ONE constant for the whole repo (ADR 0001 П1).
 #: The engine bundles it under src/vesmaro/models/<ARTIFACT_NAME>/.
-ARTIFACT_NAME: Final[str] = "mnema-cortex-v1"
+ARTIFACT_NAME: Final[str] = "vesma-cortex-v1"
 
 #: Model name inside metadata_props (name ≠ artifact dir name: the dir
 #: carries the major, the metadata carries the family name — engine
-#: precedent: mnema-embed-v1 bundle, manifest "name" field).
-MODEL_NAME: Final[str] = "mnema-cortex"
+#: precedent: vesma-embed-v1 bundle, manifest "name" field).
+MODEL_NAME: Final[str] = "vesma-cortex"
 
 #: Metadata schema major. Weight refresh within v1 bumps to "1.<n>" with a
 #: new sha256 = recalibration event (inference-v1.md §8).
@@ -96,7 +96,7 @@ def build_metadata_props(
     candidate: str,
     feature_names: tuple[str, ...],
 ) -> dict[str, str]:
-    """Assemble the ONNX metadata_props for a mnema-cortex artifact.
+    """Assemble the ONNX metadata_props for a vesma-cortex artifact.
 
     Contract (inference-v1.md §4): ``embedder_pin`` MUST be the live
     engine fingerprint string (``nano:sha256:<hex>``), ``corpus_fingerprint``

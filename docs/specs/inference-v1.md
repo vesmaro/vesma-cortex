@@ -1,12 +1,12 @@
-# Инференс-спека mnema-cortex-v1
+# Инференс-спека vesma-cortex-v1
 
 - **Статус:** Accepted (срез A3a; фиксирует контракт артефакта до реализации
   обучения — ADR 0001 [V3](../decisions/0001-archcom-a1-verdicts.md), аддендум
   владельца П2)
 - **Дата:** 2026-09-29
-- **Область:** контракт инференса runtime-артефакта `mnema-cortex-v1` — вход,
+- **Область:** контракт инференса runtime-артефакта `vesma-cortex-v1` — вход,
   выход, формат файла, загрузка, ошибки, версионирование. Потребитель спеки —
-  волна W5d движка vesmaro (обёртка `MnemaProvider`) и экспорт этой репы (A6).
+  волна W5d движка vesmaro (обёртка `VesmaProvider`) и экспорт этой репы (A6).
   Обучение и фичи-алгоритмы — срезы A3b+, эта спека их НЕ определяет.
 
 Имена файлов/классов движка приведены по состоянию main на 2026-09-29
@@ -15,7 +15,7 @@
 ## 1. Вход: канонический JSON пары (вариант D — базовый)
 
 Вход артефакта — подготовленное canon-состояние по правилу 2
-[ADR 0004](https://github.com/vesmaro/vesmaro-canon) канона: два
+[ADR 0004](https://github.com/vesmaro/vesma-canon) канона: два
 `CanonRecordView` (движок, `src/vesmaro/decision_provider.py`) + измеренное
 сходство. Провайдер никогда не ре-измеряет косинус — принцип CanonState
 «providers consume it, never re-measure».
@@ -49,7 +49,7 @@
 - `record` = запись a (более ранняя), `candidate` = запись b — порядок
   зафиксирован препрегом v2 (протокол W5c: «a — более ранняя запись»).
 - `similarity` — измеренный косинус vector-leg движка над эмбеддингами
-  mnema-embed-v1 (384-dim, unit-normalized); передаётся вызываемым кодом,
+  vesma-embed-v1 (384-dim, unit-normalized); передаётся вызываемым кодом,
   артефакт его не вычисляет.
 - **Канонизация для фингерпринтов** (дисциплина препрега): JSON с
   сортировкой ключей (`sort_keys=True`), UTF-8 (`ensure_ascii=False`),
@@ -71,7 +71,7 @@
 }
 ```
 
-- Векторы — стор-эмбеддинги mnema-embed-v1 (без ре-эмбеда: drift-запрет,
+- Векторы — стор-эмбеддинги vesma-embed-v1 (без ре-эмбеда: drift-запрет,
   ADR 0001, отвергнутая альтернатива «Self-embed провайдером в рантайме»).
 - **Гейт:** вариант N не подключается к прод до аддендума канона. До того
   раннер оценки (A5) читает векторы сам, напрямую из стора — оценка
@@ -119,8 +119,8 @@
 - **Один файл `model.onnx` ≤ 5 МБ** (`MAX_ARTIFACT_BYTES = 5 × 1024 × 1024`),
   self-contained: артефакт не требует кода библиотеки cortex для инференса
   (П2). Sklearn-pickle запрещён категорически (ADR 0001).
-- **opset 15** — как у mnema-embed-v1 (`manifest.json` бандла движка,
-  `src/vesmaro/models/mnema-embed-v1/`).
+- **opset 15** — как у vesma-embed-v1 (`manifest.json` бандла движка,
+  `src/vesmaro/models/vesma-embed-v1/`).
 - **Feature-вход графа.** Фичи пары считаются ДО графа — в обёртке W5d на
   стороне движка (детерминированный Python, без сети); граф принимает
   готовый вектор:
@@ -136,8 +136,8 @@
 
 | Ключ | Значение | Назначение |
 |---|---|---|
-| `name` | `mnema-cortex` | идентичность модели (без суффикса версии) |
-| `version` | `1` | мажор схемы; освежение весов внутри v1 → `1.<n>` (прецедент: mnema-embed-v1 → `1.1.0`) |
+| `name` | `vesma-cortex` | идентичность модели (без суффикса версии) |
+| `version` | `1` | мажор схемы; освежение весов внутри v1 → `1.<n>` (прецедент: vesma-embed-v1 → `1.1.0`) |
 | `embedder_pin` | `nano:sha256:<hex>` | пин эмбеддера — точный формат живого fingerprint движка |
 | `corpus_fingerprint` | `<blake2b-256 hex>` | фингерпринт train-корпуса (манифест пар, схема препрега) |
 | `trained_at` | ISO-8601 UTC | провенанс |
@@ -150,10 +150,10 @@
   Смена весов = новый sha256 = событие перекалибровки (ADR-0021 движка,
   препрег «События перекалибровки»).
 
-### Бандл в движке (образец mnema-embed-v1)
+### Бандл в движке (образец vesma-embed-v1)
 
 Поставка в дистрибутив движка — каталог
-`src/vesmaro/models/mnema-cortex-v1/` c `model.onnx` + `manifest.json`
+`src/vesmaro/models/vesma-cortex-v1/` c `model.onnx` + `manifest.json`
 (машинные строки — латиница, ADR 0001 V4). Загрузка через
 `importlib.resources` — паттерн `_mnema_artifact_dir`. Токенайзер не нужен:
 артефакт не потребляет сырой текст, только фичи/векторы.
@@ -167,13 +167,13 @@
 
 ## 6. Загрузка: паттерн NanoProvider (требование к W5d)
 
-Обёртка `MnemaProvider` в движке повторяет паттерн `NanoProvider`
+Обёртка `VesmaProvider` в движке повторяет паттерн `NanoProvider`
 (`src/vesmaro/embeddings/__init__.py`), шаги и отказы:
 
 1. **Eager init** — загрузка в конструкторе провайдера, без ленивости;
    старт движка либо поднимает модель, либо громко падает в warn-режиме
    (раздел 7).
-2. **Валидация metadata_props** — `name == "mnema-cortex"`, `version`
+2. **Валидация metadata_props** — `name == "vesma-cortex"`, `version`
    совместим (мажор `1`) → иначе `CORTEX-E-META`.
 3. **Гейт размера** — файл ≤ 5 МБ → иначе `CORTEX-E-SIZE`.
 4. **sha256 файла** — считается при загрузке, пишется в телеметрию
@@ -206,7 +206,7 @@
 |---|---|---|
 | `CORTEX-E-SIZE` | файл артефакта > 5 МБ | загрузка |
 | `CORTEX-E-LOAD` | файл отсутствует/повреждён; init сессии ORT упал | загрузка |
-| `CORTEX-E-META` | metadata_props отсутствуют/невалидны: name≠`mnema-cortex`, несовместимый мажор, провал `feature_set_sha256` | загрузка |
+| `CORTEX-E-META` | metadata_props отсутствуют/невалидны: name≠`vesma-cortex`, несовместимый мажор, провал `feature_set_sha256` | загрузка |
 | `CORTEX-E-PIN` | `embedder_pin` ≠ живому fingerprint эмбеддера | загрузка |
 | `CORTEX-E-SCHEMA` | входной JSON нарушает каноническую схему (нет сторон/similarity, неверные типы, размерность векторов ≠ 384) | запрос |
 | `CORTEX-E-INFER` | прогон ORT упал; выход не decodится; probability ∉ [0,1] | запрос |
@@ -214,7 +214,7 @@
 **Семантика fail-open** (V3): любой `CORTEX-E-*` → деградация на
 `DeterministicProvider` движка (порог 0.92) + warn с кодом; ingest и
 остальной путь движка не блокируются. Громкость обязательна: молчаливое
-продолжение работы mnema после отказа запрещено — warn-код в логе есть
+продолжение работы vesma после отказа запрещено — warn-код в логе есть
 всегда. `CORTEX-E-PIN` дополнительно телеграфируется как событие
 перекалибровки (не штатная деградация).
 
@@ -222,11 +222,11 @@
 
 - **`version` в metadata_props:** `1` при выпуске v1. Освежение весов внутри
   v1 (перекалибровка по той же препрегистрации) → `1.<n>` при новом sha256;
-  имя каталога `mnema-cortex-v1` не меняется. Прецедент: mnema-embed-v1
+  имя каталога `vesma-cortex-v1` не меняется. Прецедент: vesma-embed-v1
   (`version: 1.1.0` в бандле движка при неизменном имени каталога).
 - **v2 = ломающее изменение** входной схемы (состав CanonRecordView-полей,
   семантика similarity, вход-контракт графа) или выходной семантики. v2 —
-  новый каталог `mnema-cortex-v2` в движке; сосуществование с v1 — решение
+  новый каталог `vesma-cortex-v2` в движке; сосуществование с v1 — решение
   волны удаления, не этой спеки.
 - **Смена весов внутри v1** = новый sha256 = событие перекалибровки
   (препрег v2, «События перекалибровки»): повторная оценка по замороженной
@@ -244,7 +244,7 @@
   модуле провайдера. Паттерн гарантии — AST-трипвайр движка
   `tests/test_mcp_core_isolation.py` (запрет импорта mcp вне
   `mcp_server.py`): W5d добавляет аналогичный тест-хранитель для
-  `MnemaProvider`.
+  `VesmaProvider`.
 - Эта репа несёт тот же запрет уже в A3a: `tests/test_skeleton.py`
   сканирует `src/cortex` на сетевые импорты (ноль допусков, без
   allow-list). Обучение и оценка локальны; стор читается через read-only
@@ -291,7 +291,7 @@
 - Движок vesmaro (read-only): `src/vesmaro/embeddings/__init__.py`
   (NanoProvider, fingerprint, `VESMARO_ORT_THREADS`),
   `src/vesmaro/decision_provider.py` (CanonRecordView/CanonState/Noul/Score,
-  DeterministicProvider), `src/vesmaro/models/mnema-embed-v1/manifest.json`
+  DeterministicProvider), `src/vesmaro/models/vesma-embed-v1/manifest.json`
   (прецедент метаданных), `tests/test_mcp_core_isolation.py`
   (AST-паттерн изоляции).
 - Препрег v2 (canon, заморожен): метрики 1/6, NO-DATA record-quality,

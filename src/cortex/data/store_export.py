@@ -106,7 +106,7 @@ __all__ = [
 #: engine tree is available.
 NO_FEDERATE_TAG: Final[str] = "mnemos:no-federate"
 
-#: mnema-embed-v1 geometry: 384-dim float32 → 1536-byte blob.
+#: vesma-embed-v1 geometry: 384-dim float32 → 1536-byte blob.
 EMBEDDING_DIM: Final[int] = 384
 VECTOR_BLOB_BYTES: Final[int] = EMBEDDING_DIM * 4
 #: Store vectors are unit-normalized (ArchCom A1 store inspection); a row

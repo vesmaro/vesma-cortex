@@ -47,7 +47,7 @@ def test_package_imports() -> None:
     import cortex.pretrain.corruption
     import cortex.select.cv
 
-    assert cortex.ARTIFACT_NAME == cortex.artifacts.ARTIFACT_NAME == "mnema-cortex-v1"
+    assert cortex.ARTIFACT_NAME == cortex.artifacts.ARTIFACT_NAME == "vesma-cortex-v1"
 
 
 def test_contract_signatures() -> None:

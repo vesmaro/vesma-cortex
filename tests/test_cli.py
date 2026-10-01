@@ -304,12 +304,12 @@ def test_eval_single_shot_then_refused(
 
 
 def test_eval_rejects_foreign_artifact(trained_d: Path, holdout_dir: Path, tmp_path: Path) -> None:
-    """An ONNX file without the mnema-cortex identity is refused loudly."""
+    """An ONNX file without the vesma-cortex identity is refused loudly."""
     from cortex.candidates.d_boost import DBoostModel
 
     model = DBoostModel.load(trained_d)
     bare = tmp_path / "bare.onnx"
-    model.export_onnx(bare)  # no metadata_props → no mnema-cortex identity
+    model.export_onnx(bare)  # no metadata_props → no vesma-cortex identity
     code = main(["eval", "--artifact", str(bare), "--holdout", str(holdout_dir), "--run-log", str(tmp_path / "rl.jsonl")])
     assert code == 2
 

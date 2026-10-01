@@ -309,7 +309,7 @@ class DBoostModel:
         ]
         graph = helper.make_graph(
             nodes,
-            name="mnema-cortex-d-boost",
+            name="vesma-cortex-d-boost",
             inputs=[
                 helper.make_tensor_value_info("features", TensorProto.FLOAT, [k])
             ],

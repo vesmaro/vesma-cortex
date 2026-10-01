@@ -1,4 +1,4 @@
-# vesmaro-cortex — development library for the mnema-cortex decision model
+# vesmaro-cortex — development library for the vesma-cortex decision model
 # (ADR 0001 + owner addendum P2: dual-epoch delivery; this repo is the
 # TRAIN-EPOCH library. The runtime epoch is a single self-contained ONNX
 # artifact bundled into the engine — this package is never a runtime dep
@@ -10,7 +10,7 @@ build-backend = "hatchling.build"
 [project]
 name = "vesmaro-cortex"
 version = "0.1.0"
-description = "Development library for mnema-cortex — the local is-duplicate decision model (features, D/N training, selection, export, single-shot eval)"
+description = "Development library for vesma-cortex — the local is-duplicate decision model (features, D/N training, selection, export, single-shot eval)"
 readme = "README.md"
 requires-python = ">=3.12"
 license = "Apache-2.0"

@@ -123,7 +123,7 @@ def _stable_seed(key: str) -> int:
 def store_vector(key: str, seed: int = 7) -> np.ndarray:
     """Deterministic 384-dim unit 'store embedding' for an arbitrary key.
 
-    Mirrors the store contract (mnema-embed-v1: 384-dim float32
+    Mirrors the store contract (vesma-embed-v1: 384-dim float32
     unit-normalized) for smoke data that never touches the real store.
     """
     return unit_vec(np.random.RandomState(_stable_seed(key) ^ seed))
