@@ -1,4 +1,4 @@
-# Доска состояния vesmaro-cortex
+# Доска состояния vesma-cortex
 
 Обновлена: 2026-09-29 (срез A3a).
 
@@ -10,7 +10,7 @@
 | A3 | реализация: A3a контракты ✅ (d379159) · A3b алгоритмы ✅ (649e5ce) · A3c смоук+ранбук ✅ (c8041a9) — 125/114 тестов, смоук 4,6с/86с, детерминизм | ✅ done | src/cortex/, scripts/smoke_pipeline.py |
 | A4 | стадия 1 обучена ✅; стадия 2 ГОТОВА К ПУСКУ (оркестратор scripts/stage2_run.py, dry-run зелёный, векторы реального корпуса досчитаны) — ждёт разметку; XPU-walkthrough опционален | 🔄 в работе | artifacts/manifests/stage1-run.md |
 | A5 | single-shot оценка | ✅ **ADOPT** (83178e3: sens 1.0, spec 0.98, Brier 0.0053, baseline 0.81 побит) | docs/experiments/calibration-ds1000-a5.md |
-| A6 | артефакт + провенанс | ✅ done (vesma-cortex-v1 sha 281bd0fd, хендофф у канона) — осталось W5d-wiring на стороне движка | artifacts/manifests/mnema-cortex-v1-ds1000.md |
+| A6 | артефакт + провенанс | ✅ done (vesma-cortex-v1 sha 281bd0fd, хендофф у канона) — осталось W5d-wiring на стороне движка | artifacts/manifests/vesma-cortex-v1-ds1000.md |
 
 ## Ждут владельца
 

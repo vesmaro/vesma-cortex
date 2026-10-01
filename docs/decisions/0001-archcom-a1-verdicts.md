@@ -139,7 +139,7 @@ train-определение (претрейн — не оценка), поэт�
 | Организация | `vesmaro` | org | — |
 | Канон контента | `canon` | репа-компонент | vesmaro-canon (историческое исключение) |
 | Платформа локальных когнитивных сервисов | `cortex` | репа-компонент | vesmaro-cortex |
-| Движок, хост MnemaProvider | `vesmaro` (repo engine) | репа-компонент | движок vesmaro |
+| Движок, хост VesmaProvider | `vesma` (repo engine; пакет python — `vesmaro`) | репа-компонент | движок vesmaro |
 | Эмбеддер | `mnema-embed` | модель-артефакт | движок vesmaro |
 | Refine-модель | `mnema-refine` | модель-артефакт | planned |
 | Модель решений (is-duplicate) | `vesma-cortex` (переименовано владельцем 2026-10-01 из `mnema-cortex`, рефактор `45b4297`) | модель-артефакт | vesmaro-cortex (дом семейства) |
@@ -247,7 +247,7 @@ Arc 140T), но архитектура не делает XPU необходим�
   fingerprint), бандлится в дистрибутив движка по образцу `mnema-embed-v1`
   (`src/vesmaro/models/<name>/`, загрузка паттерном NanoProvider — eager
   init, smoke-inference, ассерт пина эмбеддера). Обёртка-провайдер — на
-  стороне движка (W5d канона, `MnemaProvider`).
+  стороне движка (W5d канона, `VesmaProvider`; ранее в документации — `MnemaProvider`, переименовано вместе с артефактом).
 - Публикация библиотеки cortex как отдельного PyPI-пакета — НЕ входит в
   этот ADR: решение владельца после вердикта A5 (ADOPT/DECLINE); до того
   репа остаётся приватной/локальной.

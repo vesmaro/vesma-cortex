@@ -39,7 +39,7 @@ podman cp /var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex <container>:/
 
 ```bash
 podman exec -it <container> bash
-cd /root/vesmaro-cortex
+cd /root/vesma-cortex
 source ~/.venvs/nm-xpu/bin/activate
 pip install --no-deps -e .
 pip install "numpy>=1.26" "lightgbm>=4.5" "scikit-learn>=1.5" "skl2onnx>=1.17" "onnxruntime>=1.20" "pytest>=8.0"
@@ -51,7 +51,7 @@ python -c "import torch; print(torch.__version__, torch.xpu.is_available())"
 ## 3. Прогоны (в контейнере, в активированном venv)
 
 ```bash
-cd /root/vesmaro-cortex
+cd /root/vesma-cortex
 
 # 3a. Полный сьют (N-тесты активны — torch есть):
 python -m pytest tests/ -q

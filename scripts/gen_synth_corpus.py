@@ -313,7 +313,7 @@ def chat_completion(
         "Authorization": f"Bearer {api_key}",
         # urllib's default UA (Python-urllib/x) is Cloudflare-banned by some
         # gateways (groq answers HTTP 403 error 1010 to it).
-        "User-Agent": "vesmaro-cortex-synth/0.1",
+        "User-Agent": "vesma-cortex-synth/0.1",
     }
     last_error: Exception | None = None
     budget = max_tokens

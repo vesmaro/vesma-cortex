@@ -42,7 +42,7 @@ from cortex.data.store_export import (
     resolve_store_databases,
 )
 
-ENGINE_SRC = Path("/var/home/abyss/LABs/Projects/Project-Mnemos/wt/a2-engine-readonly/src")
+ENGINE_SRC = Path("/var/home/abyss/LABs/Projects/Project-Vesma/wt/a2-engine-readonly/src")
 
 _PIN = "nano:sha256:" + "ab" * 32
 

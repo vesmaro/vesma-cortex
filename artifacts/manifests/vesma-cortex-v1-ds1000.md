@@ -1,4 +1,4 @@
-# Артефакт vesma-cortex-v1 (ds1000, волна A4c; имя — по рефактору 45b4297) — рукопожатие
+# Артефакт vesma-cortex-v1 (ds1000, волна A4c) — рукопожатие
 
 - **Файл:** `data/stage2/artifact-ds1000/model.onnx` (локально, gitignored)
 - **sha256:** см. model.manifest.json рядом; кандидат d-boost (d-l7-lr010)

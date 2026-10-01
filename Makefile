@@ -1,4 +1,4 @@
-# vesmaro-cortex — dev entry points (A3c).
+# vesma-cortex — dev entry points (A3c).
 # Everything runs through uv: `uv run` syncs the default env (no torch),
 # `uv run --extra train` adds the CPU-torch train extra (candidate N).
 

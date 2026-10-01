@@ -659,7 +659,7 @@ def stage_select(root: Path, mode: str) -> dict[str, Any]:
 
 
 def stage_export(root: Path, winner: str, embedder_pin: str, corpus_fingerprint_value: str) -> dict[str, Any]:
-    """Stage 5: export the winner as the mnema-cortex ONNX artifact (+ size gate)."""
+    """Stage 5: export the winner as the vesma-cortex ONNX artifact (+ size gate)."""
     root = Path(root)
     model_dir = root / "models" / winner
     if not (model_dir / "meta.json").exists():

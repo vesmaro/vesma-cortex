@@ -1,6 +1,6 @@
 # Хендофф в vesma-canon: волна W5d (VesmaProvider + аддендумы)
 
-> От TL-сессии vesmaro-cortex к TL-сессии vesma-canon. Дата: 2026-10-01.
+> От TL-сессии vesma-cortex к TL-сессии vesma-canon. Дата: 2026-10-01.
 > Назначение: у канона есть всё, чтобы строить движковую ногу (W5d)
 > ПАРАЛЛЕЛЬНО с финальным спринтом cortex (стадия 2 + A5 ждут только
 > владельческой разметки). Провайдер собирается по контракту артефакта
@@ -8,7 +8,7 @@
 
 ## 1. Главный документ — инференс-спека
 
-`vesmaro-cortex/docs/specs/inference-v1.md` (main cortex `5f71702`) —
+`vesma-cortex/docs/specs/inference-v1.md` (main cortex `5f71702`) —
 полный контракт артефакта `vesma-cortex-v1`: вход (канонический JSON пары:
 два `CanonRecordView`-среза + `similarity`; вариант N добавляет векторы —
 gated), выход (Noul `{question, probability}` + Score `record-quality`
@@ -47,7 +47,7 @@ retrieval-ногой как prepared evidence. Путь self-embed отклон�
 
 ## 5. Состояние cortex (кратко)
 
-main `5f71702`, публичная репа github.com/vesmaro/vesmaro-cortex
+main `5f71702`, публичная репа github.com/vesmaro/vesma-cortex
 (Apache-2.0): A0–A3 влиты, данные все три стадии готовы (синтетика 1350
 `621cb23f`/производный `f6171b50`; стор-пул 794 + пары-базы, фингерпринты
 `e2449dd6`/`9cf1c9f2`; оценочный корпус 196 пар канона `bcdc6e31` — метки
