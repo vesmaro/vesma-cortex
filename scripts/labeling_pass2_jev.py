@@ -4,9 +4,9 @@ machine-readable) + codebook, emits labels-B.csv + labels-B-notes.jsonl.
 One-off operational script; batched JSON verdicts, temperature 0."""
 import json, time, urllib.request, sys, os
 
-CARDS = "/var/home/abyss/LABs/Projects/Project-Mnemos/vesmaro-canon-data/corpus/pairs.jsonl"
-COSINES = "/var/home/abyss/LABs/Projects/Project-Mnemos/vesmaro-canon-data/corpus/cosines.csv"
-OUT = "/var/home/abyss/LABs/Projects/Project-Mnemos/vesmaro-canon-data/labeling"
+CARDS = "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-canon-data/corpus/pairs.jsonl"
+COSINES = "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-canon-data/corpus/cosines.csv"
+OUT = "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-canon-data/labeling"
 API = "https://openrouter.ai/api/v1/chat/completions"
 MODEL = "typesafe/jev-router"
 KEY = os.environ["OPENROUTER_API_KEY"]

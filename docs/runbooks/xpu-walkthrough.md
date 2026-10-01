@@ -26,7 +26,7 @@ venv `~/.venvs/nm-xpu` с torch 2.13.0+xpu). Если контейнера не�
 
 ```bash
 # с хоста (или из бокса), одноразово на прогон:
-podman cp /var/home/abyss/LABs/Projects/Project-Mnemos/vesmaro-cortex <container>:/root/vesmaro-cortex
+podman cp /var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex <container>:/root/vesma-cortex
 ```
 
 (альтернатива — смонтировать каталог при создании контейнера; выбор за
@@ -81,8 +81,8 @@ scripts/smoke_pipeline.py --with-n`) и сравните метрики `eval`-�
 # в контейнере:
 cp <workdir>/smoke_report.json /root/vesmaro-cortex/artifacts/runs/xpu-walkthrough-$(date -u +%Y%m%dT%H%M%SZ).json
 # затем на хост/репо:
-podman cp <container>:/root/vesmaro-cortex/artifacts/runs/ ./artifacts/runs/
-git -C /var/home/abyss/LABs/Projects/Project-Mnemos/vesmaro-cortex add artifacts/runs/
+podman cp <container>:/root/vesma-cortex/artifacts/runs/ ./artifacts/runs/
+git -C /var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex add artifacts/runs/
 ```
 
 В отчёте уже есть блок провенанса (python/torch/устройство) — этого

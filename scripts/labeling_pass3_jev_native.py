@@ -3,8 +3,8 @@ Owner directive: pass 2 was the rotating router (comparison only); this is the
 real Jev model. Emits labels-C.csv (verdict) + labels-C-notes.jsonl (probability)."""
 import json, time, urllib.request, sys, os
 
-CARDS = "/var/home/abyss/LABs/Projects/Project-Mnemos/vesmaro-canon-data/corpus/pairs.jsonl"
-OUT = "/var/home/abyss/LABs/Projects/Project-Mnemos/vesmaro-canon-data/labeling"
+CARDS = "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-canon-data/corpus/pairs.jsonl"
+OUT = "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-canon-data/labeling"
 API = "https://openrouter.ai/api/alpha/decisions"
 MODEL = "~typesafe/jev-latest"
 KEY = os.environ["OPENROUTER_API_KEY"]

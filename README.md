@@ -24,7 +24,7 @@ DECLINE — честный исход, прецедент W4c.
 | [docs/specs/inference-v1.md](docs/specs/inference-v1.md) | инференс-контракт `vesma-cortex-v1`: вход/выход, ONNX-артефакт, загрузка (паттерн NanoProvider), коды `CORTEX-E-*` |
 | [docs/specs/data-contract.md](docs/specs/data-contract.md) | контракт данных: pair-манифесты, фингерпринты (BLAKE2b-256), гигиена экспорта, каталог data/ + artifacts/ |
 
-- **Размещение:** github.com/vesmaro/vesmaro-cortex — публичная репа
+- **Размещение:** github.com/vesmaro/vesma-cortex — публичная репа
   (решение владельца 2026-09-29: пакет будет публиковаться на PyPI, приватность
   смысла не имеет); публикация пакета `vesmaro-cortex` на PyPI — после вердикта
   оценки A5.
@@ -37,7 +37,7 @@ DECLINE — честный исход, прецедент W4c.
 ## Quickstart
 
 ```bash
-git clone https://github.com/vesmaro/vesmaro-cortex && cd vesmaro-cortex
+git clone https://github.com/vesmaro/vesma-cortex && cd vesma-cortex
 uv sync                                   # дефолтная среда (без torch)
 uv run pytest tests/ -q                   # контрактные тесты (N-тесты скипаются)
 uv run python scripts/smoke_pipeline.py   # CPU-смоук полного контура (~5 с)
