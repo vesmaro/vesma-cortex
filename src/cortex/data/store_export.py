@@ -403,8 +403,8 @@ def resolve_store_databases(
     if raw.startswith("file:"):
         raw = raw[len("file:"):]
     raw = raw.split("?", 1)[0]
-    mnemos = Path(raw).expanduser().resolve()
-    return mnemos, mnemos.parent / "vectors.db"
+    vesma = Path(raw).expanduser().resolve()
+    return vesma, vesma.parent / "vectors.db"
 
 
 _SQL_CANDIDATES: Final[str] = """

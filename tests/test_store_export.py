@@ -111,9 +111,9 @@ def build_mock_store(store_dir: Path) -> None:
     unpinned embedding, 1 non-unit-norm vector.
     """
     store_dir.mkdir(parents=True, exist_ok=True)
-    mnemos = store_dir / "mnemos.db"
+    vesma = store_dir / "mnemos.db"
     vectors = store_dir / "vectors.db"
-    m = sqlite3.connect(mnemos)
+    m = sqlite3.connect(vesma)
     v = sqlite3.connect(vectors)
     m.execute(
         """

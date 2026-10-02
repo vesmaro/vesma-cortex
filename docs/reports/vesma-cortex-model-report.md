@@ -184,7 +184,7 @@
 
 ## Источники
 
-- Чартер vesmaro-cortex: [docs/charter.md](../charter.md)
+- Чартер vesma-cortex: [docs/charter.md](../charter.md)
 - ADR 0001 (АрхКом A1): [docs/decisions/0001-archcom-a1-verdicts.md](../decisions/0001-archcom-a1-verdicts.md)
 - Отчёт калибровки A5: [docs/experiments/calibration-ds1000-a5.md](../experiments/calibration-ds1000-a5.md)
 - Спецификация инференса: [docs/specs/inference-v1.md](../specs/inference-v1.md)

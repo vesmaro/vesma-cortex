@@ -150,7 +150,7 @@ flowchart LR
 - `CHANGELOG.md` — записи NM-0, NM-1c, ADR-0029 (пары «до/после»)
 - Git: `0b0fa4f` (NM-1a.5), `e182a92` (NM-1b, #218), `4adc1af` (NM-1c, #221), `b79369f` (NM-1d, #225), `b0329de` (round-3 prep, #227), `b180a50` (round-3 swap, #285), `4decce6` (5.0.0 rebrand); `origin/main`: `c341698` (rename → vesma-embed-v1)
 
-Cortex-репа (vesmaro-cortex):
+Cortex-репа (vesma-cortex):
 
 - `scripts/stage2_run.py` (`DEFAULT_EMBEDDER_PIN`), `artifacts/manifests/{a2-store-corpus,mnema-cortex-v1-stage2}.md` — пин эмбеддера
 - `docs/specs/inference-v1.md` — ассерт `embedder_pin`, ошибка `CORTEX-E-PIN`
