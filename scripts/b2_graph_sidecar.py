@@ -167,7 +167,7 @@ def _resolve_store(store_path: str | None, store_uri: str | None) -> tuple[Path,
         raise SystemExit("--store-uri must be a read-only URI (file:...?mode=ro)")
     raw = store_uri[len("file:"):] if store_uri.startswith("file:") else store_uri
     vesma = Path(raw.split("?", 1)[0]).expanduser().resolve()
-    return vesma, mnemos.parent / "vectors.db"
+    return vesma, vesma.parent / "vectors.db"
 
 
 class StoreSnapshot:
@@ -180,7 +180,7 @@ class StoreSnapshot:
     def __init__(self, mnemos: Path, vectors: Path) -> None:
         self.counters: dict[str, int] = {}
 
-        conn = _ro_connection(vesma)
+        conn = _ro_connection(mnemos)
         try:
             self.bodies: dict[str, str] = {}
             titles: dict[str, list[str]] = {}
@@ -392,7 +392,7 @@ def main(argv: list[str] | None = None) -> int:
         if kind == "pos":
             raw_sides = (
                 _side_of(pair, "original", "source_id"),
-                _side_of(pair, "variant", "source_id_variant"),
+                _side_of(pair, "variant" if "variant" in pair else "candidate", "source_id_variant"),
             )
         else:
             raw_sides = (
