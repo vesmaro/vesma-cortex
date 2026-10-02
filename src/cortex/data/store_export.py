@@ -98,6 +98,12 @@ __all__ = [
     "StoreOpenError",
     "ExportResult",
     "export_store_corpus",
+    "load_ids_file",
+    "edge_node_ids",
+    "expand_one_hop",
+    "SilverEdge",
+    "TargetedExportResult",
+    "export_targeted_corpus",
 ]
 
 #: The engine's federation-exclusion tag (vesmaro.models.NO_FEDERATE_TAG).
@@ -436,6 +442,90 @@ def _decode_vector(blob: bytes) -> tuple[tuple[float, ...] | None, str]:
 ProgressFn = Callable[[str], None]
 
 
+#: One memories row as read by the candidate SQL (positional, mirrors the
+#: SELECT column order below).
+_MemoryRow = tuple
+
+
+def _compose_record(
+    row: _MemoryRow,
+    embeddings: dict[str, tuple[bytes, str]],
+    counters: HygieneCounters,
+    scanner: TextScanner,
+) -> StoreRecord | None:
+    """Steps 2–3 of the frozen hygiene order for ONE candidate row.
+
+    Per-record hygiene BEFORE any composition: no-federate tag →
+    quarantine → secrets/danger scan → vector and content-hash
+    validation. Exclusions carry reason names only. Returns ``None`` when
+    the record is excluded (the reason is already counted).
+    """
+    (
+        record_id,
+        title,
+        content,
+        tags_json,
+        memory_type,
+        created_at,
+        metadata_json,
+        quarantine_reason,
+    ) = row
+    if _PAIR_ID_SEPARATOR in record_id:
+        raise ValueError(
+            f"store id contains the pair_id separator {_PAIR_ID_SEPARATOR!r} "
+            "(data-contract §2) — refusing the export"
+        )
+    tags = tuple(str(tag) for tag in json.loads(tags_json or "[]"))
+    if NO_FEDERATE_TAG in tags:
+        counters.exclude("no-federate")
+        return None
+    if quarantine_reason:
+        counters.exclude("quarantine")
+        return None
+
+    embedding = embeddings.get(record_id)
+    if embedding is None:
+        counters.exclude("missing-embedding")
+        return None
+    blob, emb_metadata_json = embedding
+    emb_metadata = json.loads(emb_metadata_json or "{}")
+    fingerprint = emb_metadata.get("model_fingerprint")
+    if not fingerprint:
+        counters.exclude("unpinned-embedding")
+        return None
+    content_hash = emb_metadata.get("content_hash")
+    if not content_hash:
+        counters.exclude("missing-content-hash")
+        return None
+
+    metadata = json.loads(metadata_json or "{}")
+    canon = metadata.get("canon") if isinstance(metadata.get("canon"), dict) else {}
+    language = canon.get("language")
+    vector, reason = _decode_vector(blob)
+    if vector is None:
+        counters.exclude(reason)
+        return None
+
+    reasons = scanner.scan(title or "", content or "", tags)
+    if reasons:
+        for reason in reasons:
+            counters.exclude(reason)
+        return None
+
+    return StoreRecord(
+        id=record_id,
+        title=title or "",
+        body=content or "",
+        tags=tags,
+        language=language if isinstance(language, str) else None,
+        record_type=memory_type,
+        created_at=created_at,
+        content_hash=str(content_hash),
+        vec_sha256=hashlib.sha256(blob).hexdigest(),
+        vector=vector,
+    )
+
+
 def _select_records(
     mnemos_conn: sqlite3.Connection,
     embeddings: dict[str, tuple[bytes, str]],
@@ -445,9 +535,8 @@ def _select_records(
 ) -> list[StoreRecord]:
     """Steps 1–3 of the frozen hygiene order for the candidate set.
 
-    SQL selection first, then per-record hygiene BEFORE any composition:
-    no-federate tag → quarantine → secrets/danger scan → vector and
-    content-hash validation. Exclusions carry reason names only.
+    SQL selection first, then per-record hygiene BEFORE any composition
+    (see :func:`_compose_record`). Exclusions carry reason names only.
     """
     counters.candidates_sql = mnemos_conn.execute(
         """
@@ -460,72 +549,9 @@ def _select_records(
 
     records: list[StoreRecord] = []
     for row in mnemos_conn.execute(_SQL_CANDIDATES, {"limit": limit}):
-        (
-            record_id,
-            title,
-            content,
-            tags_json,
-            memory_type,
-            created_at,
-            metadata_json,
-            quarantine_reason,
-        ) = row
-        if _PAIR_ID_SEPARATOR in record_id:
-            raise ValueError(
-                f"store id contains the pair_id separator {_PAIR_ID_SEPARATOR!r} "
-                "(data-contract §2) — refusing the export"
-            )
-        tags = tuple(str(tag) for tag in json.loads(tags_json or "[]"))
-        if NO_FEDERATE_TAG in tags:
-            counters.exclude("no-federate")
-            continue
-        if quarantine_reason:
-            counters.exclude("quarantine")
-            continue
-
-        embedding = embeddings.get(record_id)
-        if embedding is None:
-            counters.exclude("missing-embedding")
-            continue
-        blob, emb_metadata_json = embedding
-        emb_metadata = json.loads(emb_metadata_json or "{}")
-        fingerprint = emb_metadata.get("model_fingerprint")
-        if not fingerprint:
-            counters.exclude("unpinned-embedding")
-            continue
-        content_hash = emb_metadata.get("content_hash")
-        if not content_hash:
-            counters.exclude("missing-content-hash")
-            continue
-
-        metadata = json.loads(metadata_json or "{}")
-        canon = metadata.get("canon") if isinstance(metadata.get("canon"), dict) else {}
-        language = canon.get("language")
-        vector, reason = _decode_vector(blob)
-        if vector is None:
-            counters.exclude(reason)
-            continue
-
-        reasons = scanner.scan(title or "", content or "", tags)
-        if reasons:
-            for reason in reasons:
-                counters.exclude(reason)
-            continue
-
-        records.append(
-            StoreRecord(
-                id=record_id,
-                title=title or "",
-                body=content or "",
-                tags=tags,
-                language=language if isinstance(language, str) else None,
-                record_type=memory_type,
-                created_at=created_at,
-                content_hash=str(content_hash),
-                vec_sha256=hashlib.sha256(blob).hexdigest(),
-                vector=vector,
-            )
-        )
+        record = _compose_record(row, embeddings, counters, scanner)
+        if record is not None:
+            records.append(record)
     return records
 
 
@@ -741,6 +767,525 @@ def export_store_corpus(
         scanner_provenance=scanner.provenance,
         embedder_fingerprints=tuple(fingerprints),
         sidecar_hint=hint,
+        timings_sec=timings,
+    )
+
+
+# ── Targeted export: the edge-neighborhood mode (B2 dataset-v3 source) ───────
+
+
+def load_ids_file(path: str | Path) -> list[str]:
+    """Read a seed-id file: one store id per line; blank lines skipped.
+
+    Contract violations refuse the load (data-contract §2: store ids never
+    contain the ``--`` separator — it would corrupt pair_id joinability).
+    Order is preserved; the caller counts duplicates if it cares.
+    """
+    ids: list[str] = []
+    for line_no, line in enumerate(
+        Path(path).read_text(encoding="utf-8").splitlines(), start=1
+    ):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        if _PAIR_ID_SEPARATOR in stripped:
+            raise ValueError(
+                f"{path}:{line_no}: id contains the pair_id separator "
+                f"{_PAIR_ID_SEPARATOR!r} (data-contract §2) — refusing the load"
+            )
+        ids.append(stripped)
+    if not ids:
+        raise ValueError(f"{path}: no ids to export")
+    return ids
+
+
+def edge_node_ids(mnemos_conn: sqlite3.Connection) -> list[str]:
+    """Distinct node ids touched by memory_edges (sorted, deterministic).
+
+    This is the seed set of the B2 edge-neighborhood export: every node
+    that is an endpoint of at least one edge.
+    """
+    rows = mnemos_conn.execute(
+        """
+        SELECT DISTINCT id FROM (
+            SELECT from_memory_id AS id FROM memory_edges
+            UNION
+            SELECT to_memory_id AS id FROM memory_edges
+        )
+        ORDER BY id ASC
+        """
+    ).fetchall()
+    return [row[0] for row in rows]
+
+
+def expand_one_hop(
+    mnemos_conn: sqlite3.Connection, seeds: set[str]
+) -> set[str]:
+    """Seeds ∪ every endpoint of an edge touching a seed (undirected 1-hop).
+
+    Both endpoints of a touching edge enter the candidate set — this is
+    what makes edge coverage well-defined: an edge is exportable iff both
+    its ends survived hygiene, and both ends were candidates.
+    """
+    expanded = set(seeds)
+    if not seeds:
+        return expanded
+    ordered = sorted(seeds)
+    for chunk_start in range(0, len(ordered), 500):
+        chunk = ordered[chunk_start:chunk_start + 500]
+        placeholders = ",".join("?" for _ in chunk)
+        for src, dst in mnemos_conn.execute(
+            f"""
+            SELECT from_memory_id, to_memory_id FROM memory_edges
+            WHERE from_memory_id IN ({placeholders})
+               OR to_memory_id IN ({placeholders})
+            """,
+            tuple(chunk) + tuple(chunk),
+        ):
+            expanded.add(src)
+            expanded.add(dst)
+    return expanded
+
+
+_SQL_MEMORY_COLUMNS: Final[str] = (
+    "SELECT id, title, content, tags, memory_type, created_at, metadata, "
+    "quarantine_reason FROM memories"
+)
+
+
+def _select_targeted_records(
+    mnemos_conn: sqlite3.Connection,
+    embeddings: dict[str, tuple[bytes, str]],
+    counters: HygieneCounters,
+    scanner: TextScanner,
+    id_set: set[str],
+    limit: int,
+) -> tuple[list[StoreRecord], int]:
+    """Targeted candidates → the SAME hygiene chain → (records, trimmed).
+
+    SQL selection by the candidate id set (chunked IN(), deterministic
+    created_at/id order — the pool convention). The ``limit`` applies at
+    the SQL stage, EXACTLY like the A2 ``_SQL_CANDIDATES`` LIMIT: hygiene
+    runs on the limited candidate set, so a limit trim never hides a
+    hygiene exclusion — it shrinks the candidate set itself (the trim is
+    reported separately, it is not an exclusion reason).
+    """
+    ordered_ids = sorted(id_set)
+    matched: list[_MemoryRow] = []
+    for chunk_start in range(0, len(ordered_ids), 500):
+        chunk = ordered_ids[chunk_start:chunk_start + 500]
+        placeholders = ",".join("?" for _ in chunk)
+        matched.extend(
+            mnemos_conn.execute(
+                f"""
+                {_SQL_MEMORY_COLUMNS}
+                WHERE status = 'published'
+                  AND memory_type IN ('note', 'snippet', 'fact')
+                  AND length(content) >= 80
+                  AND id IN ({placeholders})
+                """,
+                tuple(chunk),
+            ).fetchall()
+        )
+    matched.sort(key=lambda row: (row[5], row[0]))  # created_at ASC, id ASC
+    counters.candidates_sql = len(matched)
+
+    trimmed = 0
+    if len(matched) > limit:
+        trimmed = len(matched) - limit
+        matched = matched[:limit]
+
+    records: list[StoreRecord] = []
+    for row in matched:
+        record = _compose_record(row, embeddings, counters, scanner)
+        if record is not None:
+            records.append(record)
+    return records, trimmed
+
+
+def _count_ids_in_memories(
+    mnemos_conn: sqlite3.Connection, ids: list[str]
+) -> int:
+    """How many of the given ids exist in memories at ALL (any status)."""
+    found = 0
+    ordered = sorted(set(ids))
+    for chunk_start in range(0, len(ordered), 500):
+        chunk = ordered[chunk_start:chunk_start + 500]
+        placeholders = ",".join("?" for _ in chunk)
+        found += mnemos_conn.execute(
+            f"SELECT count(*) FROM memories WHERE id IN ({placeholders})",
+            tuple(chunk),
+        ).fetchone()[0]
+    return found
+
+
+_EdgesRow = tuple
+
+
+def _load_edges(mnemos_conn: sqlite3.Connection) -> list[_EdgesRow]:
+    """All memory_edges rows (from, to, kind, provenance) — read once."""
+    return mnemos_conn.execute(
+        "SELECT from_memory_id, to_memory_id, kind, provenance FROM memory_edges"
+    ).fetchall()
+
+
+@dataclass(frozen=True)
+class SilverEdge:
+    """One store edge whose BOTH ends are in the exported pool.
+
+    Graph-silver pair material for dataset v3: ``kind`` + ``provenance``
+    ride along; ``pair_id`` follows the §2 convention (``a`` = earlier
+    ``created_at``) extended with the kind so one node pair can carry
+    several edge rows. Sides are NOT inlined — the verifier joins
+    records.jsonl on id_a/id_b and recomputes ``edge_sha256``.
+    """
+
+    pair_id: str
+    id_a: str
+    id_b: str
+    id_from: str
+    id_to: str
+    kind: str
+    provenance: str
+    record: StoreRecord
+    candidate: StoreRecord
+
+    def row(self) -> dict[str, object]:
+        return {
+            "pair_id": self.pair_id,
+            "id_a": self.id_a,
+            "id_b": self.id_b,
+            "id_from": self.id_from,
+            "id_to": self.id_to,
+            "kind": self.kind,
+            "provenance": self.provenance,
+            "edge_sha256": pair_sha256(self.fingerprinted_object()),
+        }
+
+    def fingerprinted_object(self) -> dict[str, object]:
+        return {
+            "record": self.record.side(),
+            "candidate": self.candidate.side(),
+            "kind": self.kind,
+            "provenance": self.provenance,
+        }
+
+
+def _build_silver_edges(
+    edges: Sequence[_EdgesRow],
+    records_by_id: dict[str, StoreRecord],
+) -> tuple[list[SilverEdge], dict[str, int]]:
+    """Edges fully inside the pool → SilverEdge rows (+ coverage counters).
+
+    An edge is silver iff both endpoints are in the pool. Counters
+    (counts only, never content): ``edges_total``, ``edges_fully_inside``,
+    ``edges_partial`` (exactly one end in the pool), ``edges_absent``
+    (both ends absent from the pool — the pool alone cannot attribute an
+    absence to "never a candidate" vs "excluded by hygiene"; that
+    attribution lives in the hygiene counters, so this stays a bare
+    count).
+    """
+    coverage = {
+        "edges_total": len(edges),
+        "edges_fully_inside": 0,
+        "edges_partial": 0,
+        "edges_absent": 0,
+    }
+    silver: list[SilverEdge] = []
+    pair_ids_seen: dict[str, int] = {}
+    for id_from, id_to, kind, provenance in edges:
+        record = records_by_id.get(id_from)
+        candidate = records_by_id.get(id_to)
+        if record is None or candidate is None:
+            if record is None and candidate is None:
+                coverage["edges_absent"] += 1
+            else:
+                coverage["edges_partial"] += 1
+            continue
+        coverage["edges_fully_inside"] += 1
+        first, second = sorted(
+            (id_from, id_to), key=lambda k: (records_by_id[k].created_at, k)
+        )
+        base_pair_id = f"{first}{_PAIR_ID_SEPARATOR}{second}{_PAIR_ID_SEPARATOR}{kind}"
+        seen = pair_ids_seen.get(base_pair_id, 0)
+        pair_ids_seen[base_pair_id] = seen + 1
+        pair_id = base_pair_id if seen == 0 else f"{base_pair_id}#{seen + 1}"
+        silver.append(
+            SilverEdge(
+                pair_id=pair_id,
+                id_a=first,
+                id_b=second,
+                id_from=id_from,
+                id_to=id_to,
+                kind=kind,
+                provenance=provenance or "",
+                record=records_by_id[first],
+                candidate=records_by_id[second],
+            )
+        )
+    silver.sort(key=lambda edge: edge.pair_id)
+    return silver, coverage
+
+
+@dataclass(frozen=True)
+class TargetedExportResult:
+    """Machine-readable outcome of the targeted (edge-neighborhood) export."""
+
+    corpus_id: str
+    out_dir: Path
+    records_path: Path
+    pairs_path: Path | None
+    silver_path: Path
+    records_manifest_path: Path
+    pairs_manifest_path: Path | None
+    silver_manifest_path: Path
+    coverage_path: Path
+    pool_fingerprint: str
+    corpus_fingerprint: str | None
+    silver_fingerprint: str
+    counters: HygieneCounters
+    scanner_provenance: str
+    embedder_fingerprints: tuple[str, ...]
+    seeds: int
+    expanded_ids: int
+    ids_not_in_memories: int
+    trimmed_by_limit: int
+    edge_coverage: dict[str, int]
+    timings_sec: dict[str, float]
+
+    def summary(self) -> dict[str, object]:
+        """JSON summary for stdout (no content, no ids beyond counts)."""
+        return {
+            "corpus_id": self.corpus_id,
+            "out_dir": str(self.out_dir),
+            "records": str(self.records_path),
+            "pairs": str(self.pairs_path) if self.pairs_path else None,
+            "silver_edges": str(self.silver_path),
+            "coverage_report": str(self.coverage_path),
+            "pool_size": self.counters.pool,
+            "pairs_count": self.counters.pairs,
+            "silver_edges_count": self.edge_coverage.get("edges_fully_inside", 0),
+            "pool_fingerprint": self.pool_fingerprint,
+            "corpus_fingerprint": self.corpus_fingerprint,
+            "silver_fingerprint": self.silver_fingerprint,
+            "hygiene": self.counters.to_dict(),
+            "scanner_provenance": self.scanner_provenance,
+            "embedder_fingerprints": list(self.embedder_fingerprints),
+            "ids": {
+                "seeds": self.seeds,
+                "expanded": self.expanded_ids,
+                "not_in_memories": self.ids_not_in_memories,
+                "trimmed_by_limit": self.trimmed_by_limit,
+            },
+            "edge_coverage": dict(self.edge_coverage),
+            "timings_sec": {key: round(value, 3) for key, value in self.timings_sec.items()},
+        }
+
+
+def export_targeted_corpus(
+    *,
+    ids_file: str | Path,
+    store_path: str | Path | None = None,
+    store_uri: str | None = None,
+    out_dir: str | Path,
+    corpus_id: str,
+    scanner: TextScanner,
+    limit_pool: int = 1200,
+    min_cosine: float = DEFAULT_MIN_COSINE,
+    max_cosine: float = DEFAULT_MAX_COSINE,
+    with_pairs: bool = True,
+    progress: ProgressFn = lambda message: None,
+) -> TargetedExportResult:
+    """Export the 1-hop edge-neighborhood of the seed ids, hygiene-frozen.
+
+    Same frozen hygiene order as :func:`export_store_corpus`
+    (data-contract §6): SQL selection over the candidate id set
+    (seeds ∪ 1-hop) → per-record hygiene BEFORE composition → minimal
+    export with store vectors → fingerprints. On top of the A2 family
+    this writes:
+
+    - ``silver_edges.jsonl`` — every memory_edges row whose BOTH ends are
+      in the hygiene-passed pool (kind + provenance preserved; sides
+      joinable via records.jsonl; edge_sha256 tamper-evident);
+    - ``coverage.json`` — edge-coverage counters + all fingerprints
+      (repo-facing handshake material, content-free).
+
+    Raises:
+        StoreOpenError: store missing or arguments ambiguous.
+        ValueError: contract violations (separator in ids, band order,
+            non-positive limit).
+    """
+    if min_cosine >= max_cosine:
+        raise ValueError(f"cosine band must be [min, max): got [{min_cosine}, {max_cosine})")
+    if limit_pool <= 0:
+        raise ValueError(f"limit_pool must be positive, got {limit_pool}")
+
+    timings: dict[str, float] = {}
+    started = time.perf_counter()
+
+    seeds = load_ids_file(ids_file)
+    duplicates = len(seeds) - len(set(seeds))
+    if duplicates:
+        progress(f"ids file carries {duplicates} duplicate lines — collapsing")
+    seed_set = set(seeds)
+
+    mnemos_path, vectors_path = resolve_store_databases(store_path, store_uri)
+    counters = HygieneCounters()
+    progress(f"opening store read-only: {mnemos_path}")
+    mnemos_conn = _ro_connection(mnemos_path)
+    try:
+        ids_not_in_memories = len(seed_set) - _count_ids_in_memories(mnemos_conn, seeds)
+        if ids_not_in_memories:
+            progress(
+                f"{ids_not_in_memories} seed ids match no memories row "
+                "(counted; ids themselves are not reported)"
+            )
+
+        t0 = time.perf_counter()
+        expanded = expand_one_hop(mnemos_conn, seed_set)
+        timings["expand_one_hop_sec"] = time.perf_counter() - t0
+        progress(f"1-hop expansion: {len(seed_set)} seeds → {len(expanded)} candidate ids")
+
+        vectors_conn = _ro_connection(vectors_path)
+        try:
+            t0 = time.perf_counter()
+            embeddings = _load_embeddings(vectors_conn)
+            timings["load_embeddings_sec"] = time.perf_counter() - t0
+            progress(f"embeddings snapshot: {len(embeddings)} rows")
+
+            t0 = time.perf_counter()
+            records, trimmed = _select_targeted_records(
+                mnemos_conn, embeddings, counters, scanner, expanded, limit_pool
+            )
+            timings["selection_hygiene_sec"] = time.perf_counter() - t0
+            counters.pool = len(records)
+            progress(
+                f"hygiene done: pool={counters.pool} "
+                f"excluded={counters.excluded_total} reasons={sorted(counters.reasons)} "
+                f"trimmed_by_limit={trimmed}"
+            )
+
+            t0 = time.perf_counter()
+            edges = _load_edges(mnemos_conn)
+            silver, edge_coverage = _build_silver_edges(edges, {r.id: r for r in records})
+            timings["silver_edges_sec"] = time.perf_counter() - t0
+            progress(
+                f"silver edges: {edge_coverage['edges_fully_inside']}/"
+                f"{edge_coverage['edges_total']} fully inside the pool"
+            )
+        finally:
+            vectors_conn.close()
+    finally:
+        mnemos_conn.close()
+
+    out_root = Path(out_dir).expanduser().resolve() / "pretrain" / corpus_id
+
+    t0 = time.perf_counter()
+    records_rows = [record.pool_row() for record in records]
+    records_path = out_root / "records.jsonl"
+    _write_jsonl(records_path, records_rows, progress)
+    pool_entries = [
+        (record.id, pair_sha256({"record": record.pool_fingerprint_payload()}))
+        for record in records
+    ]
+    pool_manifest = out_root / "records_manifest.txt"
+    pool_manifest.parent.mkdir(parents=True, exist_ok=True)
+    pool_manifest.write_bytes(manifest_bytes(pool_entries))
+    pool_fingerprint = corpus_fingerprint(manifest_bytes(pool_entries))
+    timings["write_records_sec"] = time.perf_counter() - t0
+
+    pairs_path: Path | None = None
+    pairs_manifest_path: Path | None = None
+    corpus_fp: str | None = None
+    if with_pairs:
+        t0 = time.perf_counter()
+        pair_bases = _build_pair_bases(records, min_cosine, max_cosine)
+        counters.pairs = len(pair_bases)
+        pairs_path = out_root / "near_dup_candidates.jsonl"
+        _write_jsonl(pairs_path, [pair.row() for pair in pair_bases], progress)
+        pairs_manifest_path = out_root / "near_dup_manifest.txt"
+        pairs_manifest_path.write_bytes(
+            manifest_bytes((pair.pair_id, pair.row()["pair_sha256"]) for pair in pair_bases)
+        )
+        corpus_fp = corpus_fingerprint(pairs_manifest_path.read_bytes())
+        timings["pairs_sec"] = time.perf_counter() - t0
+        progress(f"pair bases: {counters.pairs} in [{min_cosine}, {max_cosine})")
+
+    t0 = time.perf_counter()
+    silver_rows = [edge.row() for edge in silver]
+    silver_path = out_root / "silver_edges.jsonl"
+    _write_jsonl(silver_path, silver_rows, progress)
+    silver_manifest = out_root / "silver_edges_manifest.txt"
+    silver_manifest.write_bytes(
+        manifest_bytes(
+            (edge.pair_id, edge.row()["edge_sha256"]) for edge in silver
+        )
+    )
+    silver_fingerprint = corpus_fingerprint(silver_manifest.read_bytes())
+    timings["write_silver_sec"] = time.perf_counter() - t0
+
+    timings["total_sec"] = time.perf_counter() - started
+
+    fingerprint_set: set[str] = set()
+    for _, meta in _embeddings_meta_snapshot(vectors_path, {record.id for record in records}):
+        pin = json.loads(meta or "{}").get("model_fingerprint")
+        if pin:
+            fingerprint_set.add(str(pin))
+    fingerprints = sorted(fingerprint_set)
+
+    coverage_payload: dict[str, object] = {
+        "corpus_id": corpus_id,
+        "scanner_provenance": scanner.provenance,
+        "embedder_fingerprints": fingerprints,
+        "ids": {
+            "seeds": len(seed_set),
+            "duplicates_in_file": duplicates,
+            "expanded_candidates": len(expanded),
+            "not_in_memories": ids_not_in_memories,
+            "trimmed_by_limit": trimmed,
+        },
+        "hygiene": counters.to_dict(),
+        "edge_coverage": dict(edge_coverage),
+        "pool_fingerprint": pool_fingerprint,
+        "corpus_fingerprint": corpus_fp,
+        "silver_fingerprint": silver_fingerprint,
+        "records": str(records_path),
+        "silver_edges": str(silver_path),
+        "generated_at": time.strftime("%Y-%m-%dT%H:%M:%S+00:00", time.gmtime()),
+    }
+    coverage_path = out_root / "coverage.json"
+    coverage_path.write_text(
+        json.dumps(coverage_payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    progress(f"wrote {coverage_path}")
+
+    hint = (
+        "python scripts/a2_field_cosines.py --records "
+        f"{records_path} --pairs {pairs_path if pairs_path else '-'} "
+        f"--out-npz <data/vectors/{corpus_id}/field_vecs.npz> --engine-src <engine>/src"
+    )
+    return TargetedExportResult(
+        corpus_id=corpus_id,
+        out_dir=Path(out_dir).expanduser().resolve(),
+        records_path=records_path,
+        pairs_path=pairs_path,
+        silver_path=silver_path,
+        records_manifest_path=pool_manifest,
+        pairs_manifest_path=pairs_manifest_path,
+        silver_manifest_path=silver_manifest,
+        coverage_path=coverage_path,
+        pool_fingerprint=pool_fingerprint,
+        corpus_fingerprint=corpus_fp,
+        silver_fingerprint=silver_fingerprint,
+        counters=counters,
+        scanner_provenance=scanner.provenance,
+        embedder_fingerprints=tuple(fingerprints),
+        seeds=len(seed_set),
+        expanded_ids=len(expanded),
+        ids_not_in_memories=ids_not_in_memories,
+        trimmed_by_limit=trimmed,
+        edge_coverage=edge_coverage,
         timings_sec=timings,
     )
 
