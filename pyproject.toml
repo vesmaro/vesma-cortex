@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vesma-cortex"
-version = "0.1.0"
+version = "0.2.0"
 description = "Development library for vesma-cortex — the local is-duplicate decision model (features, D/N training, selection, export, single-shot eval)"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -71,6 +71,31 @@ cortex = "cortex.cli.main:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/cortex"]
+
+# Privacy gate on the sdist (charter §6, ADR 0003 R2): training-side data
+# and local scratch never ship. Explicit because hatchling's VCS-ignore
+# pass does not match the root-anchored directory pattern `/data/`
+# (caught empirically: data/stage2-dry leaked into the 0.2.0 sdist).
+# Tracked artifacts/{manifests,runs} (run logs referenced by reports) stay.
+[tool.hatch.build.targets.sdist]
+exclude = ["/data", "/datasets", "/.local", "/dist"]
+
+# Model registry in the wheel (ADR 0003 R5: "wheel с весами — реестр внутри
+# пакета"). Path choice: the import package of this project is `cortex`
+# (packages above), so the canonical in-wheel location is
+# `cortex/models/vesma-cortex-v1/` — loadable via the importlib.resources
+# pattern (inference-v1.md §4/§6, NanoProvider precedent:
+# importlib.resources.files("cortex") / "models" / "vesma-cortex-v1").
+# The engine's `vesmaro/models/...` path is its OWN vendored layout
+# (model-registry.md §5: the engine copies the artifact by fingerprint at
+# engine-release time) and is deliberately NOT replicated here.
+# Only the machine bundle ships (weights + manifest); MODEL_CARD.md /
+# eval-results.json are repo documentation, not runtime payload.
+# force-include is an explicit mapping, so the global `*.onnx` gitignore
+# pattern does not block it.
+[tool.hatch.build.targets.wheel.force-include]
+"models/vesma-cortex-v1/model.onnx" = "cortex/models/vesma-cortex-v1/model.onnx"
+"models/vesma-cortex-v1/manifest.json" = "cortex/models/vesma-cortex-v1/manifest.json"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

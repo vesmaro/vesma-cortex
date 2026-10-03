@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "artifact": {
+    "name": "vesma-cortex",
+    "revision": "B1",
+    "weights_sha256": "beb0a65da14f9ed2554951aa8850f68db47fd1212af1577955239a34ab04a091",
+    "feature_set_sha256": "dd86228f8c634f28d8a15b2d8279da1b99735d68e309be02d30f1c24698fa6af",
+    "manifest_sha256": "21e0f17349d6b8c5fef45ca63cfd8fc3af00060a60e56a7603432f512413b9ff",
+    "candidate": "d-boost"
+  },
+  "gate_contract_sha256": "6dd67367601bd6a4fa0d9a067591742a1ac05f58c6c36825596d748d781fef32",
+  "layers": {
+    "A_sanity": {
+      "status": "PASS",
+      "checks": {
+        "bundle_integrity": "PASS",
+        "feature_contract": "PASS",
+        "candidate_supported": "PASS (d-boost)",
+        "self_pair": 1.0,
+        "near_boundary": 1.0,
+        "unrelated": 0.0,
+        "monotonicity": "PASS"
+      },
+      "margins": {
+        "self_pair": "1.0000 vs required >= 0.9 (margin +0.1)",
+        "near_boundary": "1.0000 at cos=0.99 vs required >= 0.5 (margin +0.5)",
+        "unrelated": "0.0000 at cos=0.578 vs ceiling < 0.5 (headroom 0.5)",
+        "monotonicity": "non-increasing over ladder cos=1.00:1.0000, 0.99:1.0000, 0.95:1.0000, 0.80:1.0000, 0.50:1.0000 (tolerance 1e-06)"
+      },
+      "raw_ladder_probabilities": [0.9999924898147583, 0.9999919533729553, 0.9999780654907227, 0.9999780654907227, 0.9999780654907227],
+      "suite": {
+        "runner": "cortex.eval.sanity.run_sanity_suite",
+        "cli": "uv run python scripts/eval_sanity_suite.py --bundle models/vesma-cortex-v1",
+        "run_at": "2026-10-03",
+        "gate_contract": "gate_contract.json (repo root, sha256 pinned in docs/specs/eval-methodology.md #6)"
+      }
+    },
+    "A_regression": {
+      "status": "NO-DATA",
+      "reason": "Layer A regression set lands in MR-2"
+    },
+    "B_calibration": {
+      "status": "ADOPT",
+      "corpus": "dataset-v2 holdout-150 (75/75), domain-diverse mix 74/26, prereg v2 + addendum 3; holdout sealed before training",
+      "train_corpus": "dataset-v2 train-350 (175/175), domain-diverse mix 74/26",
+      "corpus_fingerprint": "edd940730a471e3d8c84461b7c3ca35dd86d691f354af0fcf4c498745d1aff61",
+      "sensitivity": 1.0,
+      "specificity": 0.973,
+      "brier": 0.0126,
+      "ba": 0.987,
+      "baseline_ba": 0.72,
+      "typed": 1.0,
+      "run_log_ref": "artifacts/runs/b1-single-shot-runlog.jsonl",
+      "report_ref": "docs/experiments/calibration-b1-domain-diversity.md",
+      "run_date": "2026-10-02 22:27 UTC"
+    },
+    "B0_field": {
+      "status": "IN_PROGRESS",
+      "window": "2026-10-03 23:07 UTC - 2026-10-16 (freeze window ends)",
+      "delta_rate": null,
+      "no_harm_band_ratio": null,
+      "note": "Telemetry window is segmented at the recall point (analysis-2h.jsonl from 23:10 UTC): prod fingerprint is beb0a65d since 2026-10-03 23:07 UTC, the recalled B2 segment stays separate. B0 verdict per docs/experiments/b0-telemetry-plan.md."
+    }
+  },
+  "calibration_history": [
+    {
+      "revision": "ds1000 (A5)",
+      "label": "ds1000 (инженерный)",
+      "weights_sha256": "281bd0fd39bf9935c86a8b32fed68191fa9b7da95a83b53eb10844a5fd100ac7",
+      "corpus": "ds1000 (engineering, near-threshold), holdout-300",
+      "ba": 0.99,
+      "baseline_ba": 0.81,
+      "status": "ADOPT",
+      "report_ref": "docs/experiments/calibration-ds1000-a5.md",
+      "note": "predates the sanity suite; artifact later failed self_pair 0.8019 (< 0.9) on the 2026-10-03 sweep - superseded by B1, never re-adopted"
+    },
+    {
+      "revision": "B1",
+      "label": "B1 (доменное разнообразие)",
+      "weights_sha256": "beb0a65da14f9ed2554951aa8850f68db47fd1212af1577955239a34ab04a091",
+      "corpus": "dataset-v2 (domain diversity), holdout-150",
+      "ba": 0.987,
+      "baseline_ba": 0.72,
+      "status": "ADOPT",
+      "report_ref": "docs/experiments/calibration-b1-domain-diversity.md",
+      "note": "sanity suite PASS; in production since 2026-10-03 23:07 UTC"
+    },
+    {
+      "revision": "B2",
+      "label": "B2 (рёберная окрестность)",
+      "weights_sha256": "71f0572de76c0657c6dd33df81c1155ede4f3e05b4e44f1c75e0080ff367baa7",
+      "corpus": "dataset-v3 (edge neighborhood), holdout-180",
+      "ba": 0.983,
+      "baseline_ba": 0.628,
+      "status": "RECALLED",
+      "recalled_on": "2026-10-03",
+      "recall_reason": "инверсия self-pair (#480)",
+      "report_ref": "docs/experiments/calibration-b2-edge-neighborhood.md",
+      "note": "ADOPT recalled 2026-10-03 - self-pair inversion P(dup|self)=0.0108 caught by the sanity suite (vesmaro/vesma#480); protocol: docs/experiments/b0-escalation.md"
+    }
+  ],
+  "decision": "ADOPT",
+  "decision_note": "B1 adopted in production since 2026-10-03 23:07 UTC via the B2->B1 recall (all three deploy points replaced; docs/experiments/b0-escalation.md). B2 is RECALLED and does not return to the registry (ADR 0003).",
+  "provenance": {
+    "trained_at": "2026-10-01T22:26:33+00:00",
+    "train_corpus_fingerprint": "edd940730a471e3d8c84461b7c3ca35dd86d691f354af0fcf4c498745d1aff61",
+    "embedder_pin": "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba",
+    "package_version": "0.2.0",
+    "run_log": "artifacts/runs/b1-single-shot-runlog.jsonl"
+  }
+}
