@@ -35,7 +35,14 @@ from typing import Final
 
 import numpy as np
 
-__all__ = ["CV_FOLDS", "CV_SEEDS", "CvReport", "SelectionVerdict", "run_cv", "select_candidate"]
+__all__ = [
+    "CV_FOLDS",
+    "CV_SEEDS",
+    "CvReport",
+    "SelectionVerdict",
+    "run_cv",
+    "select_candidate",
+]
 
 #: Frozen protocol constants (ADR 0001 V1: stratified 5-fold × 20 seeds).
 CV_FOLDS: Final[int] = 5
@@ -68,7 +75,9 @@ class SelectionVerdict:
 
 
 def run_cv(
-    train_fn: Callable[[np.ndarray, np.ndarray, int], Callable[[np.ndarray], np.ndarray]],
+    train_fn: Callable[
+        [np.ndarray, np.ndarray, int], Callable[[np.ndarray], np.ndarray]
+    ],
     features: np.ndarray,
     labels: np.ndarray,
 ) -> tuple[float, float, float, float]:
@@ -108,7 +117,11 @@ def run_cv(
                 raise ValueError(
                     f"predict_fn returned shape {fold_probs.shape}, expected ({len(valid_idx)},)"
                 )
-            if not np.isfinite(fold_probs).all() or (fold_probs < 0).any() or (fold_probs > 1).any():
+            if (
+                not np.isfinite(fold_probs).all()
+                or (fold_probs < 0).any()
+                or (fold_probs > 1).any()
+            ):
                 raise ValueError("predict_fn returned probabilities outside [0, 1]")
             probabilities[valid_idx] = fold_probs
             truths[valid_idx] = y[valid_idx]
@@ -153,7 +166,10 @@ def select_candidate(d_report: CvReport, n_report: CvReport | None) -> Selection
 
     ba_margin_stds = _margin_in_stds(ba_margin, ba_spread)
     brier_margin_stds = _margin_in_stds(brier_margin, brier_spread)
-    n_wins = ba_margin > SELECTION_MARGIN_STD * ba_spread and brier_margin > SELECTION_MARGIN_STD * brier_spread
+    n_wins = (
+        ba_margin > SELECTION_MARGIN_STD * ba_spread
+        and brier_margin > SELECTION_MARGIN_STD * brier_spread
+    )
 
     return SelectionVerdict(
         winner="n-head" if n_wins else "d-boost",

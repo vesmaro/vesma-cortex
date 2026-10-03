@@ -44,10 +44,10 @@ from cortex.features.pair import FeatureVector, attach_field_cosines
 __all__ = [
     "SIDE_NPZ_NAME",
     "SIDE_PAIR_COSINES_NAME",
-    "FieldSidecarError",
     "FieldSidecar",
-    "cosines_for_pair",
+    "FieldSidecarError",
     "attach_to_features",
+    "cosines_for_pair",
 ]
 
 SIDE_NPZ_NAME: Final[str] = "field_vecs.npz"
@@ -66,23 +66,39 @@ class FieldSidecar:
         if not path.is_file():
             raise FieldSidecarError(f"field sidecar not found: {path}")
         with np.load(path, allow_pickle=False) as data:
-            required = {"ids", "title_vecs", "body_vecs", "tags_vecs", "embedder_fingerprint"}
+            required = {
+                "ids",
+                "title_vecs",
+                "body_vecs",
+                "tags_vecs",
+                "embedder_fingerprint",
+            }
             missing = required - set(data.files)
             if missing:
-                raise FieldSidecarError(f"field sidecar {path} misses arrays: {sorted(missing)}")
+                raise FieldSidecarError(
+                    f"field sidecar {path} misses arrays: {sorted(missing)}"
+                )
             self._ids = np.asarray(data["ids"])
             self._title = np.asarray(data["title_vecs"], dtype=np.float32)
             self._body = np.asarray(data["body_vecs"], dtype=np.float32)
             self._tags = np.asarray(data["tags_vecs"], dtype=np.float32)
             self.fingerprint = str(data["embedder_fingerprint"])
-            self.model = str(data["embedder_model"]) if "embedder_model" in data.files else ""
+            self.model = (
+                str(data["embedder_model"]) if "embedder_model" in data.files else ""
+            )
             self.corpus_id = str(data["corpus_id"]) if "corpus_id" in data.files else ""
 
-        if not (len(self._ids) == len(self._title) == len(self._body) == len(self._tags)):
+        if not (
+            len(self._ids) == len(self._title) == len(self._body) == len(self._tags)
+        ):
             raise FieldSidecarError(f"field sidecar {path} has ragged arrays")
         if self._title.ndim != 2 or self._title.shape[1] == 0:
-            raise FieldSidecarError(f"field sidecar {path} has bad vector shape {self._title.shape}")
-        self._index: dict[str, int] = {str(value): i for i, value in enumerate(self._ids)}
+            raise FieldSidecarError(
+                f"field sidecar {path} has bad vector shape {self._title.shape}"
+            )
+        self._index: dict[str, int] = {
+            str(value): i for i, value in enumerate(self._ids)
+        }
         if len(self._index) != len(self._ids):
             raise FieldSidecarError(f"field sidecar {path} has duplicate ids")
 
@@ -133,7 +149,9 @@ def attach_to_features(
     (validation lives there: core-variant check, [-1, 1] bounds).
     """
     cos_title, cos_body, cos_tags = sidecar.cosines_for_pair(id_a, id_b)
-    return attach_field_cosines(vector, cos_title=cos_title, cos_body=cos_body, cos_tags=cos_tags)
+    return attach_field_cosines(
+        vector, cos_title=cos_title, cos_body=cos_body, cos_tags=cos_tags
+    )
 
 
 def load_pair_cosines(path: str | Path) -> dict[str, tuple[float, float, float]]:

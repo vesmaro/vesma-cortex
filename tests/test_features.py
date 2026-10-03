@@ -46,9 +46,15 @@ def test_deterministic_and_symmetric() -> None:
 def test_identical_records_all_max() -> None:
     values = _names_mapping(features(R_A, R_B, 0.9312))
     assert values["cos_target"] == 0.9312  # passthrough, never re-measured
-    for name in ("char3_jaccard", "char4_jaccard", "char5_jaccard",
-                 "char3_containment", "char4_containment", "char5_containment",
-                 "tag_jaccard"):
+    for name in (
+        "char3_jaccard",
+        "char4_jaccard",
+        "char5_jaccard",
+        "char3_containment",
+        "char4_containment",
+        "char5_containment",
+        "tag_jaccard",
+    ):
         assert values[name] == 1.0
     assert values["title_len_delta"] == 0.0
     assert values["body_len_delta"] == 0.0
@@ -62,9 +68,15 @@ def test_disjoint_texts_and_tags() -> None:
     long_a = PairRecord("a" * 40, "b" * 40, ("t1",), "ru", "note")
     long_b = PairRecord("c" * 40, "d" * 40, ("t2",), "en", "fact")
     values = _names_mapping(features(long_a, long_b, 0.0))
-    for name in ("char3_jaccard", "char4_jaccard", "char5_jaccard",
-                 "char3_containment", "char4_containment", "char5_containment",
-                 "tag_jaccard"):
+    for name in (
+        "char3_jaccard",
+        "char4_jaccard",
+        "char5_jaccard",
+        "char3_containment",
+        "char4_containment",
+        "char5_containment",
+        "tag_jaccard",
+    ):
         assert values[name] == 0.0, name
     assert values["type_match"] == 0.0
     assert values["lang_match"] == 0.0
@@ -99,12 +111,27 @@ def test_tag_order_and_deltas() -> None:
 
 
 def test_match_semantics_null_vs_value() -> None:
-    both_null = _names_mapping(features(
-        PairRecord("a", "b", (), None, None), PairRecord("a", "b", (), None, None), 0.5))
-    one_null = _names_mapping(features(
-        PairRecord("a", "b", (), "ru", None), PairRecord("a", "b", (), "ru", "note"), 0.5))
-    mismatch = _names_mapping(features(
-        PairRecord("a", "b", (), "ru", "note"), PairRecord("a", "b", (), "en", "note"), 0.5))
+    both_null = _names_mapping(
+        features(
+            PairRecord("a", "b", (), None, None),
+            PairRecord("a", "b", (), None, None),
+            0.5,
+        )
+    )
+    one_null = _names_mapping(
+        features(
+            PairRecord("a", "b", (), "ru", None),
+            PairRecord("a", "b", (), "ru", "note"),
+            0.5,
+        )
+    )
+    mismatch = _names_mapping(
+        features(
+            PairRecord("a", "b", (), "ru", "note"),
+            PairRecord("a", "b", (), "en", "note"),
+            0.5,
+        )
+    )
     assert both_null["lang_match"] == 0.0 and both_null["type_match"] == 0.0
     assert one_null["type_match"] == 0.0 and one_null["lang_match"] == 1.0
     assert mismatch["lang_match"] == 0.0 and mismatch["type_match"] == 1.0
@@ -116,9 +143,15 @@ def test_match_semantics_null_vs_value() -> None:
 def test_empty_fields_both_sides() -> None:
     empty = PairRecord("", "", (), None, None)
     values = _names_mapping(features(empty, empty, 0.0))
-    for name in ("char3_jaccard", "char4_jaccard", "char5_jaccard",
-                 "char3_containment", "char4_containment", "char5_containment",
-                 "tag_jaccard"):
+    for name in (
+        "char3_jaccard",
+        "char4_jaccard",
+        "char5_jaccard",
+        "char3_containment",
+        "char4_containment",
+        "char5_containment",
+        "tag_jaccard",
+    ):
         assert values[name] == 1.0, name  # two empty sets are identical
 
 
@@ -131,7 +164,9 @@ def test_empty_vs_nonempty() -> None:
 
 
 def test_text_shorter_than_ngram_order() -> None:
-    a = PairRecord("ab", "", (), None, None)  # normalized text "ab" (3 chars incl. \n→space)
+    a = PairRecord(
+        "ab", "", (), None, None
+    )  # normalized text "ab" (3 chars incl. \n→space)
     values = _names_mapping(features(a, a, 1.0))
     assert values["char3_jaccard"] == 1.0  # identical short texts still match
     b = PairRecord("ab", "", (), None, None)
@@ -177,9 +212,13 @@ def test_attach_field_cosines() -> None:
     assert extended.values[-3:] == (0.9, 0.8, 0.7)
 
     with pytest.raises(ValueError):
-        attach_field_cosines(extended, cos_title=0.0, cos_body=0.0, cos_tags=0.0)  # no double attach
+        attach_field_cosines(
+            extended, cos_title=0.0, cos_body=0.0, cos_tags=0.0
+        )  # no double attach
     with pytest.raises(ValueError):
-        attach_field_cosines(core, cos_title=1.5, cos_body=0.0, cos_tags=0.0)  # out of range
+        attach_field_cosines(
+            core, cos_title=1.5, cos_body=0.0, cos_tags=0.0
+        )  # out of range
     with pytest.raises(ValueError):
         attach_field_cosines(core, cos_title=float("nan"), cos_body=0.0, cos_tags=0.0)
 

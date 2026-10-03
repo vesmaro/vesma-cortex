@@ -32,15 +32,16 @@ from __future__ import annotations
 
 import json
 import warnings
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Final, Mapping, Sequence
+from typing import Final
 
 import numpy as np
 
 from cortex.features.pair import FEATURE_NAMES, FIELD_COSINE_FEATURES, FeatureVector
 
-__all__ = ["DGridConfig", "GRID_D", "DBoostModel", "D_N_ESTIMATORS"]
+__all__ = ["D_N_ESTIMATORS", "GRID_D", "DBoostModel", "DGridConfig"]
 
 #: Tree count of every grid point — deliberately NOT a grid axis (the grid
 #: cap is 8 configurations; depth/lr/min-data carry the capacity trade).
@@ -67,11 +68,46 @@ class DGridConfig:
 #: core features, plus one field-cosines ablation point (the ADR-mandated
 #: "D-без-полевых is the cheapest runtime" axis).
 GRID_D: Final[tuple[DGridConfig, ...]] = (
-    DGridConfig("d-l7-lr005", num_leaves=7, learning_rate=0.05, min_data_in_leaf=5, field_cosines=False, seed=1),
-    DGridConfig("d-l15-lr005", num_leaves=15, learning_rate=0.05, min_data_in_leaf=5, field_cosines=False, seed=1),
-    DGridConfig("d-l7-lr010", num_leaves=7, learning_rate=0.10, min_data_in_leaf=10, field_cosines=False, seed=1),
-    DGridConfig("d-l15-lr010", num_leaves=15, learning_rate=0.10, min_data_in_leaf=10, field_cosines=False, seed=1),
-    DGridConfig("d-l15-lr005-fc", num_leaves=15, learning_rate=0.05, min_data_in_leaf=5, field_cosines=True, seed=1),
+    DGridConfig(
+        "d-l7-lr005",
+        num_leaves=7,
+        learning_rate=0.05,
+        min_data_in_leaf=5,
+        field_cosines=False,
+        seed=1,
+    ),
+    DGridConfig(
+        "d-l15-lr005",
+        num_leaves=15,
+        learning_rate=0.05,
+        min_data_in_leaf=5,
+        field_cosines=False,
+        seed=1,
+    ),
+    DGridConfig(
+        "d-l7-lr010",
+        num_leaves=7,
+        learning_rate=0.10,
+        min_data_in_leaf=10,
+        field_cosines=False,
+        seed=1,
+    ),
+    DGridConfig(
+        "d-l15-lr010",
+        num_leaves=15,
+        learning_rate=0.10,
+        min_data_in_leaf=10,
+        field_cosines=False,
+        seed=1,
+    ),
+    DGridConfig(
+        "d-l15-lr005-fc",
+        num_leaves=15,
+        learning_rate=0.05,
+        min_data_in_leaf=5,
+        field_cosines=True,
+        seed=1,
+    ),
 )
 
 _CORE_NAMES: Final[tuple[str, ...]] = FEATURE_NAMES
@@ -146,13 +182,18 @@ class DBoostModel:
         )
 
     def _validate_train_input(
-        self, vectors: Sequence[FeatureVector], labels: Sequence[int], config: DGridConfig
+        self,
+        vectors: Sequence[FeatureVector],
+        labels: Sequence[int],
+        config: DGridConfig,
     ) -> tuple[np.ndarray, np.ndarray]:
         if not vectors:
             raise ValueError("training requires at least one labeled pair")
         observed = {v.names for v in vectors}
         if len(observed) != 1:
-            raise ValueError("all training vectors must share one feature-name contract")
+            raise ValueError(
+                "all training vectors must share one feature-name contract"
+            )
         expected = _EXTENDED_NAMES if config.field_cosines else _CORE_NAMES
         names = observed.pop()
         if names != expected:
@@ -285,7 +326,9 @@ class DBoostModel:
             helper.make_node("Mul", ["raw_margin", "platt_a"], ["scaled_margin"]),
             helper.make_node("Add", ["scaled_margin", "platt_b"], ["calibrated_logit"]),
             helper.make_node("Sigmoid", ["calibrated_logit"], ["probability_2d"]),
-            helper.make_node("Reshape", ["probability_2d", "shape_out"], ["probability"]),
+            helper.make_node(
+                "Reshape", ["probability_2d", "shape_out"], ["probability"]
+            ),
         ]
         # Rewire the tree node into the wrapped graph (raw margins out).
         # TreeEnsembleClassifier REQUIRES two outputs (label + scores) — the
@@ -310,9 +353,7 @@ class DBoostModel:
         graph = helper.make_graph(
             nodes,
             name="vesma-cortex-d-boost",
-            inputs=[
-                helper.make_tensor_value_info("features", TensorProto.FLOAT, [k])
-            ],
+            inputs=[helper.make_tensor_value_info("features", TensorProto.FLOAT, [k])],
             outputs=[
                 helper.make_tensor_value_info("probability", TensorProto.FLOAT, [1])
             ],
@@ -342,7 +383,9 @@ class DBoostModel:
         zeros = np.zeros(k, dtype=np.float32)
         graph_prob = float(session.run(None, {"features": zeros})[0][0])
         reference = float(
-            self.predict_proba([FeatureVector(self.feature_names, tuple(zeros.tolist()))])[0]
+            self.predict_proba(
+                [FeatureVector(self.feature_names, tuple(zeros.tolist()))]
+            )[0]
         )
         if not np.isclose(graph_prob, reference, atol=1e-5):
             raise RuntimeError(
@@ -371,7 +414,7 @@ class DBoostModel:
         return out_dir
 
     @classmethod
-    def load(cls, directory: Path) -> "DBoostModel":
+    def load(cls, directory: Path) -> DBoostModel:
         import lightgbm as lgb
 
         in_dir = Path(directory)

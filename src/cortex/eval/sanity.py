@@ -37,9 +37,10 @@ network (the repo-wide isolation discipline); same bundle → same report.
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from pathlib import Path
-from typing import Final, Sequence
+from typing import Final
 
 import numpy as np
 
@@ -47,22 +48,22 @@ from cortex.artifacts import CANDIDATE_D, features_digest, sha256_file
 from cortex.features.pair import FEATURE_NAMES, FeatureVector, PairRecord, features
 
 __all__ = [
-    "SELF_PAIR_MIN",
+    "COS_LADDER",
+    "MANIFEST_FILENAME",
+    "MODEL_FILENAME",
+    "MONOTONICITY_TOLERANCE",
     "NEAR_BOUNDARY_COS",
     "NEAR_BOUNDARY_MIN",
+    "PROBE_RECORD",
+    "SELF_PAIR_MIN",
     "UNRELATED_COS",
     "UNRELATED_MAX",
-    "COS_LADDER",
-    "MONOTONICITY_TOLERANCE",
-    "MODEL_FILENAME",
-    "MANIFEST_FILENAME",
-    "PROBE_RECORD",
     "UNRELATED_RECORD",
     "SanityCheck",
-    "SanityReport",
     "SanityLoadError",
-    "run_sanity_suite",
+    "SanityReport",
     "ladder_probabilities",
+    "run_sanity_suite",
 ]
 
 # ── thresholds (the D1 protocol requirements, frozen here) ───────────────────
@@ -177,7 +178,10 @@ def _resolve_bundle(bundle: Path) -> tuple[Path, Path]:
     bundle = Path(bundle)
     if bundle.is_dir():
         model_path = bundle / MODEL_FILENAME
-        candidates = (bundle / MANIFEST_FILENAME, bundle / f"{model_path.stem}.manifest.json")
+        candidates = (
+            bundle / MANIFEST_FILENAME,
+            bundle / f"{model_path.stem}.manifest.json",
+        )
     elif bundle.is_file():
         model_path = bundle
         candidates = (bundle.with_suffix(".manifest.json"),)
@@ -195,16 +199,24 @@ def _load_manifest(manifest_path: Path) -> dict:
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        raise SanityLoadError(f"manifest is not valid JSON: {manifest_path} — {exc}") from exc
+        raise SanityLoadError(
+            f"manifest is not valid JSON: {manifest_path} — {exc}"
+        ) from exc
     if not isinstance(manifest, dict):
-        raise SanityLoadError(f"manifest must be a JSON object, got {type(manifest).__name__}")
+        raise SanityLoadError(
+            f"manifest must be a JSON object, got {type(manifest).__name__}"
+        )
     for key in ("sha256", "features", "candidate"):
         if key not in manifest:
-            raise SanityLoadError(f"manifest missing required key {key!r}: {manifest_path}")
+            raise SanityLoadError(
+                f"manifest missing required key {key!r}: {manifest_path}"
+            )
     if not isinstance(manifest["features"], list) or not all(
         isinstance(name, str) for name in manifest["features"]
     ):
-        raise SanityLoadError("manifest 'features' must be a list of feature-name strings")
+        raise SanityLoadError(
+            "manifest 'features' must be a list of feature-name strings"
+        )
     return manifest
 
 
@@ -246,7 +258,9 @@ def _score_pair(session, vector: FeatureVector) -> float:
 # ── the suite ────────────────────────────────────────────────────────────────
 
 
-def _contract_checks(manifest: dict, meta: dict[str, str], weights_sha: str) -> list[SanityCheck]:
+def _contract_checks(
+    manifest: dict, meta: dict[str, str], weights_sha: str
+) -> list[SanityCheck]:
     checks: list[SanityCheck] = []
 
     declared_sha = str(manifest.get("sha256", ""))
@@ -324,7 +338,9 @@ def _adversarial_checks(session) -> list[SanityCheck]:
     )
 
     # (c) unrelated: different topic at the #480 probe cosine must stay below.
-    p_unrelated = _score_pair(session, features(PROBE_RECORD, UNRELATED_RECORD, UNRELATED_COS))
+    p_unrelated = _score_pair(
+        session, features(PROBE_RECORD, UNRELATED_RECORD, UNRELATED_COS)
+    )
     checks.append(
         SanityCheck(
             name="unrelated",

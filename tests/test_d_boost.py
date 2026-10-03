@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from synth import make_vectors
 
 from cortex.artifacts import (
     CANDIDATE_D,
@@ -17,8 +18,6 @@ from cortex.artifacts import (
 )
 from cortex.candidates.d_boost import GRID_D, DBoostModel
 from cortex.features.pair import FEATURE_NAMES
-
-from synth import make_vectors
 
 VECTORS, LABELS, _ROWS = make_vectors(60)
 
@@ -37,7 +36,9 @@ def test_grid_frozen_and_bounded() -> None:
     assert len({c.name for c in GRID_D}) == len(GRID_D)
     core = [c for c in GRID_D if not c.field_cosines]
     ablation = [c for c in GRID_D if c.field_cosines]
-    assert core and ablation, "the ADR-mandated with/without-field-cosines axis must exist"
+    assert core and ablation, (
+        "the ADR-mandated with/without-field-cosines axis must exist"
+    )
 
 
 # ── training and inference ────────────────────────────────────────────────────

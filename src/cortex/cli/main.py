@@ -27,9 +27,10 @@ import json
 import re
 import sqlite3
 import sys
-from datetime import datetime, timezone
+from collections.abc import Sequence
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Final, Sequence
+from typing import Any, Final
 
 from cortex.data.fingerprints import (
     corpus_fingerprint,
@@ -39,7 +40,7 @@ from cortex.data.fingerprints import (
 )
 from cortex.features.pair import FEATURE_NAMES, PairRecord, features
 
-__all__ = ["main", "build_parser"]
+__all__ = ["build_parser", "main"]
 
 #: Exit code for a missing train-env dependency (torch extra).
 ENV_MISSING_EXIT: Final[int] = 3
@@ -78,12 +79,18 @@ def _load_labeled_pairs(path: Path) -> tuple[list[dict[str, Any]], int]:
             disputed += 1
             continue
         if label not in ("duplicate", "not-duplicate"):
-            raise ValueError(f"{path}: pair {row.get('pair_id')!r} carries bad label {label!r}")
+            raise ValueError(
+                f"{path}: pair {row.get('pair_id')!r} carries bad label {label!r}"
+            )
         if "record" not in row or "candidate" not in row or "similarity" not in row:
-            raise ValueError(f"{path}: pair {row.get('pair_id')!r} misses record/candidate/similarity")
+            raise ValueError(
+                f"{path}: pair {row.get('pair_id')!r} misses record/candidate/similarity"
+            )
         rows.append(row)
     if not rows:
-        raise ValueError(f"{path}: no usable labeled pairs (disputed skipped: {disputed})")
+        raise ValueError(
+            f"{path}: no usable labeled pairs (disputed skipped: {disputed})"
+        )
     return rows, disputed
 
 
@@ -93,7 +100,11 @@ def _manifest_fingerprint(rows: Sequence[dict[str, Any]]) -> str:
         (
             row["pair_id"],
             pair_sha256(
-                {"record": row["record"], "candidate": row["candidate"], "similarity": row["similarity"]}
+                {
+                    "record": row["record"],
+                    "candidate": row["candidate"],
+                    "similarity": row["similarity"],
+                }
             ),
         )
         for row in rows
@@ -102,11 +113,15 @@ def _manifest_fingerprint(rows: Sequence[dict[str, Any]]) -> str:
 
 
 def _pair_feature_vector(row: dict[str, Any]):
-    return features(_record_like(row["record"]), _record_like(row["candidate"]), float(row["similarity"]))
+    return features(
+        _record_like(row["record"]),
+        _record_like(row["candidate"]),
+        float(row["similarity"]),
+    )
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def _d_config_by_name(name: str):
@@ -115,7 +130,9 @@ def _d_config_by_name(name: str):
     for config in GRID_D:
         if config.name == name:
             return config
-    raise ValueError(f"unknown D grid config {name!r} — frozen grid: {[c.name for c in GRID_D]}")
+    raise ValueError(
+        f"unknown D grid config {name!r} — frozen grid: {[c.name for c in GRID_D]}"
+    )
 
 
 def _n_config_by_name(name: str):
@@ -124,7 +141,9 @@ def _n_config_by_name(name: str):
     for config in GRID_N:
         if config.name == name:
             return config
-    raise ValueError(f"unknown N grid config {name!r} — frozen grid: {[c.name for c in GRID_N]}")
+    raise ValueError(
+        f"unknown N grid config {name!r} — frozen grid: {[c.name for c in GRID_N]}"
+    )
 
 
 # ── command handlers ──────────────────────────────────────────────────────────
@@ -144,7 +163,7 @@ def _cmd_export_corpus(args: argparse.Namespace) -> int:
         raise ValueError(f"--limit-pool must be positive, got {args.limit_pool}")
     if (args.store_path is None) == (args.store_uri is None):
         raise ValueError("exactly one of --store-path / --store-uri is required")
-    corpus_id = args.corpus_id or f"pretrain-{datetime.now(timezone.utc).strftime('%Y%m%d')}"
+    corpus_id = args.corpus_id or f"pretrain-{datetime.now(UTC).strftime('%Y%m%d')}"
     if not _CORPUS_ID_RE.fullmatch(corpus_id):
         raise ValueError(
             f"--corpus-id must match {_CORPUS_ID_RE.pattern!r} (machine string, ADR 0001 V4), "
@@ -232,9 +251,18 @@ def _cmd_pretrain(args: argparse.Namespace) -> int:
                 row["vec_a"] = row["vec_b"] = vectors_by_key[key]
             handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
             counts[row["source"]] = counts.get(row["source"], 0) + 1
-            entries.append((pair.pair_id, pair_sha256({
-                "record": row["record"], "candidate": row["candidate"], "similarity": row["similarity"],
-            })))
+            entries.append(
+                (
+                    pair.pair_id,
+                    pair_sha256(
+                        {
+                            "record": row["record"],
+                            "candidate": row["candidate"],
+                            "similarity": row["similarity"],
+                        }
+                    ),
+                )
+            )
     fingerprint = corpus_fingerprint(manifest_bytes(entries))
     (out_path.parent / "manifest.txt").write_bytes(manifest_bytes(entries))
     print(
@@ -253,7 +281,9 @@ def _cmd_pretrain(args: argparse.Namespace) -> int:
     return 0
 
 
-def _train_d(rows: list[dict[str, Any]], config_name: str, out_dir: Path, fingerprint: str) -> int:
+def _train_d(
+    rows: list[dict[str, Any]], config_name: str, out_dir: Path, fingerprint: str
+) -> int:
     from cortex.candidates.d_boost import DBoostModel
 
     config = _d_config_by_name(config_name)
@@ -301,7 +331,9 @@ def _train_n(
     from cortex.candidates.n_head import GRID_N, NHeadModel, vector_block
 
     config = _n_config_by_name(config_name or GRID_N[0].name)
-    missing_vecs = [row["pair_id"] for row in rows if "vec_a" not in row or "vec_b" not in row]
+    missing_vecs = [
+        row["pair_id"] for row in rows if "vec_a" not in row or "vec_b" not in row
+    ]
     if missing_vecs:
         print(
             f"cortex train: candidate n needs vec_a/vec_b on every pair "
@@ -321,7 +353,9 @@ def _train_n(
             for line in Path(pretrain_corpus).read_text(encoding="utf-8").splitlines()
             if line.strip()
         ]
-        no_vec = [r["pair_id"] for r in pretrain_rows if "vec_a" not in r or "vec_b" not in r]
+        no_vec = [
+            r["pair_id"] for r in pretrain_rows if "vec_a" not in r or "vec_b" not in r
+        ]
         if no_vec:
             print(
                 f"cortex train: pretrain corpus lacks store vectors on {len(no_vec)} "
@@ -331,7 +365,11 @@ def _train_n(
             )
             return ENV_MISSING_EXIT
         pre_vectors = [
-            features(_record_like(r["record"]), _record_like(r["candidate"]), float(r["similarity"]))
+            features(
+                _record_like(r["record"]),
+                _record_like(r["candidate"]),
+                float(r["similarity"]),
+            )
             for r in pretrain_rows
         ]
         pre_blocks = [vector_block(r["vec_a"], r["vec_b"]) for r in pretrain_rows]
@@ -370,11 +408,19 @@ def _cmd_train(args: argparse.Namespace) -> int:
     config_name = args.config  # None → first frozen grid point per candidate
 
     if args.candidate == "d":
-        return _train_d(rows, config_name or GRID_D[0].name, out_dir / "d-boost", fingerprint)
+        return _train_d(
+            rows, config_name or GRID_D[0].name, out_dir / "d-boost", fingerprint
+        )
     if args.candidate == "n":
-        return _train_n(rows, config_name, out_dir / "n-head", fingerprint, args.pretrain_corpus)
-    code_d = _train_d(rows, config_name or GRID_D[0].name, out_dir / "d-boost", fingerprint)
-    code_n = _train_n(rows, config_name, out_dir / "n-head", fingerprint, args.pretrain_corpus)
+        return _train_n(
+            rows, config_name, out_dir / "n-head", fingerprint, args.pretrain_corpus
+        )
+    code_d = _train_d(
+        rows, config_name or GRID_D[0].name, out_dir / "d-boost", fingerprint
+    )
+    code_n = _train_n(
+        rows, config_name, out_dir / "n-head", fingerprint, args.pretrain_corpus
+    )
     return code_d if code_d != 0 else code_n
 
 
@@ -383,12 +429,16 @@ def _cv_matrix(rows: list[dict[str, Any]], with_vectors: bool):
     flattened vector block (N — the block rides the same fold indices)."""
     import numpy as np
 
-    scalars = np.asarray([_pair_feature_vector(row).values for row in rows], dtype=np.float64)
+    scalars = np.asarray(
+        [_pair_feature_vector(row).values for row in rows], dtype=np.float64
+    )
     if not with_vectors:
         return scalars
     from cortex.candidates.n_head import vector_block
 
-    blocks = np.asarray([vector_block(row["vec_a"], row["vec_b"]) for row in rows], dtype=np.float64)
+    blocks = np.asarray(
+        [vector_block(row["vec_a"], row["vec_b"]) for row in rows], dtype=np.float64
+    )
     return np.concatenate([scalars, blocks.reshape(len(rows), -1)], axis=1)
 
 
@@ -400,7 +450,9 @@ def _select_d(matrix, labels, config) -> object:
         vectors = [FeatureVector(FEATURE_NAMES, tuple(row)) for row in features_train]
         model = DBoostModel()
         model.train(vectors, list(labels_train), config, calibrate=False)
-        return lambda x: model.predict_proba([FeatureVector(FEATURE_NAMES, tuple(r)) for r in x])
+        return lambda x: model.predict_proba(
+            [FeatureVector(FEATURE_NAMES, tuple(r)) for r in x]
+        )
 
     return train_fn
 
@@ -412,7 +464,10 @@ def _select_n(matrix, labels, config):
     scalar_dim = len(FEATURE_NAMES)
 
     def train_fn(features_train, labels_train, seed):
-        vectors = [FeatureVector(FEATURE_NAMES, tuple(row[:scalar_dim])) for row in features_train]
+        vectors = [
+            FeatureVector(FEATURE_NAMES, tuple(row[:scalar_dim]))
+            for row in features_train
+        ]
         blocks = features_train[:, scalar_dim:].reshape(-1, 4, 384)
         model = NHeadModel()
         model.train(vectors, list(labels_train), config, vector_blocks=blocks)
@@ -433,7 +488,9 @@ def _cmd_select(args: argparse.Namespace) -> int:
     rows, disputed = _load_labeled_pairs(Path(args.train_manifest))
     if disputed:
         print(f"cortex select: skipped {disputed} disputed pairs", file=sys.stderr)
-    labels = np.asarray([1 if row["label"] == "duplicate" else 0 for row in rows], dtype=np.int64)
+    labels = np.asarray(
+        [1 if row["label"] == "duplicate" else 0 for row in rows], dtype=np.int64
+    )
 
     reports: list[CvReport] = []
     d_matrix = _cv_matrix(rows, with_vectors=False)
@@ -449,8 +506,12 @@ def _cmd_select(args: argparse.Namespace) -> int:
             file=sys.stderr,
         )
     for config in usable_d:
-        ba_mean, ba_std, brier_mean, brier_std = run_cv(_select_d(d_matrix, labels, config), d_matrix, labels)
-        reports.append(CvReport("d-boost", config.name, ba_mean, ba_std, brier_mean, brier_std))
+        ba_mean, ba_std, brier_mean, brier_std = run_cv(
+            _select_d(d_matrix, labels, config), d_matrix, labels
+        )
+        reports.append(
+            CvReport("d-boost", config.name, ba_mean, ba_std, brier_mean, brier_std)
+        )
     d_best = max(reports, key=lambda r: (r.balanced_accuracy_mean, -r.brier_mean))
 
     n_best: CvReport | None = None
@@ -466,13 +527,25 @@ def _cmd_select(args: argparse.Namespace) -> int:
                 ba_mean, ba_std, brier_mean, brier_std = run_cv(
                     _select_n(n_matrix, labels, config), n_matrix, labels
                 )
-                n_reports.append(CvReport("n-head", config.name, ba_mean, ba_std, brier_mean, brier_std))
-            n_best = max(n_reports, key=lambda r: (r.balanced_accuracy_mean, -r.brier_mean))
+                n_reports.append(
+                    CvReport(
+                        "n-head", config.name, ba_mean, ba_std, brier_mean, brier_std
+                    )
+                )
+            n_best = max(
+                n_reports, key=lambda r: (r.balanced_accuracy_mean, -r.brier_mean)
+            )
             reports.extend(n_reports)
         except ImportError:
-            print("cortex select: torch absent — N candidate skipped (train extra)", file=sys.stderr)
+            print(
+                "cortex select: torch absent — N candidate skipped (train extra)",
+                file=sys.stderr,
+            )
         except KeyError as exc:
-            print(f"cortex select: N needs vec_a/vec_b on every pair ({exc})", file=sys.stderr)
+            print(
+                f"cortex select: N needs vec_a/vec_b on every pair ({exc})",
+                file=sys.stderr,
+            )
 
     verdict = select_candidate(d_best, n_best)
 
@@ -507,9 +580,9 @@ def _cmd_select(args: argparse.Namespace) -> int:
 
 def _cmd_export_artifact(args: argparse.Namespace) -> int:
     from cortex.artifacts import (
+        ARTIFACT_NAME,
         CANDIDATE_D,
         CANDIDATE_N,
-        ARTIFACT_NAME,
         METADATA_VERSION,
         build_metadata_props,
         sha256_file,
@@ -556,7 +629,9 @@ def _cmd_export_artifact(args: argparse.Namespace) -> int:
         )
         model.export_onnx(out_path, metadata_props=props)
     else:
-        print(f"cortex export-artifact: unknown candidate {candidate!r}", file=sys.stderr)
+        print(
+            f"cortex export-artifact: unknown candidate {candidate!r}", file=sys.stderr
+        )
         return 2
 
     weights_sha = sha256_file(out_path)
@@ -575,7 +650,15 @@ def _cmd_export_artifact(args: argparse.Namespace) -> int:
     }
     manifest_path = out_path.with_suffix(".manifest.json")
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    print(json.dumps({"artifact": str(out_path), "sha256": weights_sha, "manifest": str(manifest_path)}))
+    print(
+        json.dumps(
+            {
+                "artifact": str(out_path),
+                "sha256": weights_sha,
+                "manifest": str(manifest_path),
+            }
+        )
+    )
     return 0
 
 
@@ -591,9 +674,9 @@ class _OrtDModel:
 
         vectors = [
             features(
-                _record_like(getattr(pair, "record") or {}),
-                _record_like(getattr(pair, "candidate") or {}),
-                float(getattr(pair, "similarity")),
+                _record_like(pair.record or {}),
+                _record_like(pair.candidate or {}),
+                float(pair.similarity),
             )
             for pair in pairs
         ]
@@ -627,7 +710,9 @@ def _cmd_eval(args: argparse.Namespace) -> int:
 
     artifact = Path(args.artifact)
     try:
-        session = ort.InferenceSession(str(artifact), providers=["CPUExecutionProvider"])
+        session = ort.InferenceSession(
+            str(artifact), providers=["CPUExecutionProvider"]
+        )
     except Exception as exc:
         # ORT load failures raise pybind11-state subclasses of Exception
         # (not ValueError/RuntimeError) — the CLI boundary maps them to the
@@ -636,7 +721,10 @@ def _cmd_eval(args: argparse.Namespace) -> int:
         return 2
     meta = dict(session.get_modelmeta().custom_metadata_map)
     if meta.get("name") != MODEL_NAME:
-        print(f"cortex eval: artifact name {meta.get('name')!r} != {MODEL_NAME!r}", file=sys.stderr)
+        print(
+            f"cortex eval: artifact name {meta.get('name')!r} != {MODEL_NAME!r}",
+            file=sys.stderr,
+        )
         return 2
     candidate = meta.get("candidate")
     if candidate == "n-head":
@@ -650,13 +738,17 @@ def _cmd_eval(args: argparse.Namespace) -> int:
     model = _OrtDModel(session, feature_names or CORE_NAMES)
 
     holdout_dir = Path(args.holdout)
-    pairs = load_holdout_pairs(holdout_dir / "pairs.jsonl", holdout_dir / "labels.jsonl")
+    pairs = load_holdout_pairs(
+        holdout_dir / "pairs.jsonl", holdout_dir / "labels.jsonl"
+    )
     if args.corpus_fingerprint:
         corpus_fp = args.corpus_fingerprint
     else:
         rows = [
             json.loads(line)
-            for line in (holdout_dir / "pairs.jsonl").read_text(encoding="utf-8").splitlines()
+            for line in (holdout_dir / "pairs.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
             if line.strip()
         ]
         corpus_fp = _manifest_fingerprint(rows)
@@ -694,51 +786,123 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p = sub.add_parser("export-corpus", help="export eval/pretrain corpus from the store (prereg hygiene, fingerprints)")
-    p.add_argument("--store-path", default=None,
-                   help="store data DIRECTORY holding mnemos.db + vectors.db (opened strictly read-only)")
-    p.add_argument("--store-uri", default=None,
-                   help="contract-form read-only URI of mnemos.db (file:...?mode=ro); vectors.db is its sibling")
-    p.add_argument("--out", "--out-dir", dest="out", required=True,
-                   help="output root under data/ (corpus lands in <out>/pretrain/<corpus-id>/)")
+    p = sub.add_parser(
+        "export-corpus",
+        help="export eval/pretrain corpus from the store (prereg hygiene, fingerprints)",
+    )
+    p.add_argument(
+        "--store-path",
+        default=None,
+        help="store data DIRECTORY holding mnemos.db + vectors.db (opened strictly read-only)",
+    )
+    p.add_argument(
+        "--store-uri",
+        default=None,
+        help="contract-form read-only URI of mnemos.db (file:...?mode=ro); vectors.db is its sibling",
+    )
+    p.add_argument(
+        "--out",
+        "--out-dir",
+        dest="out",
+        required=True,
+        help="output root under data/ (corpus lands in <out>/pretrain/<corpus-id>/)",
+    )
     p.add_argument("--corpus-id", default=None, help="default: pretrain-<UTC date>")
-    p.add_argument("--limit-pool", type=int, default=800, help="max records in the pool (default 800)")
-    p.add_argument("--min-cosine", type=float, default=0.85, help="near-dup pair band lower bound (inclusive)")
-    p.add_argument("--max-cosine", type=float, default=0.97, help="near-dup pair band upper bound (exclusive)")
-    p.add_argument("--no-pairs", action="store_true", help="skip near-duplicate pair bases")
-    p.add_argument("--engine-src", default=None,
-                   help="engine source tree for the hygiene detectors (default: $CORTEX_ENGINE_SRC); "
-                   "absent → local fallback scanner, disclosed in provenance")
+    p.add_argument(
+        "--limit-pool",
+        type=int,
+        default=800,
+        help="max records in the pool (default 800)",
+    )
+    p.add_argument(
+        "--min-cosine",
+        type=float,
+        default=0.85,
+        help="near-dup pair band lower bound (inclusive)",
+    )
+    p.add_argument(
+        "--max-cosine",
+        type=float,
+        default=0.97,
+        help="near-dup pair band upper bound (exclusive)",
+    )
+    p.add_argument(
+        "--no-pairs", action="store_true", help="skip near-duplicate pair bases"
+    )
+    p.add_argument(
+        "--engine-src",
+        default=None,
+        help="engine source tree for the hygiene detectors (default: $CORTEX_ENGINE_SRC); "
+        "absent → local fallback scanner, disclosed in provenance",
+    )
 
-    p = sub.add_parser("pretrain", help="generate corruption pretrain pairs (candidate N)")
-    p.add_argument("--corpus", required=True, help="records jsonl (title/body/tags/language/record_type rows)")
+    p = sub.add_parser(
+        "pretrain", help="generate corruption pretrain pairs (candidate N)"
+    )
+    p.add_argument(
+        "--corpus",
+        required=True,
+        help="records jsonl (title/body/tags/language/record_type rows)",
+    )
     p.add_argument("--seed", type=int, default=0)
-    p.add_argument("--out", required=True, help="output pairs.jsonl (data-contract §4 shape)")
+    p.add_argument(
+        "--out", required=True, help="output pairs.jsonl (data-contract §4 shape)"
+    )
     p.add_argument("--max-pairs", type=int, default=None)
 
     p = sub.add_parser("train", help="train D and N candidates on labeled train pairs")
     p.add_argument("--train-manifest", required=True)
     p.add_argument("--candidate", choices=["d", "n", "both"], default="both")
-    p.add_argument("--config", default=None, help="frozen grid config name (default: first of the grid)")
-    p.add_argument("--pretrain-corpus", default=None, help="corruption pairs jsonl (candidate N pretrain stage)")
+    p.add_argument(
+        "--config",
+        default=None,
+        help="frozen grid config name (default: first of the grid)",
+    )
+    p.add_argument(
+        "--pretrain-corpus",
+        default=None,
+        help="corruption pairs jsonl (candidate N pretrain stage)",
+    )
     p.add_argument("--out", required=True, help="output directory for the model state")
 
-    p = sub.add_parser("select", help="frozen CV protocol: stratified 5-fold × 20 seeds")
+    p = sub.add_parser(
+        "select", help="frozen CV protocol: stratified 5-fold × 20 seeds"
+    )
     p.add_argument("--train-manifest", required=True)
     p.add_argument("--candidate", choices=["d", "n", "both"], default="both")
     p.add_argument("--out", default=None, help="selection report json path")
 
-    p = sub.add_parser("export-artifact", help="export the winning candidate as vesma-cortex-v1 ONNX")
-    p.add_argument("--model", required=True, help="trained model directory (train --out)")
+    p = sub.add_parser(
+        "export-artifact", help="export the winning candidate as vesma-cortex-v1 ONNX"
+    )
+    p.add_argument(
+        "--model", required=True, help="trained model directory (train --out)"
+    )
     p.add_argument("--out", required=True, help="output model.onnx path")
-    p.add_argument("--embedder-pin", required=True, help="live engine embedder fingerprint (nano:sha256:<hex>)")
-    p.add_argument("--corpus-fingerprint", default=None, help="override the fingerprint recorded in model meta")
+    p.add_argument(
+        "--embedder-pin",
+        required=True,
+        help="live engine embedder fingerprint (nano:sha256:<hex>)",
+    )
+    p.add_argument(
+        "--corpus-fingerprint",
+        default=None,
+        help="override the fingerprint recorded in model meta",
+    )
 
-    p = sub.add_parser("eval", help="single-shot holdout evaluation (prereg v2, append-only run log)")
+    p = sub.add_parser(
+        "eval", help="single-shot holdout evaluation (prereg v2, append-only run log)"
+    )
     p.add_argument("--artifact", required=True)
-    p.add_argument("--holdout", required=True, help="directory with pairs.jsonl + labels.jsonl")
+    p.add_argument(
+        "--holdout", required=True, help="directory with pairs.jsonl + labels.jsonl"
+    )
     p.add_argument("--run-log", required=True)
-    p.add_argument("--corpus-fingerprint", default=None, help="default: fingerprint of the given pairs.jsonl")
+    p.add_argument(
+        "--corpus-fingerprint",
+        default=None,
+        help="default: fingerprint of the given pairs.jsonl",
+    )
 
     return parser
 

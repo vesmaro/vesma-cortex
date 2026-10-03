@@ -1,0 +1,9 @@
+# Lint gate scope (MR-2). Ruff 0.16 widened its default rule selection far
+# beyond the classic set (PLW/SIM/TRY/C4/RUF/...); several of those classes
+# carry semantics-adjacent findings (subprocess check=True, exception types,
+# self-comparisons) that must not be flipped mechanically. The gate adopts
+# the stable classic set + executable-script checks; widen this list only
+# deliberately, in review, together with the pinned tool version in the
+# Makefile (RUFF variable).
+[lint]
+select = ["E4", "E7", "E9", "F", "EXE"]

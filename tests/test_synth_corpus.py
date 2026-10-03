@@ -28,8 +28,8 @@ from cortex.synth import (
     STRATEGY_NEAR_TOPIC,
     STRATEGY_PARAPHRASE,
     STRATEGY_TRIVIAL_NEGATIVE,
-    SynthStats,
     TOPICS,
+    SynthStats,
     SynthTopic,
     corpus_fingerprint_of_pairs,
     generate_corpus,
@@ -59,10 +59,30 @@ def _topic(title: str, body: str, language: str, key: str) -> SynthTopic:
 
 #: Small deterministic topic list (bodies pass the 30-char topic floor).
 TOPICS_TEST = (
-    _topic("Настройка линтера", "Вынесли конфиг линтера в pyproject, длина строки сто, правило импортов включено.", "ru", "linter"),
-    _topic("Выбор очереди", "Выбрали легковесную очередь вместо брокера сообщений: ноль новой инфраструктуры, консюмеры из коробки.", "ru", "queue"),
-    _topic("Linter configuration", "The linter config lives in pyproject, line length one hundred, the import rule is enabled.", "en", "linter"),
-    _topic("Queue choice", "We picked a lightweight queue over a message broker: zero new infrastructure, consumers out of the box.", "en", "queue"),
+    _topic(
+        "Настройка линтера",
+        "Вынесли конфиг линтера в pyproject, длина строки сто, правило импортов включено.",
+        "ru",
+        "linter",
+    ),
+    _topic(
+        "Выбор очереди",
+        "Выбрали легковесную очередь вместо брокера сообщений: ноль новой инфраструктуры, консюмеры из коробки.",
+        "ru",
+        "queue",
+    ),
+    _topic(
+        "Linter configuration",
+        "The linter config lives in pyproject, line length one hundred, the import rule is enabled.",
+        "en",
+        "linter",
+    ),
+    _topic(
+        "Queue choice",
+        "We picked a lightweight queue over a message broker: zero new infrastructure, consumers out of the box.",
+        "en",
+        "queue",
+    ),
 )
 
 
@@ -77,7 +97,9 @@ def _mock_llm(prompt: str) -> str:
     """Deterministic mock: distinct rewrite per strategy and variant number."""
     title, _ = _extract_base(prompt)
     variant_match = re.search(r"вариант №(\d+)|variant #(\d+)", prompt)
-    variant = (variant_match.group(1) or variant_match.group(2)) if variant_match else "1"
+    variant = (
+        (variant_match.group(1) or variant_match.group(2)) if variant_match else "1"
+    )
     paraphrase = ("Перепиши" in prompt) or ("Rewrite" in prompt)
     russian = "Перепиши" in prompt or "НОВУЮ" in prompt
     kind = "пересказ" if paraphrase else "новая память"
@@ -108,7 +130,7 @@ def test_sample_quotas_match_the_a2s_gate() -> None:
     }
 
 
-@pytest.mark.parametrize("n", list(range(0, 61)))
+@pytest.mark.parametrize("n", list(range(61)))
 def test_sample_quotas_total_exactly_n(n: int) -> None:
     assert sum(sample_quotas(n).values()) == n
 
@@ -123,7 +145,19 @@ def test_sample_quotas_reject_negative() -> None:
 
 def test_strategies_carry_labels_by_construction() -> None:
     pairs = generate_corpus(
-        TOPICS_TEST, 0, _mock_llm, 11, quotas={s: 2 for s in (STRATEGY_PARAPHRASE, STRATEGY_NEAR_TOPIC, STRATEGY_BROKEN_FIELD, STRATEGY_TRIVIAL_NEGATIVE)}
+        TOPICS_TEST,
+        0,
+        _mock_llm,
+        11,
+        quotas={
+            s: 2
+            for s in (
+                STRATEGY_PARAPHRASE,
+                STRATEGY_NEAR_TOPIC,
+                STRATEGY_BROKEN_FIELD,
+                STRATEGY_TRIVIAL_NEGATIVE,
+            )
+        },
     )
     labels = {pair.strategy: pair.label for pair in pairs}
     assert labels == {
@@ -144,7 +178,11 @@ def test_strategies_carry_labels_by_construction() -> None:
 
 def test_llm_strategies_reuse_base_tags() -> None:
     pairs = generate_corpus(
-        TOPICS_TEST, 0, _mock_llm, 3, quotas={STRATEGY_PARAPHRASE: 2, STRATEGY_NEAR_TOPIC: 2}
+        TOPICS_TEST,
+        0,
+        _mock_llm,
+        3,
+        quotas={STRATEGY_PARAPHRASE: 2, STRATEGY_NEAR_TOPIC: 2},
     )
     for pair in pairs:
         assert pair.record_b.tags == pair.record_a.tags
@@ -170,7 +208,12 @@ def test_paraphrase_applies_meaning_free_variation_on_top() -> None:
 def test_empty_llm_output_drops_with_counter() -> None:
     stats = SynthStats()
     pairs = generate_corpus(
-        TOPICS_TEST, 0, lambda _prompt: "", 5, quotas={STRATEGY_PARAPHRASE: 2}, stats=stats
+        TOPICS_TEST,
+        0,
+        lambda _prompt: "",
+        5,
+        quotas={STRATEGY_PARAPHRASE: 2},
+        stats=stats,
     )
     assert pairs == []
     assert stats.as_dict()["dropped_empty"] == 2
@@ -209,7 +252,11 @@ def test_corridor_bounds() -> None:
     assert validate_candidate(base, "Хороший заголовок", "коротко") == "length"
     assert validate_candidate(base, "  ", "тело записи") == "empty"
     assert validate_candidate(base, base.title, base.body) == "identical"
-    ok = validate_candidate(base, "Другой заголовок записи", "Другое тело записи той же памяти, смысл тот же самый.")
+    ok = validate_candidate(
+        base,
+        "Другой заголовок записи",
+        "Другое тело записи той же памяти, смысл тот же самый.",
+    )
     assert ok is None
 
 
@@ -232,24 +279,55 @@ def test_transport_failure_aborts_loudly() -> None:
 
 
 def test_procedural_strategies_are_seed_deterministic() -> None:
-    quotas = {STRATEGY_PARAPHRASE: 0, STRATEGY_NEAR_TOPIC: 0, STRATEGY_BROKEN_FIELD: 12, STRATEGY_TRIVIAL_NEGATIVE: 12}
-    first = [pair_row(p) for p in generate_corpus(TOPICS_TEST, 0, None, 42, quotas=quotas)]
-    second = [pair_row(p) for p in generate_corpus(TOPICS_TEST, 0, None, 42, quotas=quotas)]
+    quotas = {
+        STRATEGY_PARAPHRASE: 0,
+        STRATEGY_NEAR_TOPIC: 0,
+        STRATEGY_BROKEN_FIELD: 12,
+        STRATEGY_TRIVIAL_NEGATIVE: 12,
+    }
+    first = [
+        pair_row(p) for p in generate_corpus(TOPICS_TEST, 0, None, 42, quotas=quotas)
+    ]
+    second = [
+        pair_row(p) for p in generate_corpus(TOPICS_TEST, 0, None, 42, quotas=quotas)
+    ]
     assert first == second
     other = generate_corpus(TOPICS_TEST, 0, None, 43, quotas=quotas)
-    assert [p.seed for p in other] != [p.seed for p in generate_corpus(TOPICS_TEST, 0, None, 42, quotas=quotas)]
+    assert [p.seed for p in other] != [
+        p.seed for p in generate_corpus(TOPICS_TEST, 0, None, 42, quotas=quotas)
+    ]
 
 
 def test_llm_generation_is_seed_deterministic() -> None:
-    quotas = {STRATEGY_PARAPHRASE: 3, STRATEGY_NEAR_TOPIC: 3, STRATEGY_BROKEN_FIELD: 0, STRATEGY_TRIVIAL_NEGATIVE: 0}
-    first = [pair_row(p) for p in generate_corpus(TOPICS_TEST, 0, _mock_llm, 9, quotas=quotas)]
-    second = [pair_row(p) for p in generate_corpus(TOPICS_TEST, 0, _mock_llm, 9, quotas=quotas)]
+    quotas = {
+        STRATEGY_PARAPHRASE: 3,
+        STRATEGY_NEAR_TOPIC: 3,
+        STRATEGY_BROKEN_FIELD: 0,
+        STRATEGY_TRIVIAL_NEGATIVE: 0,
+    }
+    first = [
+        pair_row(p)
+        for p in generate_corpus(TOPICS_TEST, 0, _mock_llm, 9, quotas=quotas)
+    ]
+    second = [
+        pair_row(p)
+        for p in generate_corpus(TOPICS_TEST, 0, _mock_llm, 9, quotas=quotas)
+    ]
     assert first == second
 
 
 def test_translation_twins_never_form_a_negative() -> None:
     pairs = generate_corpus(
-        TOPICS, 0, None, 7, quotas={STRATEGY_TRIVIAL_NEGATIVE: 40, STRATEGY_BROKEN_FIELD: 0, STRATEGY_PARAPHRASE: 0, STRATEGY_NEAR_TOPIC: 0}
+        TOPICS,
+        0,
+        None,
+        7,
+        quotas={
+            STRATEGY_TRIVIAL_NEGATIVE: 40,
+            STRATEGY_BROKEN_FIELD: 0,
+            STRATEGY_PARAPHRASE: 0,
+            STRATEGY_NEAR_TOPIC: 0,
+        },
     )
     key_by_title = {topic.title: topic.key for topic in TOPICS}
     for pair in pairs:
@@ -259,7 +337,11 @@ def test_translation_twins_never_form_a_negative() -> None:
 def test_full_scale_procedural_run_has_no_collisions() -> None:
     """quota > pool size must not crash (old behavior raised on pair ids)."""
     pairs = generate_corpus(
-        TOPICS, 0, None, 7, quotas={STRATEGY_BROKEN_FIELD: 40, STRATEGY_TRIVIAL_NEGATIVE: 40}
+        TOPICS,
+        0,
+        None,
+        7,
+        quotas={STRATEGY_BROKEN_FIELD: 40, STRATEGY_TRIVIAL_NEGATIVE: 40},
     )
     ids = [pair.pair_id for pair in pairs]
     assert len(set(ids)) == len(ids) == 80
@@ -268,14 +350,23 @@ def test_full_scale_procedural_run_has_no_collisions() -> None:
 def test_variant_prompts_rescue_repeated_bases() -> None:
     """One topic, three slots: the variant line makes outputs (and pair ids)
     unique even though the mock is deterministic per prompt."""
-    single = (_topic("Одна тема", "Единственная запись в пуле, тело достаточной длины для коридора валидации.", "ru", "solo"),)
+    single = (
+        _topic(
+            "Одна тема",
+            "Единственная запись в пуле, тело достаточной длины для коридора валидации.",
+            "ru",
+            "solo",
+        ),
+    )
     calls: list[str] = []
 
     def tracking_mock(prompt: str) -> str:
         calls.append(prompt)
         return _mock_llm(prompt)
 
-    pairs = generate_corpus(single, 0, tracking_mock, 5, quotas={STRATEGY_NEAR_TOPIC: 3})
+    pairs = generate_corpus(
+        single, 0, tracking_mock, 5, quotas={STRATEGY_NEAR_TOPIC: 3}
+    )
     assert len(pairs) == 3
     assert len({p.pair_id for p in pairs}) == 3
     assert len(set(calls)) == len(calls), "prompts for the same base must never repeat"
@@ -284,13 +375,22 @@ def test_variant_prompts_rescue_repeated_bases() -> None:
 def test_futile_variants_drop_with_counter() -> None:
     """A mock that ignores the variant line: the first slot emits, the second
     collides until the retry bound and drops with a counter — never raises."""
-    single = (_topic("Одна тема", "Единственная запись в пуле, тело достаточной длины для коридора валидации.", "ru", "solo"),)
+    single = (
+        _topic(
+            "Одна тема",
+            "Единственная запись в пуле, тело достаточной длины для коридора валидации.",
+            "ru",
+            "solo",
+        ),
+    )
     stats = SynthStats()
 
     def stubborn(_prompt: str) -> str:
         return "Стабильный ответ\nОдин и тот же текст ответа, модель игнорирует строку варианта полностью."
 
-    pairs = generate_corpus(single, 0, stubborn, 5, quotas={STRATEGY_NEAR_TOPIC: 2}, stats=stats)
+    pairs = generate_corpus(
+        single, 0, stubborn, 5, quotas={STRATEGY_NEAR_TOPIC: 2}, stats=stats
+    )
     assert len(pairs) == 1  # the first slot is fine
     counters = stats.as_dict()
     assert counters["dropped_duplicate"] == 1
@@ -303,8 +403,19 @@ def test_futile_variants_drop_with_counter() -> None:
 
 def test_generated_pairs_flow_through_the_feature_path() -> None:
     pairs = generate_corpus(
-        TOPICS_TEST, 0, _mock_llm, 21,
-        quotas={s: 3 for s in (STRATEGY_PARAPHRASE, STRATEGY_NEAR_TOPIC, STRATEGY_BROKEN_FIELD, STRATEGY_TRIVIAL_NEGATIVE)},
+        TOPICS_TEST,
+        0,
+        _mock_llm,
+        21,
+        quotas={
+            s: 3
+            for s in (
+                STRATEGY_PARAPHRASE,
+                STRATEGY_NEAR_TOPIC,
+                STRATEGY_BROKEN_FIELD,
+                STRATEGY_TRIVIAL_NEGATIVE,
+            )
+        },
     )
     for pair in pairs:
         vector = features(pair.record_a, pair.record_b, similarity=0.9)
@@ -316,7 +427,11 @@ def test_fingerprint_scheme_matches_data_contract() -> None:
     from cortex.data.fingerprints import corpus_fingerprint, manifest_bytes
 
     pairs = generate_corpus(
-        TOPICS_TEST, 0, _mock_llm, 33, quotas={STRATEGY_PARAPHRASE: 2, STRATEGY_NEAR_TOPIC: 2}
+        TOPICS_TEST,
+        0,
+        _mock_llm,
+        33,
+        quotas={STRATEGY_PARAPHRASE: 2, STRATEGY_NEAR_TOPIC: 2},
     )
     fingerprint = corpus_fingerprint_of_pairs(pairs)
     assert fingerprint == corpus_fingerprint(manifest_bytes(manifest_entries(pairs)))
@@ -326,13 +441,21 @@ def test_fingerprint_scheme_matches_data_contract() -> None:
     assert lines == sorted(lines)
     assert all(len(line.split(" ")) == 2 for line in lines)
     # content-sensitive: one edited body changes the corpus fingerprint
-    edited = [replace(pairs[0], record_a=replace(pairs[0].record_a, body="изменённое тело записи"))] + pairs[1:]
+    edited = [
+        replace(
+            pairs[0], record_a=replace(pairs[0].record_a, body="изменённое тело записи")
+        )
+    ] + pairs[1:]
     assert corpus_fingerprint_of_pairs(edited) != fingerprint
 
 
 def test_pair_row_json_roundtrip() -> None:
     pairs = generate_corpus(
-        TOPICS_TEST, 0, _mock_llm, 4, quotas={STRATEGY_PARAPHRASE: 1, STRATEGY_TRIVIAL_NEGATIVE: 1}
+        TOPICS_TEST,
+        0,
+        _mock_llm,
+        4,
+        quotas={STRATEGY_PARAPHRASE: 1, STRATEGY_TRIVIAL_NEGATIVE: 1},
     )
     for pair in pairs:
         row = json.loads(pair_row_json(pair))
@@ -348,7 +471,9 @@ def test_parse_llm_record_strips_markdown_fences() -> None:
     assert parse_llm_record("   \n\n  ") is None
     fenced = "```markdown\nЗаголовок записи\nТело записи после забора.\n```"
     assert parse_llm_record(fenced) == ("Заголовок записи", "Тело записи после забора.")
-    assert parse_llm_record("Просто заголовок\nПервое предложение.\nВторое предложение.") == (
+    assert parse_llm_record(
+        "Просто заголовок\nПервое предложение.\nВторое предложение."
+    ) == (
         "Просто заголовок",
         "Первое предложение. Второе предложение.",
     )
@@ -425,11 +550,14 @@ def test_batched_path_matches_sequential_on_clean_mock() -> None:
     """Collision-free run: same prompts, same seed-draw order, same corpus."""
     quotas = {STRATEGY_PARAPHRASE: 3, STRATEGY_NEAR_TOPIC: 3}
     sequential = [
-        pair_row(p) for p in generate_corpus(TOPICS_TEST, 0, _mock_llm, 9, quotas=quotas)
+        pair_row(p)
+        for p in generate_corpus(TOPICS_TEST, 0, _mock_llm, 9, quotas=quotas)
     ]
     batched = [
         pair_row(p)
-        for p in generate_corpus(TOPICS_TEST, 0, None, 9, quotas=quotas, llm_batch_fn=_batch_mock)
+        for p in generate_corpus(
+            TOPICS_TEST, 0, None, 9, quotas=quotas, llm_batch_fn=_batch_mock
+        )
     ]
     assert batched == sequential
 
@@ -443,9 +571,14 @@ def test_batched_path_counts_batches_and_enforces_count_order() -> None:
         return _batch_mock(prompts)
 
     pairs = generate_corpus(
-        TOPICS_TEST, 0, None, 5,
-        quotas={STRATEGY_PARAPHRASE: 3}, stats=stats,
-        llm_batch_fn=tracking_mock, batch_size=2,
+        TOPICS_TEST,
+        0,
+        None,
+        5,
+        quotas={STRATEGY_PARAPHRASE: 3},
+        stats=stats,
+        llm_batch_fn=tracking_mock,
+        batch_size=2,
     )
     assert len(pairs) == 3
     counters = stats.as_dict()
@@ -458,8 +591,12 @@ def test_batched_path_counts_batches_and_enforces_count_order() -> None:
 
     with pytest.raises(ValueError, match="count and order"):
         generate_corpus(
-            TOPICS_TEST, 0, None, 5,
-            quotas={STRATEGY_PARAPHRASE: 1}, llm_batch_fn=bad_count,
+            TOPICS_TEST,
+            0,
+            None,
+            5,
+            quotas={STRATEGY_PARAPHRASE: 1},
+            llm_batch_fn=bad_count,
         )
 
 
@@ -470,8 +607,13 @@ def test_batched_corridor_drops_are_not_retried_transport_aborts_loudly() -> Non
         return [""] * len(prompts)
 
     pairs = generate_corpus(
-        TOPICS_TEST, 0, None, 5,
-        quotas={STRATEGY_NEAR_TOPIC: 2}, stats=stats, llm_batch_fn=empty,
+        TOPICS_TEST,
+        0,
+        None,
+        5,
+        quotas={STRATEGY_NEAR_TOPIC: 2},
+        stats=stats,
+        llm_batch_fn=empty,
     )
     assert pairs == []
     counters = stats.as_dict()
@@ -483,30 +625,53 @@ def test_batched_corridor_drops_are_not_retried_transport_aborts_loudly() -> Non
 
     with pytest.raises(ConnectionError):
         generate_corpus(
-            TOPICS_TEST, 0, None, 5,
-            quotas={STRATEGY_NEAR_TOPIC: 1}, llm_batch_fn=broken,
+            TOPICS_TEST,
+            0,
+            None,
+            5,
+            quotas={STRATEGY_NEAR_TOPIC: 1},
+            llm_batch_fn=broken,
         )
 
 
 def test_callback_modes_are_mutually_exclusive_and_batch_size_validated() -> None:
     with pytest.raises(ValueError, match="one callback mode"):
         generate_corpus(
-            TOPICS_TEST, 0, _mock_llm, 5,
-            quotas={STRATEGY_PARAPHRASE: 1}, llm_batch_fn=_batch_mock,
+            TOPICS_TEST,
+            0,
+            _mock_llm,
+            5,
+            quotas={STRATEGY_PARAPHRASE: 1},
+            llm_batch_fn=_batch_mock,
         )
     with pytest.raises(ValueError, match="batch_size"):
         generate_corpus(
-            TOPICS_TEST, 0, None, 5,
-            quotas={STRATEGY_PARAPHRASE: 1}, llm_batch_fn=_batch_mock, batch_size=0,
+            TOPICS_TEST,
+            0,
+            None,
+            5,
+            quotas={STRATEGY_PARAPHRASE: 1},
+            llm_batch_fn=_batch_mock,
+            batch_size=0,
         )
 
 
 def test_emit_callback_receives_every_pair_in_order() -> None:
     seen: list[str] = []
     pairs = generate_corpus(
-        TOPICS_TEST, 0, _mock_llm, 21,
-        quotas={s: 3 for s in (STRATEGY_PARAPHRASE, STRATEGY_NEAR_TOPIC,
-                               STRATEGY_BROKEN_FIELD, STRATEGY_TRIVIAL_NEGATIVE)},
+        TOPICS_TEST,
+        0,
+        _mock_llm,
+        21,
+        quotas={
+            s: 3
+            for s in (
+                STRATEGY_PARAPHRASE,
+                STRATEGY_NEAR_TOPIC,
+                STRATEGY_BROKEN_FIELD,
+                STRATEGY_TRIVIAL_NEGATIVE,
+            )
+        },
         emit_callback=lambda pair: seen.append(pair.pair_id),
     )
     assert seen == [pair.pair_id for pair in pairs]
@@ -543,14 +708,18 @@ def test_parse_batch_json_rejects_malformed_and_maps_bad_items_to_empty() -> Non
     with pytest.raises(ValueError, match="expected 2"):
         g.parse_batch_json('[{"title": "А", "body": "Б"}]', 2)
     # non-object items and missing fields map to "" → dropped at validation
-    assert g.parse_batch_json('[{"title": "А", "body": "Б"}, 5, {"title": "В"}]', 3) == [
+    assert g.parse_batch_json(
+        '[{"title": "А", "body": "Б"}, 5, {"title": "В"}]', 3
+    ) == [
         "А\nБ",
         "",
         "",
     ]
 
 
-def test_chat_completion_wall_cap_aborts_a_stalled_call(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_chat_completion_wall_cap_aborts_a_stalled_call(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """A gateway that defeats the socket inactivity timeout (openrouter keeps
     the connection warm while the model generates) is still bounded by the
     SIGALRM wall cap: the attempt aborts at ~timeout and ProviderDown wins."""
@@ -559,7 +728,7 @@ def test_chat_completion_wall_cap_aborts_a_stalled_call(monkeypatch: pytest.Monk
 
     g = _script_module()
 
-    def stalled(_request, timeout=None):  # noqa: ANN001 — urllib signature
+    def stalled(_request, timeout=None):
         time_mod.sleep(3.0)
         raise TimeoutError("should have been killed by the wall cap first")
 
@@ -567,8 +736,15 @@ def test_chat_completion_wall_cap_aborts_a_stalled_call(monkeypatch: pytest.Monk
     started = time_mod.monotonic()
     with pytest.raises(g.ProviderDown, match="wall cap|transport failure"):
         g.chat_completion(
-            "ping", name="openrouter", base_url="https://x/v1", model="m",
-            api_key="k", seed=1, max_tokens=16, timeout=1.0, rate_retries=1,
+            "ping",
+            name="openrouter",
+            base_url="https://x/v1",
+            model="m",
+            api_key="k",
+            seed=1,
+            max_tokens=16,
+            timeout=1.0,
+            rate_retries=1,
         )
     # two attempts at ~1s wall cap each (no full 3s sleeper completion ×2)
     assert time_mod.monotonic() - started < 5.0
@@ -578,20 +754,30 @@ def test_chat_completion_wall_cap_aborts_a_stalled_call(monkeypatch: pytest.Monk
 
 
 def test_script_help_exits_zero() -> None:
-    proc = subprocess.run([sys.executable, str(SCRIPT), "--help"], capture_output=True, text=True, timeout=60)
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT), "--help"],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
     assert proc.returncode == 0
     assert "--sample" in proc.stdout
 
 
 def test_script_requires_exactly_one_sampling_mode() -> None:
-    proc = subprocess.run([sys.executable, str(SCRIPT)], capture_output=True, text=True, timeout=60)
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT)], capture_output=True, text=True, timeout=60
+    )
     assert proc.returncode == 2
     assert proc.stderr.strip()
 
 
 def test_script_rejects_bad_sample_size() -> None:
     proc = subprocess.run(
-        [sys.executable, str(SCRIPT), "--sample", "0"], capture_output=True, text=True, timeout=60
+        [sys.executable, str(SCRIPT), "--sample", "0"],
+        capture_output=True,
+        text=True,
+        timeout=60,
     )
     assert proc.returncode == 2
 
@@ -605,9 +791,18 @@ def test_script_cloud_provider_without_key_exits_two(tmp_path: Path) -> None:
         if k not in ("OPENROUTER_API_KEY", "GROQ_API_KEY")
     }
     proc = subprocess.run(
-        [sys.executable, str(SCRIPT), "--pairs-per-strategy", "1",
-         "--out-dir", str(tmp_path / "synth")],
-        capture_output=True, text=True, timeout=60, env=env,
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--pairs-per-strategy",
+            "1",
+            "--out-dir",
+            str(tmp_path / "synth"),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        env=env,
     )
     assert proc.returncode == 2
     assert "OPENROUTER_API_KEY" in proc.stderr
@@ -618,9 +813,19 @@ def test_script_render_review_labels_are_not_inverted(tmp_path: Path) -> None:
     """The old hand-rendered REVIEW.md showed paraphrase as «НЕ дубликат» —
     the renderer pins the true mapping (duplicate → «дубликат»)."""
     pairs = generate_corpus(
-        TOPICS, 0, _mock_llm, 3,
-        quotas={s: 4 for s in (STRATEGY_PARAPHRASE, STRATEGY_NEAR_TOPIC,
-                               STRATEGY_BROKEN_FIELD, STRATEGY_TRIVIAL_NEGATIVE)},
+        TOPICS,
+        0,
+        _mock_llm,
+        3,
+        quotas={
+            s: 4
+            for s in (
+                STRATEGY_PARAPHRASE,
+                STRATEGY_NEAR_TOPIC,
+                STRATEGY_BROKEN_FIELD,
+                STRATEGY_TRIVIAL_NEGATIVE,
+            )
+        },
     )
     corpus = tmp_path / "pairs.jsonl"
     corpus.write_text(
@@ -628,9 +833,19 @@ def test_script_render_review_labels_are_not_inverted(tmp_path: Path) -> None:
     )
     out = tmp_path / "REVIEW.md"
     proc = subprocess.run(
-        [sys.executable, str(SCRIPT), "--render-review", str(corpus),
-         "--review-out", str(out), "--review-n", "10"],
-        capture_output=True, text=True, timeout=120,
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--render-review",
+            str(corpus),
+            "--review-out",
+            str(out),
+            "--review-n",
+            "10",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=120,
     )
     assert proc.returncode == 0, proc.stderr
     text = out.read_text(encoding="utf-8")

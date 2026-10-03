@@ -37,13 +37,27 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         prog="a2_field_cosines",
         description="docompute title/body/tags field vectors + pair cosines (mnema-embed-v1, CPU)",
     )
-    parser.add_argument("--records", required=True, help="exported records.jsonl (hygiene-passed)")
-    parser.add_argument("--pairs", default=None, help="near_dup_candidates.jsonl (optional)")
+    parser.add_argument(
+        "--records", required=True, help="exported records.jsonl (hygiene-passed)"
+    )
+    parser.add_argument(
+        "--pairs", default=None, help="near_dup_candidates.jsonl (optional)"
+    )
     parser.add_argument("--out-npz", required=True, help="output field_vecs.npz path")
-    parser.add_argument("--out-cosines", default=None, help="output pair-cosines jsonl (default: next to npz)")
-    parser.add_argument("--engine-src", required=True, help="engine source tree (vesmaro package root)")
-    parser.add_argument("--max-chars", type=int, default=4096,
-                        help="per-field text cap (engine EMBEDDING_TEXT_MAX_CHARS convention)")
+    parser.add_argument(
+        "--out-cosines",
+        default=None,
+        help="output pair-cosines jsonl (default: next to npz)",
+    )
+    parser.add_argument(
+        "--engine-src", required=True, help="engine source tree (vesmaro package root)"
+    )
+    parser.add_argument(
+        "--max-chars",
+        type=int,
+        default=4096,
+        help="per-field text cap (engine EMBEDDING_TEXT_MAX_CHARS convention)",
+    )
     return parser.parse_args(argv)
 
 
@@ -53,7 +67,10 @@ def _load_engine_provider(engine_src: str):
         raise SystemExit(f"engine source tree has no vesmaro.embeddings under {src}")
     if str(src) not in sys.path:
         sys.path.insert(0, str(src))
-    from vesmaro.embeddings import MNEMA_EMBED_MODEL, NanoProvider  # noqa: PLC0415 — engine env only
+    from vesmaro.embeddings import (
+        MNEMA_EMBED_MODEL,
+        NanoProvider,
+    )
 
     provider = NanoProvider()  # eager init: bundle load + smoke-inference
     return provider, MNEMA_EMBED_MODEL
@@ -69,7 +86,9 @@ def main(argv: list[str] | None = None) -> int:
         print(f"a2_field_cosines: {message}", file=sys.stderr)
 
     provider, model_name = _load_engine_provider(args.engine_src)
-    progress(f"embedder ready: {model_name} fingerprint={provider.fingerprint} dim={provider.dimension}")
+    progress(
+        f"embedder ready: {model_name} fingerprint={provider.fingerprint} dim={provider.dimension}"
+    )
 
     ids: list[str] = []
     titles: list[str] = []

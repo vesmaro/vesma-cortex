@@ -33,24 +33,25 @@ A3b implementation notes (frozen here):
 from __future__ import annotations
 
 import json
+from collections.abc import Sequence
 from dataclasses import asdict, dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Final, Protocol, Sequence
+from typing import Final, Protocol
 
 import numpy as np
 
 __all__ = [
     "BASELINE_THRESHOLD",
-    "EvalReport",
-    "RunLogEntry",
-    "RunLog",
-    "HoldoutPair",
-    "run_single_shot",
-    "run_baseline",
-    "load_holdout_pairs",
     "DUPLICATE_THRESHOLD_PROBABILITY",
+    "EvalReport",
+    "HoldoutPair",
+    "RunLog",
+    "RunLogEntry",
     "RunLogRefusalError",
+    "load_holdout_pairs",
+    "run_baseline",
+    "run_single_shot",
 ]
 
 #: The engine's near-duplicate threshold (graph_minting
@@ -141,7 +142,10 @@ class RunLog:
         return entries
 
     def contains_corpus(self, corpus_fingerprint: str) -> bool:
-        return any(entry.get("corpus_fingerprint") == corpus_fingerprint for entry in self._entries())
+        return any(
+            entry.get("corpus_fingerprint") == corpus_fingerprint
+            for entry in self._entries()
+        )
 
     def append(self, entry: RunLogEntry) -> None:
         """Append one entry; raise RunLogRefusalError if an entry with the
@@ -182,8 +186,14 @@ def load_holdout_pairs(pairs_path: Path, labels_path: Path) -> list[HoldoutPair]
 
     missing = sorted(set(pairs) - set(labels))
     if missing:
-        raise ValueError(f"{len(missing)} holdout pairs carry no label (first: {missing[:3]})")
-    disputed = sorted(pid for pid, label in labels.items() if label == _LABEL_DISPUTED and pid in pairs)
+        raise ValueError(
+            f"{len(missing)} holdout pairs carry no label (first: {missing[:3]})"
+        )
+    disputed = sorted(
+        pid
+        for pid, label in labels.items()
+        if label == _LABEL_DISPUTED and pid in pairs
+    )
     if disputed:
         raise ValueError(
             f"disputed labels must never reach holdout (excluded before the "
@@ -212,13 +222,15 @@ def load_holdout_pairs(pairs_path: Path, labels_path: Path) -> list[HoldoutPair]
 def _binary_labels(holdout_pairs: Sequence[object]) -> np.ndarray:
     values = []
     for pair in holdout_pairs:
-        label = getattr(pair, "label")
+        label = pair.label
         if label == _LABEL_DUPLICATE:
             values.append(1)
         elif label == _LABEL_NOT_DUPLICATE:
             values.append(0)
         else:
-            raise ValueError(f"pair {getattr(pair, 'pair_id', '?')!r} carries label {label!r}")
+            raise ValueError(
+                f"pair {getattr(pair, 'pair_id', '?')!r} carries label {label!r}"
+            )
     return np.asarray(values, dtype=np.int64)
 
 
@@ -244,7 +256,9 @@ def run_single_shot(
     if not holdout_pairs:
         raise ValueError("holdout must contain at least one pair")
     if not corpus_fingerprint:
-        raise ValueError("corpus_fingerprint is required — the single-shot guard keys on it")
+        raise ValueError(
+            "corpus_fingerprint is required — the single-shot guard keys on it"
+        )
     if run_log.contains_corpus(corpus_fingerprint):
         raise RunLogRefusalError(
             f"corpus {corpus_fingerprint} was already evaluated — "
@@ -258,8 +272,14 @@ def run_single_shot(
             f"model returned {probabilities.shape} probabilities for "
             f"{len(holdout_pairs)} pairs — typified contract violated (metric 1)"
         )
-    if not np.isfinite(probabilities).all() or (probabilities < 0).any() or (probabilities > 1).any():
-        raise ValueError("model returned probabilities outside [0, 1] — typified contract violated")
+    if (
+        not np.isfinite(probabilities).all()
+        or (probabilities < 0).any()
+        or (probabilities > 1).any()
+    ):
+        raise ValueError(
+            "model returned probabilities outside [0, 1] — typified contract violated"
+        )
 
     y_pred = (probabilities >= DUPLICATE_THRESHOLD_PROBABILITY).astype(np.int64)
     positives = y_true == 1
@@ -278,7 +298,7 @@ def run_single_shot(
         baseline_balanced_accuracy=run_baseline(holdout_pairs),
         weights_sha256=weights_sha256,
         corpus_fingerprint=corpus_fingerprint,
-        run_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        run_at=datetime.now(UTC).isoformat(timespec="seconds"),
     )
     run_log.append(
         RunLogEntry(
@@ -298,6 +318,6 @@ def run_baseline(holdout_pairs: Sequence[object]) -> float:
     if not holdout_pairs:
         raise ValueError("holdout must contain at least one pair")
     y_true = _binary_labels(holdout_pairs)
-    similarities = np.asarray([float(getattr(pair, "similarity")) for pair in holdout_pairs])
+    similarities = np.asarray([float(pair.similarity) for pair in holdout_pairs])
     y_pred = (similarities >= BASELINE_THRESHOLD).astype(np.int64)
     return _balanced_accuracy(y_true, y_pred)

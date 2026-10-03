@@ -11,6 +11,7 @@ Usage (ENGINE venv — imports vesmaro.embeddings):
     PYTHONPATH=<engine-src> python3 scripts/build_train_manifest.py \
         --in-dir <dataset-dir> --out-dir data/stage2/<name> [--holdout-frac 0.3] [--seed 7]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -27,8 +28,10 @@ ap.add_argument("--holdout-frac", type=float, default=0.3)
 ap.add_argument("--seed", type=int, default=7)
 args = ap.parse_args()
 
-sys.path.insert(0, "/var/home/abyss/LABs/Projects/Project-Vesma/wt/a2-engine-readonly/src")
-from vesmaro.embeddings import NanoProvider  # noqa: E402
+sys.path.insert(
+    0, "/var/home/abyss/LABs/Projects/Project-Vesma/wt/a2-engine-readonly/src"
+)
+from vesmaro.embeddings import NanoProvider  # noqa: E402 — engine src shim above
 
 provider = NanoProvider()
 print(f"embedder pin: {provider.fingerprint}", file=sys.stderr)
@@ -45,17 +48,28 @@ def vec(side):
 
 
 rows = []
-for l in open(f"{args.in_dir}/pairs-pos.jsonl", encoding="utf-8"):
-    r = json.loads(l)
-    rows.append({"pair_id": r["pair_id"], "label": "duplicate",
-                 "record": r["original"],
-                 "candidate": r.get("variant") or r.get("candidate"),
-                 "stratum": r.get("stratum", "constructed")})
-for l in open(f"{args.in_dir}/pairs-neg.jsonl", encoding="utf-8"):
-    r = json.loads(l)
-    rows.append({"pair_id": r["pair_id"], "label": "not-duplicate",
-                 "record": r["a"], "candidate": r["b"],
-                 "stratum": r.get("stratum", "constructed")})
+for line in open(f"{args.in_dir}/pairs-pos.jsonl", encoding="utf-8"):
+    r = json.loads(line)
+    rows.append(
+        {
+            "pair_id": r["pair_id"],
+            "label": "duplicate",
+            "record": r["original"],
+            "candidate": r.get("variant") or r.get("candidate"),
+            "stratum": r.get("stratum", "constructed"),
+        }
+    )
+for line in open(f"{args.in_dir}/pairs-neg.jsonl", encoding="utf-8"):
+    r = json.loads(line)
+    rows.append(
+        {
+            "pair_id": r["pair_id"],
+            "label": "not-duplicate",
+            "record": r["a"],
+            "candidate": r["b"],
+            "stratum": r.get("stratum", "constructed"),
+        }
+    )
 for r in rows:
     va, vb = vec(r["record"]), vec(r["candidate"])
     dot = sum(x * y for x, y in zip(va, vb))
@@ -67,7 +81,8 @@ for r in rows:
 rows.sort(key=lambda r: r["pair_id"])
 lines = sorted(
     f"{r['pair_id']} {hashlib.sha256(json.dumps({k: r[k] for k in ('record', 'candidate', 'similarity')}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()}"
-    for r in rows)
+    for r in rows
+)
 fp = hashlib.blake2b(("\n".join(lines) + "\n").encode(), digest_size=32).hexdigest()
 
 hold_ids = set()
@@ -84,14 +99,33 @@ out.mkdir(parents=True, exist_ok=True)
 for name, rs in (("train.jsonl", train), ("holdout.jsonl", hold)):
     with open(out / name, "w", encoding="utf-8") as fh:
         for r in rs:
-            fh.write(json.dumps(r, sort_keys=True, ensure_ascii=False, separators=(",", ":")) + "\n")
+            fh.write(
+                json.dumps(r, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+                + "\n"
+            )
 labels_fp = hashlib.blake2b(
     json.dumps({r["pair_id"]: r["label"] for r in rows}, sort_keys=True).encode(),
-    digest_size=32).hexdigest()
+    digest_size=32,
+).hexdigest()
 with open(out / "holdout-ids.json", "w", encoding="utf-8") as fh:
-    json.dump({"holdout_ids": sorted(hold_ids), "corpus_fingerprint": fp,
-               "label_fingerprint_input": labels_fp,
-               "seed": args.seed, "split": f"stratified stride, frac={args.holdout_frac}"}, fh, indent=1)
-print(json.dumps({"total": len(rows), "corpus_fingerprint": fp[:16] + "…",
-                  "train": dict(Counter(r["label"] for r in train)),
-                  "holdout": dict(Counter(r["label"] for r in hold))}))
+    json.dump(
+        {
+            "holdout_ids": sorted(hold_ids),
+            "corpus_fingerprint": fp,
+            "label_fingerprint_input": labels_fp,
+            "seed": args.seed,
+            "split": f"stratified stride, frac={args.holdout_frac}",
+        },
+        fh,
+        indent=1,
+    )
+print(
+    json.dumps(
+        {
+            "total": len(rows),
+            "corpus_fingerprint": fp[:16] + "…",
+            "train": dict(Counter(r["label"] for r in train)),
+            "holdout": dict(Counter(r["label"] for r in hold)),
+        }
+    )
+)

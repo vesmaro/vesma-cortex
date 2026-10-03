@@ -42,7 +42,9 @@ def _human(report) -> str:
         lines.append("verdict: PASS — all checks green")
     else:
         names = ", ".join(check.name for check in report.failed)
-        lines.append(f"verdict: FAIL — {len(report.failed)}/{len(report.checks)} checks failed: {names}")
+        lines.append(
+            f"verdict: FAIL — {len(report.failed)}/{len(report.checks)} checks failed: {names}"
+        )
         lines.append("ADOPT gate: a red suite blocks adoption (roadmap-v2 §5.1)")
     return "\n".join(lines)
 

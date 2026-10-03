@@ -40,7 +40,7 @@ def main() -> int:
     provider = NanoProvider()
     print(f"embedder fingerprint: {provider.fingerprint}", file=sys.stderr)
 
-    rows = [json.loads(l) for l in open(args.pairs, encoding="utf-8")]
+    rows = [json.loads(line) for line in open(args.pairs, encoding="utf-8")]
     cache: dict[str, list[float]] = {}
 
     def vec(side: dict) -> list[float]:
@@ -64,7 +64,12 @@ def main() -> int:
 
     with open(args.out, "w", encoding="utf-8") as fh:
         for row in out_rows:
-            fh.write(json.dumps(row, sort_keys=True, ensure_ascii=False, separators=(",", ":")) + "\n")
+            fh.write(
+                json.dumps(
+                    row, sort_keys=True, ensure_ascii=False, separators=(",", ":")
+                )
+                + "\n"
+            )
 
     lines = sorted(
         f"{r['pair_id']} {hashlib.sha256(json.dumps({k: r[k] for k in ('record', 'candidate', 'similarity')}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()}"
@@ -73,13 +78,17 @@ def main() -> int:
     manifest = ("\n".join(lines) + "\n").encode()
     fp = hashlib.blake2b(manifest, digest_size=32).hexdigest()
     sims = [r["similarity"] for r in out_rows]
-    print(json.dumps({
-        "rows": len(out_rows),
-        "derived_corpus_fingerprint": fp,
-        "similarity_min": min(sims),
-        "similarity_mean": round(sum(sims) / len(sims), 4),
-        "similarity_max": max(sims),
-    }))
+    print(
+        json.dumps(
+            {
+                "rows": len(out_rows),
+                "derived_corpus_fingerprint": fp,
+                "similarity_min": min(sims),
+                "similarity_mean": round(sum(sims) / len(sims), 4),
+                "similarity_max": max(sims),
+            }
+        )
+    )
     return 0
 
 

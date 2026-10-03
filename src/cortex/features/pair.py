@@ -44,14 +44,14 @@ from dataclasses import dataclass
 from typing import Final, NamedTuple
 
 __all__ = [
-    "PairRecord",
-    "RecordLike",
-    "FeatureVector",
+    "CHAR_NGRAM_ORDERS",
     "FEATURE_NAMES",
     "FIELD_COSINE_FEATURES",
-    "CHAR_NGRAM_ORDERS",
-    "features",
+    "FeatureVector",
+    "PairRecord",
+    "RecordLike",
     "attach_field_cosines",
+    "features",
 ]
 
 
@@ -174,13 +174,19 @@ def _validate_similarity(similarity: float) -> float:
     try:
         value = float(similarity)
     except (TypeError, ValueError) as exc:
-        raise ValueError(f"similarity must be a real number, got {similarity!r}") from exc
+        raise ValueError(
+            f"similarity must be a real number, got {similarity!r}"
+        ) from exc
     if math.isnan(value) or value < -1.0 or value > 1.0:
-        raise ValueError(f"similarity must be within [-1, 1] and not NaN, got {value!r}")
+        raise ValueError(
+            f"similarity must be within [-1, 1] and not NaN, got {value!r}"
+        )
     return value
 
 
-def _validate_vectors(vec_a: tuple[float, ...] | None, vec_b: tuple[float, ...] | None) -> None:
+def _validate_vectors(
+    vec_a: tuple[float, ...] | None, vec_b: tuple[float, ...] | None
+) -> None:
     """Store vectors are optional; when given they must be non-empty twins."""
     if vec_a is None and vec_b is None:
         return

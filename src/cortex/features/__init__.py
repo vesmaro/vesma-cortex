@@ -25,10 +25,10 @@ __all__ = [
     "FIELD_COSINE_FEATURES",
     "GRAPH_FEATURES",
     "FeatureVector",
-    "PairRecord",
     "GraphEvidence",
     "GraphSidecar",
     "GraphSidecarError",
+    "PairRecord",
     "attach_graph_features",
     "features",
 ]

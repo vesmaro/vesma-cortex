@@ -34,15 +34,16 @@ A3b implementation notes (frozen here):
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Final, Mapping, Sequence
+from typing import Final
 
 import numpy as np
 
 from cortex.features.pair import FEATURE_NAMES, FeatureVector
 
-__all__ = ["NGridConfig", "GRID_N", "NHeadModel", "MAX_HEAD_PARAMS", "N_EPOCHS"]
+__all__ = ["GRID_N", "MAX_HEAD_PARAMS", "N_EPOCHS", "NGridConfig", "NHeadModel"]
 
 #: Parameter budget (ADR 0001 V1: "голова ≤ ~0.5M параметров").
 MAX_HEAD_PARAMS: Final[int] = 500_000
@@ -72,11 +73,46 @@ class NGridConfig:
 #: the plain supervised path plus two corruption-pretrain points (the
 #: ADR-mandated с/без-претрейна ablation).
 GRID_N: Final[tuple[NGridConfig, ...]] = (
-    NGridConfig("n-h64", hidden_dims=(64,), dropout=0.1, learning_rate=1e-3, pretrain=False, seed=1),
-    NGridConfig("n-h128", hidden_dims=(128,), dropout=0.1, learning_rate=1e-3, pretrain=False, seed=1),
-    NGridConfig("n-h64-32", hidden_dims=(64, 32), dropout=0.1, learning_rate=1e-3, pretrain=False, seed=1),
-    NGridConfig("n-h64-pt", hidden_dims=(64,), dropout=0.1, learning_rate=1e-3, pretrain=True, seed=1),
-    NGridConfig("n-h128-64-pt", hidden_dims=(128, 64), dropout=0.1, learning_rate=1e-3, pretrain=True, seed=1),
+    NGridConfig(
+        "n-h64",
+        hidden_dims=(64,),
+        dropout=0.1,
+        learning_rate=1e-3,
+        pretrain=False,
+        seed=1,
+    ),
+    NGridConfig(
+        "n-h128",
+        hidden_dims=(128,),
+        dropout=0.1,
+        learning_rate=1e-3,
+        pretrain=False,
+        seed=1,
+    ),
+    NGridConfig(
+        "n-h64-32",
+        hidden_dims=(64, 32),
+        dropout=0.1,
+        learning_rate=1e-3,
+        pretrain=False,
+        seed=1,
+    ),
+    NGridConfig(
+        "n-h64-pt",
+        hidden_dims=(64,),
+        dropout=0.1,
+        learning_rate=1e-3,
+        pretrain=True,
+        seed=1,
+    ),
+    NGridConfig(
+        "n-h128-64-pt",
+        hidden_dims=(128, 64),
+        dropout=0.1,
+        learning_rate=1e-3,
+        pretrain=True,
+        seed=1,
+    ),
 )
 
 
@@ -90,7 +126,9 @@ def vector_block(vec_a: Sequence[float], vec_b: Sequence[float]) -> np.ndarray:
     a = np.asarray(vec_a, dtype=np.float32)
     b = np.asarray(vec_b, dtype=np.float32)
     if a.ndim != 1 or b.ndim != 1 or a.size == 0 or a.shape != b.shape:
-        raise ValueError(f"vector pair must be non-empty 1-D twins, got {a.shape} vs {b.shape}")
+        raise ValueError(
+            f"vector pair must be non-empty 1-D twins, got {a.shape} vs {b.shape}"
+        )
     return np.stack([a, b, np.abs(a - b), a * b])
 
 
@@ -118,7 +156,10 @@ class NHeadModel:
         class Head(nn.Module):
             def __init__(self, scalar_dim: int) -> None:
                 super().__init__()
-                dims = [scalar_dim + VECTOR_BLOCK_ROWS * VECTOR_DIM, *config.hidden_dims]
+                dims = [
+                    scalar_dim + VECTOR_BLOCK_ROWS * VECTOR_DIM,
+                    *config.hidden_dims,
+                ]
                 layers: list[nn.Module] = []
                 for in_dim, out_dim in zip(dims, dims[1:]):
                     layers.append(nn.Linear(in_dim, out_dim))
@@ -266,7 +307,9 @@ class NHeadModel:
 
     def _require_module(self) -> object:
         if self._module is None:
-            raise RuntimeError("NHeadModel is not fitted — call train()/pretrain() first")
+            raise RuntimeError(
+                "NHeadModel is not fitted — call train()/pretrain() first"
+            )
         return self._module
 
     def predict_proba(
@@ -297,7 +340,9 @@ class NHeadModel:
         module = self._require_module()
         module.eval()
         scalars_example = torch.zeros(len(FEATURE_NAMES), dtype=torch.float32)
-        vectors_example = torch.zeros(VECTOR_BLOCK_ROWS, VECTOR_DIM, dtype=torch.float32)
+        vectors_example = torch.zeros(
+            VECTOR_BLOCK_ROWS, VECTOR_DIM, dtype=torch.float32
+        )
         out_path = Path(path)
         out_path.parent.mkdir(parents=True, exist_ok=True)
         # dynamo=False — the legacy exporter owns opset-15 static-shape
@@ -341,10 +386,14 @@ class NHeadModel:
             raise RuntimeError(f"exported graph output shape {prob.shape} != (1,)")
         if not (0.0 <= float(prob[0]) <= 1.0):
             raise RuntimeError(f"exported probability {float(prob[0])} outside [0, 1]")
-        reference = float(self.predict_proba(
-            [FeatureVector(FEATURE_NAMES, (0.0,) * len(FEATURE_NAMES))],
-            vector_blocks=[np.zeros((VECTOR_BLOCK_ROWS, VECTOR_DIM), dtype=np.float32)],
-        )[0])
+        reference = float(
+            self.predict_proba(
+                [FeatureVector(FEATURE_NAMES, (0.0,) * len(FEATURE_NAMES))],
+                vector_blocks=[
+                    np.zeros((VECTOR_BLOCK_ROWS, VECTOR_DIM), dtype=np.float32)
+                ],
+            )[0]
+        )
         if abs(float(prob[0]) - reference) > 1e-5:
             raise RuntimeError(
                 f"exported graph diverges from library prediction: {float(prob[0])} vs {reference}"
@@ -356,12 +405,13 @@ class NHeadModel:
         """Persist fitted state as numpy weights (npz) + meta json — no
         pickle anywhere in the dev hand-off (defense in depth on top of
         the artifact-side pickle ban)."""
-        import torch
 
         module = self._require_module()
         out_dir = Path(directory)
         out_dir.mkdir(parents=True, exist_ok=True)
-        arrays = {name: param.detach().numpy() for name, param in module.state_dict().items()}
+        arrays = {
+            name: param.detach().numpy() for name, param in module.state_dict().items()
+        }
         np.savez(out_dir / "weights.npz", **arrays)
         meta = {
             "candidate": "n-head",
@@ -373,7 +423,7 @@ class NHeadModel:
         return out_dir
 
     @classmethod
-    def load(cls, directory: Path) -> "NHeadModel":
+    def load(cls, directory: Path) -> NHeadModel:
         import torch
 
         in_dir = Path(directory)
@@ -382,10 +432,15 @@ class NHeadModel:
             raise ValueError(f"{in_dir} is not an n-head model directory")
         config = NGridConfig(**meta["config"]) if meta.get("config") else None
         if config is None:
-            raise ValueError(f"{in_dir} carries no grid config — cannot rebuild the head")
+            raise ValueError(
+                f"{in_dir} carries no grid config — cannot rebuild the head"
+            )
         model = cls()
         model._module = model._build_module(config)
-        state = {name: torch.as_tensor(array) for name, array in np.load(in_dir / "weights.npz").items()}
+        state = {
+            name: torch.as_tensor(array)
+            for name, array in np.load(in_dir / "weights.npz").items()
+        }
         model._module.load_state_dict(state)
         model._config = config
         model._pretrained = bool(meta.get("pretrained", False))

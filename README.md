@@ -32,10 +32,16 @@
 import hashlib, json
 from importlib import resources
 import onnxruntime as ort
+
 bundle = resources.files("cortex") / "models" / "vesma-cortex-v1"
 manifest = json.loads((bundle / "manifest.json").read_text(encoding="utf-8"))
-assert hashlib.sha256((bundle / "model.onnx").read_bytes()).hexdigest() == manifest["sha256"], "weights digest mismatch"
-session = onnxruntime.InferenceSession((bundle / "model.onnx").read_bytes(), providers=["CPUExecutionProvider"])
+assert (
+    hashlib.sha256((bundle / "model.onnx").read_bytes()).hexdigest()
+    == manifest["sha256"]
+), "weights digest mismatch"
+session = onnxruntime.InferenceSession(
+    (bundle / "model.onnx").read_bytes(), providers=["CPUExecutionProvider"]
+)
 ```
 
 Дальше — по инференс-контракту: фичи пары считаются на вызывающей стороне,

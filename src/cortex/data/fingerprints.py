@@ -14,15 +14,16 @@ from __future__ import annotations
 
 import hashlib
 import json
-from typing import Any, Final, Iterable
+from collections.abc import Iterable
+from typing import Any, Final
 
 __all__ = [
     "CANONICAL_JSON_KWARGS",
     "canonical_json",
-    "pair_sha256",
-    "manifest_bytes",
     "corpus_fingerprint",
     "labels_fingerprint",
+    "manifest_bytes",
+    "pair_sha256",
 ]
 
 #: The exact json.dumps kwargs that make a canonical JSON: sorted keys, real
@@ -75,4 +76,6 @@ def corpus_fingerprint(manifest: bytes) -> str:
 
 def labels_fingerprint(labels: dict[str, str]) -> str:
     """Fingerprint of the label file (same scheme, own fingerprint)."""
-    return hashlib.blake2b(canonical_json(labels).encode("utf-8"), digest_size=32).hexdigest()
+    return hashlib.blake2b(
+        canonical_json(labels).encode("utf-8"), digest_size=32
+    ).hexdigest()

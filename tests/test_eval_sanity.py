@@ -20,8 +20,8 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-import numpy as np
 import pytest
+from synth import make_pair_rows, make_records, rows_labels, rows_to_vectors
 
 from cortex.artifacts import (
     CANDIDATE_D,
@@ -40,9 +40,6 @@ from cortex.eval.sanity import (
 )
 from cortex.features.pair import FEATURE_NAMES, FeatureVector, features
 
-from synth import make_pair_rows, make_records, rows_labels, rows_to_vectors
-
-
 # ── probe-vector invariants (no model needed) ────────────────────────────────
 
 
@@ -52,7 +49,21 @@ def test_self_pair_vector_is_constant_all_ones_and_matches() -> None:
     what makes the #480 reproduction (0.0108) cross-comparable."""
     vector = features(PROBE_RECORD, PROBE_RECORD, 1.0)
     assert vector.names == FEATURE_NAMES
-    assert vector.values == (1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0)
+    assert vector.values == (
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        1.0,
+    )
 
 
 def test_probe_records_are_topically_disjoint() -> None:
@@ -139,7 +150,9 @@ def _healthy_training_rows() -> list[dict]:
     extra_records = list(make_records(12, seed=3)) + [PROBE_RECORD]
     rows += _self_rows(extra_records, "sanity")
     rows += _ladder_rows(list(make_records(6, seed=5)) + [PROBE_RECORD], "sanity")
-    rows += _unrelated_rows(list(make_records(12, seed=7)) + [UNRELATED_RECORD], "sanity")
+    rows += _unrelated_rows(
+        list(make_records(12, seed=7)) + [UNRELATED_RECORD], "sanity"
+    )
     return rows
 
 
@@ -240,7 +253,9 @@ def test_column_desync_is_caught_by_self_pair(desynced_bundle: Path) -> None:
 
 def test_monotonicity_reports_the_full_ladder(healthy_bundle: Path) -> None:
     report = run_sanity_suite(healthy_bundle)
-    monotonicity = next(check for check in report.checks if check.name == "monotonicity")
+    monotonicity = next(
+        check for check in report.checks if check.name == "monotonicity"
+    )
     for cos in COS_LADDER:
         assert f"cos={cos:.2f}" in monotonicity.detail
 
@@ -257,7 +272,9 @@ def test_manifest_feature_order_mismatch_is_caught(healthy_bundle: Path) -> None
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     report = run_sanity_suite(healthy_bundle)
-    feature_contract = next(check for check in report.checks if check.name == "feature_contract")
+    feature_contract = next(
+        check for check in report.checks if check.name == "feature_contract"
+    )
     assert not feature_contract.passed
     assert "#480 desync signature" in feature_contract.detail
 
@@ -269,7 +286,9 @@ def test_n_head_candidate_is_refused(healthy_bundle: Path) -> None:
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     report = run_sanity_suite(healthy_bundle)
-    candidate_check = next(check for check in report.checks if check.name == "candidate_supported")
+    candidate_check = next(
+        check for check in report.checks if check.name == "candidate_supported"
+    )
     assert not candidate_check.passed
     assert "vector sidecars" in candidate_check.detail
 
