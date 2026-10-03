@@ -31,7 +31,7 @@ models/
 | Файл | Контракт | Проверяется |
 |---|---|---|
 | `model.onnx` | [inference-v1](inference-v1.md) §4: opset 15, metadata_props, ≤ 5 МБ | sanity-сьют, verify-джоба релиза |
-| `manifest.json` | schema 2: `manifest_schema: 2`, `blake2b_256` (+ переходный `sha256` до миграции движка), без `weights_path` | sanity-сьют (bundle_integrity) |
+| `manifest.json` | schema 2: `manifest_schema: 2`, дайджест весов `sha256` (без переименований), без `weights_path` | sanity-сьют (bundle_integrity) |
 | `MODEL_CARD.md` | генерируется из `eval-results.json` (§4) | ревью PR с весами |
 | `eval-results.json` | схема §3 | verify-джоба релиза |
 

@@ -21,7 +21,7 @@
 | near_boundary | P(dup \| лёгкая пертурбация, cos≈0.99), cut ≥ 0.5 | sanity-сьют | A | TL |
 | unrelated | P(dup \| разные темы, cos=0.578), потолок < 0.5 | sanity-сьют | A | TL |
 | monotonicity | нестрогое невозрастание P по cos-лестнице {1.0, 0.99, 0.95, 0.8, 0.5}, tol 1e-6 | sanity-сьют | A | TL |
-| bundle_integrity / feature_contract | sha256/blake2b байтов и порядок фич == манифесту == замороженному контракту | sanity-сьют | A | TL |
+| bundle_integrity / feature_contract | sha256 байтов и порядок фич == манифесту == замороженному контракту | sanity-сьют | A | TL |
 | prev_adopt-коридор | BA(release) ≥ BA(prev ADOPT) − max(0.02; CI95) | runner | A (release), B | TL |
 | delta-rate | доля решений, где вердикт модели ≠ вердикту базлайна | B0-коллектор (`telemetry/metrics-2h.jsonl`) | B0 | SRE |
 | no-harm в cos-полосе | доля расхождений модели с базлайном при cos ≥ 0.95 | B0-коллектор | B0 | SRE |
