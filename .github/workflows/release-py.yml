@@ -1,0 +1,143 @@
+# Package release train (ADR 0003 R5/R6): tag py-vX.Y.Z -> build (version
+# assert, twine check, privacy check on dist archives) -> full test suite
+# on the tag -> publish to PyPI via trusted publishing (OIDC, NO API token
+# stored in GitHub).
+name: release-py
+
+on:
+  push:
+    tags: ["py-v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+
+      - name: assert pyproject version == tag (py-vX.Y.Z)
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected="${GITHUB_REF_NAME#py-v}"
+          actual=$(python3 -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          echo "tag version: $expected | pyproject version: $actual"
+          if [ "$expected" != "$actual" ]; then
+            echo "::error::tag ${GITHUB_REF_NAME} does not match pyproject.toml version ${actual} — cut the tag from a commit where both agree."
+            exit 1
+          fi
+
+      - name: build sdist and wheel
+        run: uv build
+
+      - name: twine check
+        run: uvx twine@7.0.0 check dist/*
+
+      # Privacy gate (charter §6, ADR 0003 R2; MR-1 lesson: hatchling's VCS
+      # pass misses root-anchored patterns). Match EXACT top-level directory
+      # segments of each dist archive: `data/` or `datasets/` at the top
+      # level must never ship; the library package `src/cortex/data/` is
+      # contract code and is allowed.
+      - name: privacy check — no training-side top-level dirs in dist
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'EOF'
+          import pathlib
+          import sys
+          import tarfile
+          import zipfile
+
+          forbidden = {"data", "datasets"}
+          failures = []
+
+          def top_dirs(names: list[str], strip_root: bool) -> set[str]:
+              tops = set()
+              for name in names:
+                  parts = name.split("/")
+                  if strip_root:  # sdist members start with <pkg>-<ver>/
+                      parts = parts[1:]
+                  if len(parts) >= 2 and parts[0]:
+                      tops.add(parts[0])
+              return tops
+
+          for archive in sorted(pathlib.Path("dist").iterdir()):
+              if archive.name.endswith(".tar.gz"):
+                  with tarfile.open(archive) as tf:
+                      tops = top_dirs(tf.getnames(), strip_root=True)
+              elif archive.name.endswith(".whl"):
+                  with zipfile.ZipFile(archive) as zf:
+                      tops = top_dirs(zf.namelist(), strip_root=False)
+              else:
+                  continue
+              leaked = tops & forbidden
+              print(f"{archive.name}: top-level dirs = {sorted(tops)}")
+              if leaked:
+                  failures.append(f"{archive.name}: leaked top-level dirs {sorted(leaked)}")
+
+          # Product requirement (0.2.0+): the wheel ships the model bundle.
+          with zipfile.ZipFile(next(pathlib.Path("dist").glob("*.whl"))) as zf:
+              names = set(zf.namelist())
+          for required in (
+              "cortex/models/vesma-cortex-v1/model.onnx",
+              "cortex/models/vesma-cortex-v1/manifest.json",
+          ):
+              if required not in names:
+                  failures.append(f"wheel is missing the model bundle file {required}")
+
+          if failures:
+              for failure in failures:
+                  print(f"::error::{failure}")
+              sys.exit(1)
+          print("privacy check OK: no data/ or datasets/ at dist top level; wheel carries the model bundle")
+          EOF
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  # Full suite re-run on the exact tag ref before anything is published.
+  test:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - run: make test
+
+  publish:
+    needs: [build, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: pypi
+    permissions:
+      # Trusted publishing: short-lived OIDC token minted by GitHub, accepted
+      # by PyPI when the project's "trusted publisher" lists this repo +
+      # workflow + environment. NO PyPI API token is stored anywhere here.
+      id-token: write
+      contents: read
+    steps:
+      # Local fallback (owner-only, when trusted publishing is unavailable):
+      # from a host checkout of the tag run
+      #   uv build && uvx twine check dist/*
+      #   uvx twine upload --non-interactive --repository pypi dist/*
+      # authenticating via the API token kept ONLY in the host secrets store
+      # (~/.secrets). Never paste token values into this file, CI logs, or
+      # shell history.
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - name: publish to PyPI (trusted publishing, OIDC)
+        uses: pypa/gh-action-pypi-publish@release/v1

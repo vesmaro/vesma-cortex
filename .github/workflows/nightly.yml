@@ -1,0 +1,31 @@
+# Nightly deep suite (ADR 0003 R6): full tests with the train extra
+# (CPU torch; N tests active) + the N-ladder smoke. One axis, Python 3.12.
+name: nightly
+
+on:
+  schedule:
+    - cron: "30 2 * * *" # 02:30 UTC daily
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    # The CPU torch wheel is ~200 MB and the N ladder is slow — allow an hour.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          python-version: "3.12"
+          enable-cache: true
+      - name: full suite with the train extra (N tests active)
+        run: make test-train
+      - name: smoke with the N ladder end-to-end
+        run: make smoke-n
