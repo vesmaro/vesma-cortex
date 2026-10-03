@@ -9,6 +9,13 @@
 *.onnx
 *.safetensors
 
+# Model registry (ADR 0003): weights of ARTIFACT revisions are tracked
+# under models/ — the canonical artifact lives in git (HF-style, ~98 KB,
+# no LFS needed). Training-side weights above stay ignored. Negations sit
+# AFTER the blocking patterns to re-include the registry bundles.
+!models/
+!models/**
+
 # Python
 __pycache__/
 *.pyc
