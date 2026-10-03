@@ -89,17 +89,17 @@ from typing import Any, Final
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from cortex.data.fingerprints import (  # noqa: E402
+from cortex.data.fingerprints import (  # noqa: E402 — repo src sys.path shim above
     corpus_fingerprint,
     pair_sha256,
 )
-from cortex.synth import (  # noqa: E402
+from cortex.synth import (  # noqa: E402 — repo src sys.path shim above
     LLM_STRATEGIES,
     PROMPT_VERSION,
     STRATEGIES,
+    TOPICS,
     SynthPair,
     SynthStats,
-    TOPICS,
     corpus_fingerprint_of_pairs,
     generate_corpus,
     manifest_bytes_of_pairs,
@@ -181,7 +181,9 @@ def ollama_generate(
 
 def ollama_model_info(host: str, model: str, timeout: float) -> dict[str, Any] | None:
     """Model entry from /api/tags (digest, size) or None when absent."""
-    with urllib.request.urlopen(host.rstrip("/") + "/api/tags", timeout=timeout) as response:
+    with urllib.request.urlopen(
+        host.rstrip("/") + "/api/tags", timeout=timeout
+    ) as response:
         tags = json.loads(response.read().decode("utf-8"))
     for entry in tags.get("models", []):
         if entry.get("model") == model or entry.get("name") == model:
@@ -250,7 +252,9 @@ class _WallDeadlineExceeded(TimeoutError):
     """Hard wall-clock cap of one HTTP attempt (watcher-thread based)."""
 
 
-def _post_for_body(request: urllib.request.Request, wall_cap: float, socket_timeout: float) -> dict[str, Any]:
+def _post_for_body(
+    request: urllib.request.Request, wall_cap: float, socket_timeout: float
+) -> dict[str, Any]:
     """One urlopen under a WATCHER THREAD with a hard wall cap.
 
     urllib's socket timeout is an INACTIVITY timeout — gateways that keep
@@ -404,9 +408,7 @@ def _message_text(value: Any) -> str:
     if isinstance(value, str):
         return value
     if isinstance(value, list):
-        return "".join(
-            part.get("text", "") for part in value if isinstance(part, dict)
-        )
+        return "".join(part.get("text", "") for part in value if isinstance(part, dict))
     return ""
 
 
@@ -731,13 +733,13 @@ def build_parser() -> argparse.ArgumentParser:
         type=int,
         metavar="N",
         help="owner-validation sample of N pairs (quotas: ceil(N/3) per LLM "
-             "strategy, rest split procedurally; N=24 → 8/8/4/4)",
+        "strategy, rest split procedurally; N=24 → 8/8/4/4)",
     )
     sampling.add_argument(
         "--render-review",
         metavar="PAIRS_JSONL",
         help="no generation: render a human-readable owner REVIEW sample "
-             "from an existing corpus (see --review-n/--review-out)",
+        "from an existing corpus (see --review-n/--review-out)",
     )
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument(
@@ -750,8 +752,8 @@ def build_parser() -> argparse.ArgumentParser:
         "--model",
         default=None,
         help="model id (default: provider default — openrouter "
-             "z-ai/glm-5.3-flash, groq qwen/qwen3.8-27b, ollama "
-             "qwen2.5:7b-instruct)",
+        "z-ai/glm-5.3-flash, groq qwen/qwen3.8-27b, ollama "
+        "qwen2.5:7b-instruct)",
     )
     parser.add_argument(
         "--host",
@@ -762,14 +764,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--env-var",
         default=None,
         help="name of the env var holding the API key (default: provider "
-             "default, e.g. OPENROUTER_API_KEY); the VALUE is never printed",
+        "default, e.g. OPENROUTER_API_KEY); the VALUE is never printed",
     )
     parser.add_argument(
         "--fallback-provider",
         choices=[*sorted(PROVIDER_DEFAULTS), "none"],
         default=None,
         help="sticky fallback after repeated provider failures "
-             "(default: groq for openrouter, none otherwise)",
+        "(default: groq for openrouter, none otherwise)",
     )
     parser.add_argument("--fallback-model", default=None)
     parser.add_argument("--batch-size", type=int, default=DEFAULT_BATCH_SIZE)
@@ -780,7 +782,7 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=DEFAULT_DEADLINE_MIN,
         help="stop with a marked partial corpus after this many minutes "
-             "(0 disables; default 90)",
+        "(0 disables; default 90)",
     )
     parser.add_argument("--review-n", type=int, default=30)
     parser.add_argument(
@@ -794,14 +796,14 @@ def build_parser() -> argparse.ArgumentParser:
         type=float,
         default=DEFAULT_TIMEOUT_S,
         help="per-attempt cap (seconds): socket inactivity AND a hard "
-             "wall-clock cap via SIGALRM (cloud gateways keep the socket "
-             "warm while the model generates)",
+        "wall-clock cap via SIGALRM (cloud gateways keep the socket "
+        "warm while the model generates)",
     )
     parser.add_argument(
         "--out-dir",
         default=None,
         help="output directory (default data/synth/; use data/synth-sample/ "
-             "for the owner-validation sample)",
+        "for the owner-validation sample)",
     )
     parser.add_argument(
         "--force",
@@ -944,7 +946,9 @@ def main(argv: list[str] | None = None) -> int:
         quotas = sample_quotas(args.sample)
         pairs_per_strategy = 0  # base cycling aligns topics across strategies
         mode: dict[str, Any] = {"mode": "sample", "sample_n": args.sample}
-        out_dir = Path(args.out_dir) if args.out_dir else REPO_ROOT / "data" / "synth-sample"
+        out_dir = (
+            Path(args.out_dir) if args.out_dir else REPO_ROOT / "data" / "synth-sample"
+        )
     else:
         if args.pairs_per_strategy <= 0:
             parser.error("--pairs-per-strategy must be a positive integer")

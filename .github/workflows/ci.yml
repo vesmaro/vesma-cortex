@@ -1,0 +1,134 @@
+# Merge-gate CI (ADR 0003 R6): lint + test matrix + smoke + deterministic
+# model invariants. All four gate jobs (lint, test, smoke, eval-sanity)
+# must be marked required in branch protection.
+name: ci
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  # Cancel superseded runs on PRs only; runs on main always complete.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - name: ruff check + ruff format --check
+        run: make lint
+
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          python-version: ${{ matrix.python-version }}
+          enable-cache: true
+      - name: test suite (default env, no torch)
+        run: make test
+
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+      - name: CPU smoke over the full D contour
+        run: make smoke
+
+  # Path filter: does this PR touch the model-relevant surface at all?
+  changes:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      model: ${{ steps.filter.outputs.model }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          filters: |
+            model:
+              - 'src/**'
+              - 'models/**'
+              - 'scripts/gen_model_card.py'
+
+  # Deterministic invariants (eval-methodology #4, gate_contract.json):
+  # they block merge. Thresholds live in gate_contract.json whose sha256
+  # is pinned in eval-methodology #6 (anti-HARKing) — verified below.
+  eval-sanity:
+    needs: changes
+    if: needs.changes.outputs.model == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+
+      - name: gate_contract.json sha256 == pin in eval-methodology #6
+        shell: bash
+        run: |
+          set -euo pipefail
+          pinned=$(grep -oE '[0-9a-f]{64}' docs/specs/eval-methodology.md | head -1)
+          actual=$(sha256sum gate_contract.json | cut -d' ' -f1)
+          echo "pinned: $pinned"
+          echo "actual: $actual"
+          if [ -z "$pinned" ]; then
+            echo "::error::could not extract the gate contract pin from docs/specs/eval-methodology.md"
+            exit 1
+          fi
+          if [ "$pinned" != "$actual" ]; then
+            echo "::error::gate_contract.json sha256 diverges from the pin in docs/specs/eval-methodology.md #6 (anti-HARKing contract). Thresholds change only via a pre-registered addendum PR that updates the pin — never silently."
+            exit 1
+          fi
+
+      - name: adversarial sanity suite on the registry bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run python scripts/eval_sanity_suite.py --bundle models/vesma-cortex-v1
+
+      # Lightweight review guard: every weights revision ships with its
+      # machine-readable eval report (ADR 0003). PR-only — on push to main
+      # the same check already passed on the PR.
+      - name: model.onnx changed -> eval-results.json must change too
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=$(git merge-base "origin/${{ github.base_ref }}" HEAD)
+          changed=$(git diff --name-only "$base" HEAD)
+          echo "$changed"
+          if echo "$changed" | grep -q '^models/vesma-cortex-v1/model\.onnx$'; then
+            if ! echo "$changed" | grep -q '^models/vesma-cortex-v1/eval-results\.json$'; then
+              echo "::error::model.onnx changed without an updated eval-results.json — every weights revision ships with its eval report (ADR 0003)."
+              exit 1
+            fi
+          fi

@@ -57,10 +57,11 @@ import platform
 import shutil
 import sys
 import time
+from collections.abc import Callable
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 # tests/synth.py is the shared synthetic-data library (tests + smoke, one
@@ -68,12 +69,15 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 for _entry in (REPO_ROOT / "src", REPO_ROOT / "tests"):
     sys.path.insert(0, str(_entry))
 
-import synth  # noqa: E402  (tests/synth.py)
+import synth  # noqa: E402 — src/tests sys.path shim above
 
-from cortex.cli.main import RUN_REFUSED_EXIT  # noqa: E402
-from cortex.cli.main import main as cortex_main  # noqa: E402
-from cortex.data.fingerprints import canonical_json, pair_sha256  # noqa: E402
-from cortex.data.holdout import (  # noqa: E402
+from cortex.cli.main import RUN_REFUSED_EXIT  # noqa: E402 — sys.path shim above
+from cortex.cli.main import main as cortex_main  # noqa: E402 — sys.path shim above
+from cortex.data.fingerprints import (  # noqa: E402 — sys.path shim above
+    canonical_json,
+    pair_sha256,
+)
+from cortex.data.holdout import (  # noqa: E402 — sys.path shim above
     SplitPair,
     assert_labels_isolated,
     assert_no_pair_overlap,
@@ -133,7 +137,12 @@ _RECORDS: list[dict[str, Any]] = []
 
 
 def _emit(stage: str, status: str, elapsed: float, **numbers: Any) -> None:
-    record = {"stage": stage, "status": status, "elapsed_s": round(elapsed, 3), **numbers}
+    record = {
+        "stage": stage,
+        "status": status,
+        "elapsed_s": round(elapsed, 3),
+        **numbers,
+    }
     print(json.dumps(record, ensure_ascii=False), flush=True)
     _RECORDS.append(record)
 
@@ -188,7 +197,9 @@ def _stage_synth(root: Path) -> dict[str, Any]:
     holdout_dir = root / "holdout"  # OUTSIDE the train tree (physical isolation)
 
     records = synth.make_records(N_RECORDS)
-    records_path = synth.write_records_jsonl(corpus_dir / "records.jsonl", records, seed=VECTOR_SEED)
+    records_path = synth.write_records_jsonl(
+        corpus_dir / "records.jsonl", records, seed=VECTOR_SEED
+    )
 
     rows = synth.attach_store_vectors(synth.make_pair_rows(N_PAIRS), seed=VECTOR_SEED)
     split = split_holdout(
@@ -219,11 +230,19 @@ def _stage_synth(root: Path) -> dict[str, Any]:
     holdout_rows = [by_id[pair_id] for pair_id in sorted(split.holdout_pair_ids)]
     holdout_dir.mkdir(parents=True, exist_ok=True)
     (holdout_dir / "pairs.jsonl").write_text(
-        "\n".join(json.dumps({k: v for k, v in row.items() if k != "label"}, ensure_ascii=False) for row in holdout_rows),
+        "\n".join(
+            json.dumps(
+                {k: v for k, v in row.items() if k != "label"}, ensure_ascii=False
+            )
+            for row in holdout_rows
+        ),
         encoding="utf-8",
     )
     (holdout_dir / "labels.jsonl").write_text(
-        "\n".join(json.dumps({"pair_id": row["pair_id"], "label": row["label"]}) for row in holdout_rows),
+        "\n".join(
+            json.dumps({"pair_id": row["pair_id"], "label": row["label"]})
+            for row in holdout_rows
+        ),
         encoding="utf-8",
     )
     assert_labels_isolated(corpus_dir, holdout_dir / "labels.jsonl")
@@ -242,9 +261,12 @@ def _stage_pretrain(root: Path, records_path: str) -> dict[str, Any]:
     _, out, _ = _cli(
         [
             "pretrain",
-            "--corpus", records_path,
-            "--seed", str(SMOKE_SEED),
-            "--out", str(root / "pretrain" / "pairs.jsonl"),
+            "--corpus",
+            records_path,
+            "--seed",
+            str(SMOKE_SEED),
+            "--out",
+            str(root / "pretrain" / "pairs.jsonl"),
         ]
     )
     summary = _parse_json_output(out)
@@ -258,23 +280,47 @@ def _stage_pretrain(root: Path, records_path: str) -> dict[str, Any]:
 
 
 def _stage_train_d(root: Path, train_manifest: str) -> dict[str, Any]:
-    _cli(["train", "--train-manifest", train_manifest, "--candidate", "d", "--out", str(root / "models")])
-    meta = json.loads((root / "models" / "d-boost" / "meta.json").read_text(encoding="utf-8"))
-    return {"config": meta["config"]["name"], "pairs": meta["n_pairs"], "model_dir": str(root / "models" / "d-boost")}
+    _cli(
+        [
+            "train",
+            "--train-manifest",
+            train_manifest,
+            "--candidate",
+            "d",
+            "--out",
+            str(root / "models"),
+        ]
+    )
+    meta = json.loads(
+        (root / "models" / "d-boost" / "meta.json").read_text(encoding="utf-8")
+    )
+    return {
+        "config": meta["config"]["name"],
+        "pairs": meta["n_pairs"],
+        "model_dir": str(root / "models" / "d-boost"),
+    }
 
 
-def _stage_train_n(root: Path, train_manifest: str, pretrain_corpus: str) -> dict[str, Any]:
+def _stage_train_n(
+    root: Path, train_manifest: str, pretrain_corpus: str
+) -> dict[str, Any]:
     _, out, _ = _cli(
         [
             "train",
-            "--train-manifest", train_manifest,
-            "--candidate", "n",
-            "--pretrain-corpus", pretrain_corpus,
-            "--out", str(root / "models"),
+            "--train-manifest",
+            train_manifest,
+            "--candidate",
+            "n",
+            "--pretrain-corpus",
+            pretrain_corpus,
+            "--out",
+            str(root / "models"),
         ]
     )
     summary = _parse_json_output(out)
-    meta = json.loads((root / "models" / "n-head" / "meta.json").read_text(encoding="utf-8"))
+    meta = json.loads(
+        (root / "models" / "n-head" / "meta.json").read_text(encoding="utf-8")
+    )
     return {
         "config": meta["config"]["name"],
         "pairs": summary["pairs"],
@@ -288,9 +334,12 @@ def _stage_select(root: Path, train_manifest: str, with_n: bool) -> dict[str, An
     _cli(
         [
             "select",
-            "--train-manifest", train_manifest,
-            "--candidate", "both" if with_n else "d",
-            "--out", str(report_path),
+            "--train-manifest",
+            train_manifest,
+            "--candidate",
+            "both" if with_n else "d",
+            "--out",
+            str(report_path),
         ]
     )
     report = json.loads(report_path.read_text(encoding="utf-8"))
@@ -298,7 +347,11 @@ def _stage_select(root: Path, train_manifest: str, with_n: bool) -> dict[str, An
     payload: dict[str, Any] = {
         "winner": report["verdict"]["winner"],
         "margin_stds": report["verdict"]["margin_stds"],
-        "d": {"config": d["config_name"], "ba_mean": d["balanced_accuracy_mean"], "brier_mean": d["brier_mean"]},
+        "d": {
+            "config": d["config_name"],
+            "ba_mean": d["balanced_accuracy_mean"],
+            "brier_mean": d["brier_mean"],
+        },
         "n": None,
     }
     if report["n_best"]:
@@ -319,9 +372,12 @@ def _stage_export(root: Path, model_dir: str, winner: str) -> dict[str, Any]:
     _, out, _ = _cli(
         [
             "export-artifact",
-            "--model", model_dir,
-            "--out", str(root / "model.onnx"),
-            "--embedder-pin", SMOKE_EMBEDDER_PIN,
+            "--model",
+            model_dir,
+            "--out",
+            str(root / "model.onnx"),
+            "--embedder-pin",
+            SMOKE_EMBEDDER_PIN,
         ]
     )
     summary = _parse_json_output(out)
@@ -330,7 +386,9 @@ def _stage_export(root: Path, model_dir: str, winner: str) -> dict[str, Any]:
         "winner_note": "n-head won select; D exported for the eval leg (N eval = A5 wiring)"
         if winner == "n-head"
         else None,
-        "sha256": summary["sha256"],  # per-run info; NOT determinism-compared (trained_at inside)
+        "sha256": summary[
+            "sha256"
+        ],  # per-run info; NOT determinism-compared (trained_at inside)
         "size_bytes": (root / "model.onnx").stat().st_size,
         "artifact": str(root / "model.onnx"),
     }
@@ -338,7 +396,15 @@ def _stage_export(root: Path, model_dir: str, winner: str) -> dict[str, Any]:
 
 def _stage_eval(root: Path, artifact: str, holdout_dir: str) -> dict[str, Any]:
     run_log = root / "run_log.jsonl"
-    argv = ["eval", "--artifact", artifact, "--holdout", holdout_dir, "--run-log", str(run_log)]
+    argv = [
+        "eval",
+        "--artifact",
+        artifact,
+        "--holdout",
+        holdout_dir,
+        "--run-log",
+        str(run_log),
+    ]
     _, out, _ = _cli(argv)
     report = _parse_json_output(out)
     # Second eval over the SAME run log: the single-shot guard must refuse
@@ -360,12 +426,16 @@ def _run_contour(root: Path, *, with_n: bool, run_tag: str) -> dict[str, Any]:
         lambda: _stage_train_d(root, synth_out["train_manifest"]),
     )
     if with_n:
-        train_n_out = _run_stage(
+        # Stage runs for its side effects; its output is consumed downstream
+        # via the run directory, not via this binding (lint: F841).
+        _train_n_out = _run_stage(
             f"train-n-{run_tag}",
-            lambda: _stage_train_n(root, synth_out["train_manifest"], pre_out["pretrain_corpus"]),
+            lambda: _stage_train_n(
+                root, synth_out["train_manifest"], pre_out["pretrain_corpus"]
+            ),
         )
     else:
-        train_n_out = None
+        _train_n_out = None
     select_out = _run_stage(
         f"select-{run_tag}",
         lambda: _stage_select(root, synth_out["train_manifest"], with_n),
@@ -425,11 +495,19 @@ def _compare_runs(first: dict[str, Any], second: dict[str, Any]) -> dict[str, An
 
     for key in _EVAL_METRIC_KEYS:
         if first["eval"][key] != second["eval"][key]:
-            problems.append(f"eval metric differs: {key} {first['eval'][key]!r} vs {second['eval'][key]!r}")
+            problems.append(
+                f"eval metric differs: {key} {first['eval'][key]!r} vs {second['eval'][key]!r}"
+            )
 
     manifest_keys = (
-        "name", "version", "embedder_pin", "corpus_fingerprint", "candidate",
-        "features", "feature_set_sha256", "size_bytes",
+        "name",
+        "version",
+        "embedder_pin",
+        "corpus_fingerprint",
+        "candidate",
+        "features",
+        "feature_set_sha256",
+        "size_bytes",
     )
     left = json.loads((a / "model.manifest.json").read_text(encoding="utf-8"))
     right = json.loads((b / "model.manifest.json").read_text(encoding="utf-8"))
@@ -473,9 +551,19 @@ def _environment() -> dict[str, Any]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(description="cortex CPU smoke — full pipeline contour on synthetic data")
-    parser.add_argument("--with-n", action="store_true", help="also run the N ladder (needs the train extra: torch)")
-    parser.add_argument("--workdir", default=None, help="scratch directory (default: <repo>/.local/smoke)")
+    parser = argparse.ArgumentParser(
+        description="cortex CPU smoke — full pipeline contour on synthetic data"
+    )
+    parser.add_argument(
+        "--with-n",
+        action="store_true",
+        help="also run the N ladder (needs the train extra: torch)",
+    )
+    parser.add_argument(
+        "--workdir",
+        default=None,
+        help="scratch directory (default: <repo>/.local/smoke)",
+    )
     args = parser.parse_args(argv)
 
     workdir = Path(args.workdir) if args.workdir else REPO_ROOT / ".local" / "smoke"
@@ -519,12 +607,19 @@ def _write_report(workdir: Path, with_n: bool, elapsed: float, *, ok: bool) -> N
         "with_n": with_n,
         "elapsed_s": round(elapsed, 3),
         "budget_s": BUDGET_WITH_N_SECONDS if with_n else BUDGET_SECONDS,
-        "seeds": {"pretrain": SMOKE_SEED, "vectors": VECTOR_SEED, "pairs": N_PAIRS, "records": N_RECORDS},
+        "seeds": {
+            "pretrain": SMOKE_SEED,
+            "vectors": VECTOR_SEED,
+            "pairs": N_PAIRS,
+            "records": N_RECORDS,
+        },
         "embedder_pin": SMOKE_EMBEDDER_PIN,
         "environment": _environment(),
         "stages": _RECORDS,
     }
-    (workdir / "smoke_report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    (workdir / "smoke_report.json").write_text(
+        json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
 
 
 if __name__ == "__main__":

@@ -38,7 +38,6 @@ from pathlib import Path
 from cortex.data.store_export import (
     DEFAULT_MAX_COSINE,
     DEFAULT_MIN_COSINE,
-    ENGINE_SRC_ENV,
     StoreOpenError,
     _ro_connection,
     edge_node_ids,
@@ -61,7 +60,9 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         "--store-uri",
         help="read-only URI of mnemos.db (file:...?mode=ro); vectors.db is its sibling",
     )
-    parser.add_argument("--out", required=True, help="output root under data/ (gitignored)")
+    parser.add_argument(
+        "--out", required=True, help="output root under data/ (gitignored)"
+    )
     parser.add_argument(
         "--corpus-id",
         default=None,
@@ -94,7 +95,9 @@ def _progress(message: str) -> None:
     print(f"b2_targeted_export: {message}", file=sys.stderr)
 
 
-def _generate_ids_file(store_path: str | None, store_uri: str | None, out: Path) -> Path:
+def _generate_ids_file(
+    store_path: str | None, store_uri: str | None, out: Path
+) -> Path:
     """Seed ids = distinct memory_edges endpoints, written under <out>/ids/."""
     mnemos_path, _ = resolve_store_databases(store_path, store_uri)
     conn = _ro_connection(mnemos_path)
@@ -114,7 +117,10 @@ def main(argv: list[str] | None = None) -> int:
     started = time.perf_counter()
 
     if (args.store_path is None) == (args.store_uri is None):
-        print("b2_targeted_export: exactly one of --store-path / --store-uri is required", file=sys.stderr)
+        print(
+            "b2_targeted_export: exactly one of --store-path / --store-uri is required",
+            file=sys.stderr,
+        )
         return 2
     if args.min_cosine >= args.max_cosine:
         print(
@@ -124,7 +130,10 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
     if args.limit <= 0:
-        print(f"b2_targeted_export: --limit must be positive, got {args.limit}", file=sys.stderr)
+        print(
+            f"b2_targeted_export: --limit must be positive, got {args.limit}",
+            file=sys.stderr,
+        )
         return 2
 
     corpus_id = args.corpus_id or f"b2-edges-{time.strftime('%Y%m%d')}"

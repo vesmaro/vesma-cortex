@@ -9,8 +9,12 @@ the other topic's anchor)."""
 from __future__ import annotations
 
 import numpy as np
-
-from synth import attach_store_vectors, make_pair_rows, store_vector, write_records_jsonl
+from synth import (
+    attach_store_vectors,
+    make_pair_rows,
+    store_vector,
+    write_records_jsonl,
+)
 
 
 def test_store_vector_shape_and_norm() -> None:
@@ -53,7 +57,11 @@ def test_write_records_jsonl_carries_vec(tmp_path) -> None:
     from synth import make_records
 
     path = write_records_jsonl(tmp_path / "records.jsonl", make_records(6))
-    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    rows = [
+        json.loads(line)
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
     assert len(rows) == 6
     for row in rows:
         assert set(row) == {"title", "body", "tags", "language", "record_type", "vec"}

@@ -11,22 +11,23 @@ anchor: metadata_props assembly, the size gate, and the weights fingerprint
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Final, Mapping, Sequence
+from typing import Final
 
 __all__ = [
     "ARTIFACT_NAME",
-    "MODEL_NAME",
-    "METADATA_VERSION",
-    "MAX_ARTIFACT_BYTES",
-    "METADATA_KEYS",
     "CANDIDATE_D",
     "CANDIDATE_N",
-    "sha256_file",
-    "build_metadata_props",
+    "MAX_ARTIFACT_BYTES",
+    "METADATA_KEYS",
+    "METADATA_VERSION",
+    "MODEL_NAME",
     "assert_artifact_size",
+    "build_metadata_props",
     "features_digest",
     "set_onnx_metadata",
+    "sha256_file",
 ]
 
 #: Artifact identity, ONE constant for the whole repo (ADR 0001 П1).
@@ -109,9 +110,13 @@ def build_metadata_props(
             f"unknown ladder candidate {candidate!r} — expected {CANDIDATE_D!r} or {CANDIDATE_N!r}"
         )
     if not embedder_pin:
-        raise ValueError("embedder_pin is required (live engine fingerprint, nano:sha256:<hex>)")
+        raise ValueError(
+            "embedder_pin is required (live engine fingerprint, nano:sha256:<hex>)"
+        )
     if not corpus_fingerprint:
-        raise ValueError("corpus_fingerprint is required (BLAKE2b-256 of the pair manifest)")
+        raise ValueError(
+            "corpus_fingerprint is required (BLAKE2b-256 of the pair manifest)"
+        )
     if not feature_names:
         raise ValueError("feature_names must be a non-empty ordered sequence")
     return {

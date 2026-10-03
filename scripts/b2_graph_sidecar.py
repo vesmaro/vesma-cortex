@@ -165,7 +165,7 @@ def _resolve_store(store_path: str | None, store_uri: str | None) -> tuple[Path,
     assert store_uri is not None
     if "mode=ro" not in store_uri:
         raise SystemExit("--store-uri must be a read-only URI (file:...?mode=ro)")
-    raw = store_uri[len("file:"):] if store_uri.startswith("file:") else store_uri
+    raw = store_uri.removeprefix("file:")
     vesma = Path(raw.split("?", 1)[0]).expanduser().resolve()
     return vesma, vesma.parent / "vectors.db"
 
@@ -216,7 +216,9 @@ class StoreSnapshot:
             for memory_id, blob in conn.execute("SELECT id, vector FROM embeddings"):
                 vector = self._decode(blob)
                 if vector is None:
-                    self.counters["bad-vectors"] = self.counters.get("bad-vectors", 0) + 1
+                    self.counters["bad-vectors"] = (
+                        self.counters.get("bad-vectors", 0) + 1
+                    )
                     continue
                 self.vectors[memory_id] = vector
         finally:
@@ -240,7 +242,9 @@ class StoreSnapshot:
         """
         if memory_id is None or memory_id not in self.bodies:
             return False
-        if self.bodies[memory_id] != body or memory_id not in self.title_ids.get(title, []):
+        if self.bodies[memory_id] != body or memory_id not in self.title_ids.get(
+            title, []
+        ):
             self.counters["content-drift"] = self.counters.get("content-drift", 0) + 1
             return False
         return True
@@ -278,10 +282,14 @@ def _load_pairs(dataset_dir: Path) -> list[tuple[str, dict[str, object]]]:
     return rows
 
 
-def _side_of(pair: dict[str, object], side_key: str, id_key: str) -> tuple[dict[str, object], str | None]:
+def _side_of(
+    pair: dict[str, object], side_key: str, id_key: str
+) -> tuple[dict[str, object], str | None]:
     side = pair.get(side_key)
     if not isinstance(side, dict):
-        raise SystemExit(f"pair {pair.get('pair_id')!r}: side {side_key!r} is not an object")
+        raise SystemExit(
+            f"pair {pair.get('pair_id')!r}: side {side_key!r} is not an object"
+        )
     source_id = pair.get(id_key)
     return side, (source_id if isinstance(source_id, str) and source_id else None)
 
@@ -298,7 +306,9 @@ def _resolve_side(
         if snapshot.side_in_store(source_id, title, body):
             join_methods["source_id"] = join_methods.get("source_id", 0) + 1
             return source_id
-        join_methods["source_id-unresolved"] = join_methods.get("source_id-unresolved", 0) + 1
+        join_methods["source_id-unresolved"] = (
+            join_methods.get("source_id-unresolved", 0) + 1
+        )
     candidates = snapshot.title_ids.get(title, [])
     exact = [mid for mid in candidates if snapshot.bodies[mid] == body]
     if len(exact) == 1:
@@ -392,7 +402,11 @@ def main(argv: list[str] | None = None) -> int:
         if kind == "pos":
             raw_sides = (
                 _side_of(pair, "original", "source_id"),
-                _side_of(pair, "variant" if "variant" in pair else "candidate", "source_id_variant"),
+                _side_of(
+                    pair,
+                    "variant" if "variant" in pair else "candidate",
+                    "source_id_variant",
+                ),
             )
         else:
             raw_sides = (
@@ -438,7 +452,9 @@ def main(argv: list[str] | None = None) -> int:
             "vectors": len(snapshot.vectors),
             "bad_vectors": snapshot.counters.get("bad-vectors", 0),
             "content_drift": snapshot.counters.get("content-drift", 0),
-            "neighbor_vectors_missing": snapshot.counters.get("neighbor-vectors-missing", 0),
+            "neighbor_vectors_missing": snapshot.counters.get(
+                "neighbor-vectors-missing", 0
+            ),
         },
         "sidecar_fingerprint": _sidecar_fingerprint(out_rows),
         "out": str(out_path),

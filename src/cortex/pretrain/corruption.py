@@ -34,17 +34,18 @@ from __future__ import annotations
 
 import hashlib
 import random
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
-from typing import Final, Protocol, Sequence
+from typing import Final, Protocol
 
 from cortex.data.fingerprints import canonical_json
 from cortex.features.pair import PairRecord
 
 __all__ = [
-    "Transformation",
-    "WEAK_POSITIVE_TRANSFORMS",
     "HARD_NEGATIVE_TRANSFORMS",
+    "WEAK_POSITIVE_TRANSFORMS",
     "PretrainPair",
+    "Transformation",
     "generate_pretrain_pairs",
     "record_key",
 ]
@@ -176,7 +177,9 @@ class SubstituteField:
         return self.target_field
 
     def apply(self, record: PairRecord, rng: random.Random) -> PairRecord:
-        return replace(record, **{self.target_field: getattr(self.donor, self.target_field)})
+        return replace(
+            record, **{self.target_field: getattr(self.donor, self.target_field)}
+        )
 
 
 @dataclass(frozen=True)
@@ -200,7 +203,11 @@ class FlipRecordType:
 
     def apply(self, record: PairRecord, rng: random.Random) -> PairRecord:
         order = _RECORD_TYPES if record.record_type in _RECORD_TYPES else ("note",)
-        next_index = (order.index(record.record_type) + 1) % len(order) if record.record_type else 0
+        next_index = (
+            (order.index(record.record_type) + 1) % len(order)
+            if record.record_type
+            else 0
+        )
         return replace(record, record_type=_RECORD_TYPES[next_index])
 
 
@@ -237,15 +244,21 @@ def _make_hard_negative(
 ) -> Transformation:
     if transform_name == "swap_title":
         if donor is None or not _donor_differs(base, donor, "title"):
-            raise ValueError(f"swap_title needs a qualifying donor for {record_key(base)}")
+            raise ValueError(
+                f"swap_title needs a qualifying donor for {record_key(base)}"
+            )
         return SubstituteField("swap_title", "title", donor)
     if transform_name == "swap_body":
         if donor is None or not _donor_differs(base, donor, "body"):
-            raise ValueError(f"swap_body needs a qualifying donor for {record_key(base)}")
+            raise ValueError(
+                f"swap_body needs a qualifying donor for {record_key(base)}"
+            )
         return SubstituteField("swap_body", "body", donor)
     if transform_name == "swap_tags":
         if donor is None or not _donor_differs(base, donor, "tags"):
-            raise ValueError(f"swap_tags needs a qualifying donor for {record_key(base)}")
+            raise ValueError(
+                f"swap_tags needs a qualifying donor for {record_key(base)}"
+            )
         return SubstituteField("swap_tags", "tags", donor)
     if transform_name == "flip_language":
         return FlipLanguage()
@@ -271,7 +284,7 @@ def generate_pretrain_pairs(
     *,
     seed: int,
     max_pairs: int | None = None,
-) -> "list[PretrainPair]":
+) -> list[PretrainPair]:
     """Generate unlabeled corruption pairs from store records (A2 corpus).
 
     Deterministic under ``seed``; ``records`` are store-exported PairRecord

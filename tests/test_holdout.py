@@ -36,7 +36,9 @@ def test_split_first_ceil_30pct_per_stratum_sorted_by_pair_id() -> None:
     pairs = [_pair(i, stratum=s) for s in ("P1", "N2") for i in range(10)]
     split = split_holdout(pairs)
     # every pair lands in exactly one side
-    assert set(split.train_pair_ids) | set(split.holdout_pair_ids) == {p.pair_id for p in pairs}
+    assert set(split.train_pair_ids) | set(split.holdout_pair_ids) == {
+        p.pair_id for p in pairs
+    }
     assert len(split.train_pair_ids) + len(split.holdout_pair_ids) == len(pairs)
     # per-stratum arithmetic: 10 members per stratum → ceil(3) holdout each
     assert len(split.holdout_pair_ids) == 6
@@ -72,7 +74,9 @@ def test_split_rejects_missing_pair_sha() -> None:
 def test_split_carries_honest_corpus_fingerprint() -> None:
     pairs = [_pair(i) for i in range(7)]
     split = split_holdout(pairs)
-    expected = corpus_fingerprint(manifest_bytes((p.pair_id, p.pair_sha256) for p in pairs))
+    expected = corpus_fingerprint(
+        manifest_bytes((p.pair_id, p.pair_sha256) for p in pairs)
+    )
     assert split.corpus_fingerprint == expected
     assert len(split.corpus_fingerprint) == 64  # BLAKE2b-256 hex
 

@@ -62,7 +62,7 @@ import sys
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Final
 
@@ -85,15 +85,15 @@ __all__ = [
     "EXPECTED_CORPUS_FINGERPRINT",
     "Stage2Stop",
     "build_dry_standin",
-    "canon_pair_digest",
+    "build_parser",
     "canon_labels_fingerprint",
+    "canon_pair_digest",
     "ingest_labels",
     "join_and_split",
     "load_corpus",
     "load_cosines",
     "load_strata",
     "main",
-    "build_parser",
 ]
 
 # ── frozen constants ──────────────────────────────────────────────────────────
@@ -168,6 +168,7 @@ def normalize_label(raw: str) -> str | None:
     ``None`` for anything outside the codebook."""
     return _LABEL_ALIASES.get(raw.strip())
 
+
 _DOCOMPUTE_RECIPE: Final[str] = (
     "vectors recipe: docompute store vectors with the engine embedder OUTSIDE "
     "this repo (s1_synth_similarity.py pattern): PYTHONPATH=<engine-src> "
@@ -196,7 +197,7 @@ def _log(message: str) -> None:
 
 
 def _utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+    return datetime.now(UTC).isoformat(timespec="seconds")
 
 
 def _read_jsonl(path: Path) -> list[dict[str, Any]]:
@@ -229,7 +230,10 @@ def load_corpus(corpus_dir: Path) -> tuple[list[dict[str, Any]], dict[str, str],
     corpus_dir = Path(corpus_dir)
     pairs_path = corpus_dir / "pairs.jsonl"
     if not pairs_path.exists():
-        raise Stage2Stop("CORPUS-MISSING", f"{pairs_path} does not exist — point --corpus at the canon-data corpus dir")
+        raise Stage2Stop(
+            "CORPUS-MISSING",
+            f"{pairs_path} does not exist — point --corpus at the canon-data corpus dir",
+        )
     rows = _read_jsonl(pairs_path)
     if not rows:
         raise Stage2Stop("CORPUS-MISSING", f"{pairs_path} is empty")
@@ -239,11 +243,16 @@ def load_corpus(corpus_dir: Path) -> tuple[list[dict[str, Any]], dict[str, str],
         if not pid or not isinstance(pid, str):
             raise Stage2Stop("CORPUS-MISSING", "corpus row without a string pair_id")
         if pid in seen:
-            raise Stage2Stop("CORPUS-MISSING", f"duplicate pair_id {pid!r} in the corpus")
+            raise Stage2Stop(
+                "CORPUS-MISSING", f"duplicate pair_id {pid!r} in the corpus"
+            )
         seen.add(pid)
         for side in ("a", "b"):
             if not isinstance(row.get(side), dict):
-                raise Stage2Stop("CORPUS-MISSING", f"pair {pid}: side {side!r} missing (canon rows carry 'a'/'b')")
+                raise Stage2Stop(
+                    "CORPUS-MISSING",
+                    f"pair {pid}: side {side!r} missing (canon rows carry 'a'/'b')",
+                )
     digests = {row["pair_id"]: canon_pair_digest(row) for row in rows}
     fingerprint = corpus_fingerprint(manifest_bytes(digests.items()))
 
@@ -305,7 +314,10 @@ def load_cosines(corpus_dir: Path, rows: Sequence[dict[str, Any]]) -> dict[str, 
     feature input; train/eval manifest rows cannot exist without it."""
     cosines_csv = Path(corpus_dir) / "cosines.csv"
     if not cosines_csv.exists():
-        raise Stage2Stop("CORPUS-COSINES", f"{cosines_csv} does not exist — similarity is a frozen feature input")
+        raise Stage2Stop(
+            "CORPUS-COSINES",
+            f"{cosines_csv} does not exist — similarity is a frozen feature input",
+        )
     mapping = {
         r["pair_id"].strip(): float(r["cosine"])
         for r in csv.DictReader(cosines_csv.open(encoding="utf-8"))
@@ -326,7 +338,9 @@ def load_vector_sidecar(path: Path) -> dict[str, tuple[list[float], list[float]]
     for row in _read_jsonl(Path(path)):
         pid = row.get("pair_id")
         if not pid or "vec_a" not in row or "vec_b" not in row:
-            raise Stage2Stop("VECTORS-NEEDED", f"sidecar row for {pid!r} misses pair_id/vec_a/vec_b")
+            raise Stage2Stop(
+                "VECTORS-NEEDED", f"sidecar row for {pid!r} misses pair_id/vec_a/vec_b"
+            )
         vectors[pid] = (list(row["vec_a"]), list(row["vec_b"]))
     return vectors
 
@@ -349,9 +363,13 @@ def canon_labels_fingerprint(raw_rows: Iterable[dict[str, str]]) -> str:
             "note": row.get("note", ""),
         }
         cj = json.dumps(obj, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
-        manifest.append(f"{row['pair_id']} {hashlib.sha256(cj.encode('utf-8')).hexdigest()}")
+        manifest.append(
+            f"{row['pair_id']} {hashlib.sha256(cj.encode('utf-8')).hexdigest()}"
+        )
     manifest.sort(key=lambda line: line.split(" ", 1)[0])
-    return hashlib.blake2b(("\n".join(manifest) + "\n").encode("utf-8"), digest_size=32).hexdigest()
+    return hashlib.blake2b(
+        ("\n".join(manifest) + "\n").encode("utf-8"), digest_size=32
+    ).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -369,13 +387,19 @@ def ingest_labels(labels_csv: Path, corpus_ids: set[str]) -> LabelsIngest:
     floors; any violation is an authoritative stop (exit 5, run forbidden)."""
     labels_csv = Path(labels_csv)
     if not labels_csv.exists():
-        raise Stage2Stop("LABELS-INCOMPLETE", f"{labels_csv} does not exist — labeling (W5b) has not started")
+        raise Stage2Stop(
+            "LABELS-INCOMPLETE",
+            f"{labels_csv} does not exist — labeling (W5b) has not started",
+        )
     with labels_csv.open(encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
         columns = reader.fieldnames or []
         for required in ("pair_id", "label"):
             if required not in columns:
-                raise Stage2Stop("LABELS-INCOMPLETE", f"{labels_csv}: column {required!r} missing (header: {columns})")
+                raise Stage2Stop(
+                    "LABELS-INCOMPLETE",
+                    f"{labels_csv}: column {required!r} missing (header: {columns})",
+                )
         raw_rows: list[dict[str, str]] = []
         labels: dict[str, str] = {}
         for row in reader:
@@ -383,7 +407,9 @@ def ingest_labels(labels_csv: Path, corpus_ids: set[str]) -> LabelsIngest:
             raw_label = (row.get("label") or "").strip()
             note = (row.get("note") or "").strip()
             if not pid:
-                raise Stage2Stop("LABELS-INCOMPLETE", "labels.csv has a row without pair_id")
+                raise Stage2Stop(
+                    "LABELS-INCOMPLETE", "labels.csv has a row without pair_id"
+                )
             if not raw_label:
                 raise Stage2Stop(
                     "LABELS-INCOMPLETE",
@@ -397,9 +423,15 @@ def ingest_labels(labels_csv: Path, corpus_ids: set[str]) -> LabelsIngest:
                     f"pair {pid}: unknown label {raw_label!r} — codebook: duplicate / not_duplicate / disputed",
                 )
             if normalized == "disputed" and not note:
-                raise Stage2Stop("LABELS-INCOMPLETE", f"pair {pid}: disputed requires a one-line reason in note (codebook)")
+                raise Stage2Stop(
+                    "LABELS-INCOMPLETE",
+                    f"pair {pid}: disputed requires a one-line reason in note (codebook)",
+                )
             if normalized != "disputed" and note:
-                raise Stage2Stop("LABELS-INCOMPLETE", f"pair {pid}: note is only allowed for disputed rows")
+                raise Stage2Stop(
+                    "LABELS-INCOMPLETE",
+                    f"pair {pid}: note is only allowed for disputed rows",
+                )
             labels[pid] = normalized
             raw_rows.append({"pair_id": pid, "label": raw_label, "note": note})
 
@@ -421,11 +453,17 @@ def ingest_labels(labels_csv: Path, corpus_ids: set[str]) -> LabelsIngest:
     counts = dict(Counter(labels.values()))
     violated = []
     if counts.get(LABEL_DUPLICATE, 0) < FLOOR_DUPLICATE_MIN:
-        violated.append(f"duplicate {counts.get(LABEL_DUPLICATE, 0)}/{FLOOR_DUPLICATE_MIN} min")
+        violated.append(
+            f"duplicate {counts.get(LABEL_DUPLICATE, 0)}/{FLOOR_DUPLICATE_MIN} min"
+        )
     if counts.get(LABEL_NOT_DUPLICATE, 0) < FLOOR_NOT_DUPLICATE_MIN:
-        violated.append(f"not-duplicate {counts.get(LABEL_NOT_DUPLICATE, 0)}/{FLOOR_NOT_DUPLICATE_MIN} min")
+        violated.append(
+            f"not-duplicate {counts.get(LABEL_NOT_DUPLICATE, 0)}/{FLOOR_NOT_DUPLICATE_MIN} min"
+        )
     if counts.get("disputed", 0) > FLOOR_DISPUTED_MAX:
-        violated.append(f"disputed {counts.get('disputed', 0)}/{FLOOR_DISPUTED_MAX} max")
+        violated.append(
+            f"disputed {counts.get('disputed', 0)}/{FLOOR_DISPUTED_MAX} max"
+        )
     if violated:
         raise Stage2Stop(
             "NO-DATA",
@@ -486,8 +524,12 @@ def join_and_split(
                 pair_id=pid,
                 stratum=strata[pid],
                 label=label,
-                sha_a=hashlib.sha256(canonical_json(row["a"]).encode("utf-8")).hexdigest(),
-                sha_b=hashlib.sha256(canonical_json(row["b"]).encode("utf-8")).hexdigest(),
+                sha_a=hashlib.sha256(
+                    canonical_json(row["a"]).encode("utf-8")
+                ).hexdigest(),
+                sha_b=hashlib.sha256(
+                    canonical_json(row["b"]).encode("utf-8")
+                ).hexdigest(),
                 pair_sha256=digests[pid],
             )
         )
@@ -498,9 +540,13 @@ def join_and_split(
     holdout_classes = Counter(labels[pid] for pid in split.holdout_pair_ids)
     violated = []
     if holdout_classes.get(LABEL_DUPLICATE, 0) < FLOOR_HOLDOUT_CLASS_MIN:
-        violated.append(f"duplicate {holdout_classes.get(LABEL_DUPLICATE, 0)}/{FLOOR_HOLDOUT_CLASS_MIN} min")
+        violated.append(
+            f"duplicate {holdout_classes.get(LABEL_DUPLICATE, 0)}/{FLOOR_HOLDOUT_CLASS_MIN} min"
+        )
     if holdout_classes.get(LABEL_NOT_DUPLICATE, 0) < FLOOR_HOLDOUT_CLASS_MIN:
-        violated.append(f"not-duplicate {holdout_classes.get(LABEL_NOT_DUPLICATE, 0)}/{FLOOR_HOLDOUT_CLASS_MIN} min")
+        violated.append(
+            f"not-duplicate {holdout_classes.get(LABEL_NOT_DUPLICATE, 0)}/{FLOOR_HOLDOUT_CLASS_MIN} min"
+        )
     if violated:
         raise Stage2Stop(
             "NO-DATA",
@@ -527,8 +573,12 @@ def join_and_split(
     holdout_dir = out_root / "holdout"
     holdout_dir.mkdir(parents=True, exist_ok=True)
 
-    train_rows = [manifest_row(pid, with_label=True) for pid in sorted(split.train_pair_ids)]
-    holdout_rows = [manifest_row(pid, with_label=False) for pid in sorted(split.holdout_pair_ids)]
+    train_rows = [
+        manifest_row(pid, with_label=True) for pid in sorted(split.train_pair_ids)
+    ]
+    holdout_rows = [
+        manifest_row(pid, with_label=False) for pid in sorted(split.holdout_pair_ids)
+    ]
     with train_manifest.open("w", encoding="utf-8") as handle:
         for row in train_rows:
             handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
@@ -537,7 +587,14 @@ def join_and_split(
             handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     with (holdout_dir / "labels.jsonl").open("w", encoding="utf-8") as handle:
         for pid in sorted(split.holdout_pair_ids):
-            handle.write(json.dumps({"pair_id": pid, "label": labels[pid]}, ensure_ascii=False, sort_keys=True) + "\n")
+            handle.write(
+                json.dumps(
+                    {"pair_id": pid, "label": labels[pid]},
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+                + "\n"
+            )
     # holdout-id manifest — the split side carries its own manifest lines
     (holdout_dir / "manifest.txt").write_bytes(
         manifest_bytes((pid, digests[pid]) for pid in split.holdout_pair_ids)
@@ -600,7 +657,10 @@ def stage_train(
     root = Path(root)
     train_manifest = root / "train-manifest.jsonl"
     if not train_manifest.exists():
-        raise Stage2Stop("REUSE-MISSING", f"{train_manifest} does not exist — run the split stage first")
+        raise Stage2Stop(
+            "REUSE-MISSING",
+            f"{train_manifest} does not exist — run the split stage first",
+        )
     vectors_complete = _manifest_vectors_complete(train_manifest)
     mode = candidate
     if mode == "auto":
@@ -612,7 +672,15 @@ def stage_train(
             + _DOCOMPUTE_RECIPE,
         )
 
-    argv = ["train", "--train-manifest", str(train_manifest), "--candidate", mode, "--out", str(root / "models")]
+    argv = [
+        "train",
+        "--train-manifest",
+        str(train_manifest),
+        "--candidate",
+        mode,
+        "--out",
+        str(root / "models"),
+    ]
     if pretrain_corpus is not None:
         argv += ["--pretrain-corpus", str(pretrain_corpus)]
     code, out = _cli(argv)
@@ -621,12 +689,19 @@ def stage_train(
     if code == EXIT_ENV:
         # torch absent (train extra) — N skipped honestly, D proceeds.
         if not (root / "models" / "d-boost" / "meta.json").exists():
-            raise Stage2Stop("TRAIN-FAILED", f"cortex train exited {code} and D did not train: {out.strip()[:300]}")
+            raise Stage2Stop(
+                "TRAIN-FAILED",
+                f"cortex train exited {code} and D did not train: {out.strip()[:300]}",
+            )
         result["n_status"] = "skipped-env-missing"
         result["mode"] = "d"
-        _log("candidate N skipped: torch absent (train extra) — disclosed, D-only ladder")
+        _log(
+            "candidate N skipped: torch absent (train extra) — disclosed, D-only ladder"
+        )
     elif code != 0:
-        raise Stage2Stop("TRAIN-FAILED", f"cortex train exited {code}: {out.strip()[:300]}")
+        raise Stage2Stop(
+            "TRAIN-FAILED", f"cortex train exited {code}: {out.strip()[:300]}"
+        )
     else:
         result["n_status"] = "trained" if mode in ("n", "both") else "not-trained"
     return result
@@ -646,7 +721,9 @@ def stage_select(root: Path, mode: str) -> dict[str, Any]:
     ]
     code, out = _cli(argv)
     if code != 0:
-        raise Stage2Stop("SELECT-FAILED", f"cortex select exited {code}: {out.strip()[:300]}")
+        raise Stage2Stop(
+            "SELECT-FAILED", f"cortex select exited {code}: {out.strip()[:300]}"
+        )
     payload = json.loads((root / "selection.json").read_text(encoding="utf-8"))
     verdict = payload["verdict"]
     return {
@@ -658,12 +735,17 @@ def stage_select(root: Path, mode: str) -> dict[str, Any]:
     }
 
 
-def stage_export(root: Path, winner: str, embedder_pin: str, corpus_fingerprint_value: str) -> dict[str, Any]:
+def stage_export(
+    root: Path, winner: str, embedder_pin: str, corpus_fingerprint_value: str
+) -> dict[str, Any]:
     """Stage 5: export the winner as the vesma-cortex ONNX artifact (+ size gate)."""
     root = Path(root)
     model_dir = root / "models" / winner
     if not (model_dir / "meta.json").exists():
-        raise Stage2Stop("REUSE-MISSING", f"{model_dir}/meta.json does not exist — train the winner first")
+        raise Stage2Stop(
+            "REUSE-MISSING",
+            f"{model_dir}/meta.json does not exist — train the winner first",
+        )
     artifact = root / "artifact" / "model.onnx"
     artifact.parent.mkdir(parents=True, exist_ok=True)
     argv = [
@@ -679,11 +761,16 @@ def stage_export(root: Path, winner: str, embedder_pin: str, corpus_fingerprint_
     ]
     code, out = _cli(argv)
     if code != 0:
-        raise Stage2Stop("EXPORT-FAILED", f"cortex export-artifact exited {code}: {out.strip()[:300]}")
+        raise Stage2Stop(
+            "EXPORT-FAILED",
+            f"cortex export-artifact exited {code}: {out.strip()[:300]}",
+        )
     from cortex.artifacts import assert_artifact_size
 
     assert_artifact_size(artifact)  # ≤5 MB gate, belt and braces
-    manifest = json.loads(artifact.with_name("model.manifest.json").read_text(encoding="utf-8"))
+    manifest = json.loads(
+        artifact.with_name("model.manifest.json").read_text(encoding="utf-8")
+    )
     return {
         "artifact": str(artifact),
         "sha256": manifest["sha256"],
@@ -701,7 +788,10 @@ def build_dry_standin(synth_path: Path, root: Path) -> Path:
     path. Reads ONLY the in-repo synth jsonl — canon-data is never touched."""
     synth_path = Path(synth_path)
     if not synth_path.exists():
-        raise Stage2Stop("DRY-SOURCE-MISSING", f"{synth_path} does not exist — the dry-run stand-in source is required")
+        raise Stage2Stop(
+            "DRY-SOURCE-MISSING",
+            f"{synth_path} does not exist — the dry-run stand-in source is required",
+        )
     rows = _read_jsonl(synth_path)
     corpus_rows: list[dict[str, Any]] = []
     cosine_lines = ["pair_id,cosine"]
@@ -722,12 +812,16 @@ def build_dry_standin(synth_path: Path, root: Path) -> Path:
                 "DRY-SOURCE-BAD",
                 f"pair {pid!r}: unknown strategy {strategy!r} — extend STRATEGY_STRATUM (dry-run glue)",
             )
-        corpus_rows.append({"pair_id": pid, "a": side(row["record"]), "b": side(row["candidate"])})
+        corpus_rows.append(
+            {"pair_id": pid, "a": side(row["record"]), "b": side(row["candidate"])}
+        )
         cosine_lines.append(f"{pid},{row['similarity']}")
         strata_lines.append(f"{pid},{stratum},,no")
         label_lines.append(f"{pid},{row.get('label', '')},")
         if "vec_a" in row and "vec_b" in row:
-            vector_rows.append({"pair_id": pid, "vec_a": row["vec_a"], "vec_b": row["vec_b"]})
+            vector_rows.append(
+                {"pair_id": pid, "vec_a": row["vec_a"], "vec_b": row["vec_b"]}
+            )
 
     corpus_dir = root / "corpus"
     corpus_dir.mkdir(parents=True, exist_ok=True)
@@ -736,11 +830,17 @@ def build_dry_standin(synth_path: Path, root: Path) -> Path:
             handle.write(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n")
     digests = {row["pair_id"]: canon_pair_digest(row) for row in corpus_rows}
     (corpus_dir / "manifest.txt").write_bytes(manifest_bytes(digests.items()))
-    (corpus_dir / "strata.csv").write_text("\n".join(strata_lines) + "\n", encoding="utf-8")
-    (corpus_dir / "cosines.csv").write_text("\n".join(cosine_lines) + "\n", encoding="utf-8")
+    (corpus_dir / "strata.csv").write_text(
+        "\n".join(strata_lines) + "\n", encoding="utf-8"
+    )
+    (corpus_dir / "cosines.csv").write_text(
+        "\n".join(cosine_lines) + "\n", encoding="utf-8"
+    )
     labels_dir = root / "labeling"
     labels_dir.mkdir(parents=True, exist_ok=True)
-    (labels_dir / "labels.csv").write_text("\n".join(label_lines) + "\n", encoding="utf-8")
+    (labels_dir / "labels.csv").write_text(
+        "\n".join(label_lines) + "\n", encoding="utf-8"
+    )
     if vector_rows:
         with (root / "vectors.jsonl").open("w", encoding="utf-8") as handle:
             for row in vector_rows:
@@ -760,7 +860,10 @@ def _load_prev_report(root: Path) -> dict[str, Any] | None:
 
 def _write_report(root: Path, report: dict[str, Any]) -> Path:
     path = Path(root) / "report.json"
-    path.write_text(json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
     return path
 
 
@@ -769,7 +872,9 @@ def _write_report(root: Path, report: dict[str, Any]) -> Path:
 
 def cmd_run(args: argparse.Namespace) -> int:
     dry = args.dry_run
-    root = Path(args.root) if args.root else REPO_ROOT / (DRY_ROOT if dry else REAL_ROOT)
+    root = (
+        Path(args.root) if args.root else REPO_ROOT / (DRY_ROOT if dry else REAL_ROOT)
+    )
     report: dict[str, Any] = {
         "kind": "stage2-report",
         "dry_run": dry,
@@ -795,7 +900,10 @@ def cmd_run(args: argparse.Namespace) -> int:
             expected_fp = EXPECTED_CORPUS_FINGERPRINT
 
     if args.skip_ingest and not args.skip_split:
-        raise Stage2Stop("REUSE-MISSING", "--skip-ingest requires --skip-split (the split re-derives from labels)")
+        raise Stage2Stop(
+            "REUSE-MISSING",
+            "--skip-ingest requires --skip-split (the split re-derives from labels)",
+        )
 
     # stage 1: ingest labels (+ corpus identity check)
     ingest: LabelsIngest | None = None
@@ -839,7 +947,10 @@ def cmd_run(args: argparse.Namespace) -> int:
     else:
         prev = _load_prev_report(root)
         if prev is None or "labels" not in prev or "corpus" not in prev:
-            raise Stage2Stop("REUSE-MISSING", "--skip-ingest needs a previous report.json with labels/corpus sections")
+            raise Stage2Stop(
+                "REUSE-MISSING",
+                "--skip-ingest needs a previous report.json with labels/corpus sections",
+            )
         report["labels"] = prev["labels"]
         report["corpus"] = prev["corpus"]
         corpus_fp = prev["corpus"]["fingerprint_recomputed"]
@@ -849,7 +960,11 @@ def cmd_run(args: argparse.Namespace) -> int:
     # above, so inside this block the corpus and labels are always loaded)
     if not args.skip_split:
         vectors = None
-        vectors_path = args.vectors or ((root / "vectors.jsonl") if dry and (root / "vectors.jsonl").exists() else None)
+        vectors_path = args.vectors or (
+            (root / "vectors.jsonl")
+            if dry and (root / "vectors.jsonl").exists()
+            else None
+        )
         if vectors_path:
             vectors = load_vector_sidecar(Path(vectors_path))
         strata = load_strata(corpus_dir, corpus_rows)
@@ -876,17 +991,26 @@ def cmd_run(args: argparse.Namespace) -> int:
             "vectors_attached": outcome.vectors_attached,
         }
         report["stages"]["split"] = "ran"
-        _log(f"split: {outcome.train_rows} train / {outcome.holdout_rows} holdout, disputed excluded {outcome.disputed_excluded}")
+        _log(
+            f"split: {outcome.train_rows} train / {outcome.holdout_rows} holdout, disputed excluded {outcome.disputed_excluded}"
+        )
     else:
         prev = _load_prev_report(root)
         if prev is None or "split" not in prev:
-            raise Stage2Stop("REUSE-MISSING", "--skip-split needs a previous report.json with a split section")
+            raise Stage2Stop(
+                "REUSE-MISSING",
+                "--skip-split needs a previous report.json with a split section",
+            )
         report["split"] = prev["split"]
         report["stages"]["split"] = "skipped"
 
     train_mode = "auto"
     if not args.skip_train:
-        train = stage_train(root, args.candidate, Path(args.pretrain_corpus) if args.pretrain_corpus else None)
+        train = stage_train(
+            root,
+            args.candidate,
+            Path(args.pretrain_corpus) if args.pretrain_corpus else None,
+        )
         report["train"] = {
             **train,
             "pretrain_corpus": args.pretrain_corpus or str(DEFAULT_PRETRAIN_CORPUS),
@@ -896,7 +1020,10 @@ def cmd_run(args: argparse.Namespace) -> int:
     else:
         prev = _load_prev_report(root)
         if prev is None or "train" not in prev:
-            raise Stage2Stop("REUSE-MISSING", "--skip-train needs a previous report.json with a train section")
+            raise Stage2Stop(
+                "REUSE-MISSING",
+                "--skip-train needs a previous report.json with a train section",
+            )
         report["train"] = prev["train"]
         train_mode = prev["train"]["mode"]
         report["stages"]["train"] = "skipped"
@@ -906,24 +1033,36 @@ def cmd_run(args: argparse.Namespace) -> int:
         selection = stage_select(root, mode)
         report["select"] = selection
         report["stages"]["select"] = "ran"
-        _log(f"select: winner={selection['winner']} margin_stds={selection['margin_stds']}")
+        _log(
+            f"select: winner={selection['winner']} margin_stds={selection['margin_stds']}"
+        )
     else:
         prev = _load_prev_report(root)
         if prev is None or "select" not in prev:
-            raise Stage2Stop("REUSE-MISSING", "--skip-select needs a previous report.json with a select section")
+            raise Stage2Stop(
+                "REUSE-MISSING",
+                "--skip-select needs a previous report.json with a select section",
+            )
         report["select"] = prev["select"]
         report["stages"]["select"] = "skipped"
 
     winner = report["select"]["winner"]
     if not args.skip_export:
-        export = stage_export(root, winner, args.embedder_pin or DEFAULT_EMBEDDER_PIN, corpus_fp)
+        export = stage_export(
+            root, winner, args.embedder_pin or DEFAULT_EMBEDDER_PIN, corpus_fp
+        )
         report["artifact"] = export
         report["stages"]["export"] = "ran"
-        _log(f"export: {export['artifact']} sha256={export['sha256'][:12]}… size={export['size_bytes']}")
+        _log(
+            f"export: {export['artifact']} sha256={export['sha256'][:12]}… size={export['size_bytes']}"
+        )
     else:
         prev = _load_prev_report(root)
         if prev is None or "artifact" not in prev:
-            raise Stage2Stop("REUSE-MISSING", "--skip-export needs a previous report.json with an artifact section")
+            raise Stage2Stop(
+                "REUSE-MISSING",
+                "--skip-export needs a previous report.json with an artifact section",
+            )
         report["artifact"] = prev["artifact"]
         report["stages"]["export"] = "skipped"
 
@@ -949,13 +1088,25 @@ def cmd_eval(args: argparse.Namespace) -> int:
             "refusing: the single-shot holdout eval requires --i-know-this-is-single-shot "
             "(prereg W5c: the holdout is touched ONCE per trained artifact)",
         )
-    root = Path(args.root) if args.root else REPO_ROOT / (DRY_ROOT if args.dry_run else REAL_ROOT)
-    artifact = Path(args.artifact) if args.artifact else root / "artifact" / "model.onnx"
+    root = (
+        Path(args.root)
+        if args.root
+        else REPO_ROOT / (DRY_ROOT if args.dry_run else REAL_ROOT)
+    )
+    artifact = (
+        Path(args.artifact) if args.artifact else root / "artifact" / "model.onnx"
+    )
     if not artifact.exists():
-        raise Stage2Stop("REUSE-MISSING", f"{artifact} does not exist — run the chain (stages 1–5) first")
+        raise Stage2Stop(
+            "REUSE-MISSING",
+            f"{artifact} does not exist — run the chain (stages 1–5) first",
+        )
     holdout_dir = Path(args.holdout) if args.holdout else root / "holdout"
     if not (holdout_dir / "pairs.jsonl").exists():
-        raise Stage2Stop("REUSE-MISSING", f"{holdout_dir}/pairs.jsonl does not exist — run the split stage first")
+        raise Stage2Stop(
+            "REUSE-MISSING",
+            f"{holdout_dir}/pairs.jsonl does not exist — run the split stage first",
+        )
 
     report = _load_prev_report(root)
     corpus_fp = args.corpus_fingerprint
@@ -972,10 +1123,16 @@ def cmd_eval(args: argparse.Namespace) -> int:
     # with the actionable recipe instead of a bare refusal.
     manifest_path = artifact.with_name("model.manifest.json")
     if manifest_path.exists():
-        candidate = json.loads(manifest_path.read_text(encoding="utf-8")).get("candidate")
+        candidate = json.loads(manifest_path.read_text(encoding="utf-8")).get(
+            "candidate"
+        )
         if candidate == "n-head":
             rows = _read_jsonl(holdout_dir / "pairs.jsonl")
-            missing = [row["pair_id"] for row in rows if "vec_a" not in row or "vec_b" not in row]
+            missing = [
+                row["pair_id"]
+                for row in rows
+                if "vec_a" not in row or "vec_b" not in row
+            ]
             detail = (
                 f"{len(missing)} holdout rows lack vec_a/vec_b"
                 if missing
@@ -1014,7 +1171,9 @@ def cmd_eval(args: argparse.Namespace) -> int:
     if out.strip():
         print(out.strip())
     if code == EXIT_REFUSED:
-        _log("single-shot refused: this corpus fingerprint was already evaluated (append-only run log)")
+        _log(
+            "single-shot refused: this corpus fingerprint was already evaluated (append-only run log)"
+        )
     return code
 
 
@@ -1028,38 +1187,103 @@ def build_parser() -> argparse.ArgumentParser:
     )
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p = sub.add_parser("run", help="stages 1–5 (ingest → split → train → select → export); eval NOT included")
-    p.add_argument("--dry-run", action="store_true",
-                   help="synthetic stand-in end to end; canon-data never read, root data/stage2-dry")
-    p.add_argument("--root", default=None, help="output root (default data/stage2, dry: data/stage2-dry)")
-    p.add_argument("--corpus", default=None, help="canon-data corpus dir (default ../vesmaro-canon-data/corpus)")
-    p.add_argument("--labels", default=None, help="labels.csv (default ../vesmaro-canon-data/labeling/labels.csv)")
-    p.add_argument("--synth-source", default=None, help="dry-run only: stand-in synth pairs jsonl")
-    p.add_argument("--expect-corpus-fingerprint", default=None,
-                   help=f"default {EXPECTED_CORPUS_FINGERPRINT[:12]}… (frozen W5b); pass '' to skip the check")
-    p.add_argument("--vectors", default=None,
-                   help="optional vector sidecar jsonl ({pair_id, vec_a, vec_b}) for candidate N")
-    p.add_argument("--candidate", choices=["auto", "d", "n", "both"], default="auto",
-                   help="auto: both when vectors complete, else D-only (disclosed)")
-    p.add_argument("--pretrain-corpus", default=None,
-                   help=f"candidate N corruption pairs (default {DEFAULT_PRETRAIN_CORPUS.name})")
-    p.add_argument("--embedder-pin", default=None, help=f"default {DEFAULT_EMBEDDER_PIN[:16]}…")
-    p.add_argument("--skip-ingest", action="store_true", help="reuse labels/corpus sections from report.json")
-    p.add_argument("--skip-split", action="store_true", help="reuse existing train-manifest + holdout dir")
+    p = sub.add_parser(
+        "run",
+        help="stages 1–5 (ingest → split → train → select → export); eval NOT included",
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="synthetic stand-in end to end; canon-data never read, root data/stage2-dry",
+    )
+    p.add_argument(
+        "--root",
+        default=None,
+        help="output root (default data/stage2, dry: data/stage2-dry)",
+    )
+    p.add_argument(
+        "--corpus",
+        default=None,
+        help="canon-data corpus dir (default ../vesmaro-canon-data/corpus)",
+    )
+    p.add_argument(
+        "--labels",
+        default=None,
+        help="labels.csv (default ../vesmaro-canon-data/labeling/labels.csv)",
+    )
+    p.add_argument(
+        "--synth-source", default=None, help="dry-run only: stand-in synth pairs jsonl"
+    )
+    p.add_argument(
+        "--expect-corpus-fingerprint",
+        default=None,
+        help=f"default {EXPECTED_CORPUS_FINGERPRINT[:12]}… (frozen W5b); pass '' to skip the check",
+    )
+    p.add_argument(
+        "--vectors",
+        default=None,
+        help="optional vector sidecar jsonl ({pair_id, vec_a, vec_b}) for candidate N",
+    )
+    p.add_argument(
+        "--candidate",
+        choices=["auto", "d", "n", "both"],
+        default="auto",
+        help="auto: both when vectors complete, else D-only (disclosed)",
+    )
+    p.add_argument(
+        "--pretrain-corpus",
+        default=None,
+        help=f"candidate N corruption pairs (default {DEFAULT_PRETRAIN_CORPUS.name})",
+    )
+    p.add_argument(
+        "--embedder-pin", default=None, help=f"default {DEFAULT_EMBEDDER_PIN[:16]}…"
+    )
+    p.add_argument(
+        "--skip-ingest",
+        action="store_true",
+        help="reuse labels/corpus sections from report.json",
+    )
+    p.add_argument(
+        "--skip-split",
+        action="store_true",
+        help="reuse existing train-manifest + holdout dir",
+    )
     p.add_argument("--skip-train", action="store_true", help="reuse existing models/")
     p.add_argument("--skip-select", action="store_true", help="reuse selection.json")
-    p.add_argument("--skip-export", action="store_true", help="reuse existing artifact/")
+    p.add_argument(
+        "--skip-export", action="store_true", help="reuse existing artifact/"
+    )
 
-    p = sub.add_parser("eval", help="single-shot holdout eval — EXPLICIT, guarded, not part of run")
-    p.add_argument("--dry-run", action="store_true", help="eval the dry-run stand-in artifact (own run log)")
-    p.add_argument("--root", default=None, help="stage-2 root (default data/stage2, dry: data/stage2-dry)")
-    p.add_argument("--artifact", default=None, help="default <root>/artifact/model.onnx")
+    p = sub.add_parser(
+        "eval", help="single-shot holdout eval — EXPLICIT, guarded, not part of run"
+    )
+    p.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="eval the dry-run stand-in artifact (own run log)",
+    )
+    p.add_argument(
+        "--root",
+        default=None,
+        help="stage-2 root (default data/stage2, dry: data/stage2-dry)",
+    )
+    p.add_argument(
+        "--artifact", default=None, help="default <root>/artifact/model.onnx"
+    )
     p.add_argument("--holdout", default=None, help="default <root>/holdout")
-    p.add_argument("--run-log", default=None,
-                   help="default artifacts/runs/run_log.jsonl (dry: <root>/run_log.jsonl)")
-    p.add_argument("--corpus-fingerprint", default=None, help="default: from report.json")
-    p.add_argument("--i-know-this-is-single-shot", action="store_true",
-                   help="required acknowledgment: the holdout is touched ONCE (prereg W5c)")
+    p.add_argument(
+        "--run-log",
+        default=None,
+        help="default artifacts/runs/run_log.jsonl (dry: <root>/run_log.jsonl)",
+    )
+    p.add_argument(
+        "--corpus-fingerprint", default=None, help="default: from report.json"
+    )
+    p.add_argument(
+        "--i-know-this-is-single-shot",
+        action="store_true",
+        help="required acknowledgment: the holdout is touched ONCE (prereg W5c)",
+    )
     return parser
 
 

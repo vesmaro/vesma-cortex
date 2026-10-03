@@ -34,17 +34,18 @@ from __future__ import annotations
 
 import json
 import math
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, Mapping
+from typing import Final
 
 from cortex.features.pair import FEATURE_NAMES, FIELD_COSINE_FEATURES, FeatureVector
 
 __all__ = [
     "GRAPH_FEATURES",
-    "GraphSidecarError",
     "GraphEvidence",
     "GraphSidecar",
+    "GraphSidecarError",
     "attach_graph_features",
     "attach_to_features",
 ]
@@ -89,12 +90,12 @@ class GraphEvidence:
         return self.edge_ab or self.common_neighbors > 0
 
     @classmethod
-    def zero(cls) -> "GraphEvidence":
+    def zero(cls) -> GraphEvidence:
         """The legitimate graph-empty evidence (no store identity / no edges)."""
         return cls()
 
     @classmethod
-    def from_row(cls, row: Mapping[str, object]) -> "GraphEvidence":
+    def from_row(cls, row: Mapping[str, object]) -> GraphEvidence:
         """Validate one sidecar JSON row into evidence.
 
         Raises:
@@ -112,7 +113,9 @@ class GraphEvidence:
 
         kinds = row.get("edge_kinds", [])
         if not isinstance(kinds, list) or any(not isinstance(k, str) for k in kinds):
-            raise GraphSidecarError(f"edge_kinds must be a list of strings, got {kinds!r}")
+            raise GraphSidecarError(
+                f"edge_kinds must be a list of strings, got {kinds!r}"
+            )
         if bool(kinds) != edge_ab:
             raise GraphSidecarError(
                 f"edge_ab={edge_ab} contradicts edge_kinds={kinds!r}"
@@ -145,7 +148,9 @@ class GraphEvidence:
         return evidence
 
 
-def _bounded_float(row: Mapping[str, object], key: str, low: float, high: float) -> float:
+def _bounded_float(
+    row: Mapping[str, object], key: str, low: float, high: float
+) -> float:
     value = row[key]
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise GraphSidecarError(f"{key} must be a real number, got {value!r}")
@@ -220,7 +225,7 @@ def _attach_names(vector: FeatureVector) -> tuple[str, ...]:
         return vector.names
     if (
         len(vector.names) >= len(GRAPH_FEATURES)
-        and vector.names[-len(GRAPH_FEATURES):] == GRAPH_FEATURES
+        and vector.names[-len(GRAPH_FEATURES) :] == GRAPH_FEATURES
     ):
         raise ValueError(
             "graph features are already attached to this vector (attach once)"
@@ -231,7 +236,9 @@ def _attach_names(vector: FeatureVector) -> tuple[str, ...]:
     )
 
 
-def attach_graph_features(vector: FeatureVector, evidence: GraphEvidence) -> FeatureVector:
+def attach_graph_features(
+    vector: FeatureVector, evidence: GraphEvidence
+) -> FeatureVector:
     """Append the gated graph block to a core / core+field feature vector.
 
     Values (contract of :data:`GRAPH_FEATURES`): ``edge_ab`` and
@@ -294,5 +301,7 @@ def attach_to_features(
                 f"pair {pair_id!r} is not covered by the graph sidecar"
             )
         else:
-            raise ValueError(f"on_missing must be 'raise' or 'zero', got {on_missing!r}")
+            raise ValueError(
+                f"on_missing must be 'raise' or 'zero', got {on_missing!r}"
+            )
     return attach_graph_features(vector, evidence)

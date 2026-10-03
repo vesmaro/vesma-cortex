@@ -84,7 +84,11 @@ def rows_to_vectors(rows: list[dict]):
     from cortex.cli.main import _record_like  # same projection the pipeline uses
 
     return [
-        features(_record_like(r["record"]), _record_like(r["candidate"]), float(r["similarity"]))
+        features(
+            _record_like(r["record"]),
+            _record_like(r["candidate"]),
+            float(r["similarity"]),
+        )
         for r in rows
     ]
 
@@ -129,7 +133,9 @@ def store_vector(key: str, seed: int = 7) -> np.ndarray:
     return unit_vec(np.random.RandomState(_stable_seed(key) ^ seed))
 
 
-def attach_store_vectors(rows: list[dict], seed: int = 7, noise: float = 0.05) -> list[dict]:
+def attach_store_vectors(
+    rows: list[dict], seed: int = 7, noise: float = 0.05
+) -> list[dict]:
     """Return rows with deterministic vec_a/vec_b (384-dim unit vectors).
 
     Vectors are BY CONSTRUCTION consistent with the label — the synthetic
@@ -151,7 +157,9 @@ def attach_store_vectors(rows: list[dict], seed: int = 7, noise: float = 0.05) -
     for i, row in enumerate(rows):
         vec_a = store_vector(row["record"]["title"], seed)
         if row["label"] == "duplicate":
-            rng = np.random.RandomState(_stable_seed(f"{row['candidate']['title']}#{i}") ^ seed)
+            rng = np.random.RandomState(
+                _stable_seed(f"{row['candidate']['title']}#{i}") ^ seed
+            )
             vec_b = unit_vec(rng) * noise + vec_a
             vec_b = (vec_b / np.linalg.norm(vec_b)).astype(np.float32)
         else:

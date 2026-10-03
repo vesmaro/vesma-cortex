@@ -7,6 +7,7 @@ import math
 
 import numpy as np
 import pytest
+from synth import make_vectors
 
 from cortex.select.cv import (
     CV_FOLDS,
@@ -15,8 +16,6 @@ from cortex.select.cv import (
     run_cv,
     select_candidate,
 )
-
-from synth import make_vectors
 
 
 def _synth_matrix(n: int = 60):
@@ -123,7 +122,9 @@ def test_run_cv_predict_fn_contract_enforced() -> None:
 
 
 def _report(candidate: str, ba_mean, ba_std, brier_mean, brier_std) -> CvReport:
-    return CvReport(candidate, f"{candidate}-cfg", ba_mean, ba_std, brier_mean, brier_std)
+    return CvReport(
+        candidate, f"{candidate}-cfg", ba_mean, ba_std, brier_mean, brier_std
+    )
 
 
 D = _report("d-boost", 0.80, 0.02, 0.30, 0.02)

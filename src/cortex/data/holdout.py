@@ -16,20 +16,21 @@ computed from side hashes alone. Additive, keyword-constructors unaffected.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Final, Sequence
+from typing import Final
 
 from cortex.data.fingerprints import corpus_fingerprint as _blake2b_of_manifest
 from cortex.data.fingerprints import manifest_bytes
 
 __all__ = [
     "HOLDOUT_FRACTION",
-    "SplitPair",
     "HoldoutSplit",
-    "split_holdout",
-    "assert_no_pair_overlap",
+    "SplitPair",
     "assert_labels_isolated",
+    "assert_no_pair_overlap",
+    "split_holdout",
 ]
 
 #: Frozen holdout fraction (prereg W5c: 30 %, first ⌈0.3·n⌉ per stratum).
@@ -104,7 +105,9 @@ def split_holdout(pairs: Sequence[SplitPair]) -> HoldoutSplit:
     )
 
 
-def assert_no_pair_overlap(train_ids: Sequence[str], holdout_ids: Sequence[str]) -> None:
+def assert_no_pair_overlap(
+    train_ids: Sequence[str], holdout_ids: Sequence[str]
+) -> None:
     """Assert zero pair_id intersection between train and holdout.
 
     Fail-loud (AssertionError with the offending ids): a single leaking

@@ -1,0 +1,230 @@
+# Model release train (ADR 0003 R5/R6): tag model-v1-<fp8> -> verify the
+# bundle (digest, sanity suite, pin drift) -> GitHub Release with assets
+# model.onnx, model.manifest.json, SHA256SUMS.txt.
+#
+# Freeze: no model-v* tags before 2026-10-16 (end of the B0 window) unless
+# the tag carries an explicit -emergency suffix (ADR 0003 R3).
+name: release-model
+
+on:
+  push:
+    tags: ["model-v1-*"]
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      pins-changed: ${{ steps.pins.outputs.changed }}
+    env:
+      # Pinned expectations for the current production revision (B1).
+      # Bump BOTH values in the same PR that lands the retrained bundle;
+      # any other drift routes the release through manual approval
+      # (environment model-release).
+      EXPECTED_FEATURE_SET_SHA256: dd86228f8c634f28d8a15b2d8279da1b99735d68e309be02d30f1c24698fa6af
+      EXPECTED_EMBEDDER_PIN: "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba"
+    steps:
+      # On a tag push this checks out the tagged commit.
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          enable-cache: true
+
+      - name: freeze guard (B0 window, ADR 0003 R3)
+        shell: bash
+        run: |
+          set -euo pipefail
+          # epoch of 2026-10-16T00:00:00Z — end of the B0 telemetry window
+          freeze_epoch=1792108800
+          now=$(date -u +%s)
+          if [ "$now" -lt "$freeze_epoch" ] && [[ "${GITHUB_REF_NAME}" != *-emergency ]]; then
+            echo "::error::model-v* tags are FROZEN until 2026-10-16 (end of the B0 window, ADR 0003 R3)."
+            echo "::error::For a genuine field incident, re-tag with an explicit -emergency suffix (model-v1-<fp8>-emergency) and page the owner."
+            exit 1
+          fi
+          echo "freeze check: OK (now=$(date -u +%Y-%m-%dT%H:%M:%SZ))"
+
+      - name: bundle integrity — sha256(model.onnx) == manifest sha256
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'EOF'
+          import hashlib
+          import json
+          import pathlib
+          import sys
+
+          bundle = pathlib.Path("models/vesma-cortex-v1")
+          manifest = json.loads((bundle / "manifest.json").read_text())
+          actual = hashlib.sha256((bundle / "model.onnx").read_bytes()).hexdigest()
+          if manifest.get("sha256") != actual:
+              sys.exit(f"::error::digest mismatch: manifest sha256={manifest.get('sha256')} actual={actual}")
+          print(f"bundle integrity OK: {actual}")
+          EOF
+
+      - name: adversarial sanity suite on the tagged bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          uv run python scripts/eval_sanity_suite.py --bundle models/vesma-cortex-v1
+
+      # Hard fail: manifest and eval report are two views of ONE revision —
+      # they must agree. Soft route (manual approval): pins drifted from the
+      # expectations pinned in this workflow (feature_set_sha256 growth is a
+      # model-vN line event, ADR 0003 R3).
+      - name: pin consistency and drift check
+        id: pins
+        shell: bash
+        run: |
+          set -euo pipefail
+          set +e
+          python3 - <<'EOF'
+          import json
+          import os
+          import pathlib
+          import sys
+
+          bundle = pathlib.Path("models/vesma-cortex-v1")
+          manifest = json.loads((bundle / "manifest.json").read_text())
+          report = json.loads((bundle / "eval-results.json").read_text())
+
+          prov = report["provenance"]
+          if manifest["embedder_pin"] != prov.get("embedder_pin"):
+              sys.exit("::error::manifest.json and eval-results.json disagree on embedder_pin")
+          if manifest["feature_set_sha256"] != report["artifact"].get("feature_set_sha256"):
+              sys.exit("::error::manifest.json and eval-results.json disagree on feature_set_sha256")
+
+          changed = (
+              manifest["embedder_pin"] != os.environ["EXPECTED_EMBEDDER_PIN"]
+              or manifest["feature_set_sha256"] != os.environ["EXPECTED_FEATURE_SET_SHA256"]
+          )
+          sys.exit(42 if changed else 0)
+          EOF
+          rc=$?
+          set -e
+          if [ "$rc" -eq 0 ]; then
+            changed=false
+            echo "pins: consistent with pinned expectations"
+          elif [ "$rc" -eq 42 ]; then
+            changed=true
+            echo "::warning::embedder_pin/feature_set_sha256 drifted from pinned expectations — the release now requires explicit manual approval via the model-release environment."
+          else
+            exit "$rc"
+          fi
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
+
+      # Prepare everything the release job needs: staged assets (registry
+      # asset names, model-registry.md #1), SHA256SUMS over the staged names,
+      # and human-readable notes generated from eval-results.json.
+      - name: stage assets and generate release notes
+        shell: bash
+        run: |
+          set -euo pipefail
+          stage=release-stage
+          mkdir -p "$stage"
+          cp models/vesma-cortex-v1/model.onnx "$stage/model.onnx"
+          cp models/vesma-cortex-v1/manifest.json "$stage/model.manifest.json"
+          (cd "$stage" && sha256sum model.onnx model.manifest.json > SHA256SUMS.txt)
+          python3 - <<'EOF'
+          import json
+          import os
+          import pathlib
+
+          report = json.loads(pathlib.Path("models/vesma-cortex-v1/eval-results.json").read_text())
+          art = report["artifact"]
+          b = report["layers"]["B_calibration"]
+          prov = report["provenance"]
+          fp8 = art["weights_sha256"][:8]
+          repo = os.environ["GITHUB_REPOSITORY"]
+          tag = os.environ["GITHUB_REF_NAME"]
+          report_url = f"https://github.com/{repo}/blob/{tag}/{b.get('report_ref', 'docs/experiments/')}"
+
+          notes = f"""# vesma-cortex model revision `{art['revision']}` ({fp8})
+
+          - decision: **{report['decision']}**
+          - candidate: `{art['candidate']}`
+          - weights sha256: `{art['weights_sha256']}`
+          - embedder_pin: `{prov['embedder_pin']}`
+          - trained_at: {prov['trained_at']}
+          - train corpus fingerprint: `{prov['train_corpus_fingerprint']}`
+          - gate contract sha256: `{report['gate_contract_sha256']}`
+
+          ## Calibration (Layer B, holdout single-shot)
+
+          | metric | value |
+          |---|---|
+          | corpus | {b.get('corpus', 'NO-DATA')} |
+          | balanced accuracy | {b.get('ba')} (baseline {b.get('baseline_ba')}) |
+          | sensitivity / specificity | {b.get('sensitivity')} / {b.get('specificity')} |
+          | Brier | {b.get('brier')} |
+          | typed output | {b.get('typed')} |
+
+          Calibration report: {report_url}
+          """
+          pathlib.Path("release-stage/notes.md").write_text(notes)
+          EOF
+          cat release-stage/notes.md
+          cat release-stage/SHA256SUMS.txt
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-bundle
+          path: release-stage/
+
+  # Pins unchanged: publish straight away.
+  release:
+    needs: verify
+    if: needs.verify.outputs.pins-changed == 'false'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-bundle
+          path: release-stage/
+      - name: create GitHub release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "vesma-cortex model ${GITHUB_REF_NAME}" \
+            --notes-file release-stage/notes.md \
+            release-stage/model.onnx \
+            release-stage/model.manifest.json \
+            release-stage/SHA256SUMS.txt
+
+  # Pins changed (embedder_pin or feature_set): the same release, but gated
+  # on an explicit manual approval in the model-release environment
+  # (required reviewer = owner).
+  release-reviewed:
+    needs: verify
+    if: needs.verify.outputs.pins-changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: model-release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-bundle
+          path: release-stage/
+      - name: create GitHub release (manually approved)
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release create "${GITHUB_REF_NAME}" \
+            --title "vesma-cortex model ${GITHUB_REF_NAME}" \
+            --notes-file release-stage/notes.md \
+            release-stage/model.onnx \
+            release-stage/model.manifest.json \
+            release-stage/SHA256SUMS.txt

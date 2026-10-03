@@ -52,7 +52,11 @@ def test_package_imports() -> None:
 
 def test_contract_signatures() -> None:
     from cortex.cli.main import main
-    from cortex.data.holdout import assert_labels_isolated, assert_no_pair_overlap, split_holdout
+    from cortex.data.holdout import (
+        assert_labels_isolated,
+        assert_no_pair_overlap,
+        split_holdout,
+    )
     from cortex.eval.runner import run_baseline, run_single_shot
     from cortex.features.pair import features
     from cortex.pretrain.corruption import generate_pretrain_pairs
@@ -73,7 +77,14 @@ def test_contract_signatures() -> None:
         assert callable(fn), f"contract function missing: {fn}"
 
     sig = inspect.signature(features)
-    assert list(sig.parameters) == ["record_a", "record_b", "similarity", "vec_a", "vec_b", "field_cosines"]
+    assert list(sig.parameters) == [
+        "record_a",
+        "record_b",
+        "similarity",
+        "vec_a",
+        "vec_b",
+        "field_cosines",
+    ]
     assert sig.parameters["field_cosines"].kind is inspect.Parameter.KEYWORD_ONLY
 
 
@@ -100,7 +111,13 @@ def test_algorithm_modules_implemented() -> None:
     with pytest.raises(ValueError):
         split_holdout([_disputed_pair()])
     with pytest.raises(ValueError):
-        build_metadata_props(embedder_pin="", corpus_fingerprint="", trained_at="", candidate="x", feature_names=())
+        build_metadata_props(
+            embedder_pin="",
+            corpus_fingerprint="",
+            trained_at="",
+            candidate="x",
+            feature_names=(),
+        )
 
 
 # ── 2. ARTIFACT_NAME single source ────────────────────────────────────────────
@@ -166,7 +183,11 @@ def test_frozen_protocol_constants() -> None:
     from cortex.eval.runner import BASELINE_THRESHOLD, DUPLICATE_THRESHOLD_PROBABILITY
     from cortex.select.cv import CV_FOLDS, CV_SEEDS
 
-    assert CANONICAL_JSON_KWARGS == {"sort_keys": True, "ensure_ascii": False, "separators": (",", ":")}
+    assert CANONICAL_JSON_KWARGS == {
+        "sort_keys": True,
+        "ensure_ascii": False,
+        "separators": (",", ":"),
+    }
     assert HOLDOUT_FRACTION == 0.3
     assert BASELINE_THRESHOLD == 0.92
     assert DUPLICATE_THRESHOLD_PROBABILITY == 0.5
@@ -186,7 +207,16 @@ def test_grid_caps() -> None:
 
 #: Modules whose IMPORT would open a network surface. Zero tolerance —
 #: training and evaluation are local by charter §6.
-_FORBIDDEN_ROOTS = {"socket", "ssl", "urllib", "http", "requests", "httpx", "aiohttp", "ftplib"}
+_FORBIDDEN_ROOTS = {
+    "socket",
+    "ssl",
+    "urllib",
+    "http",
+    "requests",
+    "httpx",
+    "aiohttp",
+    "ftplib",
+}
 
 
 def _network_import_files() -> list[str]:
@@ -233,12 +263,16 @@ def test_cli_subcommands_surface() -> None:
     }
 
 
-def test_cli_export_corpus_missing_store_fails_loud(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+def test_cli_export_corpus_missing_store_fails_loud(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
     """export-corpus is implemented (A2): a missing store is a loud usage
     error (exit 2 + stderr), never fake success and never a stub claim."""
     from cortex.cli.main import main
 
-    code = main(["export-corpus", "--store-uri", "file:x?mode=ro", "--out", str(tmp_path / "x")])
+    code = main(
+        ["export-corpus", "--store-uri", "file:x?mode=ro", "--out", str(tmp_path / "x")]
+    )
     assert code == 2
     stderr = capsys.readouterr().err
     assert stderr.strip()
@@ -251,10 +285,20 @@ def test_cli_export_corpus_missing_store_fails_loud(tmp_path: Path, capsys: pyte
         ["pretrain", "--corpus", "does-not-exist.jsonl", "--out", "x"],
         ["train", "--train-manifest", "does-not-exist.jsonl", "--out", "x"],
         ["select", "--train-manifest", "does-not-exist.jsonl"],
-        ["eval", "--artifact", "does-not-exist.onnx", "--holdout", "h", "--run-log", "r"],
+        [
+            "eval",
+            "--artifact",
+            "does-not-exist.onnx",
+            "--holdout",
+            "h",
+            "--run-log",
+            "r",
+        ],
     ],
 )
-def test_cli_implemented_commands_fail_loud(argv: list[str], capsys: pytest.CaptureFixture) -> None:
+def test_cli_implemented_commands_fail_loud(
+    argv: list[str], capsys: pytest.CaptureFixture
+) -> None:
     """The A3b commands are implemented: a missing input is a loud usage
     error (exit 2 + stderr), NOT the A3a stub path and never success."""
     from cortex.cli.main import main

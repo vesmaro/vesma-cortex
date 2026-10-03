@@ -63,9 +63,9 @@ from __future__ import annotations
 
 import random
 import re
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from typing import Callable, Final, NamedTuple
+from typing import Final, NamedTuple
 
 from cortex.data.fingerprints import (
     canonical_json,
@@ -87,47 +87,47 @@ from cortex.pretrain.corruption import (
 )
 
 __all__ = [
-    "PROMPT_VERSION",
-    "STRATEGY_PARAPHRASE",
-    "STRATEGY_NEAR_TOPIC",
-    "STRATEGY_BROKEN_FIELD",
-    "STRATEGY_TRIVIAL_NEGATIVE",
-    "STRATEGIES",
-    "LLM_STRATEGIES",
+    "BODY_RATIO_MAX",
+    "BODY_RATIO_MIN",
     "LABEL_DUPLICATE",
     "LABEL_NOT_DUPLICATE",
-    "SynthRecord",
-    "SynthTopic",
-    "SynthPair",
-    "SynthStats",
-    "SynthTopicError",
-    "TOPICS",
-    "PARAPHRASE_PROMPT_RU",
-    "PARAPHRASE_PROMPT_EN",
-    "NEAR_TOPIC_PROMPT_RU",
-    "NEAR_TOPIC_PROMPT_EN",
-    "VARIANT_LINE_RU",
-    "VARIANT_LINE_EN",
-    "MIN_TITLE_CHARS",
-    "MAX_TITLE_CHARS",
-    "MIN_BODY_CHARS",
-    "BODY_RATIO_MIN",
-    "BODY_RATIO_MAX",
-    "MAX_ATTEMPTS",
+    "LLM_STRATEGIES",
     "MARKER_LINE_RE",
     "MARKER_PREFIX_RE",
-    "parse_llm_record",
-    "strip_protocol_markers",
-    "validate_candidate",
+    "MAX_ATTEMPTS",
+    "MAX_TITLE_CHARS",
+    "MIN_BODY_CHARS",
+    "MIN_TITLE_CHARS",
+    "NEAR_TOPIC_PROMPT_EN",
+    "NEAR_TOPIC_PROMPT_RU",
+    "PARAPHRASE_PROMPT_EN",
+    "PARAPHRASE_PROMPT_RU",
+    "PROMPT_VERSION",
+    "STRATEGIES",
+    "STRATEGY_BROKEN_FIELD",
+    "STRATEGY_NEAR_TOPIC",
+    "STRATEGY_PARAPHRASE",
+    "STRATEGY_TRIVIAL_NEGATIVE",
+    "TOPICS",
+    "VARIANT_LINE_EN",
+    "VARIANT_LINE_RU",
+    "SynthPair",
+    "SynthRecord",
+    "SynthStats",
+    "SynthTopic",
+    "SynthTopicError",
+    "corpus_fingerprint_of_pairs",
+    "fingerprint_object",
+    "generate_corpus",
     "label_name",
+    "manifest_bytes_of_pairs",
+    "manifest_entries",
     "pair_row",
     "pair_row_json",
-    "fingerprint_object",
-    "manifest_entries",
-    "manifest_bytes_of_pairs",
-    "corpus_fingerprint_of_pairs",
+    "parse_llm_record",
     "sample_quotas",
-    "generate_corpus",
+    "strip_protocol_markers",
+    "validate_candidate",
 ]
 
 #: Version of the prompt set below — provenance field of every corpus.
@@ -421,7 +421,7 @@ def strip_protocol_markers(raw: str) -> tuple[str, int]:
             continue  # model-invented tag list — dropped whole
         while match is not None:
             count += 1
-            work = work[match.end():]
+            work = work[match.end() :]
             match = MARKER_PREFIX_RE.match(work)
         out.append(work)
     return "\n".join(out), count
@@ -472,7 +472,9 @@ def label_name(label: int) -> str:
         return "duplicate"
     if label == LABEL_NOT_DUPLICATE:
         return "not-duplicate"
-    raise ValueError(f"label must be {LABEL_DUPLICATE} or {LABEL_NOT_DUPLICATE}, got {label!r}")
+    raise ValueError(
+        f"label must be {LABEL_DUPLICATE} or {LABEL_NOT_DUPLICATE}, got {label!r}"
+    )
 
 
 def _side_dict(record: SynthRecord) -> dict:
@@ -579,7 +581,12 @@ def _topic(
         raise SynthTopicError(f"topic body too short: {title!r}")
     if language not in ("ru", "en"):
         raise SynthTopicError(f"topic language must be ru|en: {title!r}")
-    if not key or not key.isascii() or not key.replace("-", "").isalnum() or key != key.lower():
+    if (
+        not key
+        or not key.isascii()
+        or not key.replace("-", "").isalnum()
+        or key != key.lower()
+    ):
         raise SynthTopicError(f"topic key must be a latin machine string: {key!r}")
     return topic
 
@@ -590,47 +597,327 @@ def _topic(
 #: matching positions share ``key`` (the translation-twin guard uses it).
 TOPICS: Final[tuple[SynthTopic, ...]] = (
     # ── RU half ──
-    _topic("Настройка ruff для репы", "Вынесли конфиг ruff в pyproject: длина строки 100, включены правила E, F и I, форматтер запускается через pre-commit. Отступ четыре пробела, кавычки двойные.", ("tools", "linting"), "ru", "note", "ruff-config"),
-    _topic("Решение: выбор очереди задач", "Выбрали Redis Streams вместо RabbitMQ: ноль новой инфраструктуры, конкурирующие консюмеры из коробки. Kafka отложили — нет операций на поддержку кластера.", ("decisions", "queue"), "ru", "note", "queue-choice"),
-    _topic("Чекпоинт сессии 12 сентября", "Закрыли волну A3: контракты данных, алгоритмы D и N и CPU-smoke зелёные. Следующий шаг — синтетический корпус для претрейна. Блокеров нет.", ("checkpoint", "session"), "ru", "note", "session-checkpoint"),
-    _topic("Переменные окружения dev-машины", "PATH дополняется через ~/.local/bin, OLLAMA_HOST держим 127.0.0.1:11434. Экспорты сессии не переживают новый терминал — постоянные значения переносим в .bashrc руками.", ("env", "config"), "ru", "fact", "env-vars"),
-    _topic("Урок: тесты падали из-за таймзоны", "Нестабильные тесты на CI вылечились фиксацией TZ=UTC в конфиге pytest. Локально часы шли в MSK, а тест ждал UTC-метку — рассинхрон три часа.", ("lessons", "testing"), "ru", "note", "timezone-lesson"),
-    _topic("Настройка ollama на ноутбуке", "Ollama слушает localhost:11434, модели лежат в /usr/share/ollama/.ollama. Модели на 7 миллиардов параметров хватает 8 ГБ памяти при контексте 4096.", ("tools", "ollama"), "ru", "fact", "ollama-setup"),
-    _topic("Миграция БД: добавление индекса", "Миграция 0042 добавляет индекс на records(created_at), бэкфилл занимает около четырёх минут на трёх миллионах строк. Откат — DROP INDEX, данные не трогаются.", ("db", "migration"), "ru", "note", "db-migration-index"),
-    _topic("Ревью PR 118: замечания", "Просили разбить диф на три коммита, вынести магическую константу таймаута в конфиг и добавить тест на пустой ввод. Мёртвый код в helpers удалить.", ("review", "pr"), "ru", "note", "pr-review"),
-    _topic("Конфиг Docker-сборки движка", "Базовый образ ubuntu 24.04, сборка в два этапа: у сборщика есть gcc, у рантайма нет. Порт 8080 наружу не публикуем, только unix-сокет.", ("docker", "config"), "ru", "fact", "docker-build"),
-    _topic("Инцидент: переполнение диска", "Диск заполнили логи ollama — сорок гигабайт за неделю. Вылечили ротацией logrotate: лимит два гигабайта, хранение семь дней. Проверку df добавили в cron.", ("incident", "ops"), "ru", "note", "disk-incident"),
-    _topic("Хуки git: запрет коммитов в main", "Pre-commit хук блокирует прямой коммит в main и требует английское сообщение вида type(scope): описание. Обходной путь — флаг --no-verify, это осознанно.", ("git", "hooks"), "ru", "fact", "git-hooks"),
-    _topic("План на неделю 40", "Приоритеты: закончить генератор корпуса, прогнать сэмпл из двадцати четырёх пар, отдать владельцу на валидацию. Вторая очередь — докомпьют полевых косинусов.", ("planning", "week"), "ru", "note", "week-plan"),
-    _topic("Заметка про кэш эмбеддингов", "Кэш векторов живёт рядом со стором, ключ — fingerprint эмбеддера плюс хеш текста. Смена модели инвалидирует кэш целиком, это событие перекалибровки.", ("cache", "embeddings"), "ru", "note", "embedding-cache"),
-    _topic("Настройка CI: матрица pytest", "CI гоняет pytest на питоне 3.12 и 3.13, uv-артефакты кэшируются. Тяжёлые тесты помечены словом slow и запускаются только ночным расписанием.", ("ci", "testing"), "ru", "fact", "ci-pytest-matrix"),
-    _topic("Соглашение по тегам памяти", "Теги латиницей, до трёх на запись: домен, тип, статус. Кириллические теги разрешены только для русских заметок о встречах.", ("tags", "memory"), "ru", "fact", "tag-convention"),
-    _topic("Документация API: метод /recall", "Эндпоинт /recall принимает query и число k, возвращает записи с косинусом выше порога 0.3. Ошибки отдаём по RFC-7807, лимит шестьдесят запросов в минуту.", ("api", "docs"), "ru", "note", "api-recall"),
-    _topic("Настройки эмбеддера в движке", "mnema-embed-v1: вектора 384 размерности, float32, нормализация L2. Пин эмбеддера зашит в манифест стора, смена проходит только через перекалибровку.", ("embeddings", "engine"), "ru", "fact", "embedder-settings"),
-    _topic("Ретроспектива волны A2", "Вышло хорошо: контракты заморозили до кода. Отстали на полдня из-за спора о формате pair_id, спор закрыло голосование комитета.", ("retro", "wave"), "ru", "note", "wave-retro"),
-    _topic("Доступ по SSH к серверу сборки", "Ключ ed25519, парольную фразу держит агент. В ssh-config сборочный хост доступен под именем build-box на порту 2222, прямой root-вход запрещён.", ("ssh", "access"), "ru", "fact", "ssh-build-server"),
-    _topic("Оптимизация запроса поиска", "Поиск тормозил на LIKE с процентами — переехали на FTS5-таблицу с русским стеммером. Время запроса упало с восьмисот миллисекунд до двенадцати на трёх миллионах документов.", ("db", "performance"), "ru", "note", "search-tuning"),
+    _topic(
+        "Настройка ruff для репы",
+        "Вынесли конфиг ruff в pyproject: длина строки 100, включены правила E, F и I, форматтер запускается через pre-commit. Отступ четыре пробела, кавычки двойные.",
+        ("tools", "linting"),
+        "ru",
+        "note",
+        "ruff-config",
+    ),
+    _topic(
+        "Решение: выбор очереди задач",
+        "Выбрали Redis Streams вместо RabbitMQ: ноль новой инфраструктуры, конкурирующие консюмеры из коробки. Kafka отложили — нет операций на поддержку кластера.",
+        ("decisions", "queue"),
+        "ru",
+        "note",
+        "queue-choice",
+    ),
+    _topic(
+        "Чекпоинт сессии 12 сентября",
+        "Закрыли волну A3: контракты данных, алгоритмы D и N и CPU-smoke зелёные. Следующий шаг — синтетический корпус для претрейна. Блокеров нет.",
+        ("checkpoint", "session"),
+        "ru",
+        "note",
+        "session-checkpoint",
+    ),
+    _topic(
+        "Переменные окружения dev-машины",
+        "PATH дополняется через ~/.local/bin, OLLAMA_HOST держим 127.0.0.1:11434. Экспорты сессии не переживают новый терминал — постоянные значения переносим в .bashrc руками.",
+        ("env", "config"),
+        "ru",
+        "fact",
+        "env-vars",
+    ),
+    _topic(
+        "Урок: тесты падали из-за таймзоны",
+        "Нестабильные тесты на CI вылечились фиксацией TZ=UTC в конфиге pytest. Локально часы шли в MSK, а тест ждал UTC-метку — рассинхрон три часа.",
+        ("lessons", "testing"),
+        "ru",
+        "note",
+        "timezone-lesson",
+    ),
+    _topic(
+        "Настройка ollama на ноутбуке",
+        "Ollama слушает localhost:11434, модели лежат в /usr/share/ollama/.ollama. Модели на 7 миллиардов параметров хватает 8 ГБ памяти при контексте 4096.",
+        ("tools", "ollama"),
+        "ru",
+        "fact",
+        "ollama-setup",
+    ),
+    _topic(
+        "Миграция БД: добавление индекса",
+        "Миграция 0042 добавляет индекс на records(created_at), бэкфилл занимает около четырёх минут на трёх миллионах строк. Откат — DROP INDEX, данные не трогаются.",
+        ("db", "migration"),
+        "ru",
+        "note",
+        "db-migration-index",
+    ),
+    _topic(
+        "Ревью PR 118: замечания",
+        "Просили разбить диф на три коммита, вынести магическую константу таймаута в конфиг и добавить тест на пустой ввод. Мёртвый код в helpers удалить.",
+        ("review", "pr"),
+        "ru",
+        "note",
+        "pr-review",
+    ),
+    _topic(
+        "Конфиг Docker-сборки движка",
+        "Базовый образ ubuntu 24.04, сборка в два этапа: у сборщика есть gcc, у рантайма нет. Порт 8080 наружу не публикуем, только unix-сокет.",
+        ("docker", "config"),
+        "ru",
+        "fact",
+        "docker-build",
+    ),
+    _topic(
+        "Инцидент: переполнение диска",
+        "Диск заполнили логи ollama — сорок гигабайт за неделю. Вылечили ротацией logrotate: лимит два гигабайта, хранение семь дней. Проверку df добавили в cron.",
+        ("incident", "ops"),
+        "ru",
+        "note",
+        "disk-incident",
+    ),
+    _topic(
+        "Хуки git: запрет коммитов в main",
+        "Pre-commit хук блокирует прямой коммит в main и требует английское сообщение вида type(scope): описание. Обходной путь — флаг --no-verify, это осознанно.",
+        ("git", "hooks"),
+        "ru",
+        "fact",
+        "git-hooks",
+    ),
+    _topic(
+        "План на неделю 40",
+        "Приоритеты: закончить генератор корпуса, прогнать сэмпл из двадцати четырёх пар, отдать владельцу на валидацию. Вторая очередь — докомпьют полевых косинусов.",
+        ("planning", "week"),
+        "ru",
+        "note",
+        "week-plan",
+    ),
+    _topic(
+        "Заметка про кэш эмбеддингов",
+        "Кэш векторов живёт рядом со стором, ключ — fingerprint эмбеддера плюс хеш текста. Смена модели инвалидирует кэш целиком, это событие перекалибровки.",
+        ("cache", "embeddings"),
+        "ru",
+        "note",
+        "embedding-cache",
+    ),
+    _topic(
+        "Настройка CI: матрица pytest",
+        "CI гоняет pytest на питоне 3.12 и 3.13, uv-артефакты кэшируются. Тяжёлые тесты помечены словом slow и запускаются только ночным расписанием.",
+        ("ci", "testing"),
+        "ru",
+        "fact",
+        "ci-pytest-matrix",
+    ),
+    _topic(
+        "Соглашение по тегам памяти",
+        "Теги латиницей, до трёх на запись: домен, тип, статус. Кириллические теги разрешены только для русских заметок о встречах.",
+        ("tags", "memory"),
+        "ru",
+        "fact",
+        "tag-convention",
+    ),
+    _topic(
+        "Документация API: метод /recall",
+        "Эндпоинт /recall принимает query и число k, возвращает записи с косинусом выше порога 0.3. Ошибки отдаём по RFC-7807, лимит шестьдесят запросов в минуту.",
+        ("api", "docs"),
+        "ru",
+        "note",
+        "api-recall",
+    ),
+    _topic(
+        "Настройки эмбеддера в движке",
+        "mnema-embed-v1: вектора 384 размерности, float32, нормализация L2. Пин эмбеддера зашит в манифест стора, смена проходит только через перекалибровку.",
+        ("embeddings", "engine"),
+        "ru",
+        "fact",
+        "embedder-settings",
+    ),
+    _topic(
+        "Ретроспектива волны A2",
+        "Вышло хорошо: контракты заморозили до кода. Отстали на полдня из-за спора о формате pair_id, спор закрыло голосование комитета.",
+        ("retro", "wave"),
+        "ru",
+        "note",
+        "wave-retro",
+    ),
+    _topic(
+        "Доступ по SSH к серверу сборки",
+        "Ключ ed25519, парольную фразу держит агент. В ssh-config сборочный хост доступен под именем build-box на порту 2222, прямой root-вход запрещён.",
+        ("ssh", "access"),
+        "ru",
+        "fact",
+        "ssh-build-server",
+    ),
+    _topic(
+        "Оптимизация запроса поиска",
+        "Поиск тормозил на LIKE с процентами — переехали на FTS5-таблицу с русским стеммером. Время запроса упало с восьмисот миллисекунд до двенадцати на трёх миллионах документов.",
+        ("db", "performance"),
+        "ru",
+        "note",
+        "search-tuning",
+    ),
     # ── EN half (translations of the RU half, same order, same keys) ──
-    _topic("Ruff configuration for the repo", "The ruff config lives in pyproject: line length 100, rules E, F and I enabled, the formatter runs through pre-commit. Indent is four spaces, double quotes.", ("tools", "linting"), "en", "note", "ruff-config"),
-    _topic("Decision: task queue choice", "We picked Redis Streams over RabbitMQ: zero new infrastructure, competing consumers out of the box. Kafka is postponed — there is no ops budget for a cluster.", ("decisions", "queue"), "en", "note", "queue-choice"),
-    _topic("Session checkpoint September 18", "Wave B is closed: schema freeze, importer green, docs synced. The next step is the eval corpus export. No blockers recorded this session.", ("checkpoint", "session"), "en", "note", "session-checkpoint"),
-    _topic("Dev machine environment variables", "PATH gets ~/.local/bin appended, OLLAMA_HOST stays at 127.0.0.1:11434. Session exports do not survive a new terminal — permanent values move into .bashrc by hand.", ("env", "config"), "en", "fact", "env-vars"),
-    _topic("Lesson: tests failed over a timezone", "Flaky CI tests were fixed by pinning TZ=UTC in the pytest config. The local clock ran MSK while the test expected a UTC stamp — a three hour skew.", ("lessons", "testing"), "en", "note", "timezone-lesson"),
-    _topic("Ollama setup on the workstation", "Ollama listens on localhost:11434, models live under /usr/share/ollama/.ollama. A 7B parameter model fits into 8 GB of RAM with the context capped at 4096.", ("tools", "ollama"), "en", "fact", "ollama-setup"),
-    _topic("DB migration: adding an index", "Migration 0042 adds an index on records(created_at); the backfill takes about four minutes over three million rows. Rollback is DROP INDEX, no data is touched.", ("db", "migration"), "en", "note", "db-migration-index"),
-    _topic("PR review 204: findings", "We asked to split the diff into three commits, move the magic timeout constant into config, and add a test for empty input. Dead code in helpers goes away.", ("review", "pr"), "en", "note", "pr-review"),
-    _topic("Engine Docker build config", "Base image ubuntu 24.04, a two-stage build: the builder carries gcc, the runtime does not. Port 8080 is never published — a unix socket only.", ("docker", "config"), "en", "fact", "docker-build"),
-    _topic("Incident: disk full", "Ollama logs filled the disk — forty gigabytes in a week. Fixed with logrotate: a two gigabyte cap and seven day retention. A df check was added to cron.", ("incident", "ops"), "en", "note", "disk-incident"),
-    _topic("Git hooks: blocking main commits", "A pre-commit hook blocks direct commits to main and enforces English messages of the form type(scope): description. The escape hatch is --no-verify, deliberately.", ("git", "hooks"), "en", "fact", "git-hooks"),
-    _topic("Plan for week 41", "Priorities: finish the corpus generator, run the twenty-four pair sample, hand it to the owner for validation. Second in line is the field-cosine docompute.", ("planning", "week"), "en", "note", "week-plan"),
-    _topic("Note on the embedding cache", "The vector cache sits next to the store, keyed by the embedder fingerprint plus the text hash. Swapping the model invalidates the whole cache — a recalibration event.", ("cache", "embeddings"), "en", "note", "embedding-cache"),
-    _topic("CI setup: the pytest matrix", "CI runs pytest on Python 3.12 and 3.13 with uv artifacts cached. Heavy tests are marked slow and only run on the nightly schedule.", ("ci", "testing"), "en", "fact", "ci-pytest-matrix"),
-    _topic("Memory tag convention", "Tags are latin, up to three per record: domain, type, status. Cyrillic tags are allowed only for Russian meeting notes.", ("tags", "memory"), "en", "fact", "tag-convention"),
-    _topic("API docs: the /recall method", "The /recall endpoint takes a query and k, and returns records with cosine above the 0.3 threshold. Errors follow RFC-7807; the rate limit is sixty requests per minute.", ("api", "docs"), "en", "note", "api-recall"),
-    _topic("Embedder settings in the engine", "mnema-embed-v1: 384-dim vectors, float32, L2 normalization. The embedder pin is baked into the store manifest; changing it goes through recalibration.", ("embeddings", "engine"), "en", "fact", "embedder-settings"),
-    _topic("Wave A2 retrospective", "What worked: contracts were frozen before code. We slipped half a day arguing about the pair_id format — the committee vote settled it.", ("retro", "wave"), "en", "note", "wave-retro"),
-    _topic("SSH access to the build server", "An ed25519 key with an agent-held passphrase. The ssh config exposes the build host as build-box on port 2222; direct root login is disabled.", ("ssh", "access"), "en", "fact", "ssh-build-server"),
-    _topic("Search query tuning", "Search was slow on LIKE with wildcards — we moved to an FTS5 table with a Russian stemmer. Query time dropped from eight hundred ms to twelve on three million docs.", ("db", "performance"), "en", "note", "search-tuning"),
+    _topic(
+        "Ruff configuration for the repo",
+        "The ruff config lives in pyproject: line length 100, rules E, F and I enabled, the formatter runs through pre-commit. Indent is four spaces, double quotes.",
+        ("tools", "linting"),
+        "en",
+        "note",
+        "ruff-config",
+    ),
+    _topic(
+        "Decision: task queue choice",
+        "We picked Redis Streams over RabbitMQ: zero new infrastructure, competing consumers out of the box. Kafka is postponed — there is no ops budget for a cluster.",
+        ("decisions", "queue"),
+        "en",
+        "note",
+        "queue-choice",
+    ),
+    _topic(
+        "Session checkpoint September 18",
+        "Wave B is closed: schema freeze, importer green, docs synced. The next step is the eval corpus export. No blockers recorded this session.",
+        ("checkpoint", "session"),
+        "en",
+        "note",
+        "session-checkpoint",
+    ),
+    _topic(
+        "Dev machine environment variables",
+        "PATH gets ~/.local/bin appended, OLLAMA_HOST stays at 127.0.0.1:11434. Session exports do not survive a new terminal — permanent values move into .bashrc by hand.",
+        ("env", "config"),
+        "en",
+        "fact",
+        "env-vars",
+    ),
+    _topic(
+        "Lesson: tests failed over a timezone",
+        "Flaky CI tests were fixed by pinning TZ=UTC in the pytest config. The local clock ran MSK while the test expected a UTC stamp — a three hour skew.",
+        ("lessons", "testing"),
+        "en",
+        "note",
+        "timezone-lesson",
+    ),
+    _topic(
+        "Ollama setup on the workstation",
+        "Ollama listens on localhost:11434, models live under /usr/share/ollama/.ollama. A 7B parameter model fits into 8 GB of RAM with the context capped at 4096.",
+        ("tools", "ollama"),
+        "en",
+        "fact",
+        "ollama-setup",
+    ),
+    _topic(
+        "DB migration: adding an index",
+        "Migration 0042 adds an index on records(created_at); the backfill takes about four minutes over three million rows. Rollback is DROP INDEX, no data is touched.",
+        ("db", "migration"),
+        "en",
+        "note",
+        "db-migration-index",
+    ),
+    _topic(
+        "PR review 204: findings",
+        "We asked to split the diff into three commits, move the magic timeout constant into config, and add a test for empty input. Dead code in helpers goes away.",
+        ("review", "pr"),
+        "en",
+        "note",
+        "pr-review",
+    ),
+    _topic(
+        "Engine Docker build config",
+        "Base image ubuntu 24.04, a two-stage build: the builder carries gcc, the runtime does not. Port 8080 is never published — a unix socket only.",
+        ("docker", "config"),
+        "en",
+        "fact",
+        "docker-build",
+    ),
+    _topic(
+        "Incident: disk full",
+        "Ollama logs filled the disk — forty gigabytes in a week. Fixed with logrotate: a two gigabyte cap and seven day retention. A df check was added to cron.",
+        ("incident", "ops"),
+        "en",
+        "note",
+        "disk-incident",
+    ),
+    _topic(
+        "Git hooks: blocking main commits",
+        "A pre-commit hook blocks direct commits to main and enforces English messages of the form type(scope): description. The escape hatch is --no-verify, deliberately.",
+        ("git", "hooks"),
+        "en",
+        "fact",
+        "git-hooks",
+    ),
+    _topic(
+        "Plan for week 41",
+        "Priorities: finish the corpus generator, run the twenty-four pair sample, hand it to the owner for validation. Second in line is the field-cosine docompute.",
+        ("planning", "week"),
+        "en",
+        "note",
+        "week-plan",
+    ),
+    _topic(
+        "Note on the embedding cache",
+        "The vector cache sits next to the store, keyed by the embedder fingerprint plus the text hash. Swapping the model invalidates the whole cache — a recalibration event.",
+        ("cache", "embeddings"),
+        "en",
+        "note",
+        "embedding-cache",
+    ),
+    _topic(
+        "CI setup: the pytest matrix",
+        "CI runs pytest on Python 3.12 and 3.13 with uv artifacts cached. Heavy tests are marked slow and only run on the nightly schedule.",
+        ("ci", "testing"),
+        "en",
+        "fact",
+        "ci-pytest-matrix",
+    ),
+    _topic(
+        "Memory tag convention",
+        "Tags are latin, up to three per record: domain, type, status. Cyrillic tags are allowed only for Russian meeting notes.",
+        ("tags", "memory"),
+        "en",
+        "fact",
+        "tag-convention",
+    ),
+    _topic(
+        "API docs: the /recall method",
+        "The /recall endpoint takes a query and k, and returns records with cosine above the 0.3 threshold. Errors follow RFC-7807; the rate limit is sixty requests per minute.",
+        ("api", "docs"),
+        "en",
+        "note",
+        "api-recall",
+    ),
+    _topic(
+        "Embedder settings in the engine",
+        "mnema-embed-v1: 384-dim vectors, float32, L2 normalization. The embedder pin is baked into the store manifest; changing it goes through recalibration.",
+        ("embeddings", "engine"),
+        "en",
+        "fact",
+        "embedder-settings",
+    ),
+    _topic(
+        "Wave A2 retrospective",
+        "What worked: contracts were frozen before code. We slipped half a day arguing about the pair_id format — the committee vote settled it.",
+        ("retro", "wave"),
+        "en",
+        "note",
+        "wave-retro",
+    ),
+    _topic(
+        "SSH access to the build server",
+        "An ed25519 key with an agent-held passphrase. The ssh config exposes the build host as build-box on port 2222; direct root login is disabled.",
+        ("ssh", "access"),
+        "en",
+        "fact",
+        "ssh-build-server",
+    ),
+    _topic(
+        "Search query tuning",
+        "Search was slow on LIKE with wildcards — we moved to an FTS5 table with a Russian stemmer. Query time dropped from eight hundred ms to twelve on three million docs.",
+        ("db", "performance"),
+        "en",
+        "note",
+        "search-tuning",
+    ),
 )
 
 _TOPIC_RECORDS: Final[tuple[SynthRecord, ...]] = tuple(t.as_record() for t in TOPICS)
@@ -651,14 +938,18 @@ _DONOR_FIELD_BY_TRANSFORM: Final[dict[str, str]] = {
 }
 
 
-def _pick_donor(rng: random.Random, base: SynthRecord, pool: Sequence[SynthRecord], field: str) -> SynthRecord | None:
+def _pick_donor(
+    rng: random.Random, base: SynthRecord, pool: Sequence[SynthRecord], field: str
+) -> SynthRecord | None:
     """Deterministic donor search mirroring the corruption semantics: the
     donor must differ in ``field`` and not be content-identical to base."""
     order = list(range(len(pool)))
     rng.shuffle(order)
     for index in order:
         donor = pool[index]
-        if getattr(donor, field) != getattr(base, field) and record_key(donor) != record_key(base):
+        if getattr(donor, field) != getattr(base, field) and record_key(
+            donor
+        ) != record_key(base):
             return donor
     return None
 
@@ -677,7 +968,13 @@ def _broken_field_transform(
     return FlipLanguage() if name == "flip_language" else FlipRecordType()
 
 
-def _different_topic(keys: Sequence[str], index_a: int, index_b: int, record_a: SynthRecord, record_b: SynthRecord) -> bool:
+def _different_topic(
+    keys: Sequence[str],
+    index_a: int,
+    index_b: int,
+    record_a: SynthRecord,
+    record_b: SynthRecord,
+) -> bool:
     """True iff the two pool records are genuinely DIFFERENT memories.
 
     Same non-empty topic key (translation twins) → same memory → False.
@@ -732,8 +1029,11 @@ def _llm_candidate(
         stats.drop(reason)
         return None
     return SynthRecord(
-        title=title, body=body, tags=base.tags,
-        language=base.language, record_type=base.record_type,
+        title=title,
+        body=body,
+        tags=base.tags,
+        language=base.language,
+        record_type=base.record_type,
     )
 
 
@@ -761,7 +1061,9 @@ def _generate_llm_strategy_batched(
     the sequential loop, so equal prompts ⇒ equal corpus.
     """
     paraphrase = strategy == STRATEGY_PARAPHRASE
-    base_indices = [(ordinal * pairs_per_strategy + i) % len(pool) for i in range(quota)]
+    base_indices = [
+        (ordinal * pairs_per_strategy + i) % len(pool) for i in range(quota)
+    ]
     sent: dict[int, int] = {i: 0 for i in range(quota)}
     corridor_dropped: set[int] = set()
     duplicate_dropped: set[int] = set()
@@ -769,9 +1071,12 @@ def _generate_llm_strategy_batched(
 
     for _round in range(MAX_ATTEMPTS):
         active = [
-            i for i in range(quota)
-            if i not in results and i not in corridor_dropped
-            and i not in duplicate_dropped and sent[i] < MAX_ATTEMPTS
+            i
+            for i in range(quota)
+            if i not in results
+            and i not in corridor_dropped
+            and i not in duplicate_dropped
+            and sent[i] < MAX_ATTEMPTS
         ]
         if not active:
             break
@@ -782,12 +1087,16 @@ def _generate_llm_strategy_batched(
             variant_key = (strategy, base_indices[i])
             variant = next_variant.get(variant_key, 0)
             next_variant[variant_key] = variant + 1
-            jobs.append((
-                i, base, pair_seed,
-                _build_prompt(base, paraphrase=paraphrase, variant=variant),
-            ))
+            jobs.append(
+                (
+                    i,
+                    base,
+                    pair_seed,
+                    _build_prompt(base, paraphrase=paraphrase, variant=variant),
+                )
+            )
         for start in range(0, len(jobs), batch_size):
-            chunk = jobs[start:start + batch_size]
+            chunk = jobs[start : start + batch_size]
             counters.llm_calls += len(chunk)
             counters.llm_batches += 1
             outputs = llm_batch_fn([job[3] for job in chunk])
@@ -813,15 +1122,20 @@ def _generate_llm_strategy_batched(
                     corridor_dropped.add(i)
                     continue
                 candidate = SynthRecord(
-                    title=title, body=body, tags=base.tags,
-                    language=base.language, record_type=base.record_type,
+                    title=title,
+                    body=body,
+                    tags=base.tags,
+                    language=base.language,
+                    record_type=base.record_type,
                 )
                 if paraphrase:
                     pair_rng = random.Random(pair_seed)
                     candidate = pair_rng.choice(_WEAK_ON_TOP).apply(candidate, pair_rng)
                 label = LABEL_DUPLICATE if paraphrase else LABEL_NOT_DUPLICATE
                 try:
-                    results[i] = _emit(seen_ids, base, candidate, label, strategy, pair_seed)
+                    results[i] = _emit(
+                        seen_ids, base, candidate, label, strategy, pair_seed
+                    )
                 except ValueError:
                     if sent[i] >= MAX_ATTEMPTS:
                         duplicate_dropped.add(i)
@@ -918,8 +1232,17 @@ def generate_corpus(
             continue
         if strategy in LLM_STRATEGIES and llm_batch_fn is not None:
             for pair in _generate_llm_strategy_batched(
-                strategy, quota, ordinal, pairs_per_strategy, pool, master,
-                llm_batch_fn, batch_size, counters, seen_ids, next_variant,
+                strategy,
+                quota,
+                ordinal,
+                pairs_per_strategy,
+                pool,
+                master,
+                llm_batch_fn,
+                batch_size,
+                counters,
+                seen_ids,
+                next_variant,
             ):
                 pairs.append(pair)
                 counters.emitted += 1
@@ -946,8 +1269,11 @@ def generate_corpus(
                     variant = next_variant.get(variant_key, 0)
                     next_variant[variant_key] = variant + 1
                     candidate = _llm_candidate(
-                        base, paraphrase=True, variant=variant,
-                        llm_fn=llm_fn, stats=counters,  # type: ignore[arg-type]
+                        base,
+                        paraphrase=True,
+                        variant=variant,
+                        llm_fn=llm_fn,
+                        stats=counters,  # type: ignore[arg-type]
                     )
                     if candidate is None:
                         slot_drop = "corridor"
@@ -962,8 +1288,11 @@ def generate_corpus(
                     variant = next_variant.get(variant_key, 0)
                     next_variant[variant_key] = variant + 1
                     candidate = _llm_candidate(
-                        base, paraphrase=False, variant=variant,
-                        llm_fn=llm_fn, stats=counters,  # type: ignore[arg-type]
+                        base,
+                        paraphrase=False,
+                        variant=variant,
+                        llm_fn=llm_fn,
+                        stats=counters,  # type: ignore[arg-type]
                     )
                     if candidate is None:
                         slot_drop = "corridor"
@@ -972,7 +1301,9 @@ def generate_corpus(
                     label = LABEL_NOT_DUPLICATE
 
                 elif strategy == STRATEGY_BROKEN_FIELD:
-                    record_b = _broken_field_transform(pair_rng, base, pool).apply(base, pair_rng)  # type: ignore[attr-defined]
+                    record_b = _broken_field_transform(pair_rng, base, pool).apply(
+                        base, pair_rng
+                    )  # type: ignore[attr-defined]
                     label = LABEL_NOT_DUPLICATE
 
                 else:  # STRATEGY_TRIVIAL_NEGATIVE — different topics, procedural
@@ -995,7 +1326,9 @@ def generate_corpus(
                     label = LABEL_NOT_DUPLICATE
 
                 try:
-                    emitted = _emit(seen_ids, base, record_b, label, strategy, pair_seed)
+                    emitted = _emit(
+                        seen_ids, base, record_b, label, strategy, pair_seed
+                    )
                     break
                 except ValueError:
                     if attempt == MAX_ATTEMPTS - 1:

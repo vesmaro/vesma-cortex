@@ -10,22 +10,21 @@ from pathlib import Path
 
 import pytest
 
-torch = pytest.importorskip("torch")  # noqa: F841 — module-level gate
+torch = pytest.importorskip("torch")
 
-import numpy as np  # noqa: E402
+import numpy as np  # noqa: E402 — importorskip("torch") gate above
+from synth import make_vectors, unit_vec  # noqa: E402 — importorskip gate above
 
-from cortex.candidates.n_head import (  # noqa: E402
+from cortex.candidates.n_head import (  # noqa: E402 — importorskip gate above
     GRID_N,
     MAX_HEAD_PARAMS,
-    NGridConfig,
-    NHeadModel,
     VECTOR_BLOCK_ROWS,
     VECTOR_DIM,
+    NGridConfig,
+    NHeadModel,
     vector_block,
 )
-from cortex.features.pair import FEATURE_NAMES  # noqa: E402
-
-from synth import make_vectors, unit_vec  # noqa: E402
+from cortex.features.pair import FEATURE_NAMES  # noqa: E402 — importorskip gate above
 
 VECTORS, LABELS, _ROWS = make_vectors(40)
 RNG = np.random.RandomState(3)
@@ -124,7 +123,9 @@ def test_pretrain_then_train_overrides() -> None:
     after_pre = model.predict_proba(VECTORS[:4], vector_blocks=BLOCKS[:4]).copy()
     model.train(VECTORS, LABELS, GRID_N[3], vector_blocks=BLOCKS)
     after_fit = model.predict_proba(VECTORS[:4], vector_blocks=BLOCKS[:4])
-    assert not np.array_equal(after_pre, after_fit), "supervised fit must move the weights"
+    assert not np.array_equal(after_pre, after_fit), (
+        "supervised fit must move the weights"
+    )
 
 
 def test_architecture_change_between_stages_refused() -> None:
@@ -135,7 +136,9 @@ def test_architecture_change_between_stages_refused() -> None:
     model = NHeadModel()
     model.pretrain(list(zip(VECTORS[:10], BLOCKS[:10])), GRID_N[3], labels=[1, 0] * 5)
     with pytest.raises(ValueError, match="architecture changed"):
-        model.train(VECTORS, LABELS, GRID_N[2], vector_blocks=BLOCKS)  # n-h64-32: (64, 32)
+        model.train(
+            VECTORS, LABELS, GRID_N[2], vector_blocks=BLOCKS
+        )  # n-h64-32: (64, 32)
 
 
 # ── export (inference-v1.md §4, variant N) ────────────────────────────────────

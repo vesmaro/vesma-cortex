@@ -140,10 +140,20 @@ def test_flip_transforms_always_change() -> None:
         a, b = pair.record_a, pair.record_b
         if pair.transform_name == "flip_language":
             assert b.language is not None and b.language != a.language
-            assert (b.title, b.body, b.tags, b.record_type) == (a.title, a.body, a.tags, a.record_type)
+            assert (b.title, b.body, b.tags, b.record_type) == (
+                a.title,
+                a.body,
+                a.tags,
+                a.record_type,
+            )
         else:
             assert b.record_type != a.record_type
-            assert (b.title, b.body, b.tags, b.language) == (a.title, a.body, a.tags, a.language)
+            assert (b.title, b.body, b.tags, b.language) == (
+                a.title,
+                a.body,
+                a.tags,
+                a.language,
+            )
 
 
 # ── degenerate corpora ────────────────────────────────────────────────────────
@@ -152,7 +162,10 @@ def test_flip_transforms_always_change() -> None:
 def test_no_qualifying_donor_means_skip() -> None:
     """All records sharing one title → swap_title has no honest donor and is
     skipped; whatever is emitted stays deterministic and label-honest."""
-    twins = [PairRecord("одинаковый заголовок", f"тело {i}", ("t",), "ru", "note") for i in range(5)]
+    twins = [
+        PairRecord("одинаковый заголовок", f"тело {i}", ("t",), "ru", "note")
+        for i in range(5)
+    ]
     pairs = generate_pretrain_pairs(twins, seed=1)
     assert not any(p.transform_name == "swap_title" for p in pairs)
     assert pairs == generate_pretrain_pairs(twins, seed=1)

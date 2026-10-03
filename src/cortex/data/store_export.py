@@ -66,44 +66,44 @@ import sqlite3
 import struct
 import sys
 import time
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Callable, Final, Protocol, Sequence
+from typing import Final, Protocol
 
 import numpy as np
 
 from cortex.data.fingerprints import (
-    canonical_json,
     corpus_fingerprint,
     manifest_bytes,
     pair_sha256,
 )
 
 __all__ = [
-    "NO_FEDERATE_TAG",
-    "EMBEDDING_DIM",
-    "VECTOR_BLOB_BYTES",
-    "UNIT_NORM_TOLERANCE",
     "DEFAULT_LIMIT_POOL",
-    "DEFAULT_MIN_COSINE",
     "DEFAULT_MAX_COSINE",
-    "StoreRecord",
-    "PairBase",
-    "HygieneCounters",
-    "TextScanner",
+    "DEFAULT_MIN_COSINE",
+    "EMBEDDING_DIM",
+    "NO_FEDERATE_TAG",
+    "UNIT_NORM_TOLERANCE",
+    "VECTOR_BLOB_BYTES",
     "EngineScanner",
-    "FallbackScanner",
     "EngineScannerError",
-    "load_engine_scanner",
-    "StoreOpenError",
     "ExportResult",
-    "export_store_corpus",
-    "load_ids_file",
+    "FallbackScanner",
+    "HygieneCounters",
+    "PairBase",
+    "SilverEdge",
+    "StoreOpenError",
+    "StoreRecord",
+    "TargetedExportResult",
+    "TextScanner",
     "edge_node_ids",
     "expand_one_hop",
-    "SilverEdge",
-    "TargetedExportResult",
+    "export_store_corpus",
     "export_targeted_corpus",
+    "load_engine_scanner",
+    "load_ids_file",
 ]
 
 #: The engine's federation-exclusion tag (vesmaro.models.NO_FEDERATE_TAG).
@@ -334,8 +334,14 @@ class FallbackScanner:
             ("google-api-key", r"AIza[0-9A-Za-z_\-]{35}"),
             ("telegram-bot-token", r"\b\d{8,10}:AA[A-Za-z0-9_\-]{33}\b"),
             ("private-key-block", r"-----BEGIN [A-Z ]*PRIVATE KEY-----"),
-            ("jwt", r"\beyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\b"),
-            ("generic-secret-assignment", r"(?i)\b(?:api[_-]?key|secret|password|passwd|token)\b\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{16,}"),
+            (
+                "jwt",
+                r"\beyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}\b",
+            ),
+            (
+                "generic-secret-assignment",
+                r"(?i)\b(?:api[_-]?key|secret|password|passwd|token)\b\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{16,}",
+            ),
         )
     )
 
@@ -400,8 +406,7 @@ def resolve_store_databases(
     if "mode=ro" not in store_uri:
         raise StoreOpenError("--store-uri must be a read-only URI (file:...?mode=ro)")
     raw = store_uri
-    if raw.startswith("file:"):
-        raw = raw[len("file:"):]
+    raw = raw.removeprefix("file:")
     raw = raw.split("?", 1)[0]
     vesma = Path(raw).expanduser().resolve()
     return vesma, vesma.parent / "vectors.db"
@@ -605,7 +610,9 @@ def _build_pair_bases(
     return pairs
 
 
-def _write_jsonl(path: Path, rows: Sequence[dict[str, object]], progress: ProgressFn) -> None:
+def _write_jsonl(
+    path: Path, rows: Sequence[dict[str, object]], progress: ProgressFn
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as handle:
         for row in rows:
@@ -646,7 +653,9 @@ class ExportResult:
             "scanner_provenance": self.scanner_provenance,
             "embedder_fingerprints": list(self.embedder_fingerprints),
             "sidecar_hint": self.sidecar_hint,
-            "timings_sec": {key: round(value, 3) for key, value in self.timings_sec.items()},
+            "timings_sec": {
+                key: round(value, 3) for key, value in self.timings_sec.items()
+            },
         }
 
 
@@ -676,7 +685,9 @@ def export_store_corpus(
         ValueError: contract violations (pair-id separator, band order).
     """
     if min_cosine >= max_cosine:
-        raise ValueError(f"cosine band must be [min, max): got [{min_cosine}, {max_cosine})")
+        raise ValueError(
+            f"cosine band must be [min, max): got [{min_cosine}, {max_cosine})"
+        )
     if limit_pool <= 0:
         raise ValueError(f"limit_pool must be positive, got {limit_pool}")
 
@@ -696,7 +707,9 @@ def export_store_corpus(
             progress(f"embeddings snapshot: {len(embeddings)} rows")
 
             t0 = time.perf_counter()
-            records = _select_records(mnemos_conn, embeddings, counters, scanner, limit_pool)
+            records = _select_records(
+                mnemos_conn, embeddings, counters, scanner, limit_pool
+            )
             timings["selection_hygiene_sec"] = time.perf_counter() - t0
             counters.pool = len(records)
             progress(
@@ -735,7 +748,9 @@ def export_store_corpus(
         _write_jsonl(pairs_path, [pair.row() for pair in pair_bases], progress)
         pairs_manifest_path = out_root / "near_dup_manifest.txt"
         pairs_manifest_path.write_bytes(
-            manifest_bytes((pair.pair_id, pair.row()["pair_sha256"]) for pair in pair_bases)
+            manifest_bytes(
+                (pair.pair_id, pair.row()["pair_sha256"]) for pair in pair_bases
+            )
         )
         corpus_fp = corpus_fingerprint(pairs_manifest_path.read_bytes())
         timings["pairs_sec"] = time.perf_counter() - t0
@@ -744,7 +759,9 @@ def export_store_corpus(
     timings["total_sec"] = time.perf_counter() - started
 
     fingerprint_set: set[str] = set()
-    for _, meta in _embeddings_meta_snapshot(vectors_path, {record.id for record in records}):
+    for _, meta in _embeddings_meta_snapshot(
+        vectors_path, {record.id for record in records}
+    ):
         pin = json.loads(meta or "{}").get("model_fingerprint")
         if pin:
             fingerprint_set.add(str(pin))
@@ -818,9 +835,7 @@ def edge_node_ids(mnemos_conn: sqlite3.Connection) -> list[str]:
     return [row[0] for row in rows]
 
 
-def expand_one_hop(
-    mnemos_conn: sqlite3.Connection, seeds: set[str]
-) -> set[str]:
+def expand_one_hop(mnemos_conn: sqlite3.Connection, seeds: set[str]) -> set[str]:
     """Seeds ∪ every endpoint of an edge touching a seed (undirected 1-hop).
 
     Both endpoints of a touching edge enter the candidate set — this is
@@ -832,7 +847,7 @@ def expand_one_hop(
         return expanded
     ordered = sorted(seeds)
     for chunk_start in range(0, len(ordered), 500):
-        chunk = ordered[chunk_start:chunk_start + 500]
+        chunk = ordered[chunk_start : chunk_start + 500]
         placeholders = ",".join("?" for _ in chunk)
         for src, dst in mnemos_conn.execute(
             f"""
@@ -873,7 +888,7 @@ def _select_targeted_records(
     ordered_ids = sorted(id_set)
     matched: list[_MemoryRow] = []
     for chunk_start in range(0, len(ordered_ids), 500):
-        chunk = ordered_ids[chunk_start:chunk_start + 500]
+        chunk = ordered_ids[chunk_start : chunk_start + 500]
         placeholders = ",".join("?" for _ in chunk)
         matched.extend(
             mnemos_conn.execute(
@@ -903,14 +918,12 @@ def _select_targeted_records(
     return records, trimmed
 
 
-def _count_ids_in_memories(
-    mnemos_conn: sqlite3.Connection, ids: list[str]
-) -> int:
+def _count_ids_in_memories(mnemos_conn: sqlite3.Connection, ids: list[str]) -> int:
     """How many of the given ids exist in memories at ALL (any status)."""
     found = 0
     ordered = sorted(set(ids))
     for chunk_start in range(0, len(ordered), 500):
-        chunk = ordered[chunk_start:chunk_start + 500]
+        chunk = ordered[chunk_start : chunk_start + 500]
         placeholders = ",".join("?" for _ in chunk)
         found += mnemos_conn.execute(
             f"SELECT count(*) FROM memories WHERE id IN ({placeholders})",
@@ -1078,7 +1091,9 @@ class TargetedExportResult:
                 "trimmed_by_limit": self.trimmed_by_limit,
             },
             "edge_coverage": dict(self.edge_coverage),
-            "timings_sec": {key: round(value, 3) for key, value in self.timings_sec.items()},
+            "timings_sec": {
+                key: round(value, 3) for key, value in self.timings_sec.items()
+            },
         }
 
 
@@ -1116,7 +1131,9 @@ def export_targeted_corpus(
             non-positive limit).
     """
     if min_cosine >= max_cosine:
-        raise ValueError(f"cosine band must be [min, max): got [{min_cosine}, {max_cosine})")
+        raise ValueError(
+            f"cosine band must be [min, max): got [{min_cosine}, {max_cosine})"
+        )
     if limit_pool <= 0:
         raise ValueError(f"limit_pool must be positive, got {limit_pool}")
 
@@ -1144,7 +1161,9 @@ def export_targeted_corpus(
         t0 = time.perf_counter()
         expanded = expand_one_hop(mnemos_conn, seed_set)
         timings["expand_one_hop_sec"] = time.perf_counter() - t0
-        progress(f"1-hop expansion: {len(seed_set)} seeds → {len(expanded)} candidate ids")
+        progress(
+            f"1-hop expansion: {len(seed_set)} seeds → {len(expanded)} candidate ids"
+        )
 
         vectors_conn = _ro_connection(vectors_path)
         try:
@@ -1167,7 +1186,9 @@ def export_targeted_corpus(
 
             t0 = time.perf_counter()
             edges = _load_edges(mnemos_conn)
-            silver, edge_coverage = _build_silver_edges(edges, {r.id: r for r in records})
+            silver, edge_coverage = _build_silver_edges(
+                edges, {r.id: r for r in records}
+            )
             timings["silver_edges_sec"] = time.perf_counter() - t0
             progress(
                 f"silver edges: {edge_coverage['edges_fully_inside']}/"
@@ -1205,7 +1226,9 @@ def export_targeted_corpus(
         _write_jsonl(pairs_path, [pair.row() for pair in pair_bases], progress)
         pairs_manifest_path = out_root / "near_dup_manifest.txt"
         pairs_manifest_path.write_bytes(
-            manifest_bytes((pair.pair_id, pair.row()["pair_sha256"]) for pair in pair_bases)
+            manifest_bytes(
+                (pair.pair_id, pair.row()["pair_sha256"]) for pair in pair_bases
+            )
         )
         corpus_fp = corpus_fingerprint(pairs_manifest_path.read_bytes())
         timings["pairs_sec"] = time.perf_counter() - t0
@@ -1217,9 +1240,7 @@ def export_targeted_corpus(
     _write_jsonl(silver_path, silver_rows, progress)
     silver_manifest = out_root / "silver_edges_manifest.txt"
     silver_manifest.write_bytes(
-        manifest_bytes(
-            (edge.pair_id, edge.row()["edge_sha256"]) for edge in silver
-        )
+        manifest_bytes((edge.pair_id, edge.row()["edge_sha256"]) for edge in silver)
     )
     silver_fingerprint = corpus_fingerprint(silver_manifest.read_bytes())
     timings["write_silver_sec"] = time.perf_counter() - t0
@@ -1227,7 +1248,9 @@ def export_targeted_corpus(
     timings["total_sec"] = time.perf_counter() - started
 
     fingerprint_set: set[str] = set()
-    for _, meta in _embeddings_meta_snapshot(vectors_path, {record.id for record in records}):
+    for _, meta in _embeddings_meta_snapshot(
+        vectors_path, {record.id for record in records}
+    ):
         pin = json.loads(meta or "{}").get("model_fingerprint")
         if pin:
             fingerprint_set.add(str(pin))
@@ -1255,12 +1278,15 @@ def export_targeted_corpus(
     }
     coverage_path = out_root / "coverage.json"
     coverage_path.write_text(
-        json.dumps(coverage_payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
+        json.dumps(coverage_payload, ensure_ascii=False, indent=2, sort_keys=True)
+        + "\n",
         encoding="utf-8",
     )
     progress(f"wrote {coverage_path}")
 
-    hint = (
+    # Operator next-step hint kept as data (surfaced via the run report
+    # upstream, not returned on this object) — lint: F841.
+    _hint = (
         "python scripts/a2_field_cosines.py --records "
         f"{records_path} --pairs {pairs_path if pairs_path else '-'} "
         f"--out-npz <data/vectors/{corpus_id}/field_vecs.npz> --engine-src <engine>/src"
@@ -1318,6 +1344,7 @@ ENGINE_SRC_ENV: Final[str] = "CORTEX_ENGINE_SRC"
 
 __all__.append("ENGINE_SRC_ENV")
 
+
 #: Re-export for the CLI: build the scanner with a disclosed fallback.
 def make_scanner(engine_src: str | Path | None) -> TextScanner:
     """Engine scanner when a source tree is given and loads; else fallback.
@@ -1332,6 +1359,8 @@ def make_scanner(engine_src: str | Path | None) -> TextScanner:
         try:
             return load_engine_scanner(engine_src)
         except EngineScannerError as exc:
-            progress_warn = f"engine scanner unavailable ({exc}); using fallback scanner"
+            progress_warn = (
+                f"engine scanner unavailable ({exc}); using fallback scanner"
+            )
             print(progress_warn, file=sys.stderr)
     return FallbackScanner()

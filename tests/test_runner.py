@@ -57,9 +57,16 @@ def test_run_log_append_and_refusal(tmp_path: Path) -> None:
     with pytest.raises(RunLogRefusalError, match="single-shot"):
         log.append(_entry("c1"))
     log.append(_entry("c2"))  # a different corpus is a legitimate next run
-    lines = (tmp_path / "runs" / "run_log.jsonl").read_text(encoding="utf-8").splitlines()
+    lines = (
+        (tmp_path / "runs" / "run_log.jsonl").read_text(encoding="utf-8").splitlines()
+    )
     assert len(lines) == 2
-    assert set(json.loads(lines[0])) == {"run_at", "weights_sha256", "corpus_fingerprint", "label_fingerprint"}
+    assert set(json.loads(lines[0])) == {
+        "run_at",
+        "weights_sha256",
+        "corpus_fingerprint",
+        "label_fingerprint",
+    }
 
 
 def test_run_log_refusal_survives_reopen(tmp_path: Path) -> None:
@@ -106,7 +113,9 @@ def test_baseline_wrong_on_both_classes_scores_zero() -> None:
 
 def test_single_shot_appends_and_refuses_second_run(tmp_path: Path) -> None:
     log_path = tmp_path / "rl.jsonl"
-    kwargs = dict(run_log=RunLog(log_path), weights_sha256="w" * 64, corpus_fingerprint="c" * 64)
+    kwargs = dict(
+        run_log=RunLog(log_path), weights_sha256="w" * 64, corpus_fingerprint="c" * 64
+    )
     run_single_shot(_FixedModel(), _holdout(), **kwargs)
     with pytest.raises(RunLogRefusalError):
         run_single_shot(_FixedModel(), _holdout(), **kwargs)
@@ -124,7 +133,11 @@ def test_single_shot_requires_corpus_fingerprint(tmp_path: Path) -> None:
 
 
 def test_model_output_contract_enforced(tmp_path: Path) -> None:
-    base = dict(run_log=RunLog(tmp_path / "rl.jsonl"), weights_sha256="w" * 64, corpus_fingerprint="c" * 64)
+    base = dict(
+        run_log=RunLog(tmp_path / "rl.jsonl"),
+        weights_sha256="w" * 64,
+        corpus_fingerprint="c" * 64,
+    )
 
     class _Short:
         def predict_proba(self, pairs):
@@ -149,7 +162,11 @@ def test_model_output_contract_enforced(tmp_path: Path) -> None:
 
 
 def test_bad_labels_fail_loud(tmp_path: Path) -> None:
-    base = dict(run_log=RunLog(tmp_path / "rl.jsonl"), weights_sha256="w" * 64, corpus_fingerprint="c" * 64)
+    base = dict(
+        run_log=RunLog(tmp_path / "rl.jsonl"),
+        weights_sha256="w" * 64,
+        corpus_fingerprint="c" * 64,
+    )
     with pytest.raises(ValueError, match="disputed"):
         run_single_shot(
             _FixedModel(),
@@ -167,14 +184,29 @@ def _write_holdout(tmp_path: Path, labels: dict[str, str]) -> Path:
     directory = tmp_path / "labels-holdout" / "h"
     directory.mkdir(parents=True)
     pairs = [
-        {"pair_id": "p1", "similarity": 0.95, "stratum": "P1", "record": {}, "candidate": {}},
-        {"pair_id": "p2", "similarity": 0.50, "stratum": "N1", "record": {}, "candidate": {}},
+        {
+            "pair_id": "p1",
+            "similarity": 0.95,
+            "stratum": "P1",
+            "record": {},
+            "candidate": {},
+        },
+        {
+            "pair_id": "p2",
+            "similarity": 0.50,
+            "stratum": "N1",
+            "record": {},
+            "candidate": {},
+        },
     ]
     (directory / "pairs.jsonl").write_text(
         "\n".join(json.dumps(r) for r in pairs), encoding="utf-8"
     )
     (directory / "labels.jsonl").write_text(
-        "\n".join(json.dumps({"pair_id": pid, "label": label}) for pid, label in labels.items()),
+        "\n".join(
+            json.dumps({"pair_id": pid, "label": label})
+            for pid, label in labels.items()
+        ),
         encoding="utf-8",
     )
     return directory

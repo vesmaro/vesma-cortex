@@ -2,13 +2,23 @@
 # Everything runs through uv: `uv run` syncs the default env (no torch),
 # `uv run --extra train` adds the CPU-torch train extra (candidate N).
 
-.PHONY: help test test-train smoke smoke-n
+.PHONY: help lint test test-train smoke smoke-n
+
+# Lint toolchain pinned through uvx — one knob shared by local dev and CI.
+# Bump the pin together with the ruff-format sweep of the codebase in a
+# single style commit, never separately (the format gate is exact).
+RUFF := uvx ruff@0.16.10
 
 help:
+	@echo "make lint       - ruff check + ruff format --check (merge gate; CI ci.yml)"
 	@echo "make test       - uv run pytest tests/ -q          (default env; N tests skip honestly)"
 	@echo "make test-train - uv run --extra train pytest ...  (train extra; N tests active)"
 	@echo "make smoke      - CPU smoke, full D contour on synthetic data (<2 min, charter §6)"
 	@echo "make smoke-n    - smoke with the N ladder end-to-end (needs the train extra)"
+
+lint:
+	$(RUFF) check .
+	$(RUFF) format --check .
 
 test:
 	uv run pytest tests/ -q

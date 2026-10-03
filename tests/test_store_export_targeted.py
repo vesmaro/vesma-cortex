@@ -37,8 +37,8 @@ from cortex.data.fingerprints import pair_sha256
 from cortex.data.store_export import (
     FallbackScanner,
     expand_one_hop,
-    export_targeted_corpus,
     export_store_corpus,
+    export_targeted_corpus,
     load_ids_file,
 )
 
@@ -87,8 +87,16 @@ _TOPOLOGY = {
     "n-b": {"day": "2026-09-02", "vec": _rotated_unit_vec(2, 1, 0.90)},
     "n-c": {"day": "2026-09-03", "vec": _rotated_unit_vec(3, 1, 0.60)},
     "n-d": {"day": "2026-09-04", "vec": _unit_vec(4)},
-    "n-secret": {"day": "2026-09-05", "vec": _unit_vec(5), "body": f"my key AKIAIOSFODNN7EXAMPLE {_LONG * 2}"},
-    "n-nofed": {"day": "2026-09-06", "vec": _unit_vec(6), "tags": ["mnemos:no-federate"]},
+    "n-secret": {
+        "day": "2026-09-05",
+        "vec": _unit_vec(5),
+        "body": f"my key AKIAIOSFODNN7EXAMPLE {_LONG * 2}",
+    },
+    "n-nofed": {
+        "day": "2026-09-06",
+        "vec": _unit_vec(6),
+        "tags": ["mnemos:no-federate"],
+    },
     "n-noemb": {"day": "2026-09-07", "vec": None},
     "n-x": {"day": "2026-09-08", "vec": _unit_vec(8)},
 }
@@ -148,12 +156,26 @@ def build_mock_graph_store(store_dir: Path) -> None:
         m.execute(
             "INSERT INTO memories (id, content, title, tags, memory_type, created_at, updated_at, metadata, status, embedding_id, quarantine_reason) "
             "VALUES (?, ?, ?, ?, 'note', ?, ?, '{}', 'published', ?, NULL)",
-            (node_id, body, f"title {node_id}", json.dumps(tags), created, created, node_id),
+            (
+                node_id,
+                body,
+                f"title {node_id}",
+                json.dumps(tags),
+                created,
+                created,
+                node_id,
+            ),
         )
         if spec["vec"] is not None:
             v.execute(
                 "INSERT INTO embeddings (id, vector, metadata) VALUES (?, ?, ?)",
-                (node_id, spec["vec"], json.dumps({"model_fingerprint": _PIN, "content_hash": "hash-" + node_id})),
+                (
+                    node_id,
+                    spec["vec"],
+                    json.dumps(
+                        {"model_fingerprint": _PIN, "content_hash": "hash-" + node_id}
+                    ),
+                ),
             )
     for i, (src, dst, kind) in enumerate(_EDGES):
         m.execute(
@@ -177,7 +199,9 @@ def graph_store(tmp_path: Path) -> Path:
 @pytest.fixture()
 def seeds_file(graph_store: Path, tmp_path: Path) -> Path:
     """Seeds = all memory_edges endpoints (the live-run seed contract)."""
-    conn = sqlite3.connect(f"file:{(graph_store / 'mnemos.db').as_posix()}?mode=ro", uri=True)
+    conn = sqlite3.connect(
+        f"file:{(graph_store / 'mnemos.db').as_posix()}?mode=ro", uri=True
+    )
     try:
         ids = [
             row[0]
@@ -228,15 +252,27 @@ def test_load_ids_file_contract(tmp_path: Path) -> None:
 
 
 def test_expand_one_hop_is_undirected_and_closed(graph_store: Path) -> None:
-    conn = sqlite3.connect(f"file:{(graph_store / 'mnemos.db').as_posix()}?mode=ro", uri=True)
+    conn = sqlite3.connect(
+        f"file:{(graph_store / 'mnemos.db').as_posix()}?mode=ro", uri=True
+    )
     try:
         expanded = expand_one_hop(conn, {"n-a"})
         # n-a touches e1 (→n-b) and e4 (→n-secret): both endpoints enter.
         assert expanded == {"n-a", "n-b", "n-secret"}
         assert expand_one_hop(conn, set()) == set()
         # the full endpoint set is a fixed point of the expansion
-        everything = expand_one_hop(conn, {"n-a", "n-b", "n-c", "n-d", "n-secret", "n-nofed", "n-noemb"})
-        assert everything == {"n-a", "n-b", "n-c", "n-d", "n-secret", "n-nofed", "n-noemb"}
+        everything = expand_one_hop(
+            conn, {"n-a", "n-b", "n-c", "n-d", "n-secret", "n-nofed", "n-noemb"}
+        )
+        assert everything == {
+            "n-a",
+            "n-b",
+            "n-c",
+            "n-d",
+            "n-secret",
+            "n-nofed",
+            "n-noemb",
+        }
     finally:
         conn.close()
 
@@ -258,13 +294,28 @@ def test_targeted_pool_and_hygiene_counters(targeted_export) -> None:
     assert targeted_export.trimmed_by_limit == 0
 
 
-def test_targeted_pool_is_exactly_the_clean_neighborhood(targeted_export, tmp_path: Path) -> None:
+def test_targeted_pool_is_exactly_the_clean_neighborhood(
+    targeted_export, tmp_path: Path
+) -> None:
     records_path = targeted_export.records_path
-    rows = [json.loads(line) for line in records_path.read_text(encoding="utf-8").splitlines()]
+    rows = [
+        json.loads(line)
+        for line in records_path.read_text(encoding="utf-8").splitlines()
+    ]
     assert {row["id"] for row in rows} == {"n-a", "n-b", "n-c", "n-d"}
     row = rows[0]
-    assert set(row) == {"id", "title", "body", "tags", "language", "record_type",
-                        "created_at", "content_hash", "vec_sha256", "vec"}
+    assert set(row) == {
+        "id",
+        "title",
+        "body",
+        "tags",
+        "language",
+        "record_type",
+        "created_at",
+        "content_hash",
+        "vec_sha256",
+        "vec",
+    }
     assert len(row["vec"]) == 384
     # the secret record's content never enters the export
     pool_text = records_path.read_text(encoding="utf-8")
@@ -275,7 +326,10 @@ def test_targeted_near_dup_pairs_same_band(targeted_export, tmp_path: Path) -> N
     # n-b sits at cosine 0.90 from n-a → exactly one in-band pair.
     assert targeted_export.counters.pairs == 1
     assert targeted_export.corpus_fingerprint
-    rows = [json.loads(line) for line in targeted_export.pairs_path.read_text(encoding="utf-8").splitlines()]
+    rows = [
+        json.loads(line)
+        for line in targeted_export.pairs_path.read_text(encoding="utf-8").splitlines()
+    ]
     assert rows[0]["pair_id"] == "n-a--n-b"
     assert 0.85 <= rows[0]["similarity"] < 0.97
 
@@ -284,17 +338,33 @@ def test_targeted_near_dup_pairs_same_band(targeted_export, tmp_path: Path) -> N
 
 
 def test_silver_edges_only_fully_inside_pool(targeted_export) -> None:
-    rows = [json.loads(line) for line in targeted_export.silver_path.read_text(encoding="utf-8").splitlines()]
+    rows = [
+        json.loads(line)
+        for line in targeted_export.silver_path.read_text(encoding="utf-8").splitlines()
+    ]
     assert len(rows) == 3
     by_pair = {row["pair_id"]: row for row in rows}
     # pair_id: earlier-created end first, kind appended
-    assert set(by_pair) == {"n-a--n-b--relates_to", "n-b--n-c--relates_to", "n-c--n-d--supersedes"}
+    assert set(by_pair) == {
+        "n-a--n-b--relates_to",
+        "n-b--n-c--relates_to",
+        "n-c--n-d--supersedes",
+    }
     edge = by_pair["n-a--n-b--relates_to"]
     assert edge["id_a"] == "n-a" and edge["id_b"] == "n-b"
     assert edge["id_from"] == "n-a" and edge["id_to"] == "n-b"  # store orientation kept
     assert edge["kind"] == "relates_to"
     assert edge["provenance"] == "auto-dedupe"
-    assert set(edge) == {"pair_id", "id_a", "id_b", "id_from", "id_to", "kind", "provenance", "edge_sha256"}
+    assert set(edge) == {
+        "pair_id",
+        "id_a",
+        "id_b",
+        "id_from",
+        "id_to",
+        "kind",
+        "provenance",
+        "edge_sha256",
+    }
     # coverage: 3 inside, 3 partial (one dirty end), 1 absent (both dirty)
     assert targeted_export.edge_coverage == {
         "edges_total": 7,
@@ -305,15 +375,36 @@ def test_silver_edges_only_fully_inside_pool(targeted_export) -> None:
     assert targeted_export.summary()["silver_edges_count"] == 3
 
 
-def test_silver_edge_sha256_verifiable_from_records_join(targeted_export, tmp_path: Path) -> None:
+def test_silver_edge_sha256_verifiable_from_records_join(
+    targeted_export, tmp_path: Path
+) -> None:
     records = {
         row["id"]: row
-        for row in (json.loads(line) for line in targeted_export.records_path.read_text(encoding="utf-8").splitlines())
+        for row in (
+            json.loads(line)
+            for line in targeted_export.records_path.read_text(
+                encoding="utf-8"
+            ).splitlines()
+        )
     }
-    for edge in (json.loads(line) for line in targeted_export.silver_path.read_text(encoding="utf-8").splitlines()):
+    for edge in (
+        json.loads(line)
+        for line in targeted_export.silver_path.read_text(encoding="utf-8").splitlines()
+    ):
+
         def side(record_id: str) -> dict:
             row = records[record_id]
-            return {key: row[key] for key in ("title", "body", "tags", "language", "record_type", "created_at")}
+            return {
+                key: row[key]
+                for key in (
+                    "title",
+                    "body",
+                    "tags",
+                    "language",
+                    "record_type",
+                    "created_at",
+                )
+            }
 
         rebuilt = {
             "record": side(edge["id_a"]),
@@ -335,7 +426,9 @@ def test_silver_manifest_scheme_sorted_and_terminated(targeted_export) -> None:
 # ── ids integrity + limit trim ────────────────────────────────────────────────
 
 
-def test_ids_missing_from_memories_are_counted(graph_store: Path, tmp_path: Path) -> None:
+def test_ids_missing_from_memories_are_counted(
+    graph_store: Path, tmp_path: Path
+) -> None:
     seeds = tmp_path / "seeds.txt"
     seeds.write_text("n-a\nn-ghost\nn-phantom\n", encoding="utf-8")
     result = export_targeted_corpus(
@@ -359,7 +452,9 @@ def test_ids_missing_from_memories_are_counted(graph_store: Path, tmp_path: Path
     assert result.edge_coverage["edges_absent"] == 3
 
 
-def test_limit_trims_deterministically_after_hygiene(graph_store: Path, seeds_file: Path, tmp_path: Path) -> None:
+def test_limit_trims_deterministically_after_hygiene(
+    graph_store: Path, seeds_file: Path, tmp_path: Path
+) -> None:
     result = export_targeted_corpus(
         ids_file=seeds_file,
         store_path=graph_store,
@@ -370,7 +465,10 @@ def test_limit_trims_deterministically_after_hygiene(graph_store: Path, seeds_fi
     )
     assert result.trimmed_by_limit == 5  # 7 candidates − limit 2, SQL-stage trim
     assert result.counters.pool == 2
-    rows = [json.loads(line) for line in result.records_path.read_text(encoding="utf-8").splitlines()]
+    rows = [
+        json.loads(line)
+        for line in result.records_path.read_text(encoding="utf-8").splitlines()
+    ]
     assert [row["id"] for row in rows] == ["n-a", "n-b"]  # created_at order holds
     # A2 SQL-LIMIT semantics: hygiene sees the LIMITED candidate set only,
     # so nothing was "excluded" here — the dirty endpoints were trimmed
@@ -381,7 +479,9 @@ def test_limit_trims_deterministically_after_hygiene(graph_store: Path, seeds_fi
 # ── read-only discipline ──────────────────────────────────────────────────────
 
 
-def test_targeted_export_leaves_store_byte_identical(graph_store: Path, seeds_file: Path, tmp_path: Path) -> None:
+def test_targeted_export_leaves_store_byte_identical(
+    graph_store: Path, seeds_file: Path, tmp_path: Path
+) -> None:
     before = {p.name: p.read_bytes() for p in sorted(graph_store.iterdir())}
     export_targeted_corpus(
         ids_file=seeds_file,
@@ -397,7 +497,9 @@ def test_targeted_export_leaves_store_byte_identical(graph_store: Path, seeds_fi
 # ── fingerprints ──────────────────────────────────────────────────────────────
 
 
-def test_targeted_fingerprints_reproducible(graph_store: Path, seeds_file: Path, tmp_path: Path) -> None:
+def test_targeted_fingerprints_reproducible(
+    graph_store: Path, seeds_file: Path, tmp_path: Path
+) -> None:
     results = [
         export_targeted_corpus(
             ids_file=seeds_file,
@@ -415,11 +517,19 @@ def test_targeted_fingerprints_reproducible(graph_store: Path, seeds_file: Path,
     assert first.embedder_fingerprints == (_PIN,)
     cov1 = json.loads(first.coverage_path.read_text(encoding="utf-8"))
     cov2 = json.loads(second.coverage_path.read_text(encoding="utf-8"))
-    for key in ("pool_fingerprint", "silver_fingerprint", "corpus_fingerprint", "edge_coverage", "hygiene"):
+    for key in (
+        "pool_fingerprint",
+        "silver_fingerprint",
+        "corpus_fingerprint",
+        "edge_coverage",
+        "hygiene",
+    ):
         assert cov1[key] == cov2[key]
 
 
-def test_targeted_pool_fingerprint_matches_pool_scheme(graph_store: Path, seeds_file: Path, tmp_path: Path) -> None:
+def test_targeted_pool_fingerprint_matches_pool_scheme(
+    graph_store: Path, seeds_file: Path, tmp_path: Path
+) -> None:
     """The targeted pool fingerprint uses the SAME §5 scheme as A2: the
     records_manifest.txt of both modes over the SAME id set must agree —
     proving the targeted mode changed only the candidate set."""
@@ -433,16 +543,30 @@ def test_targeted_pool_fingerprint_matches_pool_scheme(graph_store: Path, seeds_
     )
     targeted_rows = {
         row["id"]: row
-        for row in (json.loads(line) for line in targeted.records_path.read_text(encoding="utf-8").splitlines())
+        for row in (
+            json.loads(line)
+            for line in targeted.records_path.read_text(encoding="utf-8").splitlines()
+        )
     }
     # rebuild the pool fingerprint from the written rows (§5 scheme)
     entries = [
-        (record_id, pair_sha256({"record": {
-            "title": row["title"], "body": row["body"], "tags": row["tags"],
-            "language": row["language"], "record_type": row["record_type"],
-            "created_at": row["created_at"], "content_hash": row["content_hash"],
-            "vec_sha256": row["vec_sha256"],
-        }}))
+        (
+            record_id,
+            pair_sha256(
+                {
+                    "record": {
+                        "title": row["title"],
+                        "body": row["body"],
+                        "tags": row["tags"],
+                        "language": row["language"],
+                        "record_type": row["record_type"],
+                        "created_at": row["created_at"],
+                        "content_hash": row["content_hash"],
+                        "vec_sha256": row["vec_sha256"],
+                    }
+                }
+            ),
+        )
         for record_id, row in targeted_rows.items()
     ]
     from cortex.data.fingerprints import corpus_fingerprint, manifest_bytes
@@ -456,12 +580,18 @@ def test_targeted_pool_fingerprint_matches_pool_scheme(graph_store: Path, seeds_
 def test_script_generates_seeds_and_exports(
     graph_store: Path, tmp_path: Path, capsys: pytest.CaptureFixture
 ) -> None:
-    code = b2_script.main([
-        "--store-path", str(graph_store),
-        "--out", str(tmp_path / "data"),
-        "--corpus-id", "b2-edges-test",
-        "--engine-src", "",
-    ])
+    code = b2_script.main(
+        [
+            "--store-path",
+            str(graph_store),
+            "--out",
+            str(tmp_path / "data"),
+            "--corpus-id",
+            "b2-edges-test",
+            "--engine-src",
+            "",
+        ]
+    )
     assert code == 0
     captured = capsys.readouterr()
     summary = json.loads(captured.out)
@@ -474,7 +604,9 @@ def test_script_generates_seeds_and_exports(
     # the generated seed file exists and holds exactly the 7 endpoints
     ids_files = list((tmp_path / "data" / "ids").glob("edge-node-ids-*.txt"))
     assert len(ids_files) == 1
-    ids = [line for line in ids_files[0].read_text(encoding="utf-8").splitlines() if line]
+    ids = [
+        line for line in ids_files[0].read_text(encoding="utf-8").splitlines() if line
+    ]
     assert len(ids) == 7
 
 
@@ -483,22 +615,33 @@ def test_script_rejects_bad_args(tmp_path: Path, capsys: pytest.CaptureFixture) 
     assert code == 2
     assert "exactly one" in capsys.readouterr().err
 
-    code = b2_script.main([
-        "--store-path", str(tmp_path),
-        "--out", str(tmp_path / "o"),
-        "--min-cosine", "0.97",
-        "--max-cosine", "0.85",
-    ])
+    code = b2_script.main(
+        [
+            "--store-path",
+            str(tmp_path),
+            "--out",
+            str(tmp_path / "o"),
+            "--min-cosine",
+            "0.97",
+            "--max-cosine",
+            "0.85",
+        ]
+    )
     assert code == 2
     assert "min-cosine" in capsys.readouterr().err
 
 
 def test_script_missing_ids_file(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
-    code = b2_script.main([
-        "--store-path", str(tmp_path),
-        "--out", str(tmp_path / "o"),
-        "--ids-file", str(tmp_path / "nope.txt"),
-    ])
+    code = b2_script.main(
+        [
+            "--store-path",
+            str(tmp_path),
+            "--out",
+            str(tmp_path / "o"),
+            "--ids-file",
+            str(tmp_path / "nope.txt"),
+        ]
+    )
     assert code == 2
     assert "not found" in capsys.readouterr().err
 
@@ -506,7 +649,9 @@ def test_script_missing_ids_file(tmp_path: Path, capsys: pytest.CaptureFixture) 
 # ── regression: the plain A2 export is untouched by the refactor ──────────────
 
 
-def test_plain_export_still_works_on_graph_store(graph_store: Path, tmp_path: Path) -> None:
+def test_plain_export_still_works_on_graph_store(
+    graph_store: Path, tmp_path: Path
+) -> None:
     result = export_store_corpus(
         store_path=graph_store,
         out_dir=tmp_path / "data",

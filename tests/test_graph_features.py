@@ -151,7 +151,9 @@ def test_reader_missing_file(tmp_path: Path) -> None:
         {"neighbor_jaccard": None},  # required, not optional
     ],
 )
-def test_reader_corrupt_rows_refuse(tmp_path: Path, mutation: dict[str, object]) -> None:
+def test_reader_corrupt_rows_refuse(
+    tmp_path: Path, mutation: dict[str, object]
+) -> None:
     row = dict(EMPTY_ROW, pair_id="DV-N-002", **mutation)
     path = _write_sidecar(tmp_path, [row])
     with pytest.raises(GraphSidecarError):
@@ -212,8 +214,11 @@ def test_attach_composes_after_field_cosines() -> None:
     vector = attach_graph_features(
         with_fields,
         GraphEvidence(
-            edge_ab=True, edge_kind_supersedes=True, common_neighbors=1,
-            neighbor_jaccard=1.0, cos_to_common_max=0.5,
+            edge_ab=True,
+            edge_kind_supersedes=True,
+            common_neighbors=1,
+            neighbor_jaccard=1.0,
+            cos_to_common_max=0.5,
         ),
     )
     assert vector.names == FEATURE_NAMES + FIELD_COSINE_FEATURES + GRAPH_FEATURES
@@ -269,9 +274,7 @@ def test_attach_to_features_missing_pair_modes(tmp_path: Path) -> None:
 
 def test_manifest_rows_join_by_pair_id(tmp_path: Path) -> None:
     """The assembled train manifest joins the sidecar by pair_id only."""
-    sidecar = GraphSidecar(
-        _write_sidecar(tmp_path, [EVIDENT_ROW, EMPTY_ROW])
-    )
+    sidecar = GraphSidecar(_write_sidecar(tmp_path, [EVIDENT_ROW, EMPTY_ROW]))
     manifest_pair_ids = ["DV-N-001", "DV-P-001", "DV-N-002"]
     vectors = []
     for pair_id in manifest_pair_ids:

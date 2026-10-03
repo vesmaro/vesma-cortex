@@ -42,7 +42,9 @@ from cortex.data.store_export import (
     resolve_store_databases,
 )
 
-ENGINE_SRC = Path("/var/home/abyss/LABs/Projects/Project-Vesma/wt/a2-engine-readonly/src")
+ENGINE_SRC = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/wt/a2-engine-readonly/src"
+)
 
 _PIN = "nano:sha256:" + "ab" * 32
 
@@ -135,25 +137,64 @@ def build_mock_store(store_dir: Path) -> None:
     )
 
     good = [
-        _memory_row("id-good-1", "Python decorators", "A " + ("long enough body " * 6), tags=["python"]),
-        _memory_row("id-good-2", "Python decorators notes", "A " + ("long enough body " * 6) + "plus a bit more", tags=["python"], created_at="2026-09-02T10:00:00.000000+00:00"),
-        _memory_row("id-good-3", "Rust lifetimes", "Rust " + ("lifetime notes " * 8), memory_type="snippet", metadata={"canon": {"language": "ru"}}),
-        _memory_row("id-good-4", "Totally different topic", "Cooking " + ("pasta recipes " * 8), memory_type="fact"),
+        _memory_row(
+            "id-good-1",
+            "Python decorators",
+            "A " + ("long enough body " * 6),
+            tags=["python"],
+        ),
+        _memory_row(
+            "id-good-2",
+            "Python decorators notes",
+            "A " + ("long enough body " * 6) + "plus a bit more",
+            tags=["python"],
+            created_at="2026-09-02T10:00:00.000000+00:00",
+        ),
+        _memory_row(
+            "id-good-3",
+            "Rust lifetimes",
+            "Rust " + ("lifetime notes " * 8),
+            memory_type="snippet",
+            metadata={"canon": {"language": "ru"}},
+        ),
+        _memory_row(
+            "id-good-4",
+            "Totally different topic",
+            "Cooking " + ("pasta recipes " * 8),
+            memory_type="fact",
+        ),
     ]
     secrets = [
         # AWS access key id — engine detector pattern (and fallback pattern).
-        _memory_row("id-secret", "creds", "my key AKIAIOSFODNN7EXAMPLE inside a long body " * 2),
+        _memory_row(
+            "id-secret", "creds", "my key AKIAIOSFODNN7EXAMPLE inside a long body " * 2
+        ),
     ]
     no_federate = [
-        _memory_row("id-nofederate", "private note", "long enough private body " * 6, tags=[NO_FEDERATE_TAG]),
+        _memory_row(
+            "id-nofederate",
+            "private note",
+            "long enough private body " * 6,
+            tags=[NO_FEDERATE_TAG],
+        ),
     ]
     quarantined = [
-        _memory_row("id-quarantine", "bad record", "long enough quarantined body " * 6, quarantine_reason="danger-detector"),
+        _memory_row(
+            "id-quarantine",
+            "bad record",
+            "long enough quarantined body " * 6,
+            quarantine_reason="danger-detector",
+        ),
     ]
     excluded_sql = [
         _memory_row("id-short", "tiny", "too short"),
         _memory_row("id-draft", "draft", "long enough draft body " * 8, status="draft"),
-        _memory_row("id-conversation", "chat", "long enough chat body " * 8, memory_type="conversation"),
+        _memory_row(
+            "id-conversation",
+            "chat",
+            "long enough chat body " * 8,
+            memory_type="conversation",
+        ),
     ]
     rows = good + secrets + no_federate + quarantined + excluded_sql
     for row in rows:
@@ -167,12 +208,16 @@ def build_mock_store(store_dir: Path) -> None:
             {
                 "id": row["id"],
                 "vector": _unit_vec(zlib.crc32(row["id"].encode()) % 1000),
-                "metadata": json.dumps({"model_fingerprint": _PIN, "content_hash": "hash-" + row["id"]}),
+                "metadata": json.dumps(
+                    {"model_fingerprint": _PIN, "content_hash": "hash-" + row["id"]}
+                ),
             },
         )
     # near-duplicate pair inside the [0.85, 0.97) band: good-2 at cosine
     # 0.90 from good-1 (different rotation plane than good-3 at 0.60).
-    v.execute("UPDATE embeddings SET vector = ? WHERE id = 'id-good-1'", (_unit_vec(1),))
+    v.execute(
+        "UPDATE embeddings SET vector = ? WHERE id = 'id-good-1'", (_unit_vec(1),)
+    )
     v.execute(
         "UPDATE embeddings SET vector = ? WHERE id = 'id-good-2'",
         (_rotated_unit_vec(2, 1, 0.90),),
@@ -202,7 +247,10 @@ def build_mock_store(store_dir: Path) -> None:
     )
     v.execute(
         "INSERT INTO embeddings (id, vector, metadata) VALUES ('id-badnorm', ?, ?)",
-        (struct.pack("<384f", *([0.5] * 384)), json.dumps({"model_fingerprint": _PIN, "content_hash": "hash-badnorm"})),
+        (
+            struct.pack("<384f", *([0.5] * 384)),
+            json.dumps({"model_fingerprint": _PIN, "content_hash": "hash-badnorm"}),
+        ),
     )
     m.commit()
     v.commit()
@@ -241,7 +289,9 @@ def test_resolve_store_requires_ro_uri(tmp_path: Path) -> None:
 
 def test_resolve_store_path_and_uri_agree(tmp_path: Path) -> None:
     from_path = resolve_store_databases(tmp_path, None)
-    from_uri = resolve_store_databases(None, f"file:{(tmp_path / 'mnemos.db').as_posix()}?mode=ro")
+    from_uri = resolve_store_databases(
+        None, f"file:{(tmp_path / 'mnemos.db').as_posix()}?mode=ro"
+    )
     assert from_path == from_uri
     with pytest.raises(ValueError, match="exactly one"):
         resolve_store_databases(tmp_path, "file:x?mode=ro")
@@ -256,14 +306,18 @@ def test_store_opened_query_only(mock_store: Path) -> None:
         try:
             assert conn.execute("PRAGMA query_only").fetchone()[0] == 1
             with pytest.raises(sqlite3.OperationalError):
-                conn.execute("UPDATE memories SET title = 'tampered' WHERE id = 'id-good-1'")
+                conn.execute(
+                    "UPDATE memories SET title = 'tampered' WHERE id = 'id-good-1'"
+                )
             with pytest.raises(sqlite3.OperationalError):
                 conn.execute("DELETE FROM embeddings")
         finally:
             conn.close()
 
 
-def test_store_bytes_unchanged_by_export(mock_store: Path, tmp_path: Path, fallback_export: ExportResult) -> None:
+def test_store_bytes_unchanged_by_export(
+    mock_store: Path, tmp_path: Path, fallback_export: ExportResult
+) -> None:
     """The export leaves the store byte-identical (live-server discipline)."""
     before = {p.name: p.read_bytes() for p in sorted(mock_store.iterdir())}
     export_store_corpus(
@@ -295,15 +349,21 @@ def test_hygiene_exclusions_with_counters(fallback_export: ExportResult) -> None
     assert fallback_export.scanner_provenance == "fallback scanner, not engine"
 
 
-def test_secret_record_excluded_by_fallback(fallback_export: ExportResult, tmp_path: Path) -> None:
+def test_secret_record_excluded_by_fallback(
+    fallback_export: ExportResult, tmp_path: Path
+) -> None:
     assert fallback_export.counters.reasons.get("secret:aws-key") == 1
     # no raw content of the excluded record may leak into the pool file
-    pool_text = (tmp_path / "data" / "pretrain" / "pretrain-test" / "records.jsonl").read_text(encoding="utf-8")
+    pool_text = (
+        tmp_path / "data" / "pretrain" / "pretrain-test" / "records.jsonl"
+    ).read_text(encoding="utf-8")
     assert "AKIAIOSFODNN7EXAMPLE" not in pool_text
     assert "id-secret" not in pool_text
 
 
-def test_pool_composition_and_engine_scanner_path(mock_store: Path, tmp_path: Path) -> None:
+def test_pool_composition_and_engine_scanner_path(
+    mock_store: Path, tmp_path: Path
+) -> None:
     if not (ENGINE_SRC / "vesmaro" / "secrets_detector.py").is_file():
         pytest.skip("engine read-only worktree not available on this machine")
     scanner = make_scanner(ENGINE_SRC)
@@ -320,17 +380,37 @@ def test_pool_composition_and_engine_scanner_path(mock_store: Path, tmp_path: Pa
     assert result.embedder_fingerprints == (_PIN,)
 
 
-def test_pool_rows_carry_minimal_composition_and_vec(fallback_export: ExportResult, tmp_path: Path) -> None:
+def test_pool_rows_carry_minimal_composition_and_vec(
+    fallback_export: ExportResult, tmp_path: Path
+) -> None:
     records_path = tmp_path / "data" / "pretrain" / "pretrain-test" / "records.jsonl"
-    rows = [json.loads(line) for line in records_path.read_text(encoding="utf-8").splitlines()]
+    rows = [
+        json.loads(line)
+        for line in records_path.read_text(encoding="utf-8").splitlines()
+    ]
     assert len(rows) == 4
     row = rows[0]
-    assert set(row) == {"id", "title", "body", "tags", "language", "record_type",
-                        "created_at", "content_hash", "vec_sha256", "vec"}
+    assert set(row) == {
+        "id",
+        "title",
+        "body",
+        "tags",
+        "language",
+        "record_type",
+        "created_at",
+        "content_hash",
+        "vec_sha256",
+        "vec",
+    }
     assert len(row["vec"]) == 384
     norm = math.sqrt(sum(v * v for v in row["vec"]))
     assert abs(norm - 1.0) < 1e-3
-    assert {r["id"] for r in rows} == {"id-good-1", "id-good-2", "id-good-3", "id-good-4"}
+    assert {r["id"] for r in rows} == {
+        "id-good-1",
+        "id-good-2",
+        "id-good-3",
+        "id-good-4",
+    }
     record_with_lang = next(r for r in rows if r["id"] == "id-good-3")
     assert record_with_lang["language"] == "ru"
     assert record_with_lang["record_type"] == "snippet"
@@ -339,9 +419,15 @@ def test_pool_rows_carry_minimal_composition_and_vec(fallback_export: ExportResu
 # ── near-duplicate pair bases ─────────────────────────────────────────────────
 
 
-def test_near_dup_pair_bands_and_ordering(fallback_export: ExportResult, tmp_path: Path) -> None:
-    pairs_path = tmp_path / "data" / "pretrain" / "pretrain-test" / "near_dup_candidates.jsonl"
-    rows = [json.loads(line) for line in pairs_path.read_text(encoding="utf-8").splitlines()]
+def test_near_dup_pair_bands_and_ordering(
+    fallback_export: ExportResult, tmp_path: Path
+) -> None:
+    pairs_path = (
+        tmp_path / "data" / "pretrain" / "pretrain-test" / "near_dup_candidates.jsonl"
+    )
+    rows = [
+        json.loads(line) for line in pairs_path.read_text(encoding="utf-8").splitlines()
+    ]
     assert fallback_export.counters.pairs == len(rows) == 1
     pair = rows[0]
     assert pair["pair_id"] == "id-good-1--id-good-2"  # a = earlier created_at
@@ -352,7 +438,9 @@ def test_near_dup_pair_bands_and_ordering(fallback_export: ExportResult, tmp_pat
     assert "--" not in pair["id_a"] and "--" not in pair["id_b"]
 
 
-def test_pair_sha256_verifiable_from_records_join(fallback_export: ExportResult, tmp_path: Path) -> None:
+def test_pair_sha256_verifiable_from_records_join(
+    fallback_export: ExportResult, tmp_path: Path
+) -> None:
     """Verifier path: rebuild the §3 sides from records.jsonl and recompute
     pair_sha256 — the lean row stays tamper-evident."""
     from cortex.data.fingerprints import pair_sha256 as fp
@@ -360,18 +448,45 @@ def test_pair_sha256_verifiable_from_records_join(fallback_export: ExportResult,
     corpus_dir = tmp_path / "data" / "pretrain" / "pretrain-test"
     records = {
         row["id"]: row
-        for row in (json.loads(line) for line in (corpus_dir / "records.jsonl").read_text(encoding="utf-8").splitlines())
+        for row in (
+            json.loads(line)
+            for line in (corpus_dir / "records.jsonl")
+            .read_text(encoding="utf-8")
+            .splitlines()
+        )
     }
-    for pair in (json.loads(line) for line in (corpus_dir / "near_dup_candidates.jsonl").read_text(encoding="utf-8").splitlines()):
+    for pair in (
+        json.loads(line)
+        for line in (corpus_dir / "near_dup_candidates.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+    ):
+
         def side(record_id: str) -> dict:
             row = records[record_id]
-            return {key: row[key] for key in ("title", "body", "tags", "language", "record_type", "created_at")}
+            return {
+                key: row[key]
+                for key in (
+                    "title",
+                    "body",
+                    "tags",
+                    "language",
+                    "record_type",
+                    "created_at",
+                )
+            }
 
-        rebuilt = {"record": side(pair["id_a"]), "candidate": side(pair["id_b"]), "similarity": pair["similarity"]}
+        rebuilt = {
+            "record": side(pair["id_a"]),
+            "candidate": side(pair["id_b"]),
+            "similarity": pair["similarity"],
+        }
         assert fp(rebuilt) == pair["pair_sha256"]
 
 
-def test_pair_fingerprints_reproducible_across_runs(mock_store: Path, tmp_path: Path) -> None:
+def test_pair_fingerprints_reproducible_across_runs(
+    mock_store: Path, tmp_path: Path
+) -> None:
     outs = []
     for i in (1, 2):
         result = export_store_corpus(
@@ -384,8 +499,15 @@ def test_pair_fingerprints_reproducible_across_runs(mock_store: Path, tmp_path: 
     first, second = outs
     assert first.pool_fingerprint == second.pool_fingerprint
     assert first.corpus_fingerprint == second.corpus_fingerprint
-    manifest = (tmp_path / "data1" / "pretrain" / "pretrain-test" / "near_dup_manifest.txt").read_bytes()
-    assert manifest == (tmp_path / "data2" / "pretrain" / "pretrain-test" / "near_dup_manifest.txt").read_bytes()
+    manifest = (
+        tmp_path / "data1" / "pretrain" / "pretrain-test" / "near_dup_manifest.txt"
+    ).read_bytes()
+    assert (
+        manifest
+        == (
+            tmp_path / "data2" / "pretrain" / "pretrain-test" / "near_dup_manifest.txt"
+        ).read_bytes()
+    )
     # manifest scheme: sorted "pair_id <sha256>" lines, \n-terminated (§5)
     lines = manifest.decode("utf-8").splitlines()
     assert lines == sorted(lines) and manifest.endswith(b"\n")
@@ -393,7 +515,10 @@ def test_pair_fingerprints_reproducible_across_runs(mock_store: Path, tmp_path: 
 
 def test_tampered_pool_breaks_fingerprint(mock_store: Path, tmp_path: Path) -> None:
     first = export_store_corpus(
-        store_path=mock_store, out_dir=tmp_path / "d1", corpus_id="pretrain-test", scanner=FallbackScanner()
+        store_path=mock_store,
+        out_dir=tmp_path / "d1",
+        corpus_id="pretrain-test",
+        scanner=FallbackScanner(),
     )
     # touch a memory's body → a new store vintage → fingerprint MUST move
     conn = sqlite3.connect(mock_store / "mnemos.db")
@@ -401,12 +526,17 @@ def test_tampered_pool_breaks_fingerprint(mock_store: Path, tmp_path: Path) -> N
     conn.commit()
     conn.close()
     second = export_store_corpus(
-        store_path=mock_store, out_dir=tmp_path / "d2", corpus_id="pretrain-test", scanner=FallbackScanner()
+        store_path=mock_store,
+        out_dir=tmp_path / "d2",
+        corpus_id="pretrain-test",
+        scanner=FallbackScanner(),
     )
     assert first.pool_fingerprint != second.pool_fingerprint
 
 
-def test_store_id_with_separator_refuses_export(mock_store: Path, tmp_path: Path) -> None:
+def test_store_id_with_separator_refuses_export(
+    mock_store: Path, tmp_path: Path
+) -> None:
     conn = sqlite3.connect(mock_store / "mnemos.db")
     conn.execute(
         "INSERT INTO memories (id, content, title, tags, memory_type, created_at, updated_at, metadata, status, embedding_id, quarantine_reason) "
@@ -416,24 +546,35 @@ def test_store_id_with_separator_refuses_export(mock_store: Path, tmp_path: Path
     conn.close()
     with pytest.raises(ValueError, match="separator"):
         export_store_corpus(
-            store_path=mock_store, out_dir=tmp_path / "d3", corpus_id="pretrain-test", scanner=FallbackScanner()
+            store_path=mock_store,
+            out_dir=tmp_path / "d3",
+            corpus_id="pretrain-test",
+            scanner=FallbackScanner(),
         )
 
 
 # ── CLI contract ──────────────────────────────────────────────────────────────
 
 
-def test_cli_export_corpus_happy_path(mock_store: Path, tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+def test_cli_export_corpus_happy_path(
+    mock_store: Path, tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
     from cortex.cli.main import main
 
     out = tmp_path / "data"
-    code = main([
-        "export-corpus",
-        "--store-path", str(mock_store),
-        "--out-dir", str(out),
-        "--corpus-id", "pretrain-test",
-        "--limit-pool", "800",
-    ])
+    code = main(
+        [
+            "export-corpus",
+            "--store-path",
+            str(mock_store),
+            "--out-dir",
+            str(out),
+            "--corpus-id",
+            "pretrain-test",
+            "--limit-pool",
+            "800",
+        ]
+    )
     assert code == 0
     captured = capsys.readouterr()
     summary = json.loads(captured.out)
@@ -444,25 +585,38 @@ def test_cli_export_corpus_happy_path(mock_store: Path, tmp_path: Path, capsys: 
     assert captured.err.strip(), "progress must be on stderr"
 
 
-def test_cli_export_corpus_rejects_bad_args(tmp_path: Path, capsys: pytest.CaptureFixture) -> None:
+def test_cli_export_corpus_rejects_bad_args(
+    tmp_path: Path, capsys: pytest.CaptureFixture
+) -> None:
     from cortex.cli.main import main
 
-    code = main([
-        "export-corpus",
-        "--store-path", str(tmp_path),
-        "--out-dir", str(tmp_path / "o"),
-        "--min-cosine", "0.97",
-        "--max-cosine", "0.85",
-    ])
+    code = main(
+        [
+            "export-corpus",
+            "--store-path",
+            str(tmp_path),
+            "--out-dir",
+            str(tmp_path / "o"),
+            "--min-cosine",
+            "0.97",
+            "--max-cosine",
+            "0.85",
+        ]
+    )
     assert code == 2
     assert "min-cosine" in capsys.readouterr().err
 
-    code = main([
-        "export-corpus",
-        "--store-path", str(tmp_path),
-        "--out-dir", str(tmp_path / "o"),
-        "--corpus-id", "../escape",
-    ])
+    code = main(
+        [
+            "export-corpus",
+            "--store-path",
+            str(tmp_path),
+            "--out-dir",
+            str(tmp_path / "o"),
+            "--corpus-id",
+            "../escape",
+        ]
+    )
     assert code == 2
     assert "corpus-id" in capsys.readouterr().err
 
@@ -489,7 +643,10 @@ def test_no_federate_tag_pinned_to_engine() -> None:
     models_py = ENGINE_SRC / "vesmaro" / "models.py"
     if not models_py.is_file():
         pytest.skip("engine read-only worktree not available on this machine")
-    match = re.search(r'NO_FEDERATE_TAG(?::\s*str)?\s*=\s*"([^"]+)"', models_py.read_text(encoding="utf-8"))
+    match = re.search(
+        r'NO_FEDERATE_TAG(?::\s*str)?\s*=\s*"([^"]+)"',
+        models_py.read_text(encoding="utf-8"),
+    )
     assert match, "engine models.py lost the NO_FEDERATE_TAG constant"
     assert match.group(1) == NO_FEDERATE_TAG
 
@@ -540,7 +697,9 @@ def test_store_record_side_composition() -> None:
 # ── field-cosine sidecar reader (A2 docompute consumer) ───────────────────────
 
 
-def _write_sidecar_npz(path: Path, ids: list[str], fp: str = "nano:sha256:ff" * 8) -> None:
+def _write_sidecar_npz(
+    path: Path, ids: list[str], fp: str = "nano:sha256:ff" * 8
+) -> None:
     rng = np.random.default_rng(7)
     title = rng.standard_normal((len(ids), 384)).astype(np.float32)
     title /= np.linalg.norm(title, axis=1, keepdims=True)
@@ -562,9 +721,17 @@ def _write_sidecar_npz(path: Path, ids: list[str], fp: str = "nano:sha256:ff" * 
 
 
 def test_field_sidecar_cosines_and_attach(tmp_path: Path) -> None:
-    from cortex.data.field_cosines import FieldSidecar, FieldSidecarError, attach_to_features
-    from cortex.features.pair import FIELD_COSINE_FEATURES, FEATURE_NAMES, FeatureVector, features
-    from cortex.features.pair import PairRecord
+    from cortex.data.field_cosines import (
+        FieldSidecar,
+        FieldSidecarError,
+        attach_to_features,
+    )
+    from cortex.features.pair import (
+        FEATURE_NAMES,
+        FIELD_COSINE_FEATURES,
+        PairRecord,
+        features,
+    )
 
     npz = tmp_path / "vectors" / "pretrain-test" / "field_vecs.npz"
     _write_sidecar_npz(npz, ["id-a", "id-b"], fp="nano:sha256:" + "ff" * 32)
@@ -573,7 +740,9 @@ def test_field_sidecar_cosines_and_attach(tmp_path: Path) -> None:
     assert sidecar.fingerprint == "nano:sha256:" + "ff" * 32
 
     # identical id → cosine 1.0 on every field
-    assert sidecar.cosines_for_pair("id-a", "id-a") == pytest.approx((1.0, 1.0, 1.0), abs=1e-6)
+    assert sidecar.cosines_for_pair("id-a", "id-a") == pytest.approx(
+        (1.0, 1.0, 1.0), abs=1e-6
+    )
     cos_title, cos_body, cos_tags = sidecar.cosines_for_pair("id-a", "id-b")
     for value in (cos_title, cos_body, cos_tags):
         assert -1.0 <= value <= 1.0
@@ -628,4 +797,9 @@ def test_field_sidecar_clamps_float32_overshoot(tmp_path: Path) -> None:
     sidecar = FieldSidecar(npz)
     cosines = sidecar.cosines_for_pair("a", "b")
     assert all(-1.0 <= value <= 1.0 for value in cosines)
-    attach_to_features(features(PairRecord("t", "b"), PairRecord("t", "b"), similarity=0.9), sidecar, "a", "b")
+    attach_to_features(
+        features(PairRecord("t", "b"), PairRecord("t", "b"), similarity=0.9),
+        sidecar,
+        "a",
+        "b",
+    )
