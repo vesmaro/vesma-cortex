@@ -48,7 +48,8 @@ rows = []
 for l in open(f"{args.in_dir}/pairs-pos.jsonl", encoding="utf-8"):
     r = json.loads(l)
     rows.append({"pair_id": r["pair_id"], "label": "duplicate",
-                 "record": r["original"], "candidate": r["variant"],
+                 "record": r["original"],
+                 "candidate": r.get("variant") or r.get("candidate"),
                  "stratum": r.get("stratum", "constructed")})
 for l in open(f"{args.in_dir}/pairs-neg.jsonl", encoding="utf-8"):
     r = json.loads(l)
