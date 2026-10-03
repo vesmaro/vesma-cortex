@@ -1,6 +1,6 @@
 # Доска состояния vesma-cortex
 
-Обновлена: 2026-09-29 (срез A3a).
+Обновлена: 2026-10-03 (волны MR).
 
 | Волна | Содержание | Статус | Где |
 |---|---|---|---|
@@ -11,6 +11,12 @@
 | A4 | стадия 1 обучена ✅; стадия 2 ГОТОВА К ПУСКУ (оркестратор scripts/stage2_run.py, dry-run зелёный, векторы реального корпуса досчитаны) — ждёт разметку; XPU-walkthrough опционален | 🔄 в работе | artifacts/manifests/stage1-run.md |
 | A5 | single-shot оценка | ✅ **ADOPT** (83178e3: sens 1.0, spec 0.98, Brier 0.0053, baseline 0.81 побит) | docs/experiments/calibration-ds1000-a5.md |
 | A6 | артефакт + провенанс | ✅ done (vesma-cortex-v1 sha 281bd0fd, хендофф у канона) — осталось W5d-wiring на стороне движка | artifacts/manifests/vesma-cortex-v1-ds1000.md |
+| B1/B2 | калибровки: доменное разнообразие (B1 ADOPT, в проде) · рёберная окрестность (B2 ADOPT → **отозван** 2026-10-03, #480) | ✅ done / ↩️ recalled | docs/experiments/calibration-b1-domain-diversity.md, calibration-b2-edge-neighborhood.md, b0-escalation.md |
+| B0 | телеметрия поля: delta-rate, no-harm-коридор | 🔄 идёт (прод на B1 с 23:07 UTC 2026-10-03; окно сегментировано точкой отзыва; вердикт до 2026-10-16) | docs/experiments/b0-telemetry-plan.md |
+| MR-0 | АрхКом: реестр артефактов, релизный цикл, методология — ADR 0003 + спеки model-registry / eval-methodology | ✅ done | docs/decisions/0003-model-artifacts-release-and-eval.md |
+| MR-1 | реестр: models/vesma-cortex-v1/ (B1, манифест schema 2), eval-results.json, MODEL_CARD (генерируется), gate_contract.json | 🔄 в работе (feat/model-product) | models/vesma-cortex-v1/, docs/specs/model-registry.md |
+| MR-2 | Layer A evalsets + CI-воркфлоу (ci.yml, nightly.yml, release-*) | ⬜ следующая | docs/specs/eval-methodology.md §3/§4 |
+| MR-3 | пакет: 0.2.0, wheel с весами, README | 🔄 в работе (feat/model-product) | pyproject.toml, README.md |
 
 ## Ждут владельца
 
@@ -21,6 +27,23 @@
    владельца).
 
 ## События
+
+- 2026-10-03: **отзыв B2 из прода** (решение TL по прецеденту): adversarial
+  sanity-сьют (#480) воспроизвёл инверсию прод-артефакта B2 `71f0572d`
+  (self_pair P(dup)=0.0108 при пороге ≥0.9); все три точки деплоя переведены
+  на B1 `beb0a65d` (sanity-PASS, self_pair 1.0000), рестарт 23:07 UTC, health
+  ok — [протокол отзыва](experiments/b0-escalation.md). Корневая причина
+  (подозрение: desync порядка фиче-колонок экспорта) НЕ устранена — fix
+  кандидат P0 после B0-вердикта. АрхКом MR0 в тот же день: ADR 0003 (реестр
+  `models/vesma-cortex-v1/`, релизный цикл, гейты инвариант/коридор/вердикт)
+  + спеки [model-registry](specs/model-registry.md) и
+  [eval-methodology](specs/eval-methodology.md) с gate_contract.json;
+  **MR-волны стартовали** (MR-1/MR-3 — ветка feat/model-product, MR-2 —
+  следующая). Freeze тегов `model-v*` до 2026-10-16.
+- 2026-10-01–03: волны калибровок B1 (dataset-v2, доменное разнообразие —
+  ADOPT 0.987/0.72, `beb0a65d`) и B2 (dataset-v3, рёберная окрестность —
+  ADOPT 0.983/0.628, `71f0572d`, отозван на следующий день — см. выше).
+  Протокол дополнен обязательным adversarial sanity suite перед любым ADOPT.
 
 - 2026-10-01 (утро): модель решений переименована владельцем: mnema-cortex →
   **vesma-cortex** (рефактор 45b4297; спека инференса синхронизирована тем же
