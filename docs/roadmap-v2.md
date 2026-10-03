@@ -106,9 +106,31 @@ baseline на всё более трудных корпусах; детальн�
 - [ ] Пререг/аддендум в vesma-canon main ДО прогона
 - [ ] Обучение + CV-отбор по замороженному протоколу
 - [ ] Single-shot holdout → все метрики пререга → вердикт
+- [ ] **Adversarial sanity suite зелёный — ДО цитирования любых метрик ADOPT**
+      (self-pair ≥ 0.9; near-boundary cos≈0.99 ≥ 0.5; unrelated < 0.5;
+      монотонность по cos-лестнице {1.0, 0.99, 0.95, 0.8, 0.5}; см. §5.1)
 - [ ] Артефакт-ревизия + fingerprint + провенанс
 - [ ] Пруф-отчёт в docs/reports/ + синхронизация доски/стора
 - [ ] При DECLINE — разбор причин, честная фиксация, триггеры повторной попытки
+
+### 5.1 Adversarial sanity suite (обязателен с 2026-10-03, vesmaro/vesma#480)
+
+> **Почему:** «B2 scored sens 0.989 while inverting the self-pair — the
+> eval surface had no exact self-pairs» (vesmaro/vesma#480).
+
+Каждый ADOPT начинается с adversarial sanity suite против артефакта-бандла
+(ONNX + манифест): четыре проверки на синтетических пробах — self-pair /
+near-boundary / unrelated / монотонность — плюс контрактные предпроверки
+(sha256, порядок фич манифеста и метаданных против замороженного
+13-фиче-контракта). Все зелёные ДО любых других метрик; красный suite
+блокирует ADOPT. Исполнитель:
+
+    uv run python scripts/eval_sanity_suite.py --bundle <dir-или-model.onnx>
+
+(exit ≠ 0 = провал; `--json` — машинный отчёт; регрессионные тесты —
+`tests/test_eval_sanity.py`). Полное описание проверок — раздел
+«Обязательный adversarial sanity suite» в
+[calibration-b2-edge-neighborhood.md](experiments/calibration-b2-edge-neighborhood.md).
 
 ## 6. Открытые вопросы владельцу
 
