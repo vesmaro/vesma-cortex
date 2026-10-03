@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "name": "vesma-cortex-gate-contract",
+  "created": "2026-10-03",
+  "authority": [
+    "docs/specs/eval-methodology.md #6 (anti-HARKing: values are pinned there and in CI)",
+    "docs/decisions/0003-model-artifacts-release-and-eval.md (invariant/corridor/verdict taxonomy, committee verdict)"
+  ],
+  "separation_rule": "A PR that changes this file must not contain artifact changes, and vice versa (eval-methodology #6) — hence this file lives OUTSIDE models/vesma-cortex-v1/.",
+  "invariants": {
+    "blocks": "merge",
+    "bundle_integrity": "sha256(model.onnx) == manifest 'sha256'",
+    "feature_contract": "manifest feature order == ONNX metadata 'features' == cortex.features.pair.FEATURE_NAMES (frozen 13); feature_set_sha256 == digest of that order",
+    "typed_output": "100% typed verdicts: every response carries a valid Noul + Score",
+    "self_pair": {
+      "metric": "P(dup | record vs itself, cos=1.0)",
+      "min": 0.9,
+      "defect_class": "vesmaro/vesma#480 self-pair inversion"
+    },
+    "monotonicity": {
+      "ladder_cos": [1.0, 0.99, 0.95, 0.8, 0.5],
+      "rule": "P non-increasing as cosine drops over the fixed probe pair",
+      "tolerance": 1e-06
+    }
+  },
+  "corridors": {
+    "blocks": "release",
+    "near_boundary": {
+      "metric": "P(dup | light perturbation of the probe)",
+      "cos": 0.99,
+      "min": 0.5,
+      "note": "cut = the runner DUPLICATE_THRESHOLD_PROBABILITY; catches threshold-edge collapses, does not rank close revisions"
+    },
+    "unrelated": {
+      "metric": "P(dup | different-topic pair)",
+      "cos": 0.578,
+      "max": 0.5,
+      "note": "the #480 unrelated-example point"
+    },
+    "prev_adopt": {
+      "rule": "BA(release) >= BA(prev ADOPT) - max(0.02; CI95)"
+    }
+  },
+  "verdicts": {
+    "blocks": "never (informational)",
+    "layer_b": "ADOPT/DECLINE by the frozen prereg v2 decision rule (6 conditions); owner decision",
+    "b0_delta_rate": "field-value criterion, not an artifact-quality gate"
+  },
+  "probes": {
+    "source": "src/cortex/eval/sanity.py — PROBE_RECORD / UNRELATED_RECORD (frozen synthetic content; no store, no network; deterministic)",
+    "runner": "scripts/eval_sanity_suite.py --bundle <dir-or-model.onnx> — exit code != 0 means FAIL, no ADOPT on a red suite",
+    "pairs_computed_via": "cortex.features.pair.features only (#480 lesson: local feature-math copies drift from the production wrapper)",
+    "probe_classes_covered": [
+      "identity/self (#480 class)",
+      "near-identity/twin",
+      "monotonicity",
+      "far-negative"
+    ],
+    "probe_classes_tails": [
+      "pair symmetry P(x,y)=P(y,x)",
+      "translated twins (in ds1000 synth, not in the suite)",
+      "type/lang mismatch (features exist, probes absent)",
+      "degenerates (uncovered)"
+    ],
+    "note": "coverage table per eval-methodology #7; tails are known blind spots, kept visible, not silent"
+  },
+  "change_control": "Thresholds change only by a pre-registered addendum BEFORE the eval run; raising a merge-gate threshold requires an owner directive (ADR 0003, 'Позиции и споры'; engine ADR-0026 precedent). Layer B re-export exception: unchanged weights_sha256 -> 1e-6 output equivalence on the frozen set instead of burning the holdout (eval-methodology #6)."
+}
