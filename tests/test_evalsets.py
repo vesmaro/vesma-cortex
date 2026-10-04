@@ -70,7 +70,7 @@ from cortex.evalsets.taxonomy import (
     PROBE_CLASS_TYPE_LANG_MISMATCH,
 )
 from cortex.evalsets.topics import EVAL_TOPICS, anchor_keys, anchor_records
-from cortex.features.pair import FEATURE_NAMES
+from cortex.features.pair import FEATURE_NAMES, features
 from cortex.pretrain.corruption import record_key
 from cortex.synth.generate import TOPICS
 
@@ -634,3 +634,212 @@ def test_evaluate_gates_pure_function_pins() -> None:
             probs[i] = 0.5
     gates = {g.name: g for g in evaluate_gates(probes, probs)}
     assert not gates["far-negative_ceiling"].passed
+
+
+# ── 8. the LA-2 LLM batch and the v2 sets ─────────────────────────────────────
+
+BATCH_PATH = EVALSETS_DIR / "llm-batches" / "la2-llm-batch-1.jsonl"
+MERGE_V2_ID = "merge-v2"
+RELEASE_V2_ID = "release-v2"
+MERGE_SLOTS_PER_CLASS = 5
+
+SLOT_CLASSES = {
+    PROBE_CLASS_TRANSLATION_TWINS: ("tt", "duplicate"),
+    PROBE_CLASS_LLM_PARAPHRASE: ("lp", "duplicate"),
+    PROBE_CLASS_LLM_NEAR_TOPIC: ("ln", "not-duplicate"),
+}
+
+
+@pytest.fixture(scope="module")
+def la2_batch() -> list[dict]:
+    rows = load_llm_slots(BATCH_PATH)
+    assert rows, "the LA-2 batch must be committed"
+    return rows
+
+
+def _side_as_record(side: dict):
+    from cortex.features.pair import PairRecord
+
+    return PairRecord(
+        title=side["title"],
+        body=side["body"],
+        tags=tuple(side.get("tags", ())),
+        language=side.get("language"),
+        record_type=side.get("record_type"),
+    )
+
+
+def _select_merge_slots(rows: list[dict]) -> list[dict]:
+    """The documented merge rule: first MERGE_SLOTS_PER_CLASS rows per class."""
+    counts = dict.fromkeys(SLOT_CLASSES, 0)
+    selected = []
+    for row in rows:
+        name = row["class"]
+        if counts[name] < MERGE_SLOTS_PER_CLASS:
+            selected.append(row)
+            counts[name] += 1
+    return selected
+
+
+def test_llm_batch_fills_all_three_slots(la2_batch: list[dict]) -> None:
+    assert len(la2_batch) == 36
+    counts = dict.fromkeys(SLOT_CLASSES, 0)
+    for row in la2_batch:
+        name = row["class"]
+        assert name in SLOT_CLASSES
+        counts[name] += 1
+        prefix, label = SLOT_CLASSES[name]
+        assert row["label"] == label
+        assert row["source"] == "llm-batch:la2"
+        assert row["pair_id"].startswith(prefix + "-")
+    assert counts == dict.fromkeys(SLOT_CLASSES, 12)
+
+
+def test_llm_batch_language_and_type_mix(la2_batch: list[dict]) -> None:
+    types: set[str] = set()
+    for row in la2_batch:
+        rec, cand = row["record"], row["candidate"]
+        types.add(rec["record_type"])
+        types.add(cand["record_type"])
+        if row["class"] == PROBE_CLASS_TRANSLATION_TWINS:
+            assert rec["language"] != cand["language"]
+            assert {rec["language"], cand["language"]} == {"ru", "en"}
+        else:
+            assert rec["language"] == cand["language"]
+    assert types == {"note", "fact", "decision"}
+    for name in (PROBE_CLASS_LLM_PARAPHRASE, PROBE_CLASS_LLM_NEAR_TOPIC):
+        langs = [row["record"]["language"] for row in la2_batch if row["class"] == name]
+        assert langs.count("ru") == 6 and langs.count("en") == 6
+
+
+def test_llm_batch_texts_deduped_and_disjoint(la2_batch: list[dict]) -> None:
+    """No two identical texts anywhere: within the batch, against the v1
+    sets, and against the train/eval topic surfaces."""
+    seen_keys: set[str] = set()
+    seen_titles: set[str] = set()
+    for set_id in ("merge-v1", "release-v1"):
+        for probe in load_eval_set(EVALSETS_DIR / f"{set_id}.jsonl").probes:
+            for side in (probe.record, probe.candidate):
+                seen_keys.add(record_key(side))
+                seen_titles.add(side.title)
+    for topic in TOPICS:
+        seen_keys.add(record_key(topic.as_record()))
+        seen_titles.add(topic.title)
+    for topic in EVAL_TOPICS:
+        seen_keys.add(record_key(topic.as_record()))
+        seen_titles.add(topic.title)
+    for anchor in (PROBE_RECORD, UNRELATED_RECORD):
+        seen_keys.add(record_key(anchor))
+        seen_titles.add(anchor.title)
+
+    for row in la2_batch:
+        for side_raw in (row["record"], row["candidate"]):
+            side = _side_as_record(side_raw)
+            key = record_key(side)
+            assert key not in seen_keys, f"duplicate text in batch: {side.title!r}"
+            assert side.title not in seen_titles
+            seen_keys.add(key)
+            seen_titles.add(side.title)
+
+
+def test_llm_batch_pairs_pass_through_pair_features(la2_batch: list[dict]) -> None:
+    """The #480 rule on the batch itself: every pair scores through
+    cortex.features.pair.features with the frozen 13-name contract."""
+    import math
+
+    for row in la2_batch:
+        vector = features(
+            _side_as_record(row["record"]),
+            _side_as_record(row["candidate"]),
+            float(row["similarity"]),
+        )
+        assert vector.names == FEATURE_NAMES
+        assert len(vector.values) == len(FEATURE_NAMES)
+        assert all(math.isfinite(value) for value in vector.values)
+
+
+@pytest.mark.parametrize("set_id", [MERGE_V2_ID, RELEASE_V2_ID])
+def test_v2_committed_sets_match_their_pins(set_id: str, la2_batch: list[dict]) -> None:
+    """The v2 freeze: committed JSONL == deterministic rebuild over the
+    v1 recipe + the batch (merge: first-5-per-class subset; release: full),
+    sha == meta, manifest.txt == §5 bytes, counts == meta."""
+    recipe = dataclasses.replace(
+        MERGE_V1 if set_id == MERGE_V2_ID else RELEASE_V1, set_id=set_id
+    )
+    slots = _select_merge_slots(la2_batch) if set_id == MERGE_V2_ID else la2_batch
+    rebuilt = build_eval_set(recipe, seed=DEFAULT_SEED, llm_slots=slots)
+
+    jsonl_path = EVALSETS_DIR / f"{set_id}.jsonl"
+    assert jsonl_path.is_file(), "the frozen v2 set must be committed"
+    assert jsonl_path.read_text(encoding="utf-8") == eval_set_jsonl(rebuilt.probes)
+
+    meta = json.loads((EVALSETS_DIR / f"{set_id}.meta.json").read_text("utf-8"))
+    assert meta["set_id"] == set_id
+    assert meta["eval_set_sha256"] == rebuilt.eval_set_sha256
+    assert meta["n_pairs"] == len(rebuilt.probes)
+    assert meta["per_class"] == rebuilt.per_class
+    assert meta["llm_batch_rows"] == len(slots)
+    assert meta["llm_generator"] == "la2-llm-batch-1"
+
+    manifest_path = EVALSETS_DIR / f"{set_id}.manifest.txt"
+    assert manifest_path.read_bytes() == eval_set_manifest_bytes(rebuilt.probes)
+
+    loaded = load_eval_set(jsonl_path)
+    assert loaded.eval_set_sha256 == meta["eval_set_sha256"]
+    assert loaded.role == meta["role"]
+
+
+@pytest.mark.parametrize(
+    "set_id,base_id",
+    [(MERGE_V2_ID, "merge-v1"), (RELEASE_V2_ID, "release-v1")],
+)
+def test_v2_double_run_byte_identical_and_fingerprint_moves(
+    set_id: str, base_id: str, la2_batch: list[dict]
+) -> None:
+    recipe = dataclasses.replace(
+        MERGE_V1 if base_id == "merge-v1" else RELEASE_V1, set_id=set_id
+    )
+    slots = _select_merge_slots(la2_batch) if set_id == MERGE_V2_ID else la2_batch
+    first = build_eval_set(recipe, seed=DEFAULT_SEED, llm_slots=slots)
+    second = build_eval_set(recipe, seed=DEFAULT_SEED, llm_slots=slots)
+    assert eval_set_jsonl(first.probes) == eval_set_jsonl(second.probes)
+    assert first.eval_set_sha256 == second.eval_set_sha256
+
+    v1 = load_eval_set(EVALSETS_DIR / f"{base_id}.jsonl")
+    assert first.eval_set_sha256 != v1.eval_set_sha256
+    # the slots moved from honest zeros to the batch counts
+    for name in SLOT_CLASSES:
+        assert v1.per_class[name] == 0
+        assert first.per_class[name] > 0
+    # the procedural base stays byte-stable across the version bump: the
+    # v2 probe rows minus the slot rows == the v1 rows, ids and all
+    v1_rows = eval_set_jsonl(v1.probes).splitlines()
+    v2_rows = eval_set_jsonl(first.probes).splitlines()
+    assert v2_rows[: len(v1_rows)] == v1_rows
+
+
+def test_v2_merge_slots_are_the_documented_subset(
+    la2_batch: list[dict],
+) -> None:
+    """merge-v2 carries the first 5 rows per class, batch order; release-v2
+    carries all 36; the merge slot block is a prefix-preserving subset."""
+    merge_set = load_eval_set(EVALSETS_DIR / f"{MERGE_V2_ID}.jsonl")
+    release_set = load_eval_set(EVALSETS_DIR / f"{RELEASE_V2_ID}.jsonl")
+    assert len(merge_set.probes) == 60 + 3 * MERGE_SLOTS_PER_CLASS
+    assert len(release_set.probes) == 201 + len(la2_batch)
+
+    expected_ids = [row["pair_id"] for row in _select_merge_slots(la2_batch)]
+    merge_slot_ids = [
+        probe.pair_id for probe in merge_set.probes if probe.source == "llm-batch:la2"
+    ]
+    release_slot_ids = [
+        probe.pair_id for probe in release_set.probes if probe.source == "llm-batch:la2"
+    ]
+    assert merge_slot_ids == expected_ids
+    assert release_slot_ids == [row["pair_id"] for row in la2_batch]
+    assert set(merge_slot_ids) < set(release_slot_ids)
+    # the procedural part of merge-v2 is exactly merge-v1 (same pair ids)
+    merge_v1_ids = [
+        probe.pair_id for probe in load_eval_set(EVALSETS_DIR / "merge-v1.jsonl").probes
+    ]
+    assert [p.pair_id for p in merge_set.probes][: len(merge_v1_ids)] == merge_v1_ids
