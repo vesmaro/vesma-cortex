@@ -14,17 +14,37 @@
 | B1/B2 | калибровки: доменное разнообразие (B1 ADOPT, в проде) · рёберная окрестность (B2 ADOPT → **отозван** 2026-10-03, #480) | ✅ done / ↩️ recalled | docs/experiments/calibration-b1-domain-diversity.md, calibration-b2-edge-neighborhood.md, b0-escalation.md |
 | B0 | телеметрия поля: delta-rate, no-harm-коридор | 🔄 идёт (прод на B1 с 23:07 UTC 2026-10-03; окно сегментировано точкой отзыва; вердикт до 2026-10-16) | docs/experiments/b0-telemetry-plan.md |
 | MR-0 | АрхКом: реестр артефактов, релизный цикл, методология — ADR 0003 + спеки model-registry / eval-methodology | ✅ done | docs/decisions/0003-model-artifacts-release-and-eval.md |
-| MR-1 | реестр: models/vesma-cortex-v1/ (B1, манифест schema 2), eval-results.json, MODEL_CARD (генерируется), gate_contract.json | 🔄 в работе (feat/model-product) | models/vesma-cortex-v1/, docs/specs/model-registry.md |
-| MR-2 | Layer A evalsets + CI-воркфлоу (ci.yml, nightly.yml, release-*) | ⬜ следующая | docs/specs/eval-methodology.md §3/§4 |
+| MR-1 | реестр: models/vesma-cortex-v1/ (B1, манифест schema 2), eval-results.json, MODEL_CARD (генерируется), gate_contract.json | ✅ done (4ada9a1) | models/vesma-cortex-v1/, docs/specs/model-registry.md |
+| MR-2 | CI-конвейер: ci/nightly/release-model/release-py (+ ruff-проход, защита main) | ✅ done (01ca519; CI зелёный, PR-поток) | .github/workflows/ |
+| LA-1 | Layer A evalsets: merge 60 / release 201 пар, таксономия 8 классов, раннер, fingerprints | ✅ done (fc240d2; B1 PASS с 2 находками в манифесте) | datasets/evalsets/, src/cortex/evalsets/ |
+| LA-2 | LLM-батчи проб (translation-twins, paraphrase, near-topic) → evalsets v2 | ⬜ следующая (dataset-engineer) | слоты в src/cortex/evalsets/ |
 | MR-3 | пакет: 0.2.0, wheel с весами, README | 🔄 в работе (feat/model-product) | pyproject.toml, README.md |
+
+## Семья обязанностей кортекса (реестр ADR 0002) — карта для человека
+
+Зафиксировано владельцем 2026-10-04 («зафиксируй и закрепи»). Семья узких
+артефактов: фиче-ядро общее КОДОМ, веса у каждой обязанности свои.
+
+| Обязанность | По-простому | Выход | Статус |
+|---|---|---|---|
+| is-duplicate | «заметка — копия существующей?» | Noul + скор | ✅ в проде (B1 `beb0a65d` с 2026-10-03) |
+| is-duplicate v2 (граф-фичи) | то же + учёт связей между записями | Noul | 🔧 механика кодом (B2-волна); ревизия ждёт ≥200 пар граф-эвиденса (сейчас 14/600) |
+| record-quality | «заметка полная или битая?» | Score | ✅ санкционировано; фаза 1 — детерминированная, без весов |
+| merge-arbiter | «как правильно слить близкие?» | Choice | ✅ санкционировано; старт после B0-вердикта (16.10) |
+| conflict-detector | «эти две записи противоречат?» | Noul | ⬜ очередь (нужна SQL-миграция kind `contradicts`) |
+| relevance-judge | «уместно ли показывать?» | Score | ⏸ отложено (триггер: строго лучше awareness-эвристики на B0) |
+| staleness | «устарела ли?» | Noul | ⏸ отложено (триггер: ≥100 supersede-событий) |
+| value/importance | «важная ли?» | Score | ⏸ отложено (триггер: ≥1000 used-событий) |
+| best-match | «какой из найденных лучший?» | Choice | ⏸ отложено (триггер на телеметрии) — ближайший родственник роутинг-предложения владельца (АрхКом-очередь 2026-10-04) |
+| answerability | «ответит ли память на это?» | Choice | ⏸ отложено (триггер) |
+| — отклонено | генерация текста; canon-score | — | ❌ навсегда (граница продукта) |
 
 ## Ждут владельца
 
-1. **Разметка 196 пар** — кросс-гейт канон-сессии (W5b): пакет разметки готов
-   (`vesmaro-canon-data/labeling/` — карточки, кодбук, labels.csv), препрег v2
-   и аддендум 1 ратифицированы; без меток A5 невозможен (~2–3 ч работы).
-2. **Лицензия** для публичной репы (семейный дефолт Apache-2.0; решение
-   владельца).
+1. **09.10**: таблица разметки знака дельты (кто прав — модель или базлайн
+   — на выборке живых расхождений); готовит TL.
+2. **После 16.10**: санкция PyPI-публикации 0.2.0 (готово, ждёт B0-вердикта).
+3. **Ратификация** гейт-таблицы eval-методологии (docs/specs/eval-methodology.md §4).
 
 ## События
 
