@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "set_id": "release-v2",
+  "role": "release",
+  "eval_set_sha256": "dbc496abb29438f3ffba1f194dcb63707108c959904ec88646fb3216fd5619dd",
+  "n_pairs": 237,
+  "per_class": {
+    "identity-self": 18,
+    "near-identity-twin": 18,
+    "pair-symmetry": 28,
+    "monotonicity-ladder": 35,
+    "far-negative": 60,
+    "translation-twins": 12,
+    "type-lang-mismatch": 36,
+    "degenerate": 6,
+    "llm-paraphrase": 12,
+    "llm-near-topic": 12
+  },
+  "seed": 20261004,
+  "created": "2026-10-04",
+  "generator": "scripts/gen_evalsets_v2.py (cortex.evalsets.build_eval_set + la2-llm-batch-1)",
+  "llm_batch": "datasets/evalsets/llm-batches/la2-llm-batch-1.jsonl",
+  "llm_batch_rows": 36,
+  "llm_generator": "la2-llm-batch-1",
+  "fingerprint_scheme": "data-contract §5: pair_sha256 over canonical {record, candidate, similarity, label}; manifest 'pair_id <sha>' sorted by pair_id; BLAKE2b-256 over manifest bytes"
+}

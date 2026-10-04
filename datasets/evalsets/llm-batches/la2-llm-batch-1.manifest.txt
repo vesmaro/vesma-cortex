@@ -1,0 +1,38 @@
+# LLM-batch manifest — la2-llm-batch-1 (wave LA-2, 2026-10-04)
+#
+# Author-written probe texts filling the three LA-1 empty slots. The batch
+# is the SOURCE; the frozen sets (merge-v2 / release-v2) are snapshots of
+# v1 procedural content + these rows. Editing the batch never touches a
+# frozen set — it produces a new batch and new set versions with new
+# fingerprints (eval-methodology §3; generate.py module docstring).
+
+generator:        la2-llm-batch-1
+date:             2026-10-04
+source_field:     llm-batch:la2
+file:             la2-llm-batch-1.jsonl
+sha256 (file):    ad9f34b020f2f466f0eeb381b44fb7e3a8e720a291e33ffa267059d6bb2f2f78
+rows:             36 (canonical JSON, one probe row per line)
+classes:          translation-twins 12 · llm-paraphrase 12 · llm-near-topic 12
+pair_ids:         tt-0000..0011, lp-0000..0011, ln-0000..0011
+labels:           translation-twins/llm-paraphrase = duplicate (same thought,
+                  same facts: RU/EN twin, or restructured wording);
+                  llm-near-topic = not-duplicate (close topic, at least one
+                  fact changed — the hard negative)
+languages:        translation-twins RU+EN by definition; paraphrase 6 RU + 6 EN;
+                  near-topic 6 RU + 6 EN
+record types:     mix of note / fact / decision across all classes
+similarity:       ASSIGNED measured-cosine input per row (part of the probe
+                  semantics, fingerprinted): translation-twins rotate
+                  {0.96, 0.94, 0.92, 0.90, 0.88} (cross-language embedder
+                  zone), llm-paraphrase rotates {0.99..0.95} (paraphrase
+                  zone), llm-near-topic rotates {0.92..0.80} (the W4c
+                  hard-negative zone)
+admission checks: schema via the slot contract; per-class counts; label and
+                  language contracts; text dedup within the batch AND against
+                  every v1 probe text (record_key); topic disjointness from
+                  the train seed list (synth TOPICS) and the eval anchors;
+                  cortex.features.pair.features pass on every pair
+consumption:      release-v2 takes all 36 rows; merge-v2 takes the FIRST 5
+                  rows per class in batch order (15 rows; v1 prefix
+                  convention). scripts/gen_evalsets_v2.py --check re-verifies
+                  both sets byte-for-byte.

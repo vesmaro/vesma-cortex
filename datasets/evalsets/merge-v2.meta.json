@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "set_id": "merge-v2",
+  "role": "merge",
+  "eval_set_sha256": "a02590f9a7aafa1d861e8cc0a16b07178242d68107f528bf70a640916f9e374a",
+  "n_pairs": 75,
+  "per_class": {
+    "identity-self": 8,
+    "near-identity-twin": 8,
+    "pair-symmetry": 10,
+    "monotonicity-ladder": 10,
+    "far-negative": 10,
+    "translation-twins": 5,
+    "type-lang-mismatch": 8,
+    "degenerate": 6,
+    "llm-paraphrase": 5,
+    "llm-near-topic": 5
+  },
+  "seed": 20261004,
+  "created": "2026-10-04",
+  "generator": "scripts/gen_evalsets_v2.py (cortex.evalsets.build_eval_set + la2-llm-batch-1)",
+  "llm_batch": "datasets/evalsets/llm-batches/la2-llm-batch-1.jsonl",
+  "llm_batch_rows": 15,
+  "llm_generator": "la2-llm-batch-1",
+  "fingerprint_scheme": "data-contract §5: pair_sha256 over canonical {record, candidate, similarity, label}; manifest 'pair_id <sha>' sorted by pair_id; BLAKE2b-256 over manifest bytes"
+}
