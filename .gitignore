@@ -3,7 +3,13 @@
 # src/cortex/data/ — the fingerprints/holdout CONTRACT code (A3a lesson).
 /data/
 *.db
-/datasets/
+/datasets/*
+# Layer A frozen eval sets (eval-methodology §3; ADR 0003 R2: synthetic
+# probe content is committable — no store lines, fingerprinted). Only the
+# evalsets subtree is re-included; the rest of datasets/ stays closed.
+# Negations sit AFTER the blocking pattern (same idiom as models/ below).
+!/datasets/evalsets/
+!/datasets/evalsets/**
 /artifacts/weights/
 *.pt
 *.onnx
