@@ -43,7 +43,8 @@ EXPECTED_STRATA = {
     "P-para-struct": 35,
     "P-trans": 60,
     "N-metadata": 112,
-    "N-fact-edit": 192,
+    "N-fact-edit": 220,
+    "N-para-notdup": 36,
     "N-near": 49,
     "N-far": 108,
 }
@@ -56,20 +57,22 @@ def loaded():
 
 @pytest.fixture(scope="module")
 def pairs(loaded):
-    base_ru, base_en, near_rows, paras, facts = loaded
-    return gen.build_pairs(base_ru, base_en, near_rows, paras, facts)
+    base_ru, base_en, near_rows, paras, facts, same_len, notdup = loaded
+    return gen.build_pairs(base_ru, base_en, near_rows, paras, facts, same_len, notdup)
 
 
 def test_batches_validate(loaded) -> None:
-    base_ru, base_en, near_rows, paras, facts = loaded
+    base_ru, base_en, near_rows, paras, facts, same_len, notdup = loaded
     assert len(base_ru) == len(base_en) == 48
     assert set(base_ru) == set(base_en)
     assert near_rows, "near-topic negatives must exist"
     assert facts, "fact specs must exist"
+    assert len(same_len) == 14, "v4.2 same-length T3 quota"
+    assert len(notdup) == 36, "v4.2 paraphrase-not-dup quota"
 
 
 def test_batch_themes_are_disjoint_from_eval_and_train_surfaces(loaded) -> None:
-    base_ru, base_en, near_rows, paras, facts = loaded
+    base_ru, base_en, near_rows, paras, facts, _, _ = loaded
     para_flat = [row for rows in paras.values() for row in rows]
     gen.check_disjointness(base_ru, base_en, near_rows, para_flat)
 
@@ -82,10 +85,11 @@ def test_construction_quotas(pairs) -> None:
     labels = {"duplicate": 0, "not-duplicate": 0}
     for p in pairs:
         labels[p["label"]] += 1
-    assert labels == {"duplicate": 575, "not-duplicate": 461}
+    assert labels == {"duplicate": 575, "not-duplicate": 525}
     ids = [p["pair_id"] for p in pairs]
-    assert len(ids) == len(set(ids)) == 1036
-    # v4.1 razor parity: T1 positives meet the T3 negatives 1:1 (±20 %)
+    assert len(ids) == len(set(ids)) == 1100
+    # v4.1 razor parity (kept by addendum 5c): T1 positives meet the T3
+    # negatives within ±20 % even after the same-length family lands
     assert by_stratum["P-cosmetic"] == 192
     assert abs(by_stratum["P-cosmetic"] - by_stratum["N-fact-edit"]) <= round(
         0.2 * by_stratum["N-fact-edit"]
@@ -145,9 +149,60 @@ def test_t3_carries_both_orientations(pairs) -> None:
     reverse = {
         (canonical_json(p["candidate"]), canonical_json(p["record"])) for p in facts
     }
-    assert len(facts) == 192
+    assert len(facts) == 220
     assert forward == reverse
     assert len(forward) == len(facts)  # every pair distinct, mirror present
+
+
+def test_t3_same_length_family_covers_the_probe_geometry(pairs) -> None:
+    """Wave D4-4 (addendum 5c): the same-length T3 family must (a) hold at
+    least a 30 % share of the stratum and (b) put at least 15 pairs at the
+    suite probe's containment height (char5_containment >= 0.9764) — the
+    b2p-v41 diagnosis: only 2/192 v4.1 T3 pairs reached it."""
+    from cortex.data.corner_qa import corners_of_pair
+
+    facts = [p for p in pairs if p["stratum"] == "N-fact-edit"]
+    same_len = [
+        p
+        for p in facts
+        if len(p["record"]["body"]) == len(p["candidate"]["body"])
+        and p["record"]["title"] == p["candidate"]["title"]
+        and p["record"]["tags"] == p["candidate"]["tags"]
+    ]
+    assert len(same_len) >= 0.3 * len(facts)
+    heights = [
+        p
+        for p in facts
+        if corners_of_pair({**p, "similarity": 0.99})["features"]["char5_containment"]
+        >= 0.9764
+    ]
+    assert 15 <= len(heights) <= 20, f"probe-height T3 pairs: {len(heights)}"
+
+
+def test_notdup_class_geometry(pairs) -> None:
+    """Wave D4-4: every paraphrase-not-duplicate pair carries a duplicate-
+    like NORMALIZED char profile (containment >= 0.9, zero len-deltas,
+    title equal after normalization) with exactly one fact token changed —
+    while the RAW measured surface differs by the case rewrite (the frozen
+    embedder reads it, dropping cosine into the 0.4-0.7 band)."""
+    from cortex.data.corner_qa import corners_of_pair
+
+    pnd = [p for p in pairs if p["stratum"] == "N-para-notdup"]
+    assert len(pnd) == 36
+    for p in pnd:
+        assert p["label"] == "not-duplicate"
+        a, b = p["record"], p["candidate"]
+        assert a["title"] != b["title"]  # the measured surface differs
+        assert a["title"].lower() == b["title"].lower()  # normalizes equal
+        c = corners_of_pair({**p, "similarity": 0.60})
+        fm = c["features"]
+        assert c["len_deltas_zero"], p["pair_id"]
+        assert fm["char5_jaccard"] >= 0.9, p["pair_id"]
+        assert fm["char5_containment"] >= 0.9, p["pair_id"]
+        assert fm["char3_containment"] >= 0.9, p["pair_id"]
+        norm_a = " ".join(f"{a['title']}\n{a['body']}".split()).lower()
+        norm_b = " ".join(f"{b['title']}\n{b['body']}".split()).lower()
+        assert norm_a != norm_b  # the fact edit survives normalization
 
 
 def test_light_transform_mass_and_signature(pairs) -> None:
@@ -223,14 +278,14 @@ def test_identity_positives_pin_the_corner(pairs) -> None:
 
 
 def test_double_build_is_byte_identical(loaded) -> None:
-    base_ru, base_en, near_rows, paras, facts = loaded
-    a = gen.build_pairs(base_ru, base_en, near_rows, paras, facts)
-    b = gen.build_pairs(base_ru, base_en, near_rows, paras, facts)
+    base_ru, base_en, near_rows, paras, facts, same_len, notdup = loaded
+    a = gen.build_pairs(base_ru, base_en, near_rows, paras, facts, same_len, notdup)
+    b = gen.build_pairs(base_ru, base_en, near_rows, paras, facts, same_len, notdup)
     assert canonical_json(a) == canonical_json(b)
 
 
 def test_first_spec_per_cell_is_deterministic_quota(loaded) -> None:
-    _, _, _, _, facts = loaded
+    _, _, _, _, facts, _, _ = loaded
     picked = gen._first_spec_per_cell(facts)
     cells = [(s["key"], s["lang"]) for s in picked]
     assert len(cells) == len(set(cells)) == 96
@@ -243,7 +298,7 @@ def test_first_spec_per_cell_is_deterministic_quota(loaded) -> None:
 def test_split_seventyfive_twentyfive_no_overlap(pairs) -> None:
     train, hold = gen.stratified_split(pairs, gen.HOLDOUT_FRACTION)
     assert len(train) + len(hold) == len(pairs)
-    assert len(hold) == 260 and len(train) == 776
+    assert len(hold) == 276 and len(train) == 824
     assert_no_pair_overlap([r["pair_id"] for r in train], [r["pair_id"] for r in hold])
     # per (label, stratum) cell the holdout share is exactly ceil(0.25·n)
     cells: dict[tuple[str, str], int] = {}

@@ -1,0 +1,14 @@
+{"key": "sketching-practice", "lang": "ru", "find": " 15 м", "replace": " 19 м"}
+{"key": "sketching-practice", "lang": "ru", "find": " 15 м", "replace": " 12 м"}
+{"key": "fridge-temperature", "lang": "ru", "find": "л 4 °", "replace": "л 8 °"}
+{"key": "fridge-temperature", "lang": "ru", "find": " 18 °", "replace": " 14 °"}
+{"key": "insurance-checkup", "lang": "ru", "find": " 15 %", "replace": " 19 %"}
+{"key": "insurance-checkup", "lang": "ru", "find": " 15 %", "replace": " 16 %"}
+{"key": "knife-sharpening", "lang": "en", "find": " 15-d", "replace": " 10-d"}
+{"key": "car-winter-tires", "lang": "ru", "find": "х 2,3", "replace": "х 2,8"}
+{"key": "seed-starting", "lang": "en", "find": "m 6:0", "replace": "m 7:0"}
+{"key": "robot-vacuum-map", "lang": "ru", "find": "в 10:", "replace": "в 16:"}
+{"key": "robot-vacuum-map", "lang": "en", "find": "t 10:", "replace": "t 16:"}
+{"key": "freezer-inventory", "lang": "ru", "find": "и 3 ф", "replace": "и 9 ф"}
+{"key": "freezer-inventory", "lang": "en", "find": "y 3 a", "replace": "y 9 a"}
+{"key": "thermostat-schedule", "lang": "en", "find": " 17 °", "replace": " 11 °"}
