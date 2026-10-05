@@ -2,13 +2,13 @@
   "schema_version": 1,
   "artifact": {
     "name": "vesma-cortex",
-    "revision": "B1",
-    "weights_sha256": "beb0a65da14f9ed2554951aa8850f68db47fd1212af1577955239a34ab04a091",
+    "revision": "B2-v42",
+    "weights_sha256": "00fc6b71c62dbfa8268db358b39c0a4d9f30148805a4a18986487bc70e8346b2",
     "feature_set_sha256": "dd86228f8c634f28d8a15b2d8279da1b99735d68e309be02d30f1c24698fa6af",
-    "manifest_sha256": "21e0f17349d6b8c5fef45ca63cfd8fc3af00060a60e56a7603432f512413b9ff",
+    "manifest_sha256": "bd9fd28a7fe1013bdf2d66a6aa87bb0537951b9f987b632aa044275f64ff168f",
     "candidate": "d-boost"
   },
-  "gate_contract_sha256": "6dd67367601bd6a4fa0d9a067591742a1ac05f58c6c36825596d748d781fef32",
+  "gate_contract_sha256": "048fc5d951b1696ff127e4d0a617d6e9a84072a8bc28860bb5807a42c3025c88",
   "layers": {
     "A_sanity": {
       "status": "PASS",
@@ -16,50 +16,113 @@
         "bundle_integrity": "PASS",
         "feature_contract": "PASS",
         "candidate_supported": "PASS (d-boost)",
-        "self_pair": 1.0,
-        "near_boundary": 1.0,
-        "unrelated": 0.0,
+        "self_pair": 0.9981,
+        "cosmetic_twin": 0.9967,
+        "fact_edit_twin": 0.0784,
+        "envelope_variant": 0.9981,
+        "unrelated": 0.0011,
         "monotonicity": "PASS"
       },
       "margins": {
-        "self_pair": "1.0000 vs required >= 0.9 (margin +0.1)",
-        "near_boundary": "1.0000 at cos=0.99 vs required >= 0.5 (margin +0.5)",
-        "unrelated": "0.0000 at cos=0.578 vs ceiling < 0.5 (headroom 0.5)",
-        "monotonicity": "non-increasing over ladder cos=1.00:1.0000, 0.99:1.0000, 0.95:1.0000, 0.80:1.0000, 0.50:1.0000 (tolerance 1e-06)"
+        "self_pair": "0.9981 vs required >= 0.9 (margin +0.0981)",
+        "cosmetic_twin": "0.9967 @ cos 0.99 vs required >= 0.5 (margin +0.4967; policy v1.1 8.2: punctuation = cosmetic/T1)",
+        "fact_edit_twin": "0.0784 @ cos 0.99 vs ceiling < 0.5 (headroom 0.4216; key-fact edit = razor/T3). Was 0.9320 on B2-v41 - the C1 corpus fix (addendum 5c) closed the T1/T3 overlap",
+        "envelope_variant": "0.9981 @ cos 1.0 vs required >= 0.5 (policy v1.1 8.1 whitelist; feature-degenerate to self-pair by OQ-2)",
+        "unrelated": "0.0011 @ cos 0.578 vs ceiling < 0.5 (headroom 0.4989)",
+        "monotonicity": "zoned v2: P(0.95) >= P(0.8) >= P(0.5) holds with equality (0.9968 = 0.9968 = 0.9968, tol 1e-06); steps above cos 0.95 not asserted (razor zone two-valued by policy v1.1)"
       },
-      "raw_ladder_probabilities": [0.9999924898147583, 0.9999919533729553, 0.9999780654907227, 0.9999780654907227, 0.9999780654907227],
+      "raw_ladder_probabilities": [
+        0.9973376989364624,
+        0.9967477321624756,
+        0.9968370199203491,
+        0.9968370199203491,
+        0.9968370199203491
+      ],
+      "exam_cohort": "v2 (manifest sanity_exam stamp)",
       "suite": {
         "runner": "cortex.eval.sanity.run_sanity_suite",
         "cli": "uv run python scripts/eval_sanity_suite.py --bundle models/vesma-cortex-v1",
-        "run_at": "2026-10-03",
-        "gate_contract": "gate_contract.json (repo root, sha256 pinned in docs/specs/eval-methodology.md #6)"
+        "run_at": "2026-10-05",
+        "verdict": "PASS 9/9",
+        "gate_contract": "gate_contract.json (repo root, revision v3 + corner_qa presence counters, sha256 pinned in docs/specs/eval-methodology.md #6)"
       }
     },
     "A_regression": {
-      "status": "NO-DATA",
-      "reason": "Layer A regression set lands in MR-2"
+      "status": "PASS",
+      "corridor": "PASS - BA up on both frozen sets; per-class corridors to prev_adopt B1 hold under the ratified max(0.02; CI95) reading",
+      "runner": "scripts/run_layer_a.py (uv run, --json)",
+      "run_at": "2026-10-05",
+      "invariants": {
+        "self_pair": "PASS (identity-self floor, min P 0.9981)",
+        "pair_symmetry": "PASS (|P(x,y)-P(y,x)| = 0.0 on all groups, tol 1e-06)",
+        "monotonicity": "PASS under the ratified zoned v2 rule (addendum 5b 7.3, contract v3 monotonicity_v2): outside-zone steps flat P(0.95)=P(0.8)=P(0.5); instrument as written still checks the full v1 ladder and flags the 0.99->0.95 zone-crossing steps (+5.5e-05..+1.38e-04) - see findings[0]"
+      },
+      "sets": {
+        "merge-v2": {
+          "eval_set_sha256": "a02590f9a7aafa1d861e8cc0a16b07178242d68107f528bf70a640916f9e374a",
+          "n_pairs": 75,
+          "ba": 0.8971,
+          "prev_adopt_ba": 0.7138,
+          "instrument_verdict": "FAIL",
+          "instrument_failures": [
+            "monotonicity (full-ladder v1 rule; zone-crossing steps only)"
+          ]
+        },
+        "release-v2": {
+          "eval_set_sha256": "dbc496abb29438f3ffba1f194dcb63707108c959904ec88646fb3216fd5619dd",
+          "n_pairs": 237,
+          "ba": 0.9301,
+          "prev_adopt_ba": 0.7079,
+          "instrument_verdict": "FAIL",
+          "instrument_failures": [
+            "monotonicity (same as merge-v2)",
+            "near-identity-twin_floor 17/18 (near-0009 P=0.0100) - see findings[1]"
+          ]
+        }
+      },
+      "prev_adopt": {
+        "revision": "B1",
+        "weights_sha256": "beb0a65da14f9ed2554951aa8850f68db47fd1212af1577955239a34ab04a091",
+        "instrument_verdicts": {
+          "merge-v2": "PASS",
+          "release-v2": "PASS"
+        }
+      },
+      "findings": [
+        {
+          "id": "LA-monotonicity-zoning",
+          "kind": "instrument-debt",
+          "detail": "evalsets monotonicity gate enforces the full v1 ladder (all steps, tol 1e-06). B2-v42 rises +5.5e-05 (lad-0000/0002-0005) and +1.38e-04 (lad-0001/0006) exactly on the 0.99->0.95 razor-zone-crossing step; all outside-zone steps are flat (delta 0.0). The ratified sanity v2 zoning (addendum 5b 7.3, gate_contract sanity_v2.monotonicity_v2.rule: 'steps 1.0 -> 0.99 -> 0.95 are not checked') exempts these steps; magnitude is Platt/leaf quantization noise deep inside the dup band (P >= 0.995 on every rung). Follow-up: port the zoned rule into the evalsets runner (contract-wave, not a threshold change)."
+        },
+        {
+          "id": "near-0009-floor-miss",
+          "kind": "behavioral-finding",
+          "detail": "release-v2 near-identity-twin probe near-0009 scores P(dup)=0.0100 (floor requires >= 0.5; 17/18 probes pass, min of class). Geometry: cos 0.99, char5_jaccard 0.9018, char5_containment 0.9484, tag_jaccard 1.0, zero len-deltas, type/lang match. B1 passes all 18. Reads as side-effect of the C1 rebalance: same-length T3 fact-edit negatives (char5_cont >= 0.9764, cos 0.99 -> NOT dup) sharpened the high-overlap boundary into the near-identity cloud at char5 ~ 0.90. Corridor to B1 still holds (17/18 vs 18/18 within CI95 for n=18). Watchlist for the next corpus/weights iteration and for B0 field telemetry; not part of the ratified ADOPT criteria (prereg 4 lists self_pair/monotonicity/symmetry invariants and B1-corridors)."
+        }
+      ]
     },
     "B_calibration": {
       "status": "ADOPT",
-      "corpus": "dataset-v2 holdout-150 (75/75), domain-diverse mix 74/26, prereg v2 + addendum 3; holdout sealed before training",
-      "train_corpus": "dataset-v2 train-350 (175/175), domain-diverse mix 74/26",
-      "corpus_fingerprint": "edd940730a471e3d8c84461b7c3ca35dd86d691f354af0fcf4c498745d1aff61",
-      "sensitivity": 1.0,
-      "specificity": 0.973,
-      "brier": 0.0126,
-      "ba": 0.987,
-      "baseline_ba": 0.72,
+      "corpus": "dataset-v4.2 holdout-276 (144 dup / 132 not-dup), single-shot, sealed before training; prereg v2 + addenda 5/5b/5c",
+      "train_corpus": "dataset-v4.2 train-824, config d-l7-lr005 (num_leaves 7, lr 0.05, seed 1), LightGBM + Platt",
+      "corpus_fingerprint": "66afeae65053924241240108204e4e7a050860e42d4b88e6f72359c657aefc48",
+      "sensitivity": 0.9931,
+      "specificity": 0.9394,
+      "brier": 0.0329,
+      "ba": 0.9662,
+      "baseline_ba": 0.5363,
       "typed": 1.0,
-      "run_log_ref": "artifacts/runs/b1-single-shot-runlog.jsonl",
-      "report_ref": "docs/experiments/calibration-b1-domain-diversity.md",
-      "run_date": "2026-10-02 22:27 UTC"
+      "record_quality": 1.0,
+      "run_log_ref": "artifacts/runs/b2p-v42-single-shot-runlog.jsonl",
+      "report_ref": "docs/experiments/calibration-b2p.md",
+      "run_date": "2026-10-05 16:29 UTC"
     },
     "B0_field": {
       "status": "IN_PROGRESS",
       "window": "2026-10-03 23:07 UTC - 2026-10-16 (freeze window ends)",
       "delta_rate": null,
       "no_harm_band_ratio": null,
-      "note": "Telemetry window is segmented at the recall point (analysis-2h.jsonl from 23:10 UTC): prod fingerprint is beb0a65d since 2026-10-03 23:07 UTC, the recalled B2 segment stays separate. B0 verdict per docs/experiments/b0-telemetry-plan.md."
+      "note": "ADOPT ждёт выката после B0-вердикта: prod остаётся на B1 (beb0a65d), телеметрия поля описывает B1. Выкат B2-v42 во все точки деплоя - после 16.10 (protocol: docs/experiments/b0-telemetry-plan.md)."
     }
   },
   "calibration_history": [
@@ -97,15 +160,26 @@
       "recall_reason": "инверсия self-pair (#480)",
       "report_ref": "docs/experiments/calibration-b2-edge-neighborhood.md",
       "note": "ADOPT recalled 2026-10-03 - self-pair inversion P(dup|self)=0.0108 caught by the sanity suite (vesmaro/vesma#480); protocol: docs/experiments/b0-escalation.md"
+    },
+    {
+      "revision": "B2-v42",
+      "label": "B2-prime v4.2 (razor-паритет + пересказы-не-дубликаты)",
+      "weights_sha256": "00fc6b71c62dbfa8268db358b39c0a4d9f30148805a4a18986487bc70e8346b2",
+      "corpus": "dataset-v4.2 (razor parity + N-para-notdup), holdout-276",
+      "ba": 0.9662,
+      "baseline_ba": 0.5363,
+      "status": "ADOPT",
+      "report_ref": "docs/experiments/calibration-b2p.md",
+      "note": "registry ADOPT 2026-10-05 (prereg v2, addenda 5/5b/5c); production rollout after the 2026-10-16 B0 verdict - production stays on B1 until then"
     }
   ],
   "decision": "ADOPT",
-  "decision_note": "B1 adopted in production since 2026-10-03 23:07 UTC via the B2->B1 recall (all three deploy points replaced; docs/experiments/b0-escalation.md). B2 is RECALLED and does not return to the registry (ADR 0003).",
+  "decision_note": "ADOPT ратифицирован владельцем 2026-10-05 по препрегу 5c (все 14 критериев §4 + sanity v2 9/9). Ревизия живёт в реестре main; выкат в прод - после B0-вердикта (после 16.10), прод остаётся на B1 (beb0a65d). Находки Layer A (инструментальная зонная монотонность, near-0009) зафиксированы в layers.A_regression.findings и в отчёте калибровки - на ратифицированные критерии не влияют, уйдут в follow-up волны.",
   "provenance": {
-    "trained_at": "2026-10-01T22:26:33+00:00",
-    "train_corpus_fingerprint": "edd940730a471e3d8c84461b7c3ca35dd86d691f354af0fcf4c498745d1aff61",
+    "trained_at": "2026-10-05T16:28:27+00:00",
+    "train_corpus_fingerprint": "b45f385345526caeb3c11073d6e7aec410da89cc6e6bc43555737e43978af860",
     "embedder_pin": "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba",
     "package_version": "0.2.0",
-    "run_log": "artifacts/runs/b1-single-shot-runlog.jsonl"
+    "run_log": "artifacts/runs/b2p-v42-single-shot-runlog.jsonl"
   }
 }
