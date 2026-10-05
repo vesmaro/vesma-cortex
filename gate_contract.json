@@ -1,7 +1,9 @@
 {
   "schema_version": 1,
+  "revision": 3,
   "name": "vesma-cortex-gate-contract",
   "created": "2026-10-03",
+  "revised": "2026-10-05 (v3: sanity_v2 exam + zoned monotonicity; owner ratification 2026-10-05, PR #10 addenda; thresholds ride in a separate car from artifacts)",
   "authority": [
     "docs/specs/eval-methodology.md #6 (anti-HARKing: values are pinned there and in CI)",
     "docs/decisions/0003-model-artifacts-release-and-eval.md (invariant/corridor/verdict taxonomy, committee verdict)"
@@ -19,17 +21,17 @@
     },
     "monotonicity": {
       "ladder_cos": [1.0, 0.99, 0.95, 0.8, 0.5],
-      "rule": "P non-increasing as cosine drops over the fixed probe pair",
+      "rule": "P non-increasing as cosine drops over the fixed probe pair OUTSIDE the razor zone (0.95; 1.0); the zone itself is TWO-VALUED by policy v1.1 (both classes live there), so no monotonicity is asserted inside it — operationally P(0.95) >= P(0.8) >= P(0.5), steps 1.0 -> 0.99 -> 0.95 unchecked (eval-methodology #10.2, sanity_v2.monotonicity_v2)",
       "tolerance": 1e-06
     }
   },
   "corridors": {
     "blocks": "release",
-    "near_boundary": {
-      "metric": "P(dup | light perturbation of the probe)",
+    "cosmetic_twin": {
+      "metric": "P(dup | cosmetic twin of the probe: title punctuation — policy v1.1 #8.2 re-classed the v1 'title + !' perturbation from T3 to cosmetic/T1)",
       "cos": 0.99,
       "min": 0.5,
-      "note": "cut = the runner DUPLICATE_THRESHOLD_PROBABILITY; catches threshold-edge collapses, does not rank close revisions"
+      "note": "sanity v2 probe (i); supersedes the v1 near_boundary corridor (same numbers, policy-correct class); cut = the runner DUPLICATE_THRESHOLD_PROBABILITY; catches threshold-edge collapses, does not rank close revisions"
     },
     "unrelated": {
       "metric": "P(dup | different-topic pair)",
@@ -52,8 +54,10 @@
     "pairs_computed_via": "cortex.features.pair.features only (#480 lesson: local feature-math copies drift from the production wrapper)",
     "probe_classes_covered": [
       "identity/self (#480 class)",
-      "near-identity/twin",
-      "monotonicity",
+      "cosmetic twin (policy v1.1 T1: title punctuation / case / whitespace)",
+      "fact-edit twin (policy v1.1 T3 razor: key-fact token in the body)",
+      "envelope-variant (policy v1.1 whitelist #8.1: feature-degenerate by OQ-2, degeneracy pinned by test)",
+      "monotonicity (zoned v2: razor zone two-valued, non-increase outside it)",
       "far-negative"
     ],
     "probe_classes_tails": [
@@ -63,6 +67,30 @@
       "degenerates (uncovered)"
     ],
     "note": "coverage table per eval-methodology #7; tails are known blind spots, kept visible, not silent"
+  },
+  "sanity_v2": {
+    "blocks": "pre-ADOPT sanity exam v2 (eval-methodology #10; two-sided razor-zone exam per policy v1.1 #8)",
+    "authority": [
+      "docs/specs/eval-methodology.md #10 (sanity v2 addendum, 2026-10-05)",
+      "docs/specs/labeling-policy-b2.md #8 (policy v1.1: envelope whitelist, punctuation = cosmetic)",
+      "docs/experiments/calibration-b2p-prereg.md #7 (addendum 5b)",
+      "owner ratification 2026-10-05 (PR #10 addenda)"
+    ],
+    "consumer": "cortex.eval.sanity (frozen code constants; coherence with this section pinned by tests/test_eval_sanity.py)",
+    "cosmetic_twin_min": 0.5,
+    "fact_edit_twin_max": 0.5,
+    "envelope_variant_min": 0.5,
+    "probe_facts": {
+      "cosmetic_twin": "probe vs title+'!' twin at cos 0.99 — required dup, P >= 0.5",
+      "fact_edit_twin": "probe vs a key-fact token edited in the BODY (cache-key name cart->card, policy v1.1 #8.2 'names' class) at cos 0.99 — required NOT dup, P < 0.5",
+      "envelope_variant": "probe vs the same record differing ONLY in an envelope attribute (observation date, whitelist #8.1) at cos 1.0 — required dup, P >= 0.5; envelope fields are OUTSIDE the frozen 13-feature surface (OQ-2: CanonRecordView carries no timestamp), so the probe is feature-degenerate to the self-pair by contract — the check pins the policy verdict and becomes load-bearing the moment the feature surface grows envelope fields (degeneracy pinned by test)"
+    },
+    "monotonicity_v2": {
+      "ladder_cos": [1.0, 0.99, 0.95, 0.8, 0.5],
+      "razor_zone": "(0.95; 1.0) — open, TWO-VALUED by policy v1.1 (T1 cosmetic positives and T3 fact-edit negatives both live there); monotonicity is NOT asserted inside the zone",
+      "rule": "outside the razor zone non-strict non-increase holds (tol 1e-06); operationally on the ladder: P(0.95) >= P(0.8) >= P(0.5); steps 1.0 -> 0.99 -> 0.95 are not checked",
+      "tolerance": 1e-06
+    }
   },
   "corner_qa": {
     "blocks": "pre-train corpus acceptance (dataset-v4 plan wave 2): a corpus failing ANY of these is not exported, not fingerprinted, not sealed — holdout metrics are blind to corpus defects (#480 lesson)",
