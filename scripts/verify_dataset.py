@@ -43,9 +43,13 @@ if mode == "qa":
         __import__("pathlib").Path(__file__).resolve().parent.parent / "src"
     )
     sys.path.insert(0, _repo_src)
-    from cortex.data.corner_qa import CornerQAThresholds, run_corner_qa
+    from cortex.data.corner_qa import (  # noqa: E402 — repo src shim above
+        CornerQAThresholds,
+        run_corner_qa,
+        thresholds_from_gate_contract,
+    )
 
-    thresholds = CornerQAThresholds()
+    thresholds, thresholds_source = thresholds_from_gate_contract()
     if len(sys.argv) > 4:
         overrides = json.loads(
             __import__("pathlib").Path(sys.argv[4]).read_text(encoding="utf-8")
@@ -75,6 +79,7 @@ if mode == "qa":
         "corpus_dir": str(corpus_dir),
         "pairs": len(rows),
         "ok": ok,
+        "thresholds_source": thresholds_source,
         "violations": report["violations"],
         "corner_qa": {k: v for k, v in report.items() if k != "violations"},
     }
@@ -92,6 +97,7 @@ if mode == "qa":
                 "clone_negatives": report["clone_negatives_count"],
                 "corner_dup_positives": report["corner_dup_positives_count"],
                 "constant_features": report["constant_features"],
+                "thresholds_source": thresholds_source,
             },
             ensure_ascii=False,
         )

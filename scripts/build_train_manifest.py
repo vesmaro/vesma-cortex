@@ -93,11 +93,16 @@ for r in rows:
     print(f"  embedded {r['pair_id']}", file=sys.stderr)
 
 # ── corner-QA pre-train gate (P0 §8.1): refuse BEFORE anything is written ────
-from cortex.data.corner_qa import run_corner_qa  # noqa: E402 — repo src shim above
+from cortex.data.corner_qa import (  # noqa: E402 — repo src shim above
+    run_corner_qa,
+    thresholds_from_gate_contract,
+)
 
 corner_qa_summary: dict = {"skipped": True}
 if not args.no_qa:
-    ok, qa_report = run_corner_qa(rows)
+    thresholds, thresholds_source = thresholds_from_gate_contract()
+    print(f"corner-QA thresholds source: {thresholds_source}", file=sys.stderr)
+    ok, qa_report = run_corner_qa(rows, thresholds)
     corner_qa_summary = {
         "skipped": False,
         "ok": ok,

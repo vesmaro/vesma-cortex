@@ -8,10 +8,10 @@ the corpus, it never re-measures cosines.
 
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
-
 
 from cortex.data.corner_qa import (
     DEFAULT_THRESHOLDS,
@@ -19,6 +19,7 @@ from cortex.data.corner_qa import (
     corner_qa_counters,
     corner_qa_violations,
     run_corner_qa,
+    thresholds_from_gate_contract,
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -447,3 +448,61 @@ def test_verify_dataset_qa_mode_green_and_red(tmp_path: Path) -> None:
     )
     assert proc.returncode == 1
     assert "clone_negatives=1" in proc.stderr
+
+
+# ── gate-contract loader (eval-methodology §6: thresholds live in the file) ──
+
+
+def test_loader_reads_the_repo_contract_and_matches_frozen_fallback() -> None:
+    """The coherence pin: the committed corner_qa section of
+    gate_contract.json and the frozen code constants must be EQUAL — a
+    threshold change that touches only one side fails here."""
+    thresholds, source = thresholds_from_gate_contract()
+    assert "gate_contract" in source
+    assert "fallback" not in source
+    assert thresholds == DEFAULT_THRESHOLDS
+
+
+def test_loader_falls_back_when_file_is_missing(tmp_path) -> None:
+    thresholds, source = thresholds_from_gate_contract(tmp_path / "nope.json")
+    assert thresholds == DEFAULT_THRESHOLDS
+    assert "fallback" in source
+
+
+def test_loader_falls_back_when_section_is_absent(tmp_path) -> None:
+    contract = tmp_path / "gate_contract.json"
+    contract.write_text('{"schema_version": 1}\n', encoding="utf-8")
+    thresholds, source = thresholds_from_gate_contract(contract)
+    assert thresholds == DEFAULT_THRESHOLDS
+    assert "no 'corner_qa' section" in source
+
+
+def test_loader_applies_contract_overrides(tmp_path) -> None:
+    contract = tmp_path / "gate_contract.json"
+    section = {
+        "min_corner_dup_positives": 12,
+        "min_pairs_below_cos_055": 7,
+    }
+    contract.write_text(
+        json.dumps({"schema_version": 1, "corner_qa": section}), encoding="utf-8"
+    )
+    thresholds, source = thresholds_from_gate_contract(contract)
+    assert "gate_contract" in source
+    assert thresholds.min_corner_dup_positives == 12
+    assert thresholds.min_pairs_below_cos_055 == 7
+    # untouched fields keep the frozen values
+    assert thresholds.max_clone_negatives == DEFAULT_THRESHOLDS.max_clone_negatives
+    # types are coerced per the dataclass annotation
+    assert isinstance(thresholds.min_corner_dup_positives, int)
+    assert isinstance(thresholds.min_pairs_below_cos_055, int)
+
+
+def test_loader_warns_on_unknown_keys(tmp_path, capsys) -> None:
+    contract = tmp_path / "gate_contract.json"
+    contract.write_text(
+        json.dumps({"corner_qa": {"min_corner_dup_positives": 10, "mystery": 1}}),
+        encoding="utf-8",
+    )
+    thresholds, _ = thresholds_from_gate_contract(contract)
+    assert thresholds == DEFAULT_THRESHOLDS
+    assert "unknown" in capsys.readouterr().err

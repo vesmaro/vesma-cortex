@@ -20,6 +20,10 @@ gates judge the CORPUS before any training run:
   ``max(negatives) <= max(positives)`` — a negative above the positive
   ceiling is the inversion, caught before training.
 
+Thresholds live in ``gate_contract.json`` (``corner_qa`` section,
+eval-methodology §6) and load via :func:`thresholds_from_gate_contract`;
+the frozen constants here are the documented fallback.
+
 Pure stdlib + ``cortex.features.pair`` math: no embedder, no store, no
 network (src/ is network-free by the AST tripwire). ``similarity`` rides
 the row (measured upstream, data-contract §3) — this module never
@@ -29,13 +33,18 @@ re-measures it.
 from __future__ import annotations
 
 import difflib
+import json
+import sys
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Final
 
 from cortex.features.pair import FEATURE_NAMES, RecordLike, features
 
 __all__ = [
     "COS_BANDS",
+    "CONTRACT_FILENAME",
+    "CONTRACT_SECTION",
     "CornerQAThresholds",
     "DEFAULT_THRESHOLDS",
     "G1_CEILING_FEATURES",
@@ -43,6 +52,7 @@ __all__ = [
     "corner_qa_counters",
     "corner_qa_violations",
     "run_corner_qa",
+    "thresholds_from_gate_contract",
 ]
 
 #: G1 ceiling family (policy §5-G1): monotone-duplicative features — a
@@ -83,11 +93,13 @@ TOL: Final[float] = 1e-9
 
 @dataclass(frozen=True)
 class CornerQAThresholds:
-    """Frozen gate thresholds — the pre-train refusal lines.
+    """Corner-QA pre-train refusal lines (ratified gate-contract values).
 
-    Draft values live here and in the corpus prereg draft
-    (docs/experiments/calibration-b2p-prereg-draft.md); ratification rides
-    wave 3 (TL, commit-order rule). Foundations: P0 §8.1 quotas, labeling
+    The authoritative source is the ``corner_qa`` section of
+    ``gate_contract.json`` (eval-methodology §6 anti-HARKing; TL arbitration
+    2026-10-05). These frozen constants are the FALLBACK for environments
+    without the contract file (wheels, tests); a coherence test pins the
+    two together so they cannot drift. Foundations: P0 §8.1 quotas, labeling
     policy §4 generator targets and §5 corner gates.
     """
 
@@ -129,6 +141,90 @@ class CornerQAThresholds:
 
 
 DEFAULT_THRESHOLDS: Final[CornerQAThresholds] = CornerQAThresholds()
+
+#: The authoritative thresholds source (eval-methodology §6 anti-HARKing):
+#: the ``corner_qa`` section of ``gate_contract.json`` (repo root, outside
+#: the bundle per the separation rule). ``DEFAULT_THRESHOLDS`` above are the
+#: frozen FALLBACK for environments without the contract file (wheels,
+#: tests) — a coherence test pins the two together, so they cannot drift.
+CONTRACT_FILENAME: Final[str] = "gate_contract.json"
+CONTRACT_SECTION: Final[str] = "corner_qa"
+
+
+def _default_contract_path() -> Path | None:
+    """Repo-root gate_contract.json (src/cortex/data/ → repo root), or None."""
+    candidate = Path(__file__).resolve().parents[3] / CONTRACT_FILENAME
+    return candidate if candidate.is_file() else None
+
+
+def thresholds_from_gate_contract(
+    contract_path: str | Path | None = None,
+) -> tuple[CornerQAThresholds, str]:
+    """Load the corner-QA thresholds from ``gate_contract.json``.
+
+    Returns ``(thresholds, source_description)``. Rules:
+
+    - the ``corner_qa`` section is authoritative when present; known
+      threshold fields override the defaults field-by-field (unknown keys
+      are ignored loudly on stderr — the contract must not grow silent
+      fields);
+    - a missing file, unparsable JSON or missing section falls back to
+      ``DEFAULT_THRESHOLDS`` with a loud stderr note (never silent);
+    - ``contract_path=None`` resolves the repo-root file next to ``src/``.
+    """
+    path = (
+        Path(contract_path) if contract_path is not None else _default_contract_path()
+    )
+    if path is None or not path.is_file():
+        return (
+            DEFAULT_THRESHOLDS,
+            f"fallback: {CONTRACT_FILENAME} not found "
+            f"(looked at {path if path else '<unresolved>'})",
+        )
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError) as exc:
+        print(
+            f"WARNING: {CONTRACT_FILENAME} unparsable ({exc}) — corner-QA "
+            "falls back to frozen code constants",
+            file=sys.stderr,
+        )
+        return DEFAULT_THRESHOLDS, f"fallback: {CONTRACT_FILENAME} unparsable"
+    section = data.get(CONTRACT_SECTION)
+    if not isinstance(section, dict):
+        return (
+            DEFAULT_THRESHOLDS,
+            f"fallback: no '{CONTRACT_SECTION}' section in {CONTRACT_FILENAME}",
+        )
+    overrides = {
+        f: section[f] for f in CornerQAThresholds.__dataclass_fields__ if f in section
+    }
+    unknown = sorted(
+        set(section)
+        - set(CornerQAThresholds.__dataclass_fields__)
+        - {
+            "blocks",
+            "authority",
+            "consumer",
+            "g1_feature_ceiling",
+            "cos_strata_calibration",
+            "change_control",
+        }
+    )
+    if unknown:
+        print(
+            f"WARNING: {CONTRACT_FILENAME}.{CONTRACT_SECTION} carries unknown "
+            f"keys {unknown} — not thresholds, ignored by the loader",
+            file=sys.stderr,
+        )
+    fields = CornerQAThresholds.__dataclass_fields__
+    coerced = {}
+    for name, value in overrides.items():
+        annotation = fields[name].type
+        coerced[name] = int(value) if annotation == "int" else float(value)
+    return CornerQAThresholds(
+        **coerced
+    ), f"gate_contract.json:{CONTRACT_SECTION} ({path})"
 
 
 def _side(record: dict[str, Any]) -> RecordLike:

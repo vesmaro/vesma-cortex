@@ -63,8 +63,8 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
 from cortex.data.corner_qa import (  # noqa: E402 — repo src sys.path shim above
-    DEFAULT_THRESHOLDS,
     CornerQAThresholds,
+    thresholds_from_gate_contract,
 )
 from cortex.data.fingerprints import (  # noqa: E402
     canonical_json,
@@ -727,12 +727,14 @@ def main(argv: list[str] | None = None) -> int:
         "--thresholds",
         type=Path,
         default=None,
-        help="optional JSON with CornerQAThresholds overrides (defaults: the "
-        "pre-train gate constants of cortex.data.corner_qa)",
+        help="optional JSON with CornerQAThresholds overrides (default: the "
+        "corner_qa section of gate_contract.json, falling back to the frozen "
+        "code constants when the contract file is absent)",
     )
     args = ap.parse_args(argv)
 
-    thresholds = DEFAULT_THRESHOLDS
+    thresholds, thresholds_source = thresholds_from_gate_contract()
+    print(f"corner-QA thresholds source: {thresholds_source}", file=sys.stderr)
     if args.thresholds is not None:
         overrides = json.loads(args.thresholds.read_text(encoding="utf-8"))
         thresholds = CornerQAThresholds(**overrides)
