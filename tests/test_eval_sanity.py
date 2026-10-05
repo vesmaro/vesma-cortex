@@ -18,6 +18,7 @@ file stays fast.
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -32,13 +33,27 @@ from cortex.artifacts import (
 from cortex.candidates.d_boost import GRID_D, DBoostModel
 from cortex.eval.sanity import (
     COS_LADDER,
+    COSMETIC_TWIN_MIN,
+    ENVELOPE_DATES,
+    ENVELOPE_VARIANT_COS,
+    ENVELOPE_VARIANT_MIN,
+    FACT_EDIT_ANCHOR,
+    FACT_EDIT_COS,
+    FACT_EDIT_REPLACEMENT,
+    FACT_EDIT_TWIN_MAX,
+    MONOTONICITY_TOLERANCE,
     PROBE_RECORD,
+    RAZOR_ZONE_COS_LOW,
     UNRELATED_RECORD,
     SanityLoadError,
+    _envelope_variant,
+    _fact_edited,
     _perturbed,
     run_sanity_suite,
 )
-from cortex.features.pair import FEATURE_NAMES, FeatureVector, features
+from cortex.features.pair import FEATURE_NAMES, FeatureVector, PairRecord, features
+
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # ── probe-vector invariants (no model needed) ────────────────────────────────
 
@@ -71,6 +86,63 @@ def test_probe_records_are_topically_disjoint() -> None:
     probe_tags = set(PROBE_RECORD.tags)
     assert probe_tags.isdisjoint(UNRELATED_RECORD.tags)
     assert "кэш" not in UNRELATED_RECORD.body.lower()
+
+
+# ── sanity v2 probe mechanics (no model needed; eval-methodology §10) ────────
+
+
+def test_fact_edit_twin_changes_exactly_one_key_fact_token() -> None:
+    """The razor-side twin: ONE key-fact token in the BODY (the cache-key
+    name — policy v1.1 §8.2 'names' class = NOT dup), same length by design
+    (razor-zone shaped: zero len-delta, minimal char signature)."""
+    fact_twin = _fact_edited(PROBE_RECORD)
+    assert fact_twin.title == PROBE_RECORD.title
+    assert fact_twin.tags == PROBE_RECORD.tags
+    assert fact_twin.body == PROBE_RECORD.body.replace(
+        FACT_EDIT_ANCHOR, FACT_EDIT_REPLACEMENT
+    )
+    assert len(fact_twin.body) == len(PROBE_RECORD.body)
+    vector = features(PROBE_RECORD, fact_twin, FACT_EDIT_COS)
+    values = dict(zip(vector.names, vector.values))
+    assert values["title_len_delta"] == 0.0
+    assert values["body_len_delta"] == 0.0
+    assert values["char5_jaccard"] < 1.0
+    assert values["cos_target"] == FACT_EDIT_COS
+
+
+def test_envelope_variant_is_feature_degenerate_by_contract() -> None:
+    """The whitelist-side twin rides OUTSIDE the 13-feature surface
+    (RecordLike carries no timestamp — OQ-2), so its vector equals the
+    self-pair vector BY CONTRACT. The documented envelope delta is real at
+    the data level (ENVELOPE_DATES differ) but invisible to the features:
+    if the feature surface ever grows envelope fields, this pin fails and
+    forces the probe to grow the real delta (see sanity._envelope_variant)."""
+    assert ENVELOPE_DATES[0] != ENVELOPE_DATES[1]
+    env_vector = features(
+        _envelope_variant(PROBE_RECORD), PROBE_RECORD, ENVELOPE_VARIANT_COS
+    )
+    self_vector = features(PROBE_RECORD, PROBE_RECORD, ENVELOPE_VARIANT_COS)
+    assert env_vector.values == self_vector.values
+
+
+def test_sanity_v2_constants_match_the_gate_contract() -> None:
+    """The coherence pin (mirror of the corner_qa one): the committed
+    sanity_v2 section of gate_contract.json and the frozen v2 constants
+    must be EQUAL — an exam-threshold change that touches only one side
+    fails here (eval-methodology §6)."""
+    contract = json.loads(
+        (REPO_ROOT / "gate_contract.json").read_text(encoding="utf-8")
+    )
+    section = contract["sanity_v2"]
+    assert COSMETIC_TWIN_MIN == section["cosmetic_twin_min"]
+    assert FACT_EDIT_TWIN_MAX == section["fact_edit_twin_max"]
+    assert ENVELOPE_VARIANT_MIN == section["envelope_variant_min"]
+    mono = section["monotonicity_v2"]
+    assert list(COS_LADDER) == mono["ladder_cos"]
+    assert MONOTONICITY_TOLERANCE == mono["tolerance"]
+    # the operational zoned rule: razor zone is the OPEN interval
+    # (0.95; 1.0) — steps starting above 0.95 are unchecked
+    assert RAZOR_ZONE_COS_LOW == 0.95
 
 
 # ── training corpora (programmatic, #480-shaped) ─────────────────────────────
@@ -145,11 +217,89 @@ def _unrelated_rows(base_records, prefix: str) -> list[dict]:
     return rows
 
 
+def _razor_base_records(n: int = 6) -> list[PairRecord]:
+    """Long-body records for the razor band (the corpus T3 geometry: one
+    token of a ~160-char body edited — a minimal char signature)."""
+    return [
+        PairRecord(
+            title=f"рабочая заметка {i}",
+            body=(
+                f"Рабочая заметка номер {i}: фиксировали состояние проекта, "
+                "обсудили сроки следующего этапа, распределили задачи между "
+                "участниками и договорились синхронизироваться после релиза "
+                "в течение недели."
+            ),
+            tags=("work", "note"),
+            language="ru",
+            record_type="note",
+        )
+        for i in range(n)
+    ]
+
+
+def _generic_fact_edit(record: PairRecord) -> PairRecord:
+    """One key-fact token (the record's number) changed in the body — the
+    corpus T3 'число' class, the generic analogue of sanity._fact_edited."""
+    digits = "0123456789"
+    idx = max(record.body.rfind(d) for d in digits)
+    assert idx >= 0, "generic fact edit needs a digit in the body"
+    swapped = digits[(digits.index(record.body[idx]) + 3) % 10]
+    return replace(record, body=record.body[:idx] + swapped + record.body[idx + 1 :])
+
+
+def _razor_rows(base_records, prefix: str, sides: str = "both") -> list[dict]:
+    """The razor band at cos 0.99 (policy v1.1 two-valuedness): cosmetic
+    twins = dup (title punctuation), fact-edit twins = NOT dup.
+    ``sides`` selects the taught side — ``fact`` builds the negative-dominant
+    surface (the B2-prime shape) and ``cosmetic`` the positive-only one for
+    the failing fixtures."""
+    rows: list[dict] = []
+    for i, record in enumerate(base_records):
+        if sides in ("both", "cosmetic"):
+            rows.append(
+                _row(
+                    f"{prefix}-razor-cosm-{i:02d}",
+                    record,
+                    _perturbed(record),
+                    0.99,
+                    "duplicate",
+                    "SANITY-RAZOR",
+                )
+            )
+        if sides in ("both", "fact"):
+            rows.append(
+                _row(
+                    f"{prefix}-razor-fact-{i:02d}",
+                    record,
+                    _generic_fact_edit(record),
+                    FACT_EDIT_COS,
+                    "not-duplicate",
+                    "SANITY-RAZOR",
+                )
+            )
+    return rows
+
+
+def _probe_razor_fact_row() -> dict:
+    """The probe's own fact-edit negative (the exact anchor the exam probes)."""
+    return _row(
+        "sanity-razor-fact-probe",
+        PROBE_RECORD,
+        _fact_edited(PROBE_RECORD),
+        FACT_EDIT_COS,
+        "not-duplicate",
+        "SANITY-RAZOR",
+    )
+
+
 def _healthy_training_rows() -> list[dict]:
     rows = make_pair_rows(120)  # the W4c hard-zone filler (0.96/0.93)
     extra_records = list(make_records(12, seed=3)) + [PROBE_RECORD]
     rows += _self_rows(extra_records, "sanity")
     rows += _ladder_rows(list(make_records(6, seed=5)) + [PROBE_RECORD], "sanity")
+    # policy v1.1: BOTH sides of the razor band, incl. the probe's own twin
+    rows += _razor_rows(_razor_base_records(), "sanity")
+    rows += [_probe_razor_fact_row()]
     rows += _unrelated_rows(
         list(make_records(12, seed=7)) + [UNRELATED_RECORD], "sanity"
     )
@@ -220,6 +370,36 @@ def desynced_bundle(tmp_path_factory) -> Path:
     return _write_bundle(tmp_path_factory.mktemp("desynced"), model)
 
 
+@pytest.fixture(scope="module")
+def razor_dominant_bundle(tmp_path_factory) -> Path:
+    """The B2-prime shape (the wave's root cause, pinned): the razor band
+    taught NEGATIVE-dominated — fact edits only, the only positives being
+    text-IDENTICAL self-pairs (char5 = 1.0, the v4.0 T0/T1 geometry) — so
+    «slightly different text at cos 0.99 = not dup» becomes the zone's
+    law and the punctuation twin (char5 < 1) grades below the cut, exactly
+    like B2-prime's near_boundary 0.0261."""
+    rows = _self_rows([PROBE_RECORD], "sanity")
+    rows += _razor_rows(_razor_base_records(8), "sanity", sides="fact")
+    rows += [_probe_razor_fact_row()]
+    rows += _unrelated_rows(list(make_records(12, seed=7)), "sanity")
+    model = _trained_model(rows_to_vectors(rows), rows)
+    return _write_bundle(tmp_path_factory.mktemp("razor-dominant"), model)
+
+
+@pytest.fixture(scope="module")
+def cosmetic_dominant_bundle(tmp_path_factory) -> Path:
+    """The inverse dominance: the razor band taught POSITIVE-only —
+    cosmetic twins at 0.99, zero fact-edit negatives — the model answers
+    «dup» to anything close and fails the fact-edit twin."""
+    rows = make_pair_rows(120)
+    rows += _self_rows([PROBE_RECORD], "sanity")
+    rows += _ladder_rows(list(make_records(6, seed=5)) + [PROBE_RECORD], "sanity")
+    rows += _razor_rows(_razor_base_records(8), "sanity", sides="cosmetic")
+    rows += _unrelated_rows(list(make_records(12, seed=7)), "sanity")
+    model = _trained_model(rows_to_vectors(rows), rows)
+    return _write_bundle(tmp_path_factory.mktemp("cosmetic-dominant"), model)
+
+
 # ── the gate behaviour ───────────────────────────────────────────────────────
 
 
@@ -233,7 +413,9 @@ def test_healthy_bundle_passes_every_check(healthy_bundle: Path) -> None:
         "feature_contract",
         "candidate_supported",
         "self_pair",
-        "near_boundary",
+        "cosmetic_twin",
+        "fact_edit_twin",
+        "envelope_variant",
         "unrelated",
         "monotonicity",
     ]
@@ -247,6 +429,33 @@ def test_column_desync_is_caught_by_self_pair(desynced_bundle: Path) -> None:
     assert not report.passed
     failed_names = {check.name for check in report.failed}
     assert "self_pair" in failed_names, "\n".join(
+        f"{check.name}: {check.detail}" for check in report.checks
+    )
+
+
+def test_negative_dominant_razor_band_fails_cosmetic_twin(
+    razor_dominant_bundle: Path,
+) -> None:
+    """The B2-prime regression pin (the wave D4-3 root cause): a corpus
+    that teaches the razor band negative-dominated must FAIL the v2 exam —
+    the cosmetic twin grades below the cut exactly like B2-prime's
+    near_boundary 0.0261."""
+    report = run_sanity_suite(razor_dominant_bundle)
+    assert not report.passed
+    assert "cosmetic_twin" in {c.name for c in report.failed}, "\n".join(
+        f"{check.name}: {check.detail}" for check in report.checks
+    )
+
+
+def test_positive_only_razor_band_fails_fact_edit_twin(
+    cosmetic_dominant_bundle: Path,
+) -> None:
+    """The inverse dominance: a razor band taught positive-only answers
+    «dup» to a fact edit — the anti-dominance probe catches it (the
+    two-sided exam of eval-methodology §10.1)."""
+    report = run_sanity_suite(cosmetic_dominant_bundle)
+    assert not report.passed
+    assert "fact_edit_twin" in {c.name for c in report.failed}, "\n".join(
         f"{check.name}: {check.detail}" for check in report.checks
     )
 

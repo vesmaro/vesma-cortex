@@ -7,15 +7,35 @@ contained NO exact self-pairs, so the holdout metrics were blind to the
 defect (vesmaro/vesma#480). Root suspicion: feature-column-order desync
 between the export and the frozen 13-feature contract.
 
-Every ADOPT claim must pass the four adversarial checks BELOW, before any
-other metric is quoted (docs/experiments/calibration-b2-edge-neighborhood.md,
-«adversarial sanity suite» section; roadmap-v2.md §5 checklist):
+Every ADOPT claim must pass the policy-aware exam v2 BELOW, before any
+other metric is quoted (eval-methodology §10 + §4 gate table;
+gate_contract.json ``sanity_v2`` — the constants here are coherent with
+that section, pinned by test_eval_sanity.py):
 
-(a) ``self_pair``      P(dup | record vs itself, cos=1.0) ≥ 0.9
-(b) ``near_boundary``  P(dup | light perturbation, cos≈0.99) ≥ 0.5 (cut)
-(c) ``unrelated``      P(dup | different-topic pair, cos=0.578) < 0.5
-(d) ``monotonicity``   over a FIXED pair, P non-increasing as cosine drops
-                       along cos ∈ {1.0, 0.99, 0.95, 0.8, 0.5}
+    ``self_pair``        P(dup | record vs itself, cos=1.0) ≥ 0.9
+    ``cosmetic_twin``    P(dup | title-punctuation twin, cos≈0.99) ≥ 0.5
+                         (policy v1.1 §8.2: punctuation = cosmetic/T1 =
+                         dup; supersedes the v1 ``near_boundary`` probe)
+    ``fact_edit_twin``   P(dup | key-fact token edited in the body,
+                         cos≈0.99) < 0.5 (policy v1.1 §8.2: names/numbers
+                         = razor/T3 = NOT dup — the anti-dominance side of
+                         the two-valued razor zone, the B2-prime lesson:
+                         a corpus 192:72 negative-dominant in the band
+                         taught «close = not dup», near_boundary 0.0261)
+    ``envelope_variant`` P(dup | envelope-only delta, cos=1.0) ≥ 0.5
+                         (policy v1.1 §8.1 whitelist; feature-degenerate
+                         by contract — see _envelope_variant)
+    ``unrelated``        P(dup | different-topic pair, cos=0.578) < 0.5
+    ``monotonicity``     ZONED v2 over a FIXED pair: the razor zone
+                         (0.95; 1.0) is two-valued by policy v1.1 — no
+                         monotonicity asserted inside it; outside the
+                         zone P is non-increasing (operationally
+                         P(0.95) ≥ P(0.8) ≥ P(0.5), tol 1e-6;
+                         eval-methodology §10.2)
+
+Two-sidedness is the point of v2: in the razor band the exam demands BOTH
+correct answers — a positive on cosmetics/envelope AND a negative on a
+fact edit — instead of the v1 single side of the zone.
 
 The self-pair check is content-independent by construction: record vs
 itself pins every feature (n-gram Jaccard/containment = 1.0, deltas = 0,
@@ -49,12 +69,21 @@ from cortex.features.pair import FEATURE_NAMES, FeatureVector, PairRecord, featu
 
 __all__ = [
     "COS_LADDER",
+    "COSMETIC_TWIN_MIN",
+    "ENVELOPE_DATES",
+    "ENVELOPE_VARIANT_COS",
+    "ENVELOPE_VARIANT_MIN",
+    "FACT_EDIT_ANCHOR",
+    "FACT_EDIT_COS",
+    "FACT_EDIT_REPLACEMENT",
+    "FACT_EDIT_TWIN_MAX",
     "MANIFEST_FILENAME",
     "MODEL_FILENAME",
     "MONOTONICITY_TOLERANCE",
     "NEAR_BOUNDARY_COS",
     "NEAR_BOUNDARY_MIN",
     "PROBE_RECORD",
+    "RAZOR_ZONE_COS_LOW",
     "SELF_PAIR_MIN",
     "UNRELATED_COS",
     "UNRELATED_MAX",
@@ -77,6 +106,38 @@ NEAR_BOUNDARY_COS: Final[float] = 0.99
 
 #: (b) the probability cut (runner's DUPLICATE_THRESHOLD_PROBABILITY).
 NEAR_BOUNDARY_MIN: Final[float] = 0.5
+
+# ── sanity v2 exam thresholds (eval-methodology §10; frozen D1 pins above
+#    stay as history and live on in the evalsets surface; coherence of the
+#    v2 numbers with gate_contract.json `sanity_v2` is pinned by test) ──────
+
+#: (i) cosmetic-twin floor: the title-punctuation twin of the probe
+#: (policy v1.1 §8.2 re-classed it cosmetic/T1 = dup) in the razor band
+#: must clear the duplicate cut.
+COSMETIC_TWIN_MIN: Final[float] = 0.5
+
+#: (ii) fact-edit twin ceiling: a key-fact token edited in the body (the
+#: 'names' class of policy v1.1 §8.2) in the razor band must stay BELOW
+#: the cut — the anti-dominance side of the two-valued razor zone.
+FACT_EDIT_TWIN_MAX: Final[float] = 0.5
+
+#: (ii) the fact-edit probe cosine point (the razor band, where corpus
+#: T3 negatives live).
+FACT_EDIT_COS: Final[float] = 0.99
+
+#: (iii) envelope-variant floor: the same record differing only in an
+#: envelope attribute (whitelist, policy v1.1 §8.1) must grade dup.
+ENVELOPE_VARIANT_MIN: Final[float] = 0.5
+
+#: (iii) the envelope-variant probe cosine point: identical text measures
+#: cos 1.0 through the embedder (the corpus P-envelope class).
+ENVELOPE_VARIANT_COS: Final[float] = 1.0
+
+#: (d, v2) the razor zone's lower edge — the zone is the OPEN interval
+#: (0.95; 1.0): ladder steps starting strictly above this line are not
+#: checked, the zone is two-valued by policy v1.1 (monotonicity is not
+#: asserted inside it; eval-methodology §10.2).
+RAZOR_ZONE_COS_LOW: Final[float] = 0.95
 
 #: (c) unrelated-probe cosine — the #480 unrelated-example point.
 UNRELATED_COS: Final[float] = 0.578
@@ -128,6 +189,58 @@ def _perturbed(record: PairRecord) -> PairRecord:
     """Mechanical perturbation of the probe (the W4c-positive twin family,
     same idiom as tests/synth.make_pair_rows: title + ``!``)."""
     return replace(record, title=f"{record.title}!")
+
+
+#: The key-fact anchor of the probe body (the cache-key example) and its
+#: edited form — the 'names' key-fact class of policy v1.1 §8.2: renaming
+#: the key from a cart to a card changes WHAT the record states. Same
+#: length by design: the pair keeps the razor-zone shape (zero len-delta,
+#: minimal char signature), exactly the corpus T3 geometry.
+FACT_EDIT_ANCHOR: Final[str] = "cart:{user_id}"
+FACT_EDIT_REPLACEMENT: Final[str] = "card:{user_id}"
+
+#: The envelope dates of the variant twin (policy v1.1 §8.1 whitelist:
+#: «дата фиксации/события в конверте» — the same message re-observed
+#: later). NOT representable in :class:`PairRecord`: the frozen contract
+#: surface carries no timestamp (features/pair.py — ``created_at``
+#: deliberately NOT here, OQ-2), so this delta is invisible to the
+#: 13-feature vector BY CONTRACT. Kept as documentation of what the
+#: corpus-level P-envelope class varies.
+ENVELOPE_DATES: Final[tuple[str, str]] = ("2026-09-01", "2026-10-01")
+
+
+def _fact_edited(record: PairRecord) -> PairRecord:
+    """The razor-side twin: ONE key-fact token in the body replaced (the
+    cache-key name ``cart`` → ``card`` — NOT dup by policy v1.1 §8.2).
+    Fails loud if the frozen probe body no longer carries the anchor —
+    a drifted probe must be repaired, never silently skipped."""
+    body = record.body
+    if body.count(FACT_EDIT_ANCHOR) != 1:
+        raise ValueError(
+            "PROBE_RECORD body lost the fact-edit anchor "
+            f"{FACT_EDIT_ANCHOR!r} (occurrences: {body.count(FACT_EDIT_ANCHOR)}) "
+            "— the frozen probe drifted; repair the probe or the anchor"
+        )
+    return replace(
+        record, body=body.replace(FACT_EDIT_ANCHOR, FACT_EDIT_REPLACEMENT, 1)
+    )
+
+
+def _envelope_variant(record: PairRecord) -> PairRecord:
+    """The whitelist-side twin: the same record re-observed under a
+    different envelope date (``ENVELOPE_DATES``) = dup by policy v1.1
+    §8.1 («то же сообщение, зафиксированное позже» — same thought, same
+    facts).
+
+    Feature-degenerate BY CONTRACT: the envelope delta rides OUTSIDE the
+    frozen 13-feature surface (RecordLike carries no timestamp — OQ-2),
+    so the probe vector equals the self-pair vector. That degeneracy is
+    pinned by test (features(envelope_variant) == features(self)): the
+    check keeps the policy verdict asserted and becomes LOAD-BEARING the
+    moment the feature surface grows envelope fields (OQ-2 resolution) —
+    at that point this twin must grow the real delta with it.
+    """
+    return replace(record)
 
 
 # ── report types ─────────────────────────────────────────────────────────────
@@ -310,6 +423,7 @@ def _contract_checks(
 def _adversarial_checks(session) -> list[SanityCheck]:
     checks: list[SanityCheck] = []
     twin = _perturbed(PROBE_RECORD)
+    fact_twin = _fact_edited(PROBE_RECORD)
 
     # (a) self-pair — content-independent by construction (see module docstring).
     p_self = _score_pair(session, features(PROBE_RECORD, PROBE_RECORD, 1.0))
@@ -324,15 +438,51 @@ def _adversarial_checks(session) -> list[SanityCheck]:
         )
     )
 
-    # (b) near-boundary: light perturbation at cos≈0.99 must clear the cut.
-    p_near = _score_pair(session, features(PROBE_RECORD, twin, NEAR_BOUNDARY_COS))
+    # (i) cosmetic twin (v2, ex near_boundary): the punctuation-titled twin
+    # in the razor band must clear the cut (policy v1.1: cosmetic = dup).
+    p_cosmetic = _score_pair(session, features(PROBE_RECORD, twin, NEAR_BOUNDARY_COS))
     checks.append(
         SanityCheck(
-            name="near_boundary",
-            passed=p_near >= NEAR_BOUNDARY_MIN,
+            name="cosmetic_twin",
+            passed=p_cosmetic >= COSMETIC_TWIN_MIN,
             detail=(
-                f"P(dup | probe vs twin, cos={NEAR_BOUNDARY_COS}) = {p_near:.4f} "
-                f"(required ≥ {NEAR_BOUNDARY_MIN})"
+                f"P(dup | probe vs cosmetic twin, cos={NEAR_BOUNDARY_COS}) = "
+                f"{p_cosmetic:.4f} (required ≥ {COSMETIC_TWIN_MIN}; policy v1.1 "
+                "§8.2: title punctuation is the cosmetic/T1 class)"
+            ),
+        )
+    )
+
+    # (ii) fact-edit twin: a key-fact token replaced in the body must stay
+    # BELOW the cut — the anti-dominance side of the two-valued razor zone.
+    p_fact = _score_pair(session, features(PROBE_RECORD, fact_twin, FACT_EDIT_COS))
+    checks.append(
+        SanityCheck(
+            name="fact_edit_twin",
+            passed=p_fact < FACT_EDIT_TWIN_MAX,
+            detail=(
+                f"P(dup | probe vs fact-edit twin, cos={FACT_EDIT_COS}) = "
+                f"{p_fact:.4f} (required < {FACT_EDIT_TWIN_MAX}; policy v1.1 "
+                "§8.2: a key-fact edit is razor/T3 = NOT dup)"
+            ),
+        )
+    )
+
+    # (iii) envelope-variant: an envelope-only delta (feature-degenerate by
+    # contract, see _envelope_variant) must grade dup.
+    p_env = _score_pair(
+        session,
+        features(PROBE_RECORD, _envelope_variant(PROBE_RECORD), ENVELOPE_VARIANT_COS),
+    )
+    checks.append(
+        SanityCheck(
+            name="envelope_variant",
+            passed=p_env >= ENVELOPE_VARIANT_MIN,
+            detail=(
+                f"P(dup | probe vs envelope-variant, cos={ENVELOPE_VARIANT_COS}) = "
+                f"{p_env:.4f} (required ≥ {ENVELOPE_VARIANT_MIN}; policy v1.1 "
+                "§8.1 whitelist; feature-degenerate to the self-pair by OQ-2 — "
+                "degeneracy pinned by test)"
             ),
         )
     )
@@ -352,14 +502,20 @@ def _adversarial_checks(session) -> list[SanityCheck]:
         )
     )
 
-    # (d) monotonicity over the FIXED probe-vs-twin pair as cosine drops.
+    # (d) monotonicity v2 — ZONED: the razor zone (0.95; 1.0) is two-valued
+    # by policy v1.1, steps starting strictly above its low edge are not
+    # asserted; outside the zone P must be non-increasing (operationally
+    # P(0.95) ≥ P(0.8) ≥ P(0.5)).
     ladder_ps = [
         _score_pair(session, features(PROBE_RECORD, twin, cos)) for cos in COS_LADDER
     ]
-    monotone = all(
-        ladder_ps[i] >= ladder_ps[i + 1] - MONOTONICITY_TOLERANCE
-        for i in range(len(ladder_ps) - 1)
-    )
+    monotone = True
+    for i in range(len(COS_LADDER) - 1):
+        if COS_LADDER[i] > RAZOR_ZONE_COS_LOW:
+            continue  # step starts inside the razor zone / identity point
+        if ladder_ps[i] < ladder_ps[i + 1] - MONOTONICITY_TOLERANCE:
+            monotone = False
+            break
     ladder_text = ", ".join(
         f"cos={cos:.2f}:{p:.4f}" for cos, p in zip(COS_LADDER, ladder_ps)
     )
@@ -368,9 +524,14 @@ def _adversarial_checks(session) -> list[SanityCheck]:
             name="monotonicity",
             passed=monotone,
             detail=(
-                ("non-increasing" if monotone else "INCREASING somewhere")
+                (
+                    "non-increasing outside the razor zone"
+                    if monotone
+                    else "INCREASE outside the razor zone"
+                )
                 + f" over the fixed pair [{ladder_text}] "
-                f"(tolerance {MONOTONICITY_TOLERANCE})"
+                f"(zoned v2: steps above cos={RAZOR_ZONE_COS_LOW} unchecked — "
+                f"two-valued zone; tolerance {MONOTONICITY_TOLERANCE})"
             ),
         )
     )

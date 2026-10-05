@@ -110,10 +110,14 @@ def _render_card(report: dict) -> str:
         f"Статус: **{sanity['status']}** "
         f"(прогон {sanity['suite'].get('run_at', 'NO-DATA')}, "
         f"`cortex.eval.sanity`). Само-пара P(dup|запись против себя) = "
-        f"{checks['self_pair']} при пороге ≥ 0.9; near-boundary = "
-        f"{checks['near_boundary']} @ cos 0.99 (порог ≥ 0.5); unrelated = "
+        f"{checks['self_pair']} при пороге ≥ 0.9; cosmetic-твин = "
+        f"{checks.get('cosmetic_twin', checks.get('near_boundary', 'n/a'))} "
+        f"@ cos 0.99 (порог ≥ 0.5; v2, экс-near_boundary); unrelated = "
         f"{checks['unrelated']} @ cos 0.578 (потолок < 0.5); монотонность по "
-        f"лестнице {{1.0, 0.99, 0.95, 0.8, 0.5}} — {checks['monotonicity']}."
+        f"лестнице {{1.0, 0.99, 0.95, 0.8, 0.5}} — {checks['monotonicity']} "
+        f"(v2 зонная: razor (0.95; 1.0) двузначна); fact-edit твин = "
+        f"{checks.get('fact_edit_twin', 'n/a')} (< 0.5); envelope-вариант = "
+        f"{checks.get('envelope_variant', 'n/a')} (≥ 0.5) — sanity v2."
     )
     add("")
     add("## Данные обучения")
