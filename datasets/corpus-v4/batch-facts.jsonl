@@ -1,0 +1,158 @@
+{"key": "thermostat-schedule", "lang": "ru", "find": "днём 21 °C", "replace": "днём 23 °C"}
+{"key": "thermostat-schedule", "lang": "ru", "find": "около 700 рублей за ноябрь", "replace": "около 900 рублей за ноябрь"}
+{"key": "thermostat-schedule", "lang": "en", "find": "holds 21 °C by day", "replace": "holds 23 °C by day"}
+{"key": "thermostat-schedule", "lang": "en", "find": "about 700 rubles in November", "replace": "about 900 rubles in November"}
+{"key": "washer-filter", "lang": "ru", "find": "раз в три месяца", "replace": "раз в четыре месяца"}
+{"key": "washer-filter", "lang": "ru", "find": "12 марта", "replace": "12 апреля"}
+{"key": "washer-filter", "lang": "en", "find": "every three months", "replace": "every four months"}
+{"key": "washer-filter", "lang": "en", "find": "March 12", "replace": "April 12"}
+{"key": "dishwasher-salt", "lang": "ru", "find": "в две пачки", "replace": "в три пачки"}
+{"key": "dishwasher-salt", "lang": "ru", "find": "выше 2 ммоль/л", "replace": "выше 3 ммоль/л"}
+{"key": "dishwasher-salt", "lang": "en", "find": "two-pack reserve", "replace": "three-pack reserve"}
+{"key": "dishwasher-salt", "lang": "en", "find": "above 2 mmol/L", "replace": "above 3 mmol/L"}
+{"key": "fridge-temperature", "lang": "ru", "find": "4 °C в холодильной камере", "replace": "5 °C в холодильной камере"}
+{"key": "fridge-temperature", "lang": "ru", "find": "минус 18 °C в морозилке", "replace": "минус 21 °C в морозилке"}
+{"key": "fridge-temperature", "lang": "en", "find": "4 °C in the fridge section", "replace": "5 °C in the fridge section"}
+{"key": "fridge-temperature", "lang": "en", "find": "minus 18 °C in the freezer", "replace": "minus 21 °C in the freezer"}
+{"key": "freezer-inventory", "lang": "ru", "find": "3 февраля", "replace": "3 марта"}
+{"key": "freezer-inventory", "lang": "ru", "find": "вместо двух пакетов", "replace": "вместо трёх пакетов"}
+{"key": "freezer-inventory", "lang": "en", "find": "February 3 audit", "replace": "March 3 audit"}
+{"key": "freezer-inventory", "lang": "en", "find": "instead of two bags before", "replace": "instead of three bags before"}
+{"key": "spice-drawer", "lang": "ru", "find": "банки по 100 мл", "replace": "банки по 150 мл"}
+{"key": "spice-drawer", "lang": "ru", "find": "ревизии в январе", "replace": "ревизии в феврале"}
+{"key": "spice-drawer", "lang": "en", "find": "100 ml jars", "replace": "150 ml jars"}
+{"key": "spice-drawer", "lang": "en", "find": "January audit", "replace": "February audit"}
+{"key": "knife-sharpening", "lang": "ru", "find": "раз в шесть недель", "replace": "раз в восемь недель"}
+{"key": "knife-sharpening", "lang": "ru", "find": "угол держу 15 градусов", "replace": "угол держу 12 градусов"}
+{"key": "knife-sharpening", "lang": "en", "find": "every six weeks", "replace": "every eight weeks"}
+{"key": "knife-sharpening", "lang": "en", "find": "15-degree angle", "replace": "12-degree angle"}
+{"key": "cutting-boards", "lang": "ru", "find": "красная для мяса", "replace": "синяя для мяса"}
+{"key": "cutting-boards", "lang": "ru", "find": "Раз в месяц пропитываю", "replace": "Раз в две недели пропитываю"}
+{"key": "cutting-boards", "lang": "en", "find": "red for meat", "replace": "blue for meat"}
+{"key": "cutting-boards", "lang": "en", "find": "Once a month I oil them", "replace": "Twice a month I oil them"}
+{"key": "cast-iron-care", "lang": "ru", "find": "держится с апреля", "replace": "держится с марта"}
+{"key": "cast-iron-care", "lang": "en", "find": "has held since April", "replace": "has held since March"}
+{"key": "tea-storage", "lang": "ru", "find": "три месяца вместо шести недель", "replace": "четыре месяца вместо восьми недель"}
+{"key": "tea-storage", "lang": "en", "find": "three months instead of six weeks", "replace": "four months instead of eight weeks"}
+{"key": "honey-crystallization", "lang": "ru", "find": "садится за три недели", "replace": "садится за две недели"}
+{"key": "honey-crystallization", "lang": "ru", "find": "не выше 40 °C", "replace": "не выше 35 °C"}
+{"key": "honey-crystallization", "lang": "en", "find": "sets within three weeks", "replace": "sets within two weeks"}
+{"key": "honey-crystallization", "lang": "en", "find": "no hotter than 40 °C", "replace": "no hotter than 35 °C"}
+{"key": "bread-freezing", "lang": "ru", "find": "в день покупки", "replace": "на следующий день"}
+{"key": "bread-freezing", "lang": "ru", "find": "даже на третий день", "replace": "даже на пятый день"}
+{"key": "bread-freezing", "lang": "en", "find": "on purchase day", "replace": "the day after purchase"}
+{"key": "bread-freezing", "lang": "en", "find": "even on day three", "replace": "even on day five"}
+{"key": "robot-vacuum-map", "lang": "ru", "find": "на пять зон", "replace": "на шесть зон"}
+{"key": "robot-vacuum-map", "lang": "ru", "find": "в 10:00 будних дней", "replace": "в 11:00 будних дней"}
+{"key": "robot-vacuum-map", "lang": "en", "find": "five zones", "replace": "six zones"}
+{"key": "robot-vacuum-map", "lang": "en", "find": "at 10:00 on weekdays", "replace": "at 11:00 on weekdays"}
+{"key": "windowsill-herbs", "lang": "ru", "find": "в грунт через две недели", "replace": "в грунт через три недели"}
+{"key": "windowsill-herbs", "lang": "ru", "find": "Подсветка на 12 часов зимой", "replace": "Подсветка на 10 часов зимой"}
+{"key": "windowsill-herbs", "lang": "en", "find": "soil after two weeks", "replace": "soil after three weeks"}
+{"key": "windowsill-herbs", "lang": "en", "find": "12-hour grow light", "replace": "10-hour grow light"}
+{"key": "seed-starting", "lang": "ru", "find": "Сею томаты 20 марта", "replace": "Сею томаты 25 марта"}
+{"key": "seed-starting", "lang": "ru", "find": "с 6:00 до 20:00", "replace": "с 6:00 до 22:00"}
+{"key": "seed-starting", "lang": "en", "find": "sow tomatoes on March 20", "replace": "sow tomatoes on March 25"}
+{"key": "seed-starting", "lang": "en", "find": "from 6:00 to 20:00", "replace": "from 6:00 to 22:00"}
+{"key": "rose-pruning", "lang": "ru", "find": "под углом 45 градусов", "replace": "под углом 40 градусов"}
+{"key": "rose-pruning", "lang": "ru", "find": "в конце апреля", "replace": "в начале мая"}
+{"key": "rose-pruning", "lang": "en", "find": "45-degree angle", "replace": "40-degree angle"}
+{"key": "rose-pruning", "lang": "en", "find": "in late April", "replace": "in early May"}
+{"key": "lawn-aeration", "lang": "ru", "find": "через каждые 15 см", "replace": "через каждые 10 см"}
+{"key": "lawn-aeration", "lang": "ru", "find": "заросли за шесть недель", "replace": "заросли за восемь недель"}
+{"key": "lawn-aeration", "lang": "en", "find": "every 15 cm", "replace": "every 10 cm"}
+{"key": "lawn-aeration", "lang": "en", "find": "within six weeks", "replace": "within eight weeks"}
+{"key": "rain-barrel", "lang": "ru", "find": "бочку на 200 литров", "replace": "бочку на 100 литров"}
+{"key": "rain-barrel", "lang": "ru", "find": "упал на треть", "replace": "упал на четверть"}
+{"key": "rain-barrel", "lang": "en", "find": "200-liter barrel", "replace": "100-liter barrel"}
+{"key": "rain-barrel", "lang": "en", "find": "dropped by a third", "replace": "dropped by a quarter"}
+{"key": "grill-cleaning", "lang": "ru", "find": "на максимуме 15 минут", "replace": "на максимуме 20 минут"}
+{"key": "grill-cleaning", "lang": "ru", "find": "раз в сезон, в августе", "replace": "раз в сезон, в сентябре"}
+{"key": "grill-cleaning", "lang": "en", "find": "for 15 minutes", "replace": "for 20 minutes"}
+{"key": "grill-cleaning", "lang": "en", "find": "once a season, in August", "replace": "once a season, in September"}
+{"key": "firewood-stack", "lang": "ru", "find": "18 % вместо 30 %", "replace": "20 % вместо 30 %"}
+{"key": "firewood-stack", "lang": "en", "find": "18 percent", "replace": "20 percent"}
+{"key": "chimney-sweep", "lang": "ru", "find": "до начала сезона, в сентябре", "replace": "до начала сезона, в октябре"}
+{"key": "chimney-sweep", "lang": "ru", "find": "пять минут вместо пятнадцати", "replace": "семь минут вместо пятнадцати"}
+{"key": "chimney-sweep", "lang": "en", "find": "in September", "replace": "in October"}
+{"key": "chimney-sweep", "lang": "en", "find": "five minutes instead of fifteen", "replace": "seven minutes instead of fifteen"}
+{"key": "attic-ladder", "lang": "ru", "find": "четыре винта люка", "replace": "шесть винтов люка"}
+{"key": "attic-ladder", "lang": "en", "find": "four hatch screws", "replace": "six hatch screws"}
+{"key": "gutter-cleaning", "lang": "ru", "find": "после цветения в мае", "replace": "после цветения в июне"}
+{"key": "gutter-cleaning", "lang": "ru", "find": "за два сезона", "replace": "за три сезона"}
+{"key": "gutter-cleaning", "lang": "en", "find": "after flowering in May", "replace": "after flowering in June"}
+{"key": "gutter-cleaning", "lang": "en", "find": "in two seasons", "replace": "in three seasons"}
+{"key": "fence-painting", "lang": "ru", "find": "в два слоя", "replace": "в три слоя"}
+{"key": "fence-painting", "lang": "ru", "find": "держится три года", "replace": "держится четыре года"}
+{"key": "fence-painting", "lang": "en", "find": "two coats", "replace": "three coats"}
+{"key": "fence-painting", "lang": "en", "find": "lasts three years", "replace": "lasts four years"}
+{"key": "door-hinges", "lang": "ru", "find": "пропал на год", "replace": "пропал на два года"}
+{"key": "door-hinges", "lang": "en", "find": "stayed away for a year", "replace": "stayed away for two years"}
+{"key": "water-heater-flush", "lang": "ru", "find": "вышло полстакана", "replace": "вышло два стакана"}
+{"key": "water-heater-flush", "lang": "ru", "find": "на 80 литров", "replace": "на 100 литров"}
+{"key": "water-heater-flush", "lang": "ru", "find": "к 40 минутам", "replace": "к 45 минутам"}
+{"key": "water-heater-flush", "lang": "en", "find": "half a cup of scale", "replace": "two cups of scale"}
+{"key": "water-heater-flush", "lang": "en", "find": "80-liter tank", "replace": "100-liter tank"}
+{"key": "water-heater-flush", "lang": "en", "find": "back to 40 minutes", "replace": "back to 45 minutes"}
+{"key": "faucet-aerator", "lang": "ru", "find": "Раз в три месяца откручиваю", "replace": "Раз в два месяца откручиваю"}
+{"key": "faucet-aerator", "lang": "ru", "find": "на десятую часть", "replace": "на пятую часть"}
+{"key": "faucet-aerator", "lang": "en", "find": "Every three months I unscrew", "replace": "Every two months I unscrew"}
+{"key": "faucet-aerator", "lang": "en", "find": "about a tenth", "replace": "about a fifth"}
+{"key": "toilet-flapper", "lang": "ru", "find": "на 1,2 кубометра", "replace": "на 2,1 кубометра"}
+{"key": "toilet-flapper", "lang": "en", "find": "1.2 cubic meters", "replace": "2.1 cubic meters"}
+{"key": "tub-caulk", "lang": "ru", "find": "уже 14 месяцев", "replace": "уже 10 месяцев"}
+{"key": "tub-caulk", "lang": "en", "find": "for 14 months", "replace": "for 10 months"}
+{"key": "humidifier-care", "lang": "ru", "find": "раз в три месяца", "replace": "раз в четыре месяца"}
+{"key": "humidifier-care", "lang": "en", "find": "every three months", "replace": "every four months"}
+{"key": "fan-lubrication", "lang": "ru", "find": "по две капли", "replace": "по три капли"}
+{"key": "fan-lubrication", "lang": "en", "find": "two drops", "replace": "three drops"}
+{"key": "iron-soleplate", "lang": "ru", "find": "раз в два месяца", "replace": "раз в три месяца"}
+{"key": "iron-soleplate", "lang": "en", "find": "every two months", "replace": "every three months"}
+{"key": "sewing-machine-oil", "lang": "ru", "find": "после каждых 20 часов", "replace": "после каждых 30 часов"}
+{"key": "sewing-machine-oil", "lang": "en", "find": "every 20 hours", "replace": "every 30 hours"}
+{"key": "car-winter-tires", "lang": "ru", "find": "плюс семь", "replace": "плюс пять"}
+{"key": "car-winter-tires", "lang": "ru", "find": "2,3 бара", "replace": "2,1 бара"}
+{"key": "car-winter-tires", "lang": "en", "find": "plus seven", "replace": "plus five"}
+{"key": "car-winter-tires", "lang": "en", "find": "2.3 bar", "replace": "2.1 bar"}
+{"key": "car-oil-change", "lang": "ru", "find": "каждые 8 тысяч километров", "replace": "каждые 9 тысяч километров"}
+{"key": "car-oil-change", "lang": "ru", "find": "а не каждые 15", "replace": "а не каждые 10"}
+{"key": "car-oil-change", "lang": "en", "find": "every 8 thousand kilometers", "replace": "every 9 thousand kilometers"}
+{"key": "car-oil-change", "lang": "en", "find": "instead of the 15 written", "replace": "instead of the 10 written"}
+{"key": "ev-charging", "lang": "ru", "find": "от 20 до 80 процентов", "replace": "от 25 до 85 процентов"}
+{"key": "ev-charging", "lang": "en", "find": "20 to 80 percent", "replace": "25 to 85 percent"}
+{"key": "passport-renewal", "lang": "ru", "find": "12 мая", "replace": "14 мая"}
+{"key": "passport-renewal", "lang": "ru", "find": "27 мая", "replace": "29 мая"}
+{"key": "passport-renewal", "lang": "en", "find": "May 12", "replace": "May 14"}
+{"key": "passport-renewal", "lang": "en", "find": "May 27", "replace": "May 29"}
+{"key": "tax-deduction-folder", "lang": "ru", "find": "справки, договоры и платёжки", "replace": "справки, договоры и выписки"}
+{"key": "tax-deduction-folder", "lang": "en", "find": "certificates, contracts and payment slips", "replace": "certificates, contracts and bank statements"}
+{"key": "insurance-checkup", "lang": "ru", "find": "в марте сверяю", "replace": "в апреле сверяю"}
+{"key": "insurance-checkup", "lang": "ru", "find": "на 15 %", "replace": "на 12 %"}
+{"key": "insurance-checkup", "lang": "en", "find": "Every March I review", "replace": "Every April I review"}
+{"key": "insurance-checkup", "lang": "en", "find": "by 15 percent", "replace": "by 12 percent"}
+{"key": "warranty-registry", "lang": "ru", "find": "за пять дней", "replace": "за три дня"}
+{"key": "warranty-registry", "lang": "en", "find": "five days before it ended", "replace": "three days before it ended"}
+{"key": "receipt-box", "lang": "ru", "find": "за десять минут", "replace": "за пятнадцать минут"}
+{"key": "receipt-box", "lang": "en", "find": "in ten minutes", "replace": "in fifteen minutes"}
+{"key": "budget-envelopes", "lang": "ru", "find": "на четыре конверта", "replace": "на пять конвертов"}
+{"key": "budget-envelopes", "lang": "en", "find": "four envelopes", "replace": "five envelopes"}
+{"key": "meter-readings", "lang": "ru", "find": "25 числа", "replace": "24 числа"}
+{"key": "meter-readings", "lang": "en", "find": "on the 25th", "replace": "on the 24th"}
+{"key": "sketching-practice", "lang": "ru", "find": "таймер на 15 минут", "replace": "таймер на 10 минут"}
+{"key": "sketching-practice", "lang": "ru", "find": "стопка в 80 листов", "replace": "стопка в 60 листов"}
+{"key": "sketching-practice", "lang": "en", "find": "timer set for 15 minutes", "replace": "timer set for 10 minutes"}
+{"key": "sketching-practice", "lang": "en", "find": "added up to 80 sheets", "replace": "added up to 60 sheets"}
+{"key": "watercolor-supplies", "lang": "ru", "find": "бумагу 300 грамм", "replace": "бумагу 250 грамм"}
+{"key": "watercolor-supplies", "lang": "en", "find": "300 gsm cotton paper", "replace": "250 gsm cotton paper"}
+{"key": "clay-pottery", "lang": "ru", "find": "под плёнкой неделю", "replace": "под плёнкой две недели"}
+{"key": "clay-pottery", "lang": "ru", "find": "400 рублей за закладку", "replace": "450 рублей за закладку"}
+{"key": "clay-pottery", "lang": "en", "find": "under foil for a week", "replace": "under foil for two weeks"}
+{"key": "clay-pottery", "lang": "en", "find": "400 rubles per load", "replace": "450 rubles per load"}
+{"key": "embroidery-hoop", "lang": "ru", "find": "пластиковым пяльцам", "replace": "деревянным пяльцам"}
+{"key": "embroidery-hoop", "lang": "en", "find": "plastic hoops", "replace": "wooden hoops"}
+{"key": "bird-feeder", "lang": "ru", "find": "метр шестьдесят", "replace": "метр восемьдесят"}
+{"key": "bird-feeder", "lang": "ru", "find": "в двух метрах от куста", "replace": "в трёх метрах от куста"}
+{"key": "bird-feeder", "lang": "ru", "find": "раз в три дня", "replace": "раз в два дня"}
+{"key": "bird-feeder", "lang": "en", "find": "one meter sixty", "replace": "one meter eighty"}
+{"key": "bird-feeder", "lang": "en", "find": "two meters from the bush", "replace": "three meters from the bush"}
+{"key": "bird-feeder", "lang": "en", "find": "every three days", "replace": "every two days"}

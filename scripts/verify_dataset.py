@@ -12,6 +12,19 @@ Usage:
 <in-dir> holds pairs-pos.jsonl (rows: pair_id, original{title,body,tags}, variant{...})
 and pairs-neg.jsonl (rows: pair_id, a{...}, b{...}). Emits out.jsonl rows
 {pair_id, noul} — the calibrated P(duplicate) per pair (None on API miss).
+
+Local mode (no network, no key) — the corner-QA pre-train gate
+(P0 §8.1 / labeling-policy §5) over an assembled corpus:
+
+    python3 scripts/verify_dataset.py qa <corpus-dir> [report.json] [thresholds.json]
+
+Reads train.jsonl (stage2 rows: pair_id, label, record, candidate,
+similarity) plus holdout.jsonl in the same dir or in the sibling
+<dir>-holdout/ (dataset-v4 layout), runs cortex.data.corner_qa and exits
+0 only when every gate passes. On refusal the report json (if requested)
+carries the violations. thresholds.json (optional) overrides the default
+CornerQAThresholds — mini fixtures in tests use it; a REAL corpus always
+runs on the defaults.
 """
 
 from __future__ import annotations
@@ -24,6 +37,76 @@ import urllib.error
 import urllib.request
 
 mode, IN_DIR, OUT = sys.argv[1], sys.argv[2], sys.argv[3]
+
+if mode == "qa":
+    _repo_src = str(
+        __import__("pathlib").Path(__file__).resolve().parent.parent / "src"
+    )
+    sys.path.insert(0, _repo_src)
+    from cortex.data.corner_qa import (  # noqa: E402 — repo src shim above
+        CornerQAThresholds,
+        run_corner_qa,
+        thresholds_from_gate_contract,
+    )
+
+    thresholds, thresholds_source = thresholds_from_gate_contract()
+    if len(sys.argv) > 4:
+        overrides = json.loads(
+            __import__("pathlib").Path(sys.argv[4]).read_text(encoding="utf-8")
+        )
+        thresholds = CornerQAThresholds(**overrides)
+
+    def _read_rows(path):
+        rows = []
+        with open(path, encoding="utf-8") as fh:
+            for line in fh:
+                if line.strip():
+                    rows.append(json.loads(line))
+        return rows
+
+    corpus_dir = __import__("pathlib").Path(IN_DIR)
+    rows = _read_rows(corpus_dir / "train.jsonl")
+    holdout_path = corpus_dir / "holdout.jsonl"
+    if not holdout_path.exists():
+        sibling = corpus_dir.with_name(corpus_dir.name + "-holdout")
+        if (sibling / "holdout.jsonl").exists():
+            holdout_path = sibling / "holdout.jsonl"
+    if holdout_path.exists():
+        rows.extend(_read_rows(holdout_path))
+    ok, report = run_corner_qa(rows, thresholds)
+    payload = {
+        "mode": "qa",
+        "corpus_dir": str(corpus_dir),
+        "pairs": len(rows),
+        "ok": ok,
+        "thresholds_source": thresholds_source,
+        "violations": report["violations"],
+        "corner_qa": {k: v for k, v in report.items() if k != "violations"},
+    }
+    if OUT != "-":
+        with open(OUT, "w", encoding="utf-8") as fh:
+            json.dump(payload, fh, ensure_ascii=False, indent=1)
+            fh.write("\n")
+    print(
+        json.dumps(
+            {
+                "mode": "qa",
+                "pairs": len(rows),
+                "ok": ok,
+                "violations": len(report["violations"]),
+                "clone_negatives": report["clone_negatives_count"],
+                "corner_dup_positives": report["corner_dup_positives_count"],
+                "constant_features": report["constant_features"],
+                "thresholds_source": thresholds_source,
+            },
+            ensure_ascii=False,
+        )
+    )
+    if not ok:
+        for line in report["violations"]:
+            print(f"  - {line}", file=sys.stderr)
+    sys.exit(0 if ok else 1)
+
 # Sandboxed runners may sanitize env — read the key from the secrets file
 # directly (value stays in memory only; never printed/logged).
 KEY = (

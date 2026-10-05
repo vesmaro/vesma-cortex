@@ -7,6 +7,13 @@ fingerprints the corpus (BLAKE2b over sorted sha256 manifest, data-contract
 stride over pair_id sort). Holdout ids land in <out-dir>/holdout-ids.json —
 sealed BEFORE any training run.
 
+Corner-QA gate (P0 §8.1, pre-train): before anything is written, the
+assembled rows pass cortex.data.corner_qa — clone negatives, corner-DUP
+quota, type/lang variability, cos stratification, G1 ceiling. A violation
+refuses the build (exit 1, NOTHING written) — an invalid corpus never
+reaches training. --no-qa skips the gate for legacy re-derivations and
+marks the seal accordingly (loud stderr warning; never for a new corpus).
+
 Usage (ENGINE venv — imports vesmaro.embeddings):
     PYTHONPATH=<engine-src> python3 scripts/build_train_manifest.py \
         --in-dir <dataset-dir> --out-dir data/stage2/<name> [--holdout-frac 0.3] [--seed 7]
@@ -26,11 +33,18 @@ ap.add_argument("--in-dir", required=True)
 ap.add_argument("--out-dir", required=True)
 ap.add_argument("--holdout-frac", type=float, default=0.3)
 ap.add_argument("--seed", type=int, default=7)
+ap.add_argument(
+    "--no-qa",
+    action="store_true",
+    help="skip the corner-QA pre-train gate (legacy re-derivations only; "
+    "the seal is marked 'skipped' — never use for a new corpus)",
+)
 args = ap.parse_args()
 
-sys.path.insert(
-    0, "/var/home/abyss/LABs/Projects/Project-Vesma/wt/a2-engine-readonly/src"
-)
+_engine_src = "/var/home/abyss/LABs/Projects/Project-Vesma/vesma/src"
+_repo_src = str(Path(__file__).resolve().parent.parent / "src")
+sys.path.insert(0, _engine_src)
+sys.path.insert(0, _repo_src)
 from vesmaro.embeddings import NanoProvider  # noqa: E402 — engine src shim above
 
 provider = NanoProvider()
@@ -78,6 +92,50 @@ for r in rows:
     r["vec_b"] = [round(x, 6) for x in vb]
     print(f"  embedded {r['pair_id']}", file=sys.stderr)
 
+# ── corner-QA pre-train gate (P0 §8.1): refuse BEFORE anything is written ────
+from cortex.data.corner_qa import (  # noqa: E402 — repo src shim above
+    run_corner_qa,
+    thresholds_from_gate_contract,
+)
+
+corner_qa_summary: dict = {"skipped": True}
+if not args.no_qa:
+    thresholds, thresholds_source = thresholds_from_gate_contract()
+    print(f"corner-QA thresholds source: {thresholds_source}", file=sys.stderr)
+    ok, qa_report = run_corner_qa(rows, thresholds)
+    corner_qa_summary = {
+        "skipped": False,
+        "ok": ok,
+        "clone_negatives": qa_report["clone_negatives_count"],
+        "corner_dup_positives": qa_report["corner_dup_positives_count"],
+        "identity_class_positives": qa_report["identity_class_positives_count"],
+        "metadata_negatives": qa_report["metadata_negatives_count"],
+        "fact_edit_negatives": qa_report["fact_edit_negatives_count"],
+        "razor_zone_positives": qa_report["razor_zone_positives_count"],
+        "type_present_fraction": qa_report["type_present_fraction"],
+        "lang_present_fraction": qa_report["lang_present_fraction"],
+        "constant_features": qa_report["constant_features"],
+        "cos_below_055": qa_report["cos_below_055"],
+        "cos_below_070": qa_report["cos_below_070"],
+        "cos_below_084": qa_report["cos_below_084"],
+        "violations": qa_report["violations"],
+    }
+    if not ok:
+        print(
+            "CORNER-QA REFUSAL — the corpus fails the pre-train gate, "
+            "nothing is written:",
+            file=sys.stderr,
+        )
+        for line in qa_report["violations"]:
+            print(f"  - {line}", file=sys.stderr)
+        sys.exit(1)
+else:
+    print(
+        "WARNING: corner-QA gate SKIPPED (--no-qa) — the seal carries "
+        "'corner_qa.skipped'; do not use for a new corpus",
+        file=sys.stderr,
+    )
+
 rows.sort(key=lambda r: r["pair_id"])
 lines = sorted(
     f"{r['pair_id']} {hashlib.sha256(json.dumps({k: r[k] for k in ('record', 'candidate', 'similarity')}, sort_keys=True, ensure_ascii=False).encode()).hexdigest()}"
@@ -115,6 +173,7 @@ with open(out / "holdout-ids.json", "w", encoding="utf-8") as fh:
             "label_fingerprint_input": labels_fp,
             "seed": args.seed,
             "split": f"stratified stride, frac={args.holdout_frac}",
+            "corner_qa": corner_qa_summary,
         },
         fh,
         indent=1,
@@ -126,6 +185,7 @@ print(
             "corpus_fingerprint": fp[:16] + "…",
             "train": dict(Counter(r["label"] for r in train)),
             "holdout": dict(Counter(r["label"] for r in hold)),
+            "corner_qa": corner_qa_summary.get("ok", "skipped"),
         }
     )
 )
