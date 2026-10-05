@@ -36,7 +36,8 @@ from cortex.data.holdout import assert_no_pair_overlap  # noqa: E402
 
 EXPECTED_STRATA = {
     "P-identity": 96,
-    "P-cosmetic": 72,
+    "P-cosmetic": 192,
+    "P-envelope": 48,
     "P-para-light": 96,
     "P-para-sub": 48,
     "P-para-struct": 35,
@@ -81,24 +82,41 @@ def test_construction_quotas(pairs) -> None:
     labels = {"duplicate": 0, "not-duplicate": 0}
     for p in pairs:
         labels[p["label"]] += 1
-    assert labels == {"duplicate": 407, "not-duplicate": 461}
+    assert labels == {"duplicate": 575, "not-duplicate": 461}
     ids = [p["pair_id"] for p in pairs]
-    assert len(ids) == len(set(ids)) == 868
+    assert len(ids) == len(set(ids)) == 1036
+    # v4.1 razor parity: T1 positives meet the T3 negatives 1:1 (±20 %)
+    assert by_stratum["P-cosmetic"] == 192
+    assert abs(by_stratum["P-cosmetic"] - by_stratum["N-fact-edit"]) <= round(
+        0.2 * by_stratum["N-fact-edit"]
+    )
 
 
 def test_sides_carry_the_contract_surface_only(pairs) -> None:
     for p in pairs:
         for side in (p["record"], p["candidate"]):
-            assert set(side.keys()) == {
-                "title",
-                "body",
-                "tags",
-                "language",
-                "record_type",
-            }
+            expected = {"title", "body", "tags", "language", "record_type"}
+            if p["stratum"] == "P-envelope":
+                expected |= {"observed_at"}
+            assert set(side.keys()) == expected, p["pair_id"]
             assert side["language"] in ("ru", "en")
             assert side["record_type"] in gen.RECORD_TYPES
             assert isinstance(side["tags"], list) and side["tags"]
+
+
+def test_envelope_pairs_differ_only_in_the_envelope_date(pairs) -> None:
+    """P-envelope (policy v1.1 §8.1 whitelist): content identical, the
+    envelope date differs — duplicate by construction; the delta rides
+    OUTSIDE the 13-feature surface (OQ-2)."""
+    envs = [p for p in pairs if p["stratum"] == "P-envelope"]
+    assert len(envs) == 48
+    for p in envs:
+        a = {k: v for k, v in p["record"].items() if k != "observed_at"}
+        b = {k: v for k, v in p["candidate"].items() if k != "observed_at"}
+        assert canonical_json(a) == canonical_json(b), p["pair_id"]
+        assert p["record"]["observed_at"] != p["candidate"]["observed_at"]
+        assert p["record"]["observed_at"] < p["candidate"]["observed_at"]
+        assert p["label"] == "duplicate"
 
 
 def test_no_cross_pair_content_duplicates(pairs) -> None:
@@ -225,7 +243,7 @@ def test_first_spec_per_cell_is_deterministic_quota(loaded) -> None:
 def test_split_seventyfive_twentyfive_no_overlap(pairs) -> None:
     train, hold = gen.stratified_split(pairs, gen.HOLDOUT_FRACTION)
     assert len(train) + len(hold) == len(pairs)
-    assert len(hold) == 218 and len(train) == 650
+    assert len(hold) == 260 and len(train) == 776
     assert_no_pair_overlap([r["pair_id"] for r in train], [r["pair_id"] for r in hold])
     # per (label, stratum) cell the holdout share is exactly ceil(0.25·n)
     cells: dict[tuple[str, str], int] = {}

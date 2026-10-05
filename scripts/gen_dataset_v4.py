@@ -11,7 +11,11 @@ double run is byte-identical.
 
 Classes (tier → label):
     P-identity   T0 self-pairs + clones                    duplicate
-    P-cosmetic   T1 case-only / whitespace-only twins      duplicate
+    P-cosmetic   T1 case / whitespace / title-punctuation  duplicate
+                 (v4.1: raised to 192 = parity with the 192 T3
+                 razor negatives — the band is two-valued)
+    P-envelope   v4.1 whitelist-dup (policy v1.1 §8.1): same
+                 content, different envelope date          duplicate
     P-para-light sentence swap + one lexical replacement  duplicate
     P-para-sub   authored substantial paraphrase           duplicate
     P-para-struct authored structural reorganization       duplicate
@@ -20,6 +24,14 @@ Classes (tier → label):
     N-fact-edit  T3 one fact token replaced (both orient.) not-duplicate
     N-near       same topic, different fact (hard neg.)    not-duplicate
     N-far        different topic                           not-duplicate
+
+v4.1 (wave D4-3, prereg addendum 5b final): the razor band (0.95; 1.0)
+was negative-dominated (192 T3 vs 72 T1) and B2-prime honestly learned
+the dominance (sanity v2 cosmetic_twin FAIL 0.0261) — the band is rebuilt
+two-valued at label AND volume parity. The P-envelope delta rides in the
+``observed_at`` field, OUTSIDE the frozen 13-feature surface (OQ-2: the
+model never sees timestamps) — the corpus records the envelope class,
+the feature contract stays frozen.
 
 Pipeline: batches → validate (dedup, fact anchor, DISJOINTNESS vs synth
 TOPICS / evalsets / LA-2 batch / sanity anchors) → pairs → measured
@@ -417,6 +429,37 @@ def _add_spaces_record(record: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+#: Title punctuation suffixes for the v4.1 T1 cosmetics (policy v1.1 §8.2:
+#: «пунктуация заголовка» = cosmetic class) — deterministic cycle, the same
+#: perturbation family as the sanity v2 cosmetic-twin probe.
+PUNCT_SUFFIXES: tuple[str, ...] = ("!", "?", "!!", "…")
+
+#: Envelope dates for the P-envelope class (policy v1.1 §8.1 whitelist:
+#: «дата фиксации/события в конверте») — the same content re-observed under
+#: a later envelope date. Pairs take consecutive pool entries; no RNG.
+ENVELOPE_DATES: tuple[str, ...] = (
+    "2026-07-01",
+    "2026-08-01",
+    "2026-09-01",
+    "2026-10-01",
+)
+
+
+def _punctuated_title(record: dict[str, Any], suffix: str) -> dict[str, Any]:
+    """Cosmetic twin: title punctuation only (policy v1.1 §8.2 T1)."""
+    out = deepcopy(record)
+    out["title"] = f"{out['title']}{suffix}"
+    return out
+
+
+def _envelope_dated(record: dict[str, Any], observed_at: str) -> dict[str, Any]:
+    """Attach the envelope date (whitelist §8.1) to a record copy. The
+    field rides OUTSIDE the frozen 13-feature surface (OQ-2)."""
+    out = deepcopy(record)
+    out["observed_at"] = observed_at
+    return out
+
+
 def _sentence_swapped(record: dict[str, Any]) -> dict[str, Any]:
     sentences = _SENTENCE_SPLIT.split(record["body"].strip())
     if len(sentences) < 2:
@@ -467,14 +510,21 @@ def _with_meta(
 
 
 def _side_of(row: dict[str, Any]) -> dict[str, Any]:
-    """Batch row → the frozen contract surface (RecordLike fields only)."""
-    return {
+    """Batch row → the frozen contract surface (RecordLike fields) plus the
+    envelope field when present. ``observed_at`` (policy v1.1 §8.1
+    whitelist) rides OUTSIDE the 13-feature surface BY DESIGN (OQ-2:
+    features never see timestamps) — the corpus records the envelope
+    delta, the model contract ignores it."""
+    side = {
         "title": row["title"],
         "body": row["body"],
         "tags": list(row["tags"]),
         "language": row.get("language") or row.get("lang"),
         "record_type": row.get("record_type"),
     }
+    if row.get("observed_at"):
+        side["observed_at"] = row["observed_at"]
+    return side
 
 
 def _first_spec_per_cell(facts: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -543,6 +593,49 @@ def build_pairs(
     for i, key in enumerate(keys[:24]):
         rec = base_ru[key]
         add("COSM", "P-cosmetic", LABEL_DUPLICATE, rec, _add_spaces_record(rec))
+
+    # P-cosmetic v4.1 (prereg addendum 5b final): the razor band (0.95; 1.0)
+    # is TWO-VALUED — T1 positives raised to PARITY with the 192 T3
+    # negatives (±20 %, exact 192): punctuation-title (48, policy v1.1
+    # §8.2) + whitespace on the rest of the keys (24) + body-swapcase (48)
+    # on top of the 72 built above.
+    for i, key in enumerate(keys):
+        rec = base_ru[key] if i % 2 == 0 else base_en[key]
+        add(
+            "COSM",
+            "P-cosmetic",
+            LABEL_DUPLICATE,
+            rec,
+            _punctuated_title(rec, PUNCT_SUFFIXES[i % len(PUNCT_SUFFIXES)]),
+        )
+    for key in keys[24:]:
+        rec = base_ru[key]
+        add("COSM", "P-cosmetic", LABEL_DUPLICATE, rec, _add_spaces_record(rec))
+    for i, key in enumerate(keys):
+        rec = base_ru[key] if i % 2 == 1 else base_en[key]
+        add(
+            "COSM",
+            "P-cosmetic",
+            LABEL_DUPLICATE,
+            rec,
+            _swapcase_record(rec, title=False, body=True),
+        )
+
+    # P-envelope v4.1 (policy v1.1 §8.1 whitelist): the same content
+    # re-observed under a different envelope date = duplicate. The delta
+    # rides in `observed_at` — OUTSIDE the frozen 13-feature surface
+    # (OQ-2): the corpus pins the envelope verdict, the feature contract
+    # stays frozen.
+    for i, key in enumerate(keys):
+        rec = base_ru[key] if i % 2 == 0 else base_en[key]
+        j = i % (len(ENVELOPE_DATES) - 1)
+        add(
+            "ENV",
+            "P-envelope",
+            LABEL_DUPLICATE,
+            _envelope_dated(rec, ENVELOPE_DATES[j]),
+            _envelope_dated(rec, ENVELOPE_DATES[j + 1]),
+        )
 
     # P-para-light: sentence swap + one lexical replacement (96: 48 ru + 48 en)
     for key in keys:
@@ -850,7 +943,7 @@ def main(argv: list[str] | None = None) -> int:
     report_payload = {
         "kind": "dataset-v4-corpus-report",
         "built_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "corpus": "dataset-v4 (B2-prime), wave D4-1",
+        "corpus": "dataset-v4.1 (B2-prime), wave D4-3 (razor rebalance + envelope class)",
         "total_pairs": len(rows),
         "train_pairs": len(train),
         "holdout_pairs": len(hold),
