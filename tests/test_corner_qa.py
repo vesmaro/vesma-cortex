@@ -72,6 +72,19 @@ def healthy_rows() -> list[dict]:
     fact_edit = rec(
         "Фильтр насоса",
         BASE_BODY.replace("12 марта", "12 апреля"),
+        tags=("home", "appliance"),
+    )
+    fact_edit_same = rec(
+        "Фильтр насоса",
+        BASE_BODY.replace("12 марта", "13 марта"),
+        tags=("home", "appliance"),
+    )
+    # the wave D4-4 retelling-NOT-duplicate shape: same-length fact edit +
+    # case rewrite (normalization-invisible, measured-cosine-visible)
+    retold = rec(
+        "Фильтр насоса".swapcase(),
+        BASE_BODY.replace("12 марта", "13 марта").swapcase(),
+        tags=("home", "appliance"),
     )
     meta = rec("Фильтр насоса", BASE_BODY, tags=("home", "appliance", "archive"))
     other = rec(
@@ -104,6 +117,15 @@ def healthy_rows() -> list[dict]:
         row("p-light-1", "duplicate", base, paraphrase, 0.93, "P-para-light"),
         row("n-fact-1", "not-duplicate", base, fact_edit, 0.99, "N-fact-edit"),
         row("n-fact-2", "not-duplicate", fact_edit, base, 0.99, "N-fact-edit"),
+        row(
+            "n-fact-3",
+            "not-duplicate",
+            base,
+            fact_edit_same,
+            0.99,
+            "N-fact-edit",
+        ),
+        row("n-pnd-1", "not-duplicate", base, retold, 0.60, "N-para-notdup"),
         row("n-meta-1", "not-duplicate", base, meta, 1.0, "N-metadata"),
         row(
             "n-near-1",
@@ -148,6 +170,8 @@ LOOSE = CornerQAThresholds(
     min_identity_class_positives=2,
     min_metadata_negatives=1,
     min_fact_edit_negatives=2,
+    min_t3_same_length_share=0.3,
+    min_low_cos_high_overlap_notdup=1,
     min_type_mismatch_fraction=0.0,
     min_lang_mismatch_fraction=0.0,
     min_pairs_below_cos_055=1,
@@ -164,6 +188,29 @@ def test_healthy_mini_corpus_passes() -> None:
     assert report["identity_class_positives_count"] == 3
     assert report["metadata_negatives_count"] == 1
     assert report["razor_zone_positives_count"] == 0
+    # wave D4-4 presence counters
+    assert report["t3_pairs"] == 3
+    assert report["t3_same_length_pairs_count"] == 1
+    assert report["t3_same_length_share"] == round(1 / 3, 4)
+    assert report["low_cos_high_overlap_notdup_count"] == 1
+
+
+def test_t3_same_length_share_gate_refuses() -> None:
+    """Wave D4-4: without the same-length family the probe geometry is
+    uncovered — the gate must name the share and refuse."""
+    rows = [r for r in healthy_rows() if r["pair_id"] != "n-fact-3"]
+    ok, report = run_corner_qa(rows, LOOSE)
+    assert not ok
+    assert any("t3_same_length_share=0.0" in v for v in report["violations"])
+
+
+def test_low_cos_high_overlap_notdup_gate_refuses() -> None:
+    """Wave D4-4: without duplicate-like char profiles at low cosine on the
+    NOT-dup side the out-of-zone ladder has nothing to fall with."""
+    rows = [r for r in healthy_rows() if r["pair_id"] != "n-pnd-1"]
+    ok, report = run_corner_qa(rows, LOOSE)
+    assert not ok
+    assert any("low_cos_high_overlap_notdup=0" in v for v in report["violations"])
 
 
 def test_clone_negative_is_refused_with_zero_tolerance() -> None:
@@ -379,6 +426,8 @@ def test_default_thresholds_match_the_prereg_draft() -> None:
     assert t.min_pairs_below_cos_070 == 60
     assert t.min_pairs_below_cos_084 == 180
     assert t.min_positive_edit_mass_chars == 8
+    assert t.min_t3_same_length_share == 0.30
+    assert t.min_low_cos_high_overlap_notdup == 30
 
 
 def test_verify_dataset_qa_mode_green_and_red(tmp_path: Path) -> None:
@@ -401,6 +450,8 @@ def test_verify_dataset_qa_mode_green_and_red(tmp_path: Path) -> None:
                 "min_identity_class_positives": 2,
                 "min_metadata_negatives": 1,
                 "min_fact_edit_negatives": 2,
+                "min_t3_same_length_share": 0.3,
+                "min_low_cos_high_overlap_notdup": 1,
                 "min_type_mismatch_fraction": 0.0,
                 "min_lang_mismatch_fraction": 0.0,
                 "min_pairs_below_cos_055": 1,

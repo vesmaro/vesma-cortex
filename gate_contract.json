@@ -98,7 +98,8 @@
       "docs/experiments/p0-export-desync-investigation.md #8.1 (quotas)",
       "docs/specs/labeling-policy-b2.md #5 (corner gates G1-G5)",
       "docs/experiments/dataset-v4-plan.md (ratified 2026-10-05)",
-      "TL arbitration 2026-10-05 (wave D4-1 open questions 1-3)"
+      "TL arbitration 2026-10-05 (wave D4-1 open questions 1-3)",
+      "docs/experiments/b2p-v41-sanity-fail-diagnosis.md (C1 corpus correction, wave D4-4, 2026-10-05: presence counters, no existing threshold revised)"
     ],
     "consumer": "cortex.data.corner_qa.CornerQAThresholds (loader falls back to the frozen code constants when this section is absent — backward compatibility)",
     "max_clone_negatives": 0,
@@ -106,6 +107,8 @@
     "min_identity_class_positives": 60,
     "min_metadata_negatives": 40,
     "min_fact_edit_negatives": 75,
+    "min_t3_same_length_share": 0.3,
+    "min_low_cos_high_overlap_notdup": 30,
     "max_razor_zone_positives": 0,
     "min_type_present_fraction": 0.85,
     "min_lang_present_fraction": 0.85,
