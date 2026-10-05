@@ -32,6 +32,7 @@ def _human(report) -> str:
         "adversarial sanity suite — vesma-cortex bundle",
         f"bundle: {report.bundle}",
         f"weights sha256: {report.weights_sha256}",
+        f"exam cohort: v{report.exam_version}",
         "",
     ]
     for check in report.checks:
@@ -77,6 +78,7 @@ def main(argv: list[str] | None = None) -> int:
         payload = {
             "bundle": report.bundle,
             "weights_sha256": report.weights_sha256,
+            "exam_version": report.exam_version,
             "passed": report.passed,
             "checks": [
                 {"name": check.name, "passed": check.passed, "detail": check.detail}
