@@ -1,6 +1,6 @@
 # Доска состояния vesma-cortex
 
-Обновлена: 2026-10-03 (волны MR).
+Обновлена: 2026-10-05 (волна D4 — B2-prime закрыт ADOPT'ом).
 
 | Волна | Содержание | Статус | Где |
 |---|---|---|---|
@@ -12,6 +12,7 @@
 | A5 | single-shot оценка | ✅ **ADOPT** (83178e3: sens 1.0, spec 0.98, Brier 0.0053, baseline 0.81 побит) | docs/experiments/calibration-ds1000-a5.md |
 | A6 | артефакт + провенанс | ✅ done (vesma-cortex-v1 sha 281bd0fd, хендофф у канона) — осталось W5d-wiring на стороне движка | artifacts/manifests/vesma-cortex-v1-ds1000.md |
 | B1/B2 | калибровки: доменное разнообразие (B1 ADOPT, в проде) · рёберная окрестность (B2 ADOPT → **отозван** 2026-10-03, #480) | ✅ done / ↩️ recalled | docs/experiments/calibration-b1-domain-diversity.md, calibration-b2-edge-neighborhood.md, b0-escalation.md |
+| D4 (B2-prime) | препрег v2 (policy v1.1 + sanity v2, canon 5/5b/5c) + корпуса v4.0→v4.1→v4.2 (C1-диагноз) + калибровка **B2-v42** `00fc6b71`: sanity v2 **9/9**, sens 0.9931 / spec 0.9394 / Brier 0.0329 / BA 0.9662 vs baseline 0.5363 (+43 п.п. — рекорд) | ✅ **ADOPT** (2026-10-05) — в реестре main; **прод остаётся B1, выкат после B0-вердикта (16.10)** | docs/experiments/calibration-b2p.md, models/vesma-cortex-v1/ |
 | B0 | телеметрия поля: delta-rate, no-harm-коридор | 🔄 идёт (прод на B1 с 23:07 UTC 2026-10-03; окно сегментировано точкой отзыва; вердикт до 2026-10-16) | docs/experiments/b0-telemetry-plan.md |
 | MR-0 | АрхКом: реестр артефактов, релизный цикл, методология — ADR 0003 + спеки model-registry / eval-methodology | ✅ done | docs/decisions/0003-model-artifacts-release-and-eval.md |
 | MR-1 | реестр: models/vesma-cortex-v1/ (B1, манифест schema 2), eval-results.json, MODEL_CARD (генерируется), gate_contract.json | ✅ done (4ada9a1) | models/vesma-cortex-v1/, docs/specs/model-registry.md |
@@ -47,6 +48,23 @@
 3. **Ратификация** гейт-таблицы eval-методологии (docs/specs/eval-methodology.md §4).
 
 ## События
+
+- 2026-10-05: **B2-prime закрыт ADOPT'ом** (владелец ратифицировал по
+  препрегу 5c): B2-v42 `00fc6b71` (d-l7-lr005, 824 train-пары корпуса
+  dataset-v4.2) — sanity v2 **9/9** (fact_edit_twin 0.9320 на v4.1 →
+  **0.0784**), single-shot holdout-276: sens 0.9931, spec 0.9394, Brier
+  0.0329, BA **0.9662** vs baseline 0.5363 (+43 п.п. — рекорд
+  траектории). Ревизия в реестре main (`models/vesma-cortex-v1/`, карта
+  перегенерирована, eval-results по схеме); **прод остаётся на B1
+  `beb0a65d` — выкат после B0-вердикта (16.10)**. История попыток:
+  v4.0 (`89d6f329`) и v4.1 (`89f1065a`) остановлены красным сьютом до
+  holdout (single-shot не сожжён; run-log существует только у v42 —
+  прогонов не было, не потеряны). Находки Layer A на замороженных
+  наборах (зонная монотонность инструмента; near-0009 P=0.0100) —
+  в `layers.A_regression.findings`, follow-up волны. Попутно починен
+  пин §6 eval-методологии (байты контракта разошлись с пином после
+  presence-счётчиков 5c — с этого краснел CI eval-sanity на main).
+  Отчёт: [calibration-b2p](experiments/calibration-b2p.md).
 
 - 2026-10-03: **отзыв B2 из прода** (решение TL по прецеденту): adversarial
   sanity-сьют (#480) воспроизвёл инверсию прод-артефакта B2 `71f0572d`

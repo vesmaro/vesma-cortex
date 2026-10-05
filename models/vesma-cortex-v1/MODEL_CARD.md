@@ -1,4 +1,4 @@
-# Model Card: vesma-cortex (ревизия B1)
+# Model Card: vesma-cortex (ревизия B2-v42)
 
 > Сгенерировано `scripts/gen_model_card.py` из `eval-results.json`;
 > ручные правки карты запрещены — правится отчёт, карта
@@ -19,16 +19,17 @@
 | ds1000 (инженерный) | 0.99 | 0.81 | ADOPT (281bd0fd) |
 | B1 (доменное разнообразие) | 0.987 | 0.72 | ADOPT, в проде (beb0a65d) |
 | B2 (рёберная окрестность) | 0.983 | 0.628 | ADOPT отозван 2026-10-03 — инверсия self-pair (#480) |
+| B2-prime v4.2 (razor-паритет + пересказы-не-дубликаты) | 0.9662 | 0.5363 | ADOPT (00fc6b71) |
 
-Прогрессирующая трудность корпусов: baseline-эвристика (косинус 0.92) проседает с 0.81 до 0.628, модель держит ≥ 0.98. Текущая ревизия B1: 0.987 / 0.72 (sens 1.0, spec 0.973, Brier 0.0126) — docs/experiments/calibration-b1-domain-diversity.md.
+Прогрессирующая трудность корпусов: baseline-эвристика (косинус 0.92) проседает с 0.81 до 0.628, модель держит ≥ 0.98. Текущая ревизия B2-v42: 0.9662 / 0.5363 (sens 0.9931, spec 0.9394, Brier 0.0329) — docs/experiments/calibration-b2p.md.
 
 ## Проверки артефакта (Layer A sanity, #480-гейт)
 
-Статус: **PASS** (прогон 2026-10-03, `cortex.eval.sanity`). Само-пара P(dup|запись против себя) = 1.0 при пороге ≥ 0.9; near-boundary = 1.0 @ cos 0.99 (порог ≥ 0.5); unrelated = 0.0 @ cos 0.578 (потолок < 0.5); монотонность по лестнице {1.0, 0.99, 0.95, 0.8, 0.5} — PASS.
+Статус: **PASS** (прогон 2026-10-05, `cortex.eval.sanity`). Само-пара P(dup|запись против себя) = 0.9981 при пороге ≥ 0.9; cosmetic-твин = 0.9967 @ cos 0.99 (порог ≥ 0.5; v2, экс-near_boundary); unrelated = 0.0011 @ cos 0.578 (потолок < 0.5); монотонность по лестнице {1.0, 0.99, 0.95, 0.8, 0.5} — PASS (v2 зонная: razor (0.95; 1.0) двузначна); fact-edit твин = 0.0784 (< 0.5); envelope-вариант = 0.9981 (≥ 0.5) — sanity v2.
 
 ## Данные обучения
 
-Обучена ТОЛЬКО на train-половине корпуса: dataset-v2 train-350 (175/175), domain-diverse mix 74/26. Корпуса — пары store-происхождения (гигиеничный экспорт: сырые строки стора в репу и в корпус не попадают) + синтетика на шаблонах; метки — по построению и трёхпроходной валидации с TL-арбитражем. Фингерпринт train-корпуса: `edd940730a47…` (blake2b-256, [data-contract](../../docs/specs/data-contract.md) §5). Вклад претрейна в финальную ревизию — нулевой (лестница отбора, отчёт B1).
+Обучена ТОЛЬКО на train-половине корпуса: dataset-v4.2 train-824, config d-l7-lr005 (num_leaves 7, lr 0.05, seed 1), LightGBM + Platt. Корпуса — пары store-происхождения (гигиеничный экспорт: сырые строки стора в репу и в корпус не попадают) + синтетика на шаблонах; метки — по построению и трёхпроходной валидации с TL-арбитражем. Фингерпринт train-корпуса: `b45f38534552…` (blake2b-256, [data-contract](../../docs/specs/data-contract.md) §5). Вклад претрейна в финальную ревизию — нулевой (лестница отбора, отчёт B1).
 
 ## Ограничения
 
@@ -40,13 +41,13 @@
 
 ## Провенанс
 
-- trained_at: `2026-10-01T22:26:33+00:00`
-- train_corpus_fingerprint: `edd940730a471e3d8c84461b7c3ca35dd86d691f354af0fcf4c498745d1aff61`
+- trained_at: `2026-10-05T16:28:27+00:00`
+- train_corpus_fingerprint: `b45f385345526caeb3c11073d6e7aec410da89cc6e6bc43555737e43978af860`
 - embedder_pin: `nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba`
 - package_version: `0.2.0`
-- gate_contract_sha256: `6dd67367601bd6a4fa0d9a067591742a1ac05f58c6c36825596d748d781fef32` (пороги гейтов — gate_contract.json в корне репы, пин — [eval-methodology](../../docs/specs/eval-methodology.md) §6)
-- weights_sha256: `beb0a65da14f9ed2554951aa8850f68db47fd1212af1577955239a34ab04a091`
-- manifest_sha256: `21e0f17349d6b8c5fef45ca63cfd8fc3af00060a60e56a7603432f512413b9ff`
+- gate_contract_sha256: `048fc5d951b1696ff127e4d0a617d6e9a84072a8bc28860bb5807a42c3025c88` (пороги гейтов — gate_contract.json в корне репы, пин — [eval-methodology](../../docs/specs/eval-methodology.md) §6)
+- weights_sha256: `00fc6b71c62dbfa8268db358b39c0a4d9f30148805a4a18986487bc70e8346b2`
+- manifest_sha256: `bd9fd28a7fe1013bdf2d66a6aa87bb0537951b9f987b632aa044275f64ff168f`
 
 ## Лицензия
 
