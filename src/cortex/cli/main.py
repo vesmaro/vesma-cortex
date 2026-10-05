@@ -647,6 +647,11 @@ def _cmd_export_artifact(args: argparse.Namespace) -> int:
         "feature_set_sha256": props["feature_set_sha256"],
         "size_bytes": out_path.stat().st_size,
         "weights_path": str(out_path),
+        #: Exam cohort stamp (eval-methodology §10 change-control): new
+        #: exports are certified under the v2 policy-aware exam; the
+        #: engine never reads manifest.json (ONNX metadata only), so this
+        #: stays a repo-side certification surface.
+        "sanity_exam": "2",
     }
     manifest_path = out_path.with_suffix(".manifest.json")
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")

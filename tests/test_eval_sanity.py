@@ -312,9 +312,17 @@ def _trained_model(vectors, rows) -> DBoostModel:
     return model
 
 
-def _write_bundle(tmp_path: Path, model: DBoostModel, name: str = "model") -> Path:
+def _write_bundle(
+    tmp_path: Path,
+    model: DBoostModel,
+    name: str = "model",
+    sanity_exam: str | None = "2",
+) -> Path:
     """Export a bundle exactly the way `cortex export-artifact` does
-    (metadata + sibling <stem>.manifest.json)."""
+    (metadata + sibling <stem>.manifest.json). The manifest stamp defaults
+    to the v2 cohort — `export-artifact` writes `sanity_exam: "2"` since
+    the policy-aware exam; pass None for the unstamped (v1-history)
+    convention the registry B1 artifact carries."""
     out = tmp_path / f"{name}.onnx"
     props = build_metadata_props(
         embedder_pin="nano:sha256:" + "ab" * 32,
@@ -337,6 +345,8 @@ def _write_bundle(tmp_path: Path, model: DBoostModel, name: str = "model") -> Pa
         "size_bytes": out.stat().st_size,
         "weights_path": str(out),
     }
+    if sanity_exam is not None:
+        manifest["sanity_exam"] = sanity_exam
     manifest_path = tmp_path / f"{name}.manifest.json"
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
     return tmp_path
@@ -360,6 +370,22 @@ def healthy_bundle(tmp_path_factory) -> Path:
     rows = _healthy_training_rows()
     model = _trained_model(rows_to_vectors(rows), rows)
     return _write_bundle(tmp_path_factory.mktemp("healthy"), model)
+
+
+@pytest.fixture(scope="module")
+def v1_bundle(tmp_path_factory) -> Path:
+    """A v1-exam bundle: trained on the W4c hard zone with NO razor-band
+    two-sidedness (the pre-policy corpus shape — e.g. the registry B1
+    weights); the historical exam is the one it was certified under."""
+    rows = make_pair_rows(120)
+    extra_records = list(make_records(12, seed=3)) + [PROBE_RECORD]
+    rows += _self_rows(extra_records, "sanity")
+    rows += _ladder_rows(list(make_records(6, seed=5)) + [PROBE_RECORD], "sanity")
+    rows += _unrelated_rows(
+        list(make_records(12, seed=7)) + [UNRELATED_RECORD], "sanity"
+    )
+    model = _trained_model(rows_to_vectors(rows), rows)
+    return _write_bundle(tmp_path_factory.mktemp("v1-exam"), model, sanity_exam=None)
 
 
 @pytest.fixture(scope="module")
@@ -511,3 +537,54 @@ def test_missing_manifest_fails_loud(tmp_path: Path) -> None:
 def test_missing_bundle_path_fails_loud(tmp_path: Path) -> None:
     with pytest.raises(SanityLoadError, match="does not exist"):
         run_sanity_suite(tmp_path / "absent")
+
+
+# ── exam cohort (manifest stamp; eval-methodology §10 change-control) ────────
+
+
+def test_v1_stamp_runs_the_historical_exam(v1_bundle: Path) -> None:
+    """An ABSENT stamp = v1 cohort: the historical one-sided probes run
+    (near_boundary positive side, full-ladder monotonicity) — the registry
+    B1 weights stay certified under the exam their ADOPT was graded by."""
+    report = run_sanity_suite(v1_bundle)
+    assert report.exam_version == "1"
+    names = [check.name for check in report.checks]
+    assert "near_boundary" in names and "cosmetic_twin" not in names
+
+
+def test_v2_stamp_runs_the_policy_aware_exam(healthy_bundle: Path) -> None:
+    """A v2 stamp = the two-sided exam: both razor sides probed — the
+    export-artifact default for all new artifacts (wave D4-3)."""
+    manifest_path = healthy_bundle / "model.manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["sanity_exam"] = "2"
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+    report = run_sanity_suite(healthy_bundle)
+    assert report.exam_version == "2"
+    names = [check.name for check in report.checks]
+    assert "cosmetic_twin" in names and "fact_edit_twin" in names
+    assert "near_boundary" not in names
+
+
+def test_v1_certified_bundle_keeps_passing(v1_bundle: Path) -> None:
+    """The CI anachronism pinned: a v1-certified bundle (e.g. registry B1)
+    is graded under the SAME exam its certification rests on, not
+    retroactively under the ratified-but-newer v2 exam the bundle was
+    never trained to satisfy."""
+    report = run_sanity_suite(v1_bundle)
+    assert report.passed, "\n".join(
+        f"{check.name}: {check.detail}" for check in report.failed
+    )
+
+
+def test_unknown_stamp_fails_loud(healthy_bundle: Path) -> None:
+    """A mistyped stamp must NOT silently degrade the exam to either
+    generation (fail-loud boundary)."""
+    manifest_path = healthy_bundle / "model.manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["sanity_exam"] = "2.1"
+    manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+    with pytest.raises(SanityLoadError, match="unknown sanity_exam stamp"):
+        run_sanity_suite(healthy_bundle)

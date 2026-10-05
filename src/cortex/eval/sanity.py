@@ -73,10 +73,13 @@ __all__ = [
     "ENVELOPE_DATES",
     "ENVELOPE_VARIANT_COS",
     "ENVELOPE_VARIANT_MIN",
+    "EXAM_V1",
+    "EXAM_V2",
     "FACT_EDIT_ANCHOR",
     "FACT_EDIT_COS",
     "FACT_EDIT_REPLACEMENT",
     "FACT_EDIT_TWIN_MAX",
+    "MANIFEST_EXAM_KEY",
     "MANIFEST_FILENAME",
     "MODEL_FILENAME",
     "MONOTONICITY_TOLERANCE",
@@ -94,6 +97,23 @@ __all__ = [
     "ladder_probabilities",
     "run_sanity_suite",
 ]
+
+# ── exam cohort (manifest stamp; eval-methodology §10 change-control) ────────
+
+#: The exam version a bundle was CERTIFIED under. The manifest ``stamp``
+#: (written by ``cortex export-artifact``); its ABSENCE = v1 — the
+#: historical cohort (artifacts trained under the pre-policy exam, e.g.
+#: the registry B1 weights). Cohort semantics: an artifact certified under
+#: exam v1 is REQUIRED to pass suite v1; one certified/stamped v2 is
+#: REQUIRED to pass suite v2 (the two-sided policy-aware exam). Mixing —
+#: running v2 probes on a v1-certified bundle or vice versa — would test
+#: an artifact against rules it was never trained or ratified under
+#: (the ratification asymmetry: policy v1.1 changed the ground truth).
+EXAM_V1: Final[str] = "1"
+EXAM_V2: Final[str] = "2"
+
+#: Manifest key holding the exam stamp.
+MANIFEST_EXAM_KEY: Final[str] = "sanity_exam"
 
 # ── thresholds (the D1 protocol requirements, frozen here) ───────────────────
 
@@ -262,6 +282,7 @@ class SanityReport:
     bundle: str
     weights_sha256: str
     checks: tuple[SanityCheck, ...]
+    exam_version: str = EXAM_V2
 
     @property
     def passed(self) -> bool:
@@ -420,7 +441,83 @@ def _contract_checks(
     return checks
 
 
+def _adversarial_checks_v1(session) -> list[SanityCheck]:
+    """The HISTORICAL one-sided exam (v1, the pre-policy generation):
+    the razor-band probe demanded a POSITIVE on the near-boundary twin —
+    «any cos≈0.99 twin = dup». Superseded by the ratified policy v1.1
+    (two-sided zone), kept ONLY for cohorts certified under it (the
+    registry B1 weights); it is the exam that B1's ADOPT was graded by.
+    """
+    checks: list[SanityCheck] = []
+    twin = _perturbed(PROBE_RECORD)
+
+    p_self = _score_pair(session, features(PROBE_RECORD, PROBE_RECORD, 1.0))
+    checks.append(
+        SanityCheck(
+            name="self_pair",
+            passed=p_self >= SELF_PAIR_MIN,
+            detail=(
+                f"P(dup | probe vs itself, cos=1.0) = {p_self:.4f} "
+                f"(required ≥ {SELF_PAIR_MIN})"
+            ),
+        )
+    )
+
+    p_near = _score_pair(session, features(PROBE_RECORD, twin, NEAR_BOUNDARY_COS))
+    checks.append(
+        SanityCheck(
+            name="near_boundary",
+            passed=p_near >= NEAR_BOUNDARY_MIN,
+            detail=(
+                f"P(dup | probe vs near-boundary twin, cos={NEAR_BOUNDARY_COS}) = "
+                f"{p_near:.4f} (required ≥ {NEAR_BOUNDARY_MIN}; v1 exam — "
+                "superseded by the v2 policy-aware probes for v2 cohorts)"
+            ),
+        )
+    )
+
+    p_unrelated = _score_pair(
+        session, features(PROBE_RECORD, UNRELATED_RECORD, UNRELATED_COS)
+    )
+    checks.append(
+        SanityCheck(
+            name="unrelated",
+            passed=p_unrelated < UNRELATED_MAX,
+            detail=(
+                f"P(dup | probe vs unrelated, cos={UNRELATED_COS}) = {p_unrelated:.4f} "
+                f"(required < {UNRELATED_MAX})"
+            ),
+        )
+    )
+
+    ladder_ps = ladder_probabilities(session)
+    monotone = all(
+        ladder_ps[i] >= ladder_ps[i + 1] - MONOTONICITY_TOLERANCE
+        for i in range(len(COS_LADDER) - 1)
+    )
+    ladder_text = ", ".join(
+        f"cos={cos:.2f}:{p:.4f}" for cos, p in zip(COS_LADDER, ladder_ps)
+    )
+    checks.append(
+        SanityCheck(
+            name="monotonicity",
+            passed=monotone,
+            detail=(
+                ("non-increasing" if monotone else "INCREASE")
+                + f" over the fixed pair [{ladder_text}] "
+                "(v1 full ladder; tolerance "
+                f"{MONOTONICITY_TOLERANCE})"
+            ),
+        )
+    )
+    return checks
+
+
 def _adversarial_checks(session) -> list[SanityCheck]:
+    """The policy-aware two-sided exam (v2, eval-methodology §10):
+    the probe generation the ratified policy v1.1 entails — see the
+    module docstring for the check list. Applied to bundles stamped
+    ``sanity_exam: 2``."""
     checks: list[SanityCheck] = []
     twin = _perturbed(PROBE_RECORD)
     fact_twin = _fact_edited(PROBE_RECORD)
@@ -544,17 +641,49 @@ def run_sanity_suite(bundle: Path) -> SanityReport:
     Returns a :class:`SanityReport`; raises :class:`SanityLoadError` only
     when the bundle cannot be loaded at all (every loadable defect is a
     FAILED check in the report, not an exception).
+
+    Exam cohort (eval-methodology §10 change-control): the manifest
+    ``sanity_exam`` stamp selects the probe generation — absent/v1 stamps
+    run the historical one-sided exam (v1: near_boundary requires
+    P(dup) ≥ 0.5, no two-sidedness), a v2 stamp runs the policy-aware
+    two-sided exam. An artifact certified under one exam must not be
+    re-graded under another it was not ratified against.
     """
     model_path, manifest_path = _resolve_bundle(Path(bundle))
     manifest = _load_manifest(manifest_path)
+    exam = _exam_cohort(manifest, manifest_path)
     weights_sha = sha256_file(model_path) if model_path.is_file() else ""
     session = _open_session(model_path)
     meta = dict(session.get_modelmeta().custom_metadata_map)
 
     checks = _contract_checks(manifest, meta, weights_sha)
-    checks.extend(_adversarial_checks(session))
+    checks.extend(
+        _adversarial_checks(session)
+        if exam == EXAM_V2
+        else _adversarial_checks_v1(session)
+    )
     return SanityReport(
-        bundle=str(model_path), weights_sha256=weights_sha, checks=tuple(checks)
+        bundle=str(model_path),
+        weights_sha256=weights_sha,
+        checks=tuple(checks),
+        exam_version=exam,
+    )
+
+
+def _exam_cohort(manifest: dict, manifest_path: Path) -> str:
+    """The bundle's exam cohort from the manifest stamp (absent = v1).
+
+    Unknown stamp values fail LOUD (SanityLoadError): a mistyped stamp
+    must not silently degrade the exam to either generation.
+    """
+    stamp = manifest.get(MANIFEST_EXAM_KEY)
+    if stamp is None or stamp == EXAM_V1:
+        return EXAM_V1
+    if stamp == EXAM_V2:
+        return EXAM_V2
+    raise SanityLoadError(
+        f"manifest {manifest_path} carries unknown {MANIFEST_EXAM_KEY} "
+        f"stamp {stamp!r} — expected {EXAM_V1!r} or {EXAM_V2!r}"
     )
 
 
