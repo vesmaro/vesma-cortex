@@ -54,3 +54,19 @@ B0-вердикта (раньше B3/B4/B5).
   обновления (добавить в чеклист обновления хоста).
 - **Проблема образа** подана бы не была — image packaging upstream; здесь
   просто фикс-копия.
+
+## Эскалация 2026-10-06 ~01:15 МСК: прод ВНИЗ — podman-клин (восстановление передано)
+
+- **Симптом:** рестарт mnemos-prod-laptop (при выкате B2-v42 `00fc6b71`) упал:
+  `podman: error while loading shared libraries: libsubid.so.5` в юнит-контексте
+  (env-i), crash-loop Restart=on-failure (заглушен TL). Контейнер ubuntu
+  застрял в Stopping (conmon из вложенного user-namespace не сигнальнут abyss).
+- **Корень:** фикс 05.10 12:23 поднял контейнеры из вложенного user-namespace →
+  overlay-слои podman перезакрепились на mapped-uid 524288 → abyss потерял свои
+  же слои. ВALE: выкат-своп весов Б2-v42 УСПЕШЕН и проверен (3 точки,
+  sha 00fc6b71, sanity 9/9 на прод-бандле) — после восстановления прод поднимется
+  сразу на новой модели.
+- **Восстановление:** handoff/RECOVERY-prod-20261006.md (root-kill conmon →
+  podman start боксов → юниты; ВНИМАНИЕ: убивает distrobox-сессии, включая
+  сессию TL — поэтому передано). Полный бриф преемника:
+  handoff/vesma-cortex-next-session-brief-20261006.md.
