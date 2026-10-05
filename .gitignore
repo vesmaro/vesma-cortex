@@ -5,11 +5,14 @@
 *.db
 /datasets/*
 # Layer A frozen eval sets (eval-methodology §3; ADR 0003 R2: synthetic
-# probe content is committable — no store lines, fingerprinted). Only the
-# evalsets subtree is re-included; the rest of datasets/ stays closed.
+# probe content is committable — no store lines, fingerprinted). The
+# corpus-v4 authored batches ride the same rule (wave D4-1: synthetic,
+# fingerprinted, disjointness-tested). The rest of datasets/ stays closed.
 # Negations sit AFTER the blocking pattern (same idiom as models/ below).
 !/datasets/evalsets/
 !/datasets/evalsets/**
+!/datasets/corpus-v4/
+!/datasets/corpus-v4/**
 /artifacts/weights/
 *.pt
 *.onnx
