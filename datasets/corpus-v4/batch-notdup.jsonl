@@ -1,0 +1,36 @@
+{"key": "rain-barrel", "lang": "ru", "find": "200 л", "replace": "260 л"}
+{"key": "sketching-practice", "lang": "ru", "find": " 15 м", "replace": " 16 м"}
+{"key": "washer-filter", "lang": "ru", "find": " 12 м", "replace": " 13 м"}
+{"key": "fridge-temperature", "lang": "ru", "find": "л 4 °", "replace": "л 5 °"}
+{"key": "sewing-machine-oil", "lang": "ru", "find": " 20 ч", "replace": " 21 ч"}
+{"key": "spice-drawer", "lang": "ru", "find": "100 м", "replace": "150 м"}
+{"key": "grill-cleaning", "lang": "ru", "find": " 15 м", "replace": " 16 м"}
+{"key": "watercolor-supplies", "lang": "ru", "find": "300 г", "replace": "350 г"}
+{"key": "ev-charging", "lang": "ru", "find": " 20 д", "replace": " 25 д"}
+{"key": "windowsill-herbs", "lang": "ru", "find": " 12 ч", "replace": " 15 ч"}
+{"key": "car-oil-change", "lang": "ru", "find": "е 8 т", "replace": "е 9 т"}
+{"key": "water-heater-flush", "lang": "ru", "find": " 80 л", "replace": " 85 л"}
+{"key": "honey-crystallization", "lang": "ru", "find": " 40 °", "replace": " 45 °"}
+{"key": "meter-readings", "lang": "ru", "find": " 25 ч", "replace": " 26 ч"}
+{"key": "clay-pottery", "lang": "ru", "find": "400 р", "replace": "450 р"}
+{"key": "lawn-aeration", "lang": "ru", "find": " 15 с", "replace": " 16 с"}
+{"key": "dishwasher-salt", "lang": "ru", "find": "е 2 м", "replace": "е 3 м"}
+{"key": "firewood-stack", "lang": "ru", "find": " 18 %", "replace": " 19 %"}
+{"key": "water-heater-flush", "lang": "en", "find": " 80-l", "replace": " 85-l"}
+{"key": "spice-drawer", "lang": "en", "find": "100 m", "replace": "150 m"}
+{"key": "meter-readings", "lang": "en", "find": " 25th", "replace": " 26th"}
+{"key": "grill-cleaning", "lang": "en", "find": " 15 m", "replace": " 16 m"}
+{"key": "firewood-stack", "lang": "en", "find": " 18 p", "replace": " 19 p"}
+{"key": "knife-sharpening", "lang": "en", "find": "/3000", "replace": "/5000"}
+{"key": "car-winter-tires", "lang": "en", "find": "t 2.3", "replace": "t 2.8"}
+{"key": "washer-filter", "lang": "en", "find": " 12. ", "replace": " 19. "}
+{"key": "rain-barrel", "lang": "en", "find": "200-l", "replace": "260-l"}
+{"key": "ev-charging", "lang": "en", "find": " 20 t", "replace": " 25 t"}
+{"key": "watercolor-supplies", "lang": "en", "find": "300 g", "replace": "350 g"}
+{"key": "dishwasher-salt", "lang": "en", "find": "e 2 m", "replace": "e 3 m"}
+{"key": "sewing-machine-oil", "lang": "en", "find": " 20 h", "replace": " 25 h"}
+{"key": "windowsill-herbs", "lang": "en", "find": " 12-h", "replace": " 15-h"}
+{"key": "insurance-checkup", "lang": "en", "find": " 15 p", "replace": " 16 p"}
+{"key": "fridge-temperature", "lang": "en", "find": "t 4 °", "replace": "t 5 °"}
+{"key": "honey-crystallization", "lang": "en", "find": " 40 °", "replace": " 45 °"}
+{"key": "lawn-aeration", "lang": "en", "find": " 15 c", "replace": " 16 c"}

@@ -22,6 +22,10 @@ Classes (tier → label):
     P-trans      RU/EN translation twins (sens 0.00 cure)  duplicate
     N-metadata   T2 tags / record_type / language only     not-duplicate
     N-fact-edit  T3 one fact token replaced (both orient.) not-duplicate
+                 (v4.2: + same-length one-character family)
+    N-para-notdup v4.2 retelling-NOT-duplicate: one same-length fact
+                 edit + case rewrite; measured cos drops to 0.4-0.7
+                 while the normalized char profile stays duplicate-like
     N-near       same topic, different fact (hard neg.)    not-duplicate
     N-far        different topic                           not-duplicate
 
@@ -32,6 +36,19 @@ two-valued at label AND volume parity. The P-envelope delta rides in the
 ``observed_at`` field, OUTSIDE the frozen 13-feature surface (OQ-2: the
 model never sees timestamps) — the corpus records the envelope class,
 the feature contract stays frozen.
+
+v4.2 (wave D4-4, prereg addendum 5c — the C1 correction of the ratified
+b2p-v41 sanity-fail diagnosis, docs/experiments/
+b2p-v41-sanity-fail-diagnosis.md): (a) the N-fact-edit class gains a
+SAME-LENGTH family (one-character fact swaps, zero len-delta) — the
+suite probe's geometry (char5_containment 0.9764) previously sat in the
+T1 cloud because only 2/192 corpus T3 pairs reached that height;
+(b) the NEW N-para-notdup class (36 pairs) teaches the out-of-zone
+ladder to FALL on a duplicate-like char profile: one same-length fact
+edit (razor semantics, disputed -> NOT dup) plus a case rewrite that is
+invisible to the normalized char features yet drags the measured cosine
+into the 0.4-0.7 band. Both new batches carry the same-length contract;
+every v4.1 pair_id stays byte-stable (new blocks append after N-far).
 
 Pipeline: batches → validate (dedup, fact anchor, DISJOINTNESS vs synth
 TOPICS / evalsets / LA-2 batch / sanity anchors) → pairs → measured
@@ -98,6 +115,11 @@ BASE_EN_FILE = BATCH_DIR / "batch-base-en.jsonl"
 NEAR_FILE = BATCH_DIR / "batch-near.jsonl"
 PARA_FILES = (BATCH_DIR / "batch-paras-1.jsonl", BATCH_DIR / "batch-paras-2.jsonl")
 FACTS_FILE = BATCH_DIR / "batch-facts.jsonl"
+#: v4.2 (wave D4-4, prereg addendum 5c — C1 correction per the b2p-v41
+#: diagnosis): same-length T3 fact edits covering the suite-probe geometry,
+#: and the paraphrase-not-duplicate class.
+SAME_LEN_FACTS_FILE = BATCH_DIR / "batch-facts-same-length.jsonl"
+NOTDUP_FILE = BATCH_DIR / "batch-notdup.jsonl"
 
 DEFAULT_ENGINE_SRC = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma/src")
 DEFAULT_TRAIN_DIR = REPO_ROOT / "data" / "stage2" / "dataset-v4"
@@ -250,10 +272,13 @@ def load_batches() -> tuple[
     list[dict[str, Any]],
     dict[tuple[str, str], list[dict[str, Any]]],
     list[dict[str, Any]],
+    list[dict[str, Any]],
+    list[dict[str, Any]],
 ]:
     """Load and structurally validate all batches.
 
-    Returns (base_ru, base_en, near_rows, para_rows by (key, lang), facts).
+    Returns (base_ru, base_en, near_rows, para_rows by (key, lang), facts,
+    same-length facts, not-dup specs).
     """
     base_ru_rows = _read_jsonl(BASE_RU_FILE)
     base_en_rows = _read_jsonl(BASE_EN_FILE)
@@ -262,6 +287,8 @@ def load_batches() -> tuple[
     for path in PARA_FILES:
         para_rows.extend(_read_jsonl(path))
     facts = _read_jsonl(FACTS_FILE)
+    same_len_facts = _read_jsonl(SAME_LEN_FACTS_FILE)
+    notdup_specs = _read_jsonl(NOTDUP_FILE)
 
     base_ru = {r["key"]: r for r in base_ru_rows}
     base_en = {r["key"]: r for r in base_en_rows}
@@ -355,10 +382,34 @@ def load_batches() -> tuple[
                 f"validation: no-op fact spec in {spec['key']}/{spec['lang']}"
             )
 
+    # v4.2 spec files: same validation as facts PLUS the same-length
+    # contract (len(find) == len(replace)) — the whole point of both
+    # classes is the zero len-delta razor geometry.
+    for spec in same_len_facts + notdup_specs:
+        base = base_ru if spec["lang"] == "ru" else base_en
+        if spec["key"] not in base:
+            raise SystemExit(
+                f"validation: v4.2 spec without a base: {spec['key']}/{spec['lang']}"
+            )
+        body = base[spec["key"]]["body"]
+        if body.count(spec["find"]) != 1:
+            raise SystemExit(
+                f"validation: v4.2 anchor {spec['find']!r} occurs "
+                f"{body.count(spec['find'])}x (need 1) in {spec['key']}/{spec['lang']}"
+            )
+        if spec["find"] == spec["replace"]:
+            raise SystemExit(
+                f"validation: no-op v4.2 spec in {spec['key']}/{spec['lang']}"
+            )
+        if len(spec["find"]) != len(spec["replace"]):
+            raise SystemExit(
+                f"validation: v4.2 spec is not same-length: {spec['key']}/{spec['lang']}"
+            )
+
     paras: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for row in para_rows:
         paras.setdefault((row["key"], row["lang"]), []).append(row)
-    return base_ru, base_en, near_rows, paras, facts
+    return base_ru, base_en, near_rows, paras, facts, same_len_facts, notdup_specs
 
 
 def check_disjointness(
@@ -548,6 +599,8 @@ def build_pairs(
     near_rows: list[dict[str, Any]],
     paras: dict[tuple[str, str], list[dict[str, Any]]],
     facts: list[dict[str, Any]],
+    same_len_facts: list[dict[str, Any]],
+    notdup_specs: list[dict[str, Any]],
 ) -> list[dict[str, Any]]:
     """The whole corpus, in deterministic construction order."""
     keys = sorted(base_ru)
@@ -738,6 +791,37 @@ def build_pairs(
         else:
             add("FAR", "N-far", "not-duplicate", base_ru[key_a], base_en[key_b])
 
+    # ── v4.2 blocks (wave D4-4, prereg addendum 5c) — appended AFTER the
+    # v4.1 construction so every v4.1 pair_id stays byte-stable. ────────────
+
+    # N-fact-edit, SAME-LENGTH family: one-character fact swaps with zero
+    # len-delta — the suite-probe geometry (b2p-v41 diagnosis: the probe's
+    # char5_containment 0.9764 sat in the T1 cloud because only 2/192
+    # corpus T3 pairs reached that height; the different-length v4.1 T3
+    # block above stays untouched). Both orientations, same as above.
+    for spec in same_len_facts:
+        base = base_ru if spec["lang"] == "ru" else base_en
+        rec = base[spec["key"]]
+        edited = _fact_edited(rec, spec)
+        add("FACT", "N-fact-edit", "not-duplicate", rec, edited)
+        add("FACT", "N-fact-edit", "not-duplicate", edited, rec)
+
+    # N-para-notdup: the retelling-NOT-duplicate class (the b2p-v41
+    # out-of-zone plateau: nothing in the corpus said "duplicate-like char
+    # profile at LOW cosine = not-dup", so the ladder refused to fall on
+    # the cosmetic twin). Construction: one same-length fact edit (the
+    # razor semantics — a key fact changes, disputed by policy -> NOT dup)
+    # plus a case rewrite of title+body — normalization-invisible to the
+    # 13-feature surface (char features read the lowercased text) yet
+    # fully visible to the frozen embedder, dragging the MEASURED cosine
+    # into the 0.4-0.7 band. Single orientation: the style asymmetry IS
+    # the class (the record keeps the canonical case).
+    for spec in notdup_specs:
+        base = base_ru if spec["lang"] == "ru" else base_en
+        rec = base[spec["key"]]
+        retold = _swapcase_record(_fact_edited(rec, spec), title=True, body=True)
+        add("PND", "N-para-notdup", "not-duplicate", rec, retold)
+
     return pairs
 
 
@@ -832,11 +916,15 @@ def main(argv: list[str] | None = None) -> int:
         overrides = json.loads(args.thresholds.read_text(encoding="utf-8"))
         thresholds = CornerQAThresholds(**overrides)
 
-    base_ru, base_en, near_rows, paras, facts = load_batches()
+    base_ru, base_en, near_rows, paras, facts, same_len_facts, notdup_specs = (
+        load_batches()
+    )
     para_flat = [row for rows in paras.values() for row in rows]
     check_disjointness(base_ru, base_en, near_rows, para_flat)
 
-    pairs = build_pairs(base_ru, base_en, near_rows, paras, facts)
+    pairs = build_pairs(
+        base_ru, base_en, near_rows, paras, facts, same_len_facts, notdup_specs
+    )
     print(f"pairs built: {len(pairs)}", file=sys.stderr)
 
     ids = [p["pair_id"] for p in pairs]
@@ -906,7 +994,15 @@ def main(argv: list[str] | None = None) -> int:
         labels_path, [{"pair_id": r["pair_id"], "label": r["label"]} for r in hold]
     )
 
-    batch_files = [BASE_RU_FILE, BASE_EN_FILE, NEAR_FILE, *PARA_FILES, FACTS_FILE]
+    batch_files = [
+        BASE_RU_FILE,
+        BASE_EN_FILE,
+        NEAR_FILE,
+        *PARA_FILES,
+        FACTS_FILE,
+        SAME_LEN_FACTS_FILE,
+        NOTDUP_FILE,
+    ]
     batch_shas = {
         p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in batch_files
     }
@@ -943,7 +1039,7 @@ def main(argv: list[str] | None = None) -> int:
     report_payload = {
         "kind": "dataset-v4-corpus-report",
         "built_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "corpus": "dataset-v4.1 (B2-prime), wave D4-3 (razor rebalance + envelope class)",
+        "corpus": "dataset-v4.2 (B2-prime), wave D4-4 (C1: same-length T3 + paraphrase-not-dup)",
         "total_pairs": len(rows),
         "train_pairs": len(train),
         "holdout_pairs": len(hold),

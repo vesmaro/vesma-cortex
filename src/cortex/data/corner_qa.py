@@ -18,7 +18,13 @@ gates judge the CORPUS before any training run:
   [0.836; 1.0], cos_target was untrainable);
 - G1 feature ceiling (policy §5): for monotone-duplicative features
   ``max(negatives) <= max(positives)`` — a negative above the positive
-  ceiling is the inversion, caught before training.
+  ceiling is the inversion, caught before training;
+- wave D4-4 (b2p-v41 sanity-fail diagnosis, prereg addendum 5c): the T3
+  class must carry the suite-probe SAME-LENGTH geometry (a minimum share
+  of zero-len-delta one-character edits), and the NOT-dup side must hold
+  duplicate-like char profiles (containment >= 0.9) at LOW measured
+  cosine — without them the sanity-v2 ladder refuses to fall out of the
+  razor zone (the out-of-zone plateau).
 
 Thresholds live in ``gate_contract.json`` (``corner_qa`` section,
 eval-methodology §6) and load via :func:`thresholds_from_gate_contract`;
@@ -138,6 +144,17 @@ class CornerQAThresholds:
     #: the v3 noise class). Corner positives (char5_jaccard == 1.0) are
     #: exempt — they are gated by the identity counters instead.
     min_positive_edit_mass_chars: int = 8
+    #: Wave D4-4 (prereg addendum 5c; b2p-v41 sanity-fail diagnosis, root
+    #: cause 1): the T3 class must carry the suite-probe geometry — at
+    #: least this SHARE of N-fact-edit pairs are SAME-LENGTH one-character
+    #: edits (zero len-delta), so the containment heights where T1
+    #: cosmetics live are occupied by negatives too.
+    min_t3_same_length_share: float = 0.30
+    #: Wave D4-4 (same diagnosis, root cause 2 — out-of-zone plateau): the
+    #: corpus must contain NOT-duplicate mass with a duplicate-like char
+    #: profile (char3/char5 containment >= 0.9) at LOW measured cosine
+    #: (< 0.70), so the ladder falls on the cosmetic twin as cosine drops.
+    min_low_cos_high_overlap_notdup: int = 30
 
 
 DEFAULT_THRESHOLDS: Final[CornerQAThresholds] = CornerQAThresholds()
@@ -312,6 +329,9 @@ def corner_qa_counters(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "identity_class_positives": [],
         "metadata_negatives": [],
         "fact_edit_negatives": [],
+        "t3_pairs": 0,
+        "t3_same_length_pairs": [],
+        "low_cos_high_overlap_notdup": [],
         "razor_zone_positives": [],
         "razor_zone_negatives": 0,
         "g4_violations": [],
@@ -388,6 +408,21 @@ def corner_qa_counters(rows: list[dict[str, Any]]) -> dict[str, Any]:
             counters["metadata_negatives"].append(pid)
         if not is_pos and 0.85 <= c["char5_jaccard"] < 1.0 - TOL:
             counters["fact_edit_negatives"].append(pid)
+        if not is_pos and row.get("stratum") == "N-fact-edit":
+            counters["t3_pairs"] += 1
+            if c["len_deltas_zero"]:
+                # same-length one-character family (wave D4-4): the suite
+                # probe's zero len-delta razor geometry
+                counters["t3_same_length_pairs"].append(pid)
+        if (
+            not is_pos
+            and cos < 0.70
+            and fm["char3_containment"] >= 0.9
+            and fm["char5_containment"] >= 0.9
+        ):
+            # duplicate-like char profile at low cosine on the NOT-dup side
+            # (wave D4-4: teaches the out-of-zone ladder to fall)
+            counters["low_cos_high_overlap_notdup"].append(pid)
         if c["razor_zone"]:
             if is_pos:
                 counters["razor_zone_positives"].append(pid)
@@ -410,6 +445,15 @@ def corner_qa_counters(rows: list[dict[str, Any]]) -> dict[str, Any]:
     )
     counters["metadata_negatives_count"] = len(counters["metadata_negatives"])
     counters["fact_edit_negatives_count"] = len(counters["fact_edit_negatives"])
+    counters["t3_same_length_pairs_count"] = len(counters["t3_same_length_pairs"])
+    counters["low_cos_high_overlap_notdup_count"] = len(
+        counters["low_cos_high_overlap_notdup"]
+    )
+    counters["t3_same_length_share"] = (
+        round(counters["t3_same_length_pairs_count"] / counters["t3_pairs"], 4)
+        if counters["t3_pairs"]
+        else 0.0
+    )
     counters["razor_zone_positives_count"] = len(counters["razor_zone_positives"])
     counters["g4_violations_count"] = len(counters["g4_violations"])
     counters["type_present_fraction"] = round(type_present / sides, 4) if sides else 0.0
@@ -444,6 +488,8 @@ def corner_qa_counters(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "identity_class_positives",
         "metadata_negatives",
         "fact_edit_negatives",
+        "t3_same_length_pairs",
+        "low_cos_high_overlap_notdup",
         "razor_zone_positives",
         "g4_violations",
     ):
@@ -486,6 +532,23 @@ def corner_qa_violations(
         bad.append(
             f"fact_edit_negatives={counters['fact_edit_negatives_count']} < "
             f"{thresholds.min_fact_edit_negatives} (policy §4 G-fact-edit)"
+        )
+    if counters["t3_same_length_share"] < thresholds.min_t3_same_length_share:
+        bad.append(
+            f"t3_same_length_share={counters['t3_same_length_share']} < "
+            f"{thresholds.min_t3_same_length_share} (wave D4-4: the T3 class must "
+            "carry the suite-probe same-length geometry — b2p-v41 diagnosis, "
+            f"{counters['t3_same_length_pairs_count']}/{counters['t3_pairs']} pairs)"
+        )
+    if (
+        counters["low_cos_high_overlap_notdup_count"]
+        < thresholds.min_low_cos_high_overlap_notdup
+    ):
+        bad.append(
+            f"low_cos_high_overlap_notdup={counters['low_cos_high_overlap_notdup_count']} < "
+            f"{thresholds.min_low_cos_high_overlap_notdup} (wave D4-4: the out-of-zone "
+            "ladder needs duplicate-like char profiles at low cosine on the NOT-dup "
+            "side — b2p-v41 diagnosis)"
         )
     if counters["razor_zone_positives_count"] > thresholds.max_razor_zone_positives:
         bad.append(
