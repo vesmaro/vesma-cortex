@@ -9,7 +9,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "vesma-cortex"
-version = "0.2.0"
+version = "0.2.1"
 description = "Development library for vesma-cortex — the local is-duplicate decision model (features, D/N training, selection, export, single-shot eval)"
 readme = "README.md"
 requires-python = ">=3.12"
