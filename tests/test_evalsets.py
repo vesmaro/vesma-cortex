@@ -596,7 +596,11 @@ def test_evaluate_gates_pure_function_pins() -> None:
         probs.append(probe.similarity if value is None else value)
     assert all(gate.passed for gate in evaluate_gates(probes, probs))
 
-    # monotonicity violation inside one ladder group (bump a p4 above p3)
+    # monotonicity violation inside one ladder group: bump step 0.5 above
+    # its 0.8 upper step — an OUTSIDE-the-razor-zone increase, still
+    # asserted under the zoned v2 rule (eval-methodology §10.2). The old
+    # v1 bump (a rise across the 0.99 → 0.95 zone crossing) is NOT a
+    # violation anymore under v2 — the la4 change.
     probs = [0.99] * len(probes)
     for i, probe in enumerate(probes):
         if (
@@ -605,6 +609,31 @@ def test_evaluate_gates_pure_function_pins() -> None:
             and probe.pair_id.endswith("-p4")
         ):
             probs[i] = 1.0
+    gates = {g.name: g for g in evaluate_gates(probes, probs)}
+    assert not gates["monotonicity"].passed
+    assert "lad-0000" in gates["monotonicity"].detail
+
+    # v2 zoning: a rise ACROSS the zone crossing (0.99 → 0.95, steps whose
+    # upper point sits strictly above cos 0.95) is no longer a violation —
+    # the razor band is two-valued by policy v1.1 §8 (the la4 finding:
+    # B2-v42 grew +5.5e-05…+1.38e-04 exactly there and the v1 rule read
+    # the ratified zone crossing as a defect).
+    probs = [0.0] * len(probes)
+    for i, probe in enumerate(probes):
+        if probe.probe_class == PROBE_CLASS_MONOTONICITY and probe.group == "lad-0000":
+            step = float(probe.similarity)
+            probs[i] = 0.99 if step in (1.0, 0.99) else (0.995 if step == 0.95 else 0.0)
+    gates = {g.name: g for g in evaluate_gates(probes, probs)}
+    assert gates["monotonicity"].passed, gates["monotonicity"].detail
+    # …but a rise WHOSE upper step lies at/below the zone edge (0.8 → 0.5)
+    # still fails — outside the zone the non-increase holds, tol unchanged:
+    probs = [0.0] * len(probes)
+    for i, probe in enumerate(probes):
+        if probe.probe_class == PROBE_CLASS_MONOTONICITY and probe.group == "lad-0000":
+            step = float(probe.similarity)
+            probs[i] = (
+                0.99 if step in (1.0, 0.99, 0.95) else (0.5 if step == 0.5 else 0.0)
+            )
     gates = {g.name: g for g in evaluate_gates(probes, probs)}
     assert not gates["monotonicity"].passed
     assert "lad-0000" in gates["monotonicity"].detail
