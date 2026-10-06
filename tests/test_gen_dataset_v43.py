@@ -608,9 +608,20 @@ def test_class_marker_row_accepts_lang_key_contract():
     _side_lang (language OR lang) instead of KeyError-ing on `language`."""
     from gen_dataset_v43_strategies import _class_marker_row
 
-    side = {"lang": "ru", "title": "Т", "body": "Б", "tags": ["x"], "record_type": "note"}
+    side = {
+        "lang": "ru",
+        "title": "Т",
+        "body": "Б",
+        "tags": ["x"],
+        "record_type": "note",
+    }
     row = _class_marker_row(
-        "translated-dup", "ru->en", side, {**side, "lang": "en"}, label="duplicate", pair_id="X"
+        "translated-dup",
+        "ru->en",
+        side,
+        {**side, "lang": "en"},
+        label="duplicate",
+        pair_id="X",
     )
     assert row["record"]["language"] == "ru"
     assert row["candidate"]["language"] == "en"
