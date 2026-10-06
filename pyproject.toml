@@ -73,12 +73,23 @@ cortex = "cortex.cli.main:main"
 packages = ["src/cortex"]
 
 # Privacy gate on the sdist (charter §6, ADR 0003 R2): training-side data
-# and local scratch never ship. Explicit because hatchling's VCS-ignore
-# pass does not match the root-anchored directory pattern `/data/`
-# (caught empirically: data/stage2-dry leaked into the 0.2.0 sdist).
-# Tracked artifacts/{manifests,runs} (run logs referenced by reports) stay.
+# and local scratch never ship. Recursive `/**` forms are MANDATORY:
+# hatchling's bare directory patterns (`/datasets`) match the directory
+# entry but do not prune its children — caught empirically on the 0.2.0
+# sdist (datasets/ leaked; the earlier data/stage2-dry leak had the same
+# root cause, fixed here the same way). Tracked artifacts/{manifests,runs}
+# (run logs referenced by reports) stay.
 [tool.hatch.build.targets.sdist]
-exclude = ["/data", "/datasets", "/.local", "/dist"]
+exclude = [
+    "/data",
+    "/data/**",
+    "/datasets",
+    "/datasets/**",
+    "/.local",
+    "/.local/**",
+    "/dist",
+    "/dist/**",
+]
 
 # Model registry in the wheel (ADR 0003 R5: "wheel с весами — реестр внутри
 # пакета"). Path choice: the import package of this project is `cortex`
