@@ -150,6 +150,10 @@ def _class_marker_row(
     """
     if label not in ("duplicate", "not-duplicate"):
         raise ValueError(f"bad label {label!r}")
+    # Side language rides _side_lang (accepts both `language` and `lang`
+    # keys) so authored batch spec files keep their `lang` contract while
+    # the row carries the stage-2 `language` field — single normalization
+    # point, no per-caller shims.
     row = {
         "pair_id": pair_id,
         "label": label,
@@ -160,14 +164,14 @@ def _class_marker_row(
             "title": record["title"],
             "body": record["body"],
             "tags": list(record["tags"]),
-            "language": record["language"],
+            "language": _side_lang(record),
             "record_type": record.get("record_type"),
         },
         "candidate": {
             "title": candidate["title"],
             "body": candidate["body"],
             "tags": list(candidate["tags"]),
-            "language": candidate["language"],
+            "language": _side_lang(candidate),
             "record_type": candidate.get("record_type"),
         },
     }
