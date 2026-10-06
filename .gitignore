@@ -17,6 +17,13 @@
 # summaries only — no store lines, same ADR 0003 R2 rule as evalsets).
 !/datasets/watchlist/
 !/datasets/watchlist/**
+# dataset-v4.3 wave: the two READMEs are committable (numbers, no record
+# text). The parent dir must be re-included first (git cannot re-include
+# a file under an excluded dir), and the real-part JSONL is then
+# RE-BLOCKED by the later explicit rule at the bottom (last match wins).
+!/datasets/v43/
+!/datasets/v43/README.md
+!/datasets/v43/real-part.README.md
 /artifacts/weights/
 *.pt
 *.onnx
@@ -39,3 +46,8 @@ __pycache__/
 # Local env / scratch
 .local/
 .env
+
+# Second block (after the /datasets/v43/ dir negation): the real-part
+# JSONL stays local — re-blocked explicitly because the dir negation
+# re-includes everything under it (last match wins).
+/datasets/v43/real-part.jsonl
