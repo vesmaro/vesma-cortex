@@ -10,11 +10,21 @@ Gate semantics (eval-methodology §4; values live in the frozen
 ``gate_contract.json`` — this module only CONSUMES it):
 
 - role ``merge``   → bundle-contract invariants + invariant probe classes
-  (self-pair floor, ladder monotonicity, pair symmetry) block;
+  (self-pair floor, zoned ladder monotonicity, pair symmetry) block;
 - role ``release`` → additionally the corridor classes (near-identity
   floor, far-negative ceiling). The BA prev_adopt corridor is LA-3 CI
   wiring (needs the previous ADOPT BA) — the runner REPORTS BA, the CI
   gate compares.
+
+Monotonicity follows the ZONED v2 rule (eval-methodology §10.2, contract
+v3 ``monotonicity_v2``): the razor zone (0.95; 1.0) is TWO-VALUED by
+policy v1.1 §8 — cosmetic/whitelist positives and fact-edit negatives
+both live there — so ladder steps STARTING strictly above the zone's low
+edge (``RAZOR_ZONE_COS_LOW``) are not asserted; outside the zone the
+non-increase holds (operationally P(0.95) ≥ P(0.8) ≥ P(0.5), tol 1e-6).
+The runner historically graded the full v1 ladder — that is the
+instrument debt the B2-v42 calibration exposed (a +Δtwin at the 0.99 →
+0.95 zone crossing failed a rule the ratified policy does not carry).
 
 Reusable-by-design: unlike the Layer B holdout there is NO single-shot
 run-log here — Layer A sets run on every PR (eval-methodology §3);
@@ -37,6 +47,7 @@ from typing import Final
 from cortex.eval.sanity import (
     MONOTONICITY_TOLERANCE,
     NEAR_BOUNDARY_MIN,
+    RAZOR_ZONE_COS_LOW,
     SELF_PAIR_MIN,
     UNRELATED_MAX,
     SanityCheck,
@@ -92,9 +103,16 @@ __all__ = [
 ]
 
 #: Report schema stamp (machine-readable JSON surface).
-REPORT_SCHEMA_VERSION: Final[int] = 1
+#: v2 — the zoned monotonicity rule (eval-methodology §10.2) replaced the
+#: full-ladder v1 check in ``evaluate_gates`` (the la4 instrument debt);
+#: ``gate_evaluations[].detail`` for ``monotonicity`` now reports the v2
+#: semantics ("non-increasing outside the razor zone").
+REPORT_SCHEMA_VERSION: Final[int] = 2
 
-_LADDER_LABEL_DUPLICATE_MIN_COS: Final[float] = 0.95
+# RAZOR_ZONE_COS_LOW (= 0.95, the zone's low edge) is imported above from
+# cortex.eval.sanity — the single source shared with the sanity suite
+# (coherence pinned by test_eval_sanity).
+_ZONE_COS_EPS: Final[float] = 1e-12
 
 
 # ── report types ──────────────────────────────────────────────────────────────
@@ -309,13 +327,29 @@ def evaluate_gates(
             symmetries.setdefault(probe.group, []).append((order, probability))
 
     def _monotone(pairs: Sequence[tuple[float, float]]) -> tuple[bool, str]:
+        # Zoned v2 rule (eval-methodology §10.2, gate_contract v3
+        # sanity_v2.monotonicity_v2): a step whose UPPER ladder point lies
+        # strictly above the razor-zone low edge is not asserted — the zone
+        # (0.95; 1.0) is two-valued by policy v1.1 §8, both classes live
+        # there, so P may legitimately rise across steps 1.0 → 0.99 → 0.95.
+        # Operationally: P(0.95) ≥ P(0.8) ≥ P(0.5) (tol 1e-6). The zone
+        # edge constant is shared with the sanity suite (RAZOR_ZONE_COS_LOW,
+        # coherence pinned by test_eval_sanity).
         values = [p for _, p in pairs]
         ok = all(
-            values[i] >= values[i + 1] - MONOTONICITY_TOLERANCE
+            -pairs[i][0] > RAZOR_ZONE_COS_LOW + _ZONE_COS_EPS
+            or values[i] >= values[i + 1] - MONOTONICITY_TOLERANCE
             for i in range(len(values) - 1)
         )
         text = ", ".join(f"cos={-key:.2f}:{p:.4f}" for key, p in pairs)
-        return ok, ("non-increasing " if ok else "INCREASING ") + f"[{text}]"
+        return ok, (
+            (
+                "non-increasing outside the razor zone"
+                if ok
+                else "INCREASE outside the razor zone"
+            )
+            + f"[{text}]"
+        )
 
     def _symmetric(pairs: Sequence[tuple[float, float]]) -> tuple[bool, str]:
         values = [p for _, p in pairs]

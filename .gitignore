@@ -13,6 +13,10 @@
 !/datasets/evalsets/**
 !/datasets/corpus-v4/
 !/datasets/corpus-v4/**
+# Near-miss watchlist registry (la4: synthetic eval-surface provenance
+# summaries only — no store lines, same ADR 0003 R2 rule as evalsets).
+!/datasets/watchlist/
+!/datasets/watchlist/**
 /artifacts/weights/
 *.pt
 *.onnx

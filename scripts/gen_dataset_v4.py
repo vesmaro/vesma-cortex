@@ -107,6 +107,9 @@ from cortex.data.holdout import (  # noqa: E402
     assert_labels_isolated,
     assert_no_pair_overlap,
 )
+from cortex.data.watchlist import (  # noqa: E402 — repo src sys.path shim above
+    quota_violations,
+)
 from cortex.features.pair import FEATURE_NAMES  # noqa: E402
 
 BATCH_DIR = REPO_ROOT / "datasets" / "corpus-v4"
@@ -126,6 +129,10 @@ DEFAULT_TRAIN_DIR = REPO_ROOT / "data" / "stage2" / "dataset-v4"
 DEFAULT_HOLDOUT_DIR = REPO_ROOT / "data" / "stage2" / "dataset-v4-holdout"
 
 HOLDOUT_FRACTION = 0.25
+#: Current corpus revision of this generator (v4.2 = wave D4-4); the
+#: near-miss watchlist quota (prereg addendum §9, la4 card) binds the
+#: NEXT revision — pass --corpus-version 4.3 once its batches land.
+CORPUS_VERSION = "4.2"
 RECORD_TYPES = ("note", "fact", "decision", "task")
 ROLES = ("base", "near", "para-sub", "para-struct", "trans2")
 LANGS = ("ru", "en")
@@ -908,6 +915,15 @@ def main(argv: list[str] | None = None) -> int:
         "corner_qa section of gate_contract.json, falling back to the frozen "
         "code constants when the contract file is absent)",
     )
+    ap.add_argument(
+        "--corpus-version",
+        default=CORPUS_VERSION,
+        help="the corpus revision this build produces (default "
+        f"{CORPUS_VERSION}); drives the near-miss watchlist quota — "
+        "revisions ≥ 4.3 refuse a build that lacks the watchlist-family "
+        "pairs while the registry (datasets/watchlist/near-miss.jsonl) "
+        "holds open cases",
+    )
     args = ap.parse_args(argv)
 
     thresholds, thresholds_source = thresholds_from_gate_contract()
@@ -944,6 +960,20 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         for line in report["violations"]:
+            print(f"  - {line}", file=sys.stderr)
+        return 1
+
+    # near-miss watchlist quota (prereg addendum §9, la4 card): revisions
+    # ≥ 4.3 must carry the near-0009-family pairs while open cases sit in
+    # the registry — the same refusal discipline as corner-QA above.
+    watch_violations = quota_violations(rows, corpus_version=args.corpus_version)
+    if watch_violations:
+        print(
+            "WATCHLIST QUOTA REFUSAL — the near-miss registry binds this "
+            "build plan, nothing will be written:",
+            file=sys.stderr,
+        )
+        for line in watch_violations:
             print(f"  - {line}", file=sys.stderr)
         return 1
 
