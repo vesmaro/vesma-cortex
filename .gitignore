@@ -24,6 +24,12 @@
 !/datasets/v43/
 !/datasets/v43/README.md
 !/datasets/v43/real-part.README.md
+# v4.3 authored translated batches: specs are by-construction content
+# (same publication class as corpus-v4 batches — no store text), committable.
+!/datasets/corpus-v43/
+!/datasets/corpus-v43/**
+# real-part record text stays closed (the explicit re-block at the bottom
+# targets datasets/v43/real-part.jsonl; corpus-v43 carries no store text).
 /artifacts/weights/
 *.pt
 *.onnx
