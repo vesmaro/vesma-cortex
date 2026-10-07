@@ -247,6 +247,20 @@ def _clean_translation(raw: str) -> str:
     return t.strip()
 
 
+def _is_copy(source: str, translation: str) -> bool:
+    """Near-copy gate: mixed-language sources sometimes come back
+    unrendered; such rows would fake translated-pair share."""
+    if not translation:
+        return False
+    if text_hash(source) == text_hash(translation):
+        return True
+    a = set(re.findall(r"\w+", source.lower()))
+    b = set(re.findall(r"\w+", translation.lower()))
+    if not a:
+        return False
+    return len(a & b) / len(a | b) >= 0.9
+
+
 def real_units() -> list[tuple[str, str, str]]:
     """(key, target_lang, source_unit) for every real-part record."""
     out: list[tuple[str, str, str]] = []
@@ -285,7 +299,7 @@ def cmd_translate_real(threads: int) -> int:
         return 0
     gen = Generator(threads)
     t0 = time.time()
-    kept = dropped_digits = dropped_json = dropped_lang = 0
+    kept = dropped_digits = dropped_json = dropped_lang = dropped_copy = 0
     for n, (jid, chunk) in enumerate(jobs):
         prompts = [_translate_prompt(tgt, unit) for _key, tgt, unit in chunk]
         raws = gen.chat(prompts, max_new_tokens=MAX_NEW_TOKENS_TRANSLATE, seed=100000 + n)
@@ -305,6 +319,10 @@ def cmd_translate_real(threads: int) -> int:
                 dropped_lang += 1
                 rows.append({"job": jid, "key": key, "target_lang": tgt, "status": "lang-fail", "text": text})
                 continue
+            if _is_copy(unit, text):
+                dropped_copy += 1
+                rows.append({"job": jid, "key": key, "target_lang": tgt, "status": "copy-fail", "text": text})
+                continue
             kept += 1
             rows.append({"job": jid, "key": key, "target_lang": tgt, "status": "ok", "text": text})
         append_jsonl(out_path, rows)
@@ -321,35 +339,56 @@ def cmd_translate_real(threads: int) -> int:
         dropped_json=dropped_json,
         dropped_digits=dropped_digits,
         dropped_lang=dropped_lang,
+        dropped_copy=dropped_copy,
         wall_sec=round(time.time() - t0, 1),
     )
     return _top_up_translations(gen, out_path)
 
 
+TOPUP_SYSTEM_EXTRA = (
+    " NOTE: the source is mixed-language or already partly in the target language. "
+    "Render ALL of its content in the target language: keep target-language parts, "
+    "translate the rest. Never return the source unchanged."
+)
+
+
 def _top_up_translations(gen: Generator, out_path: Path) -> int:
-    """One retry pass for non-ok rows (json/lang/digit fails)."""
+    """Retry pass for non-ok rows (json/lang/digit/copy fails)."""
     rows = load_jsonl(out_path)
     bad = [r for r in rows if r.get("status") != "ok"]
     units = {key: (tgt, unit) for key, tgt, unit in real_units()}
     redo: list[tuple[str, str, str]] = []
+    seen_redo: set[str] = set()
     for r in bad:
-        if r["key"] in units:
+        if r["key"] in units and r["key"] not in seen_redo:
+            seen_redo.add(r["key"])
             tgt, unit = units[r["key"]]
             redo.append((r["key"], tgt, unit))
     if not redo:
+        log_event("translate-real-topup-skip", nothing_to_redo=0)
         return 0
     log_event("translate-real-topup-start", todo=len(redo))
     kept = still_bad = 0
     for i in range(0, len(redo), BATCH):
         chunk = redo[i : i + BATCH]
-        prompts = [_translate_prompt(tgt, unit) for _key, tgt, unit in chunk]
+        prompts = []
+        for _key, tgt, unit in chunk:
+            msgs = _translate_prompt(tgt, unit)
+            msgs = [{"role": "system", "content": msgs[0]["content"] + TOPUP_SYSTEM_EXTRA}, msgs[1]]
+            prompts.append(msgs)
         raws = gen.chat(prompts, max_new_tokens=MAX_NEW_TOKENS_TRANSLATE, seed=777000 + i)
         out_rows = []
-        for (key, tgt, unit), raw in zip(chunk, raws):
+        for k, ((key, tgt, unit), raw) in enumerate(zip(chunk, raws)):
             text = normalise(_clean_translation(raw)) if raw.strip() else ""
-            if obj and text and not missing_digit_tokens(unit, text) and detect_lang(text) == tgt and acceptable(text):
+            if (
+                text
+                and acceptable(text)
+                and not missing_digit_tokens(unit, text)
+                and detect_lang(text) == tgt
+                and not _is_copy(unit, text)
+            ):
                 kept += 1
-                out_rows.append({"job": f"topup-{i + k:05d}", "key": key, "target_lang": tgt, "status": "ok", "text": text})
+                out_rows.append({"job": f"topup-{i:05d}", "key": key, "target_lang": tgt, "status": "ok", "text": text})
             else:
                 still_bad += 1
         append_jsonl(out_path, out_rows)
