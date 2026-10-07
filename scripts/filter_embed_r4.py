@@ -84,62 +84,48 @@ def cos_matrix(a, b):
 
 
 def cmd_filter(min_cos: float, threads: int) -> int:
-    import torch
-
     emb = Embedder(threads)
     t0 = time.time()
-
-    # 1. pair cos-filter ------------------------------------------------------
-    rejections = 0
     checked = 0
+    rejections = 0
 
-    tr_path = GEN_DIR / "real-translations.jsonl"
-    rows = load_jsonl(tr_path)
+    def cos_gate(path: Path, get_pair, mark_label: str) -> None:
+        nonlocal checked, rejections
+        rows = load_jsonl(path)
+        live = [r for r in rows if r.get("status") == "ok"]
+        if not live:
+            return
+        s = emb.embed([normalise(get_pair(r)[0]) for r in live])
+        d = emb.embed([normalise(get_pair(r)[1]) for r in live])
+        cos = (s * d).sum(dim=1)
+        rejected = 0
+        for r, c in zip(live, cos.tolist()):
+            checked += 1
+            r["cos"] = round(c, 4)
+            if c < min_cos:
+                r["status"] = "cos-reject"
+                rejected += 1
+        rejections += rejected
+        append_rows(path, rows)
+        log_event(mark_label, file=path.name, checked=len(live), rejected=rejected)
+
     units = {}
     from gen_embed_r4_texts import real_units
 
-    for key, tgt, unit in real_units():
+    for key, _tgt, unit in real_units():
         units[key] = unit
-    live = [r for r in rows if r.get("status") == "ok"]
-    if live:
-        src_texts = [units[r["key"]] for r in live]
-        dst_texts = [r["text"] for r in live]
-        s = emb.embed([normalise(t) for t in src_texts])
-        d = emb.embed([normalise(t) for t in dst_texts])
-        cos = (s * d).sum(dim=1)
-        cos_list = cos.tolist()
-        for r, c in zip(live, cos_list):
-            checked += 1
-            r["cos"] = round(c, 4)
-            if c < min_cos:
-                r["status"] = "cos-reject"
-                rejections += 1
-        append_rows(tr_path, rows)
-        log_event("filter-real-translations", checked=checked, rejected=rejections, min_cos=min_cos,
-                  wall_sec=round(time.time() - t0, 1))
 
-    # twins: ru/en pairs
-    tw_path = GEN_DIR / "synth-twins.jsonl"
-    tw_rows = load_jsonl(tw_path)
-    live_t = [r for r in tw_rows if r.get("status") == "ok"]
-    rej_t = 0
-    if live_t:
-        s = emb.embed([normalise(r["ru"]) for r in live_t])
-        d = emb.embed([normalise(r["en"]) for r in live_t])
-        cos = (s * d).sum(dim=1)
-        for r, c in zip(live_t, cos.tolist()):
-            checked += 1
-            r["cos"] = round(c, 4)
-            if c < min_cos:
-                r["status"] = "cos-reject"
-                rej_t += 1
-        rejections += rej_t
-        append_rows(tw_path, tw_rows)
-        log_event("filter-twins", checked=len(live_t), rejected=rej_t, min_cos=min_cos)
+    # 1. real-record translations: cos-gate per shard file --------------------
+    for tr_path in sorted(GEN_DIR.glob("real-translations.shard*.jsonl")):
+        cos_gate(tr_path, lambda r: (units[r["key"]], r["text"]), "filter-real-translations")
+
+    # twins: ru/en pairs per shard file
+    for tw_path in sorted(GEN_DIR.glob("synth-twins.shard*.jsonl")):
+        cos_gate(tw_path, lambda r: (r["ru"], r["en"]), "filter-twins")
+    log_event("filter-pairs-done", checked=checked, rejected=rejections, min_cos=min_cos,
+              wall_sec=round(time.time() - t0, 1))
 
     # 2. seed pairs: measure only (TL-validated content is not re-gated) ------
-    from gen_embed_r4_texts import text_hash
-
     seed_pairs: list[tuple[str, str]] = []
     for path in sorted(TRANSLATED_SEED_DIR.glob("batch-*.jsonl")):
         for row in load_jsonl(path):
@@ -153,8 +139,7 @@ def cmd_filter(min_cos: float, threads: int) -> int:
     if seed_pairs:
         s = emb.embed([p[0] for p in seed_pairs])
         d = emb.embed([p[1] for p in seed_pairs])
-        cos = (s * d).sum(dim=1)
-        vals = cos.tolist()
+        vals = (s * d).sum(dim=1).tolist()
         below = sum(1 for c in vals if c < min_cos)
         log_event(
             "filter-seed-measured-only",
@@ -173,10 +158,11 @@ def cmd_filter(min_cos: float, threads: int) -> int:
         if src.startswith("synthetic-"):
             fam = src.removeprefix("synthetic-ru-").removeprefix("synthetic-en-")
             r3_by_family.setdefault(fam, []).append(normalise(row["text"]))
-    mono_rows = [r for r in load_jsonl(GEN_DIR / "synth-mono.jsonl") if r.get("status") == "ok"]
     by_fam_lang: dict[tuple[str, str], list[str]] = {}
-    for r in mono_rows:
-        by_fam_lang.setdefault((r["family"], r["lang"]), []).append(normalise(r["text"]))
+    for path in sorted(GEN_DIR.glob("synth-mono.shard*.jsonl")):
+        for r in load_jsonl(path):
+            if r.get("status") == "ok":
+                by_fam_lang.setdefault((r["family"], r["lang"]), []).append(normalise(r["text"]))
     rng = random.Random(42)
     report = {}
     worst = 0.0

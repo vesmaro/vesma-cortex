@@ -225,38 +225,41 @@ def collect_seed() -> list[tuple[str, str, str]]:
 
 def collect_real_translations() -> list[tuple[str, str, str]]:
     out: list[tuple[str, str, str]] = []
-    for row in load_jsonl(GEN_DIR / "real-translations.jsonl"):
-        if row.get("status") != "ok":
-            continue
-        text = normalise(row["text"])
-        if not acceptable(text):
-            continue
-        out.append((text, row["target_lang"], "translated-real-r4"))
+    for path in sorted(GEN_DIR.glob("real-translations.shard*.jsonl")):
+        for row in load_jsonl(path):
+            if row.get("status") != "ok":
+                continue
+            text = normalise(row["text"])
+            if not acceptable(text):
+                continue
+            out.append((text, row["target_lang"], "translated-real-r4"))
     return out
 
 
 def collect_twins() -> list[tuple[str, str, str]]:
     out: list[tuple[str, str, str]] = []
-    for row in load_jsonl(GEN_DIR / "synth-twins.jsonl"):
-        if row.get("status") != "ok":
-            continue
-        for lang_key, lang in (("ru", "ru"), ("en", "en")):
-            text = normalise(row[lang_key])
-            if not acceptable(text):
+    for path in sorted(GEN_DIR.glob("synth-twins.shard*.jsonl")):
+        for row in load_jsonl(path):
+            if row.get("status") != "ok":
                 continue
-            out.append((text, lang, f"twin-{lang}-{row['family']}"))
+            for lang_key, lang in (("ru", "ru"), ("en", "en")):
+                text = normalise(row[lang_key])
+                if not acceptable(text):
+                    continue
+                out.append((text, lang, f"twin-{lang}-{row['family']}"))
     return out
 
 
 def collect_synth_mono() -> list[tuple[str, str, str]]:
     out: list[tuple[str, str, str]] = []
-    for row in load_jsonl(GEN_DIR / "synth-mono.jsonl"):
-        if row.get("status") != "ok":
-            continue
-        text = normalise(row["text"])
-        if not acceptable(text):
-            continue
-        out.append((text, row["lang"], f"synthetic-{row['lang']}-{row['family']}"))
+    for path in sorted(GEN_DIR.glob("synth-mono.shard*.jsonl")):
+        for row in load_jsonl(path):
+            if row.get("status") != "ok":
+                continue
+            text = normalise(row["text"])
+            if not acceptable(text):
+                continue
+            out.append((text, row["lang"], f"synthetic-{row['lang']}-{row['family']}"))
     return out
 
 

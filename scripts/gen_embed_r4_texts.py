@@ -278,15 +278,15 @@ def real_units() -> list[tuple[str, str, str]]:
     return out
 
 
-def cmd_translate_real(threads: int) -> int:
-    out_path = GEN_DIR / "real-translations.jsonl"
+def cmd_translate_real(threads: int, shard: int = 0, num_shards: int = 1) -> int:
+    out_path = GEN_DIR / f"real-translations.shard{shard}.jsonl"
     done_jobs = {row.get("job") for row in load_jsonl(out_path)}
     units = real_units()
     jobs: list[tuple[str, list[tuple[str, str, str]]]] = []
     for i in range(0, len(units), BATCH):
         chunk = units[i : i + BATCH]
         jid = f"tr-{i // BATCH:05d}"
-        if jid in done_jobs:
+        if jid in done_jobs or (i // BATCH) % num_shards != shard:
             continue
         jobs.append((jid, chunk))
     log_event(
@@ -342,7 +342,7 @@ def cmd_translate_real(threads: int) -> int:
         dropped_copy=dropped_copy,
         wall_sec=round(time.time() - t0, 1),
     )
-    return _top_up_translations(gen, out_path)
+    return _top_up_translations(gen, out_path, shard, num_shards)
 
 
 TOPUP_SYSTEM_EXTRA = (
@@ -352,11 +352,19 @@ TOPUP_SYSTEM_EXTRA = (
 )
 
 
-def _top_up_translations(gen: Generator, out_path: Path) -> int:
-    """Retry pass for non-ok rows (json/lang/digit/copy fails)."""
+def _top_up_translations(gen: "Generator", out_path: Path, shard: int, num_shards: int) -> int:
+    """Retry pass for this shard's non-ok rows (json/lang/digit/copy)."""
     rows = load_jsonl(out_path)
     bad = [r for r in rows if r.get("status") != "ok"]
-    units = {key: (tgt, unit) for key, tgt, unit in real_units()}
+    if not bad:
+        return 0
+    all_units = real_units()
+    shard_keys: set[str] = set()
+    for ordinal in range(0, len(all_units), BATCH):
+        if (ordinal // BATCH) % num_shards == shard:
+            for key, _tgt, _unit in all_units[ordinal : ordinal + BATCH]:
+                shard_keys.add(key)
+    units = {key: (tgt, unit) for key, tgt, unit in all_units if key in shard_keys}
     redo: list[tuple[str, str, str]] = []
     seen_redo: set[str] = set()
     for r in bad:
@@ -365,17 +373,16 @@ def _top_up_translations(gen: Generator, out_path: Path) -> int:
             tgt, unit = units[r["key"]]
             redo.append((r["key"], tgt, unit))
     if not redo:
-        log_event("translate-real-topup-skip", nothing_to_redo=0)
+        log_event("translate-real-topup-skip", shard=shard, nothing_to_redo=len(bad))
         return 0
-    log_event("translate-real-topup-start", todo=len(redo))
+    log_event("translate-real-topup-start", shard=shard, todo=len(redo))
     kept = still_bad = 0
     for i in range(0, len(redo), BATCH):
         chunk = redo[i : i + BATCH]
         prompts = []
         for _key, tgt, unit in chunk:
             msgs = _translate_prompt(tgt, unit)
-            msgs = [{"role": "system", "content": msgs[0]["content"] + TOPUP_SYSTEM_EXTRA}, msgs[1]]
-            prompts.append(msgs)
+            prompts.append([{"role": "system", "content": msgs[0]["content"] + TOPUP_SYSTEM_EXTRA}, msgs[1]])
         raws = gen.chat(prompts, max_new_tokens=MAX_NEW_TOKENS_TRANSLATE, seed=777000 + i)
         out_rows = []
         for k, ((key, tgt, unit), raw) in enumerate(zip(chunk, raws)):
@@ -392,7 +399,7 @@ def _top_up_translations(gen: Generator, out_path: Path) -> int:
             else:
                 still_bad += 1
         append_jsonl(out_path, out_rows)
-    log_event("translate-real-topup-done", kept=kept, still_bad=still_bad)
+    log_event("translate-real-topup-done", shard=shard, kept=kept, still_bad=still_bad)
     return 0
 
 
@@ -524,9 +531,9 @@ def _stable_seed(*parts: object) -> int:
     return 2000000 + zlib.crc32("|".join(str(p) for p in parts).encode()) % 700000
 
 
-def _run_mono_pass(gen: Generator, out_path: Path, only_missing: bool) -> None:
+def _run_mono_pass(gen: "Generator", out_path: Path, only_missing: bool, shard: int = 0, num_shards: int = 1) -> None:
     done_jobs = {row.get("job") for row in load_jsonl(out_path)}
-    jobs = [j for j in _mono_jobs() if f"m-{j[0]}-{j[1]}-{j[2]:05d}" not in done_jobs]
+    jobs = [j for o, j in enumerate(_mono_jobs()) if o % num_shards == shard and f"m-{j[0]}-{j[1]}-{j[2]:05d}" not in done_jobs]
     if only_missing:
         # top-up mode: FRESH jobs for the shortfall (done jobs never
         # re-run — gate-fail rows inside them are backfilled by new
@@ -591,9 +598,9 @@ def _run_mono_pass(gen: Generator, out_path: Path, only_missing: bool) -> None:
     log_event("synth-mono-pass-done", kept=kept, bad=bad, wall_sec=round(time.time() - t0, 1))
 
 
-def _run_twin_pass(gen: Generator, out_path: Path, only_missing: bool) -> None:
+def _run_twin_pass(gen: "Generator", out_path: Path, only_missing: bool, shard: int = 0, num_shards: int = 1) -> None:
     done_jobs = {row.get("job") for row in load_jsonl(out_path)}
-    jobs = [j for j in _twin_jobs() if f"t-{j[0]}-{j[1]:03d}" not in done_jobs]
+    jobs = [j for o, j in enumerate(_twin_jobs()) if o % num_shards == shard and f"t-{j[0]}-{j[1]:03d}" not in done_jobs]
     if only_missing:
         kept: dict[str, int] = {}
         for row in load_jsonl(out_path):
@@ -651,16 +658,16 @@ def _run_twin_pass(gen: Generator, out_path: Path, only_missing: bool) -> None:
     log_event("synth-twin-pass-done", kept=kept, bad=bad, wall_sec=round(time.time() - t0, 1))
 
 
-def cmd_synth(threads: int, topup_rounds: int = 2) -> int:
-    mono_path = GEN_DIR / "synth-mono.jsonl"
-    twin_path = GEN_DIR / "synth-twins.jsonl"
+def cmd_synth(threads: int, shard: int = 0, num_shards: int = 1, topup_rounds: int = 2) -> int:
+    mono_path = GEN_DIR / f"synth-mono.shard{shard}.jsonl"
+    twin_path = GEN_DIR / f"synth-twins.shard{shard}.jsonl"
     gen = Generator(threads)
-    _run_mono_pass(gen, mono_path, only_missing=False)
-    _run_twin_pass(gen, twin_path, only_missing=False)
+    _run_mono_pass(gen, mono_path, only_missing=False, shard=shard, num_shards=num_shards)
+    _run_twin_pass(gen, twin_path, only_missing=False, shard=shard, num_shards=num_shards)
     for r in range(topup_rounds):
-        log_event("synth-topup-round", round=r + 1)
-        _run_mono_pass(gen, mono_path, only_missing=True)
-        _run_twin_pass(gen, twin_path, only_missing=True)
+        log_event("synth-topup-round", shard=shard, round=r + 1)
+        _run_mono_pass(gen, mono_path, only_missing=True, shard=shard, num_shards=num_shards)
+        _run_twin_pass(gen, twin_path, only_missing=True, shard=shard, num_shards=num_shards)
     return 0
 
 
@@ -669,13 +676,17 @@ def main(argv: list[str] | None = None) -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
     t = sub.add_parser("translate-real")
     t.add_argument("--threads", type=int, default=8)
+    t.add_argument("--shard", type=int, default=0)
+    t.add_argument("--num-shards", type=int, default=1)
     s = sub.add_parser("synth")
     s.add_argument("--threads", type=int, default=8)
+    s.add_argument("--shard", type=int, default=0)
+    s.add_argument("--num-shards", type=int, default=1)
     args = p.parse_args(argv)
     if args.cmd == "translate-real":
-        return cmd_translate_real(args.threads)
+        return cmd_translate_real(args.threads, args.shard, args.num_shards)
     if args.cmd == "synth":
-        return cmd_synth(args.threads)
+        return cmd_synth(args.threads, args.shard, args.num_shards)
     return 2
 
 
