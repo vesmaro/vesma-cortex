@@ -645,7 +645,6 @@ def build_real_rows(
         side = sides[cid]
         body = texts[cid]
         title0 = side.get("title") or ""
-        tags_text = " ".join(side.get("tags") or [])
         if len(body) < 300 or len(_fact_tokens(body)) < 2:
             para_band_skipped += 1
             continue
@@ -667,7 +666,6 @@ def build_real_rows(
             if c5c < BAND_C5C_MIN:
                 continue  # the fact edit alone breaks the dup-like profile
             for dose in (0.25, 0.35, 0.45, 0.60, 0.80):
-                nb_text = _case_run(f"{title0}\n{edited}\n{tags_text}", dose)[:4096]
                 vb = embed_side(
                     {
                         "title": title0,
