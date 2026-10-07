@@ -57,3 +57,9 @@ __pycache__/
 # JSONL stays local — re-blocked explicitly because the dir negation
 # re-includes everything under it (last match wins).
 /datasets/v43/real-part.jsonl
+
+# embed-r4 corpus (round-4 embedder KD texts): numbers-only README is
+# committable (same class as datasets/v43 READMEs); the jsonl texts stay
+# gitignored under data/embed-r4/ (store-derived content).
+!/datasets/embed-r4/
+!/datasets/embed-r4/README.md
