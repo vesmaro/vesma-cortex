@@ -147,7 +147,7 @@ class Generator:
     def __init__(self, threads: int):
         from llama_cpp import Llama
 
-        self.llm = Llama(GEN_GGUF, n_ctx=2048, n_threads=threads, n_batch=512, verbose=False)
+        self.llm = Llama(GEN_GGUF, n_ctx=3072, n_threads=threads, n_batch=512, verbose=False)
         log_event("generator-loaded", model=GEN_MODEL, runtime="llama.cpp", quant="Q8_0", threads=threads)
 
     @staticmethod
@@ -278,9 +278,10 @@ def real_units() -> list[tuple[str, str, str]]:
         while count_tokens(unit) > UNIT_TOKEN_CAP and "\n" in unit:
             unit = unit.rsplit("\n", 1)[0].strip()
         if count_tokens(unit) > UNIT_TOKEN_CAP:
-            # single giant paragraph: hard char cap — prompt+completion must
-            # fit the 2048 llama.cpp context (~4 chars/token worst case)
-            unit = unit[:2400].rsplit(" ", 1)[0].strip()
+            # single giant paragraph: hard cap — prompt+completion must fit
+            # the llama.cpp context even for dense punctuation-heavy text
+            while count_tokens(unit) > 350 and len(unit) > 400:
+                unit = unit[: int(len(unit) * 0.8)].rsplit(" ", 1)[0].strip()
         out.append((key, target, unit))
     return out
 
