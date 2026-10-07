@@ -523,7 +523,10 @@ def build_real_rows(
             acc.append(span)
             if len(acc) > 4:
                 break
-            if _c5_containment(title, body, _swap_fact_tokens(body, acc)) < PROBE_C5_CONT:
+            if (
+                _c5_containment(title, body, _swap_fact_tokens(body, acc))
+                < PROBE_C5_CONT
+            ):
                 return _swap_fact_tokens(body, acc)
         return None
 
@@ -629,9 +632,7 @@ def build_real_rows(
     def _case_run(text: str, dose: float) -> str:
         n = len(text)
         length = int(n * dose)
-        return "".join(
-            (c.swapcase() if p < length else c) for p, c in enumerate(text)
-        )
+        return "".join((c.swapcase() if p < length else c) for p, c in enumerate(text))
 
     para_band_built = 0
     para_band_skipped = 0
@@ -717,7 +718,14 @@ def build_real_rows(
             cand = deepcopy(side)
             cand["title"] = cand_title
             cand["body"] = cand_body
-            add("RPARA", "N-para-band", "not-duplicate", side, cand, similarity=round(sim, 6))
+            add(
+                "RPARA",
+                "N-para-band",
+                "not-duplicate",
+                side,
+                cand,
+                similarity=round(sim, 6),
+            )
             para_band_built += 1
             para_band_coses.append(sim)
             para_band_used.add(cid)
@@ -751,7 +759,9 @@ def build_real_rows(
     counters["real:para_band_bodies_skipped"] = para_band_skipped
     if para_band_coses:
         cos_sorted = sorted(para_band_coses)
-        counters["real:para_band_cos_median_1e6"] = int(cos_sorted[len(cos_sorted) // 2] * 1e6)
+        counters["real:para_band_cos_median_1e6"] = int(
+            cos_sorted[len(cos_sorted) // 2] * 1e6
+        )
         counters["real:para_band_cos_min_1e6"] = int(cos_sorted[0] * 1e6)
         counters["real:para_band_cos_max_1e6"] = int(cos_sorted[-1] * 1e6)
     if para_band_built < 44:
