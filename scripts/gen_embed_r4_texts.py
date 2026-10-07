@@ -274,6 +274,13 @@ def real_units() -> list[tuple[str, str, str]]:
         unit = body.strip()
         while count_tokens(unit) > UNIT_TOKEN_CAP and "\n\n" in unit:
             unit = unit.rsplit("\n\n", 1)[0].strip()
+        # records without blank lines: drop trailing lines until inside cap
+        while count_tokens(unit) > UNIT_TOKEN_CAP and "\n" in unit:
+            unit = unit.rsplit("\n", 1)[0].strip()
+        if count_tokens(unit) > UNIT_TOKEN_CAP:
+            # single giant paragraph: hard char cap — prompt+completion must
+            # fit the 2048 llama.cpp context (~4 chars/token worst case)
+            unit = unit[:2400].rsplit(" ", 1)[0].strip()
         out.append((key, target, unit))
     return out
 
