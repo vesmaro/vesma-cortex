@@ -51,6 +51,7 @@ from training.dataset.prepare_dataset import (  # noqa: E402
 DATA_DIR = REPO_ROOT / "data" / "embed-r4"
 GEN_DIR = DATA_DIR / "gen"
 REAL_PART = REPO_ROOT / "datasets" / "v43" / "real-part.jsonl"
+TRANSLATED_SEED_DIR = REPO_ROOT / "datasets" / "corpus-v43"
 RUN_LOG = DATA_DIR / "run-log.jsonl"
 
 GEN_MODEL = "Qwen/Qwen3-0.6B"
