@@ -63,3 +63,7 @@ __pycache__/
 # gitignored under data/embed-r4/ (store-derived content).
 !/datasets/embed-r4/
 !/datasets/embed-r4/README.md
+
+# embed-r4 generation venv (own venv, isolation rule — never another
+# product's env) and generation scratch logs
+/.venv-r4gen/

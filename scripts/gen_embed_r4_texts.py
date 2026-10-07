@@ -55,6 +55,14 @@ TRANSLATED_SEED_DIR = REPO_ROOT / "datasets" / "corpus-v43"
 RUN_LOG = DATA_DIR / "run-log.jsonl"
 
 GEN_MODEL = "Qwen/Qwen3-0.6B"
+#: GGUF Q8_0 of the SAME ratified open-weights model (official Qwen repo);
+#: llama.cpp runtime — HF-transformers CPU decode projected ~50h for the
+#: pool, llama.cpp ~4-5x faster per job (run-log 2026-10-07 engine swap).
+GEN_GGUF = (
+    "/var/home/abyss/.distrobox/ubuntu/home/.cache/huggingface/hub/"
+    "models--Qwen--Qwen3-0.6B-GGUF/snapshots/"
+    "23749fefcc72300e3a2ad315e1317431b06b590a/Qwen3-0.6B-Q8_0.gguf"
+)
 
 MIN_CHARS = 40
 MAX_CHARS = 4000
@@ -130,46 +138,40 @@ def append_jsonl(path: Path, rows: list[dict]) -> None:
 
 
 class Generator:
-    """Local Qwen3-0.6B chat generator (no network at run time)."""
+    """Local Qwen3-0.6B chat generator (llama.cpp, Q8_0 GGUF, no network).
+
+    Prompts are rendered in the Qwen3 chat format directly, with the
+    official empty-``<think>`` block (non-thinking mode).
+    """
 
     def __init__(self, threads: int):
-        import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        from llama_cpp import Llama
 
-        torch.set_num_threads(threads)
-        self.torch = torch
-        self.tokenizer = AutoTokenizer.from_pretrained(GEN_MODEL)
-        self.model = AutoModelForCausalLM.from_pretrained(
-            GEN_MODEL, dtype=torch.bfloat16, attn_implementation="sdpa"
-        )
-        self.model.eval()
-        log_event("generator-loaded", model=GEN_MODEL, dtype="bfloat16", threads=threads)
+        self.llm = Llama(GEN_GGUF, n_ctx=2048, n_threads=threads, n_batch=512, verbose=False)
+        log_event("generator-loaded", model=GEN_MODEL, runtime="llama.cpp", quant="Q8_0", threads=threads)
+
+    @staticmethod
+    def render(messages: list[dict]) -> str:
+        out = []
+        for m in messages:
+            out.append(f"<|im_start|>{m['role']}\n{m['content']}<|im_end|>\n")
+        out.append("<|im_start|>assistant\n<think>\n\n</think>\n")
+        return "".join(out)
 
     def chat(self, prompts: list[list[dict]], max_new_tokens: int, seed: int) -> list[str]:
-        import torch
-
-        torch.manual_seed(seed)
-        texts = [
-            self.tokenizer.apply_chat_template(
-                p, tokenize=False, add_generation_prompt=True, enable_thinking=False
-            )
-            for p in prompts
-        ]
-        enc = self.tokenizer(
-            texts, return_tensors="pt", padding=True, padding_side="left", truncation=True, max_length=2048
-        )
-        with torch.no_grad():
-            out = self.model.generate(
-                **enc,
-                max_new_tokens=max_new_tokens,
-                do_sample=True,
+        outs = []
+        for p in prompts:
+            res = self.llm(
+                self.render(p),
+                max_tokens=max_new_tokens,
                 temperature=TEMPERATURE,
                 top_p=TOP_P,
                 top_k=TOP_K,
-                pad_token_id=self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
+                seed=seed,
+                stop=["<|im_end|>"],
             )
-        gen = out[:, enc["input_ids"].shape[1]:]
-        return [self.tokenizer.decode(row, skip_special_tokens=True).strip() for row in gen]
+            outs.append(res["choices"][0]["text"].strip())
+        return outs
 
 
 def extract_json_array(raw: str) -> list | None:
@@ -196,12 +198,53 @@ def extract_json_obj(raw: str) -> dict | None:
 
 # ── phase C: real-record translations ────────────────────────────────────────
 
-TRANSLATE_SYSTEM = (
-    "You translate personal memory records. Translate the record to {target}. "
-    "Preserve every number, date, time, version and amount exactly as written in the source. "
-    "Keep the register: plain notes, no explanations, no additions, no quotes around the result. "
-    'Answer with strict JSON only: {{"t": "<translation>"}}'
+TRANSLATE_SYSTEM_EN = (
+    "You translate personal work notes into English. Rules: "
+    "(1) translate the WHOLE source text; "
+    "(2) copy every number, date, timestamp, version and amount UNCHANGED, digit for digit, "
+    "including full ISO timestamps like 2026-08-07T10:25:29.989686+00:00; "
+    "(3) write natural plain prose, no markdown headers, no explanations, no quotes around the result; "
+    "(4) output ONLY the translation."
 )
+TRANSLATE_SYSTEM_RU = (
+    "Ты переводишь личные рабочие записи на русский язык. Правила: "
+    "(1) переводи ВЕСЬ исходный текст; "
+    "(2) переписывай все числа, даты, временные метки, версии и суммы БЕЗ ИЗМЕНЕНИЙ, цифра в цифру, "
+    "включая полные ISO-метки вроде 2026-08-07T10:25:29.989686+00:00; "
+    "(3) пиши естественным обычным языком, без markdown-заголовков, без пояснений, без кавычек вокруг результата; "
+    "(4) выведи ТОЛЬКО перевод."
+)
+TRANSLATE_SHOT_EN = (
+    "Source:\nОтчёт 05.10.2026: деплой v2.3.1 на k3s прошёл в 14:32, ошибок нет.\n\n"
+    "Translation:\nReport 05.10.2026: the v2.3.1 deploy to k3s completed at 14:32, no errors."
+)
+TRANSLATE_SHOT_RU = (
+    "Source:\nReport Oct 5, 2026: the v2.3.1 deploy to k3s finished at 14:32, no errors.\n\n"
+    "Translation:\nОтчёт 5 октября 2026: деплой v2.3.1 на k3s завершился в 14:32, ошибок нет."
+)
+
+
+def _translate_prompt(target: str, unit: str) -> list[dict]:
+    if target == "en":
+        return [
+            {"role": "system", "content": TRANSLATE_SYSTEM_EN},
+            {"role": "user", "content": f"Example.\n{TRANSLATE_SHOT_EN}\n\nNow translate.\nSource:\n{unit}\n\nTranslation:"},
+        ]
+    return [
+        {"role": "system", "content": TRANSLATE_SYSTEM_RU},
+        {"role": "user", "content": f"Пример.\n{TRANSLATE_SHOT_RU}\n\nТеперь переведи.\nSource:\n{unit}\n\nTranslation:"},
+    ]
+
+
+def _clean_translation(raw: str) -> str:
+    """Plain-text output hygiene: strip echo labels, wrapping quotes, fences."""
+    t = raw.strip()
+    t = re.sub(r"^```[a-z]*\s*|\s*```$", "", t, flags=re.MULTILINE)
+    t = re.sub(r"^(Translation|Перевод)\s*:\s*", "", t, flags=re.IGNORECASE)
+    t = re.sub(r"^<translation>|</translation>$", "", t.strip(), flags=re.IGNORECASE)
+    if len(t) >= 2 and t[0] == t[-1] and t[0] in "\"'«»“”":
+        t = t[1:-1]
+    return t.strip()
 
 
 def real_units() -> list[tuple[str, str, str]]:
@@ -244,25 +287,15 @@ def cmd_translate_real(threads: int) -> int:
     t0 = time.time()
     kept = dropped_digits = dropped_json = dropped_lang = 0
     for n, (jid, chunk) in enumerate(jobs):
-        prompts = [
-            [
-                {
-                    "role": "system",
-                    "content": TRANSLATE_SYSTEM.format(target="English" if tgt == "en" else "Russian"),
-                },
-                {"role": "user", "content": unit},
-            ]
-            for _key, tgt, unit in chunk
-        ]
+        prompts = [_translate_prompt(tgt, unit) for _key, tgt, unit in chunk]
         raws = gen.chat(prompts, max_new_tokens=MAX_NEW_TOKENS_TRANSLATE, seed=100000 + n)
         rows = []
         for (key, tgt, unit), raw in zip(chunk, raws):
-            obj = extract_json_obj(raw)
-            if not obj or not isinstance(obj.get("t"), str):
+            text = normalise(_clean_translation(raw))
+            if not text:
                 dropped_json += 1
                 rows.append({"job": jid, "key": key, "target_lang": tgt, "status": "json-fail", "text": ""})
                 continue
-            text = normalise(obj["t"])
             lost = missing_digit_tokens(unit, text)
             if lost:
                 dropped_digits += 1
@@ -309,18 +342,11 @@ def _top_up_translations(gen: Generator, out_path: Path) -> int:
     kept = still_bad = 0
     for i in range(0, len(redo), BATCH):
         chunk = redo[i : i + BATCH]
-        prompts = [
-            [
-                {"role": "system", "content": TRANSLATE_SYSTEM.format(target="English" if tgt == "en" else "Russian")},
-                {"role": "user", "content": unit},
-            ]
-            for _key, tgt, unit in chunk
-        ]
+        prompts = [_translate_prompt(tgt, unit) for _key, tgt, unit in chunk]
         raws = gen.chat(prompts, max_new_tokens=MAX_NEW_TOKENS_TRANSLATE, seed=777000 + i)
         out_rows = []
         for (key, tgt, unit), raw in zip(chunk, raws):
-            obj = extract_json_obj(raw)
-            text = normalise(str(obj.get("t", ""))) if obj else ""
+            text = normalise(_clean_translation(raw)) if raw.strip() else ""
             if obj and text and not missing_digit_tokens(unit, text) and detect_lang(text) == tgt and acceptable(text):
                 kept += 1
                 out_rows.append({"job": f"topup-{i + k:05d}", "key": key, "target_lang": tgt, "status": "ok", "text": text})
