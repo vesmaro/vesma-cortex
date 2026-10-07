@@ -1,23 +1,23 @@
 # datasets/v43/real-part — ASSEMBLY NUMBERS (no content, sanction 2026-10-06)
 
-Generated: 2026-10-06T19:26:30Z by `scripts/assemble_real_part.py`.
+Generated: 2026-10-07T09:02:10Z by `scripts/assemble_real_part.py`.
 
 ## Sources (read-only, deduped by content hash — addendum 6 §A.3)
 
 | source | SQL candidates | accepted |
 |---|---:|---:|
-| live | 3121 | 2913 |
+| live | 3128 | 2916 |
 | backup-20260920 | 22 | 22 |
 | backup-20260921 | 2528 | 2478 |
 | backup-20260924 | 2622 | 2562 |
 
-- unique content hashes after dedup: **2407**
+- unique content hashes after dedup: **2410**
 - duplicate rows dropped: 5568
-- RU-centred share (Cyrillic ≥ 0.2 of content): 1315 (54.6%), non-RU 1092 (addendum-7 reference ~69%)
-- memory types: `{'note': 2195, 'snippet': 148, 'fact': 64}`
+- RU-centred share (Cyrillic ≥ 0.2 of content): 1318 (54.7%), non-RU 1092 (addendum-7 reference ~69%)
+- memory types: `{'note': 2198, 'snippet': 148, 'fact': 64}`
 - scanner provenance: **engine**
-- exclusion counters: `{'excluded:high-entropy:backup-20260921': 4, 'excluded:high-entropy:backup-20260924': 4, 'excluded:high-entropy:live': 4, 'excluded:privacy-tag:backup-20260921': 46, 'excluded:privacy-tag:backup-20260924': 56, 'excluded:privacy-tag:live': 204}`
-- fingerprint (blake2b-256 of the sorted content_hash manifest): `80a408a0508ffc57be8127cac570734d2df3548d2d3325634bde91bbc5e83fdc`
+- exclusion counters: `{'excluded:high-entropy:backup-20260921': 4, 'excluded:high-entropy:backup-20260924': 4, 'excluded:high-entropy:live': 4, 'excluded:privacy-tag:backup-20260921': 46, 'excluded:privacy-tag:backup-20260924': 56, 'excluded:privacy-tag:live': 208}`
+- fingerprint (blake2b-256 of the sorted content_hash manifest): `6b318a061ae482f3187d36e79c100599403e1804ceac0c1fafc2b89dff2533ec`
 
 ## Dedup / fingerprint logic (data-contract §5 reuse)
 
