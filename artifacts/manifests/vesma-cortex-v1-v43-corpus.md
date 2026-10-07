@@ -1,12 +1,18 @@
 # Корпус v4.3 (round-4 поезд) — рукопожатие
 
-- **Статус:** корпус собран и запечатан; ОБУЧЕНИЕ НЕ ЗАПУСКАЛОСЬ (prereg ACTIVATED, PR #22; пороги g-T — на ратификации)
-- **Дата:** 2026-10-07
-- **Fingerprint корпуса:** `` (train/hold — в manifest.json fingerprints)
-- **Эмбеддер-пин:** nano:sha256:3b752e06… — вся геометрия единая (переиспользованные пары re-embedded)
-- **Состав:** 2675 пар → train 2399 + v4.3-holdout 276 (запечатан; ids в gitignored holdout-ids.json)
-- **by_part (train):** real None · translated None (320 построено: 288 train + 32 в v43-holdout по 10% страт-сплиту) · synthetic-b2 None · synthetic-v42 None
-- **Гейты:** corner-QA violations 0; translated квоты CLEAN; watchlist-family в train None; дизъюнктность train↔holdouts OK (144 real-коллизий с B2-holdout дропнуто, счётчик в манифесте)
-- **Данные:** data/stage2/v43/ + ../v43-holdout/ — gitignored (тексты стора); в репо — этот манифест + скрипт
-- **Детерминизм:** scripts/build_corpus_v43.py; dry-run и полный прогон дали байт-одинаковый состав и отпечатки (TL-прогон лично 2026-10-07)
-- **Prereg:** docs/specs/embed-round4-prereg-* (ACTIVATED); g-T1/T2/T3 (0.90/−0.02/0.90) PROPOSED — ратифицировать ДО eval
+- **Статус:** round-4-кортекс ЗАКОНЧИЛСЯ на v43-g (замкнутость на эмбеддер: translated-геометрия cos ~0.74 ниже дубликатной полки — третья волна на этом эмбеддере математически невозможна); корпус ПАУЗА — поезда ждёт round-4 ЭМБЕДДЕРА; translated-классы готовы к употреблению после эмбеддерного шага
+- **Дата:** 2026-10-07 (три волны: RFACT-SAMELEN фикс → SHELF-FILL → закрытие)
+- **Fingerprints финальной сборки v43-g:** corpus `22b80f7c1a6f2344047b8a45313ea6cd6d44a26d9321ad198b67c74fa78b9c26`, train `915e7687033a13a8…` (2517 пар), labels `13b3118b…`, holdout_v43 `4d52abcd…` — 290 пар, **holdout открыт** (single-shot исполнен 2026-10-07T11:09:35Z, weights `ca46a32e…`)
+- **Эмбеддер-пин:** nano:sha256:3b752e06… — вся геометрия единая
+- **Состав (train):** 2517 = real 1229 + translated 288 + synthetic-b2 371 + synthetic-v42 629; labels {duplicate 925, not-duplicate 1592}; RU-weighted 53.5%
+- **CV (5-fold×20, d-boost core):** d-l7-lr005 BA 0.9604±0.0023/Brier 0.0293; d-l15-lr005 0.9719±0.0019/0.0196; d-l7-lr010 0.9695±0.0025/0.0218; **winner d-l15-lr010 0.9734±0.0028/0.0186**
+- **Sanity v2: 4/4 экспортов PASS 9/9** (включая обе l15); одномоментные веса: `1b3489e3` (default d-l7-lr005), `9cb84c06`, `9a73dc97`, `ca46a32e` (winner)
+- **Single-shot (открытие, winner):** sens 0.8796 / spec 0.9451 / Brier 0.0570 / BA 0.9123 (baseline 0.6389); **g-T1 translated-dup sens 0.75 — FAIL**; **g-T3 translated-sibling spec 1.00 — PASS**; **g-T2 no-harm (layer-A frozen против B2-v42): merge-v2 0.8361 (−0.061), release-v2 0.8719 (−0.058) — FAIL**; оба FAIL = замкнутость (переводная геометрия на cos 0.74; tt-слоты cos 0.92-0.96/lang 0/char 0 читаются sibling-областью), НЕ пороги
+- **Волны:**
+  1. `05c2e61 fix(dataset)` — RFACT-SAMELEN ремонт: факт-токенные same-length замены (1..4 токена по дрейфу char5) с пост-чеком char5_cont < 0.976415 (высота сьютовской пробы) на каждую пару; было 160/160 ≥0.9764 (медиана 1.0000) → стало 0/160 (медиана 0.9733); семья 160 заморожена
+  2. `f388878 feat(dataset)` — N-para-band полка [0.80;0.95): 2-3 факт-токена + case-доза, пост-чек (cos в полке, c5c ≥0.95, len-дельта 0); полка: probe-окр 44 dup/118 not-dup (было 44/0 — перевернута), широкая 119/206 (было 88)
+  3. закрытие по замкнутости (этот манифест)
+- **Гейты финальной сборки:** corner-QA 0; translated квоты 160+160 ≥150 CLEAN; watchlist 36 ≥20 CLEAN; детерминизм — по два прогона в каждой волне (v43-g/v43-g-recheck байт-идентичны)
+- **Данные:** data/stage2/v43-g/ + ../v43-g-holdout/ — gitignored (тексты стора); в репо — этот манифест + скрипты
+- **Наследуется (пост-эмбеддерная фаза):** translated-батчи репо (datasets/corpus-v43, TL-validated); RPARA-генератор + SAMELEN-фикс в builder; механика пересборки. Корпус v4.3-g — вход для цикла уже с переводночувствительным эмбеддером
+- **Prereg:** docs/specs/embed-round4-prereg-* (ACTIVATED); g-T1/T2 вердикты записаны; повторный single-shot на этой паре корпус↔holdout невозможен (дисциплина одноразовости)
