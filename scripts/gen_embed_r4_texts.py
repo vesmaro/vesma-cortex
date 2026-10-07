@@ -144,11 +144,11 @@ class Generator:
     official empty-``<think>`` block (non-thinking mode).
     """
 
-    def __init__(self, threads: int):
+    def __init__(self, threads: int, ctx: int = 3072):
         from llama_cpp import Llama
 
-        self.llm = Llama(GEN_GGUF, n_ctx=3072, n_threads=threads, n_batch=512, verbose=False)
-        log_event("generator-loaded", model=GEN_MODEL, runtime="llama.cpp", quant="Q8_0", threads=threads)
+        self.llm = Llama(GEN_GGUF, n_ctx=ctx, n_threads=threads, n_batch=512, verbose=False)
+        log_event("generator-loaded", model=GEN_MODEL, runtime="llama.cpp", quant="Q8_0", ctx=ctx, threads=threads)
 
     @staticmethod
     def render(messages: list[dict]) -> str:
@@ -669,7 +669,7 @@ def _run_twin_pass(gen: "Generator", out_path: Path, only_missing: bool, shard: 
 def cmd_synth(threads: int, shard: int = 0, num_shards: int = 1, topup_rounds: int = 2) -> int:
     mono_path = GEN_DIR / f"synth-mono.shard{shard}.jsonl"
     twin_path = GEN_DIR / f"synth-twins.shard{shard}.jsonl"
-    gen = Generator(threads)
+    gen = Generator(threads, ctx=1280)  # synth prompts are small; lean KV
     _run_mono_pass(gen, mono_path, only_missing=False, shard=shard, num_shards=num_shards)
     _run_twin_pass(gen, twin_path, only_missing=False, shard=shard, num_shards=num_shards)
     for r in range(topup_rounds):
