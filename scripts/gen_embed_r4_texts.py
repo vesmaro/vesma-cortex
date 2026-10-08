@@ -424,7 +424,9 @@ SYNTH_TARGETS: dict[str, int] = {
 }
 #: RU<->EN twin rows inside prose families (translate-well shapes);
 #: counted TWICE toward the family total (one row per language).
-TWIN_TARGETS: dict[str, int] = {"notes": 800, "tech": 400, "science": 300, "rules": 300, "meeting": 200}
+#: TL verdict B (2026-10-08): mono wall at ~12000 rows; twins 1500 pairs
+#: — composition decision, keeps the translated share inside [15;20].
+TWIN_TARGETS: dict[str, int] = {"notes": 600, "tech": 300, "science": 225, "rules": 225, "meeting": 150}
 
 FAMILY_SPECS: dict[str, dict[str, str]] = {
     "notes": {
@@ -667,15 +669,18 @@ def _run_twin_pass(gen: "Generator", out_path: Path, only_missing: bool, shard: 
     log_event("synth-twin-pass-done", kept=kept, bad=bad, wall_sec=round(time.time() - t0, 1))
 
 
-def cmd_synth(threads: int, shard: int = 0, num_shards: int = 1, topup_rounds: int = 2) -> int:
+def cmd_synth(threads: int, shard: int = 0, num_shards: int = 1, topup_rounds: int = 2,
+              twins_only: bool = False) -> int:
     mono_path = GEN_DIR / f"synth-mono.shard{shard}.jsonl"
     twin_path = GEN_DIR / f"synth-twins.shard{shard}.jsonl"
     gen = Generator(threads, ctx=1280)  # synth prompts are small; lean KV
-    _run_mono_pass(gen, mono_path, only_missing=False, shard=shard, num_shards=num_shards)
+    if not twins_only:
+        _run_mono_pass(gen, mono_path, only_missing=False, shard=shard, num_shards=num_shards)
     _run_twin_pass(gen, twin_path, only_missing=False, shard=shard, num_shards=num_shards)
     for r in range(topup_rounds):
         log_event("synth-topup-round", shard=shard, round=r + 1)
-        _run_mono_pass(gen, mono_path, only_missing=True, shard=shard, num_shards=num_shards)
+        if not twins_only:
+            _run_mono_pass(gen, mono_path, only_missing=True, shard=shard, num_shards=num_shards)
         _run_twin_pass(gen, twin_path, only_missing=True, shard=shard, num_shards=num_shards)
     return 0
 
@@ -691,11 +696,12 @@ def main(argv: list[str] | None = None) -> int:
     s.add_argument("--threads", type=int, default=8)
     s.add_argument("--shard", type=int, default=0)
     s.add_argument("--num-shards", type=int, default=1)
+    s.add_argument("--twins-only", action="store_true")
     args = p.parse_args(argv)
     if args.cmd == "translate-real":
         return cmd_translate_real(args.threads, args.shard, args.num_shards)
     if args.cmd == "synth":
-        return cmd_synth(args.threads, args.shard, args.num_shards)
+        return cmd_synth(args.threads, args.shard, args.num_shards, twins_only=args.twins_only)
     return 2
 
 
