@@ -1,0 +1,42 @@
+{"ts_step": "build_gate_set", "msg": "corpus verified fp=7a3bf00b22951df5 rows=25496"}
+{"ts_step": "build_gate_set", "msg": "burned surface: {'pairs': 144, 'side_hashes': 288}"}
+{"ts_step": "build_gate_set", "msg": "real units recomputed: 2418; llm units recomputed: 1972"}
+{"ts_step": "build_gate_set", "msg": "seed-dup candidates: 80"}
+{"ts_step": "build_gate_set", "msg": "real candidates: 1664 (unmatched keys: 0)"}
+{"ts_step": "build_gate_set", "msg": "llm candidates: 1617 (unmatched keys: 0)"}
+{"ts_step": "build_gate_set", "msg": "twin candidates: 2122"}
+{"ts_step": "build_gate_set", "msg": "eligibility stats: {\"llm:eligible\": 1617, \"llm:src-side-in-corpus\": 1617, \"real:dst-not-in-corpus\": 144, \"real:dst-wrong-class:real-part-r4\": 15, \"real:eligible\": 1505, \"real:src-side-in-corpus\": 339, \"real:src-side-not-in-corpus\": 1325, \"seed-dup:eligible\": 80, \"seed-dup:src-side-in-corpus\": 80, \"twin:eligible\": 2122, \"twin:src-side-in-corpus\": 2122}"}
+{"ts_step": "build_gate_set", "msg": "eligible pool: 5324"}
+{"ts_step": "build_gate_set", "msg": "selected before direction repair: 169; directions: {'en->ru': 79, 'ru->en': 90}"}
+{"ts_step": "build_gate_set", "msg": "FINAL: 180 pairs; classes={'llm': 61, 'real': 48, 'seed-dup': 11, 'twin': 60}; directions={'en->ru': 90, 'ru->en': 90}"}
+{"ts_step": "build_gate_set", "msg": "gate_set.jsonl sha256=c1fe69437e8050c0df64045908412e63f282dbb9535e2c08bfd27b0e3e126a26"}
+{"ts_step": "build_gate_set", "msg": "sorted pair_id list sha256=c96d91e3d71c3bc9d316e2f3ff75827a017c0623abe159c200ecc8ff610493c5"}
+{"ts_step": "build_gate_set", "msg": "asserts: {'pair_count_in_band': True, 'direction_balance_abs_le_1': True, 'burned_overlap_zero': True, 'corpus_fingerprint_ok': True, 'pair_ids_unique': True, 'dst_rows_all_in_corpus': True}"}
+{"ts_step": "build_gate_set", "msg": "corpus verified fp=7a3bf00b22951df5 rows=25496"}
+{"ts_step": "build_gate_set", "msg": "burned surface: {'pairs': 144, 'side_hashes': 288}"}
+{"ts_step": "build_gate_set", "msg": "real units recomputed: 2418; llm units recomputed: 1972"}
+{"ts_step": "build_gate_set", "msg": "seed-dup candidates: 80"}
+{"ts_step": "build_gate_set", "msg": "real candidates: 1664 (unmatched keys: 0)"}
+{"ts_step": "build_gate_set", "msg": "llm candidates: 1617 (unmatched keys: 0)"}
+{"ts_step": "build_gate_set", "msg": "twin candidates: 2122"}
+{"ts_step": "build_gate_set", "msg": "eligibility stats: {\"llm:eligible\": 1617, \"llm:src-side-in-corpus\": 1617, \"real:dst-not-in-corpus\": 144, \"real:dst-wrong-class:real-part-r4\": 15, \"real:eligible\": 1505, \"real:src-side-in-corpus\": 339, \"real:src-side-not-in-corpus\": 1325, \"seed-dup:eligible\": 80, \"seed-dup:src-side-in-corpus\": 80, \"twin:eligible\": 2122, \"twin:src-side-in-corpus\": 2122}"}
+{"ts_step": "build_gate_set", "msg": "eligible pool: 5324"}
+{"ts_step": "build_gate_set", "msg": "selected before direction repair: 180; directions: {'en->ru': 90, 'ru->en': 90}"}
+{"ts_step": "build_gate_set", "msg": "FINAL: 180 pairs; classes={'llm': 50, 'real': 48, 'seed-dup': 22, 'twin': 60}; directions={'en->ru': 90, 'ru->en': 90}"}
+{"ts_step": "build_gate_set", "msg": "gate_set.jsonl sha256=4a0ab11c62e08581b8f32b2e009215b41012929912b7f82add3c9835373ae569"}
+{"ts_step": "build_gate_set", "msg": "sorted pair_id list sha256=c96d91e3d71c3bc9d316e2f3ff75827a017c0623abe159c200ecc8ff610493c5"}
+{"ts_step": "build_gate_set", "msg": "asserts: {'pair_count_in_band': True, 'direction_balance_abs_le_1': True, 'burned_overlap_zero': True, 'corpus_fingerprint_ok': True, 'pair_ids_unique': True, 'dst_rows_all_in_corpus': True}"}
+{"ts_step": "build_gate_set", "msg": "corpus verified fp=7a3bf00b22951df5 rows=25496"}
+{"ts_step": "build_gate_set", "msg": "burned surface: {'pairs': 144, 'side_hashes': 288}"}
+{"ts_step": "build_gate_set", "msg": "real units recomputed: 2418; llm units recomputed: 1972"}
+{"ts_step": "build_gate_set", "msg": "seed-dup candidates: 80"}
+{"ts_step": "build_gate_set", "msg": "real candidates: 1664 (unmatched keys: 0)"}
+{"ts_step": "build_gate_set", "msg": "llm candidates: 1617 (unmatched keys: 0)"}
+{"ts_step": "build_gate_set", "msg": "twin candidates: 2122"}
+{"ts_step": "build_gate_set", "msg": "eligibility stats: {\"llm:eligible\": 1617, \"llm:src-side-in-corpus\": 1617, \"real:dst-not-in-corpus\": 144, \"real:dst-wrong-class:real-part-r4\": 15, \"real:eligible\": 1505, \"real:src-side-in-corpus\": 339, \"real:src-side-not-in-corpus\": 1325, \"seed-dup:eligible\": 80, \"seed-dup:src-side-in-corpus\": 80, \"twin:eligible\": 2122, \"twin:src-side-in-corpus\": 2122}"}
+{"ts_step": "build_gate_set", "msg": "eligible pool: 5324"}
+{"ts_step": "build_gate_set", "msg": "selected before direction repair: 180; directions: {'en->ru': 90, 'ru->en': 90}"}
+{"ts_step": "build_gate_set", "msg": "FINAL: 180 pairs; classes={'llm': 50, 'real': 48, 'seed-dup': 22, 'twin': 60}; directions={'en->ru': 90, 'ru->en': 90}"}
+{"ts_step": "build_gate_set", "msg": "gate_set.jsonl sha256=4a0ab11c62e08581b8f32b2e009215b41012929912b7f82add3c9835373ae569"}
+{"ts_step": "build_gate_set", "msg": "sorted pair_id list sha256=c96d91e3d71c3bc9d316e2f3ff75827a017c0623abe159c200ecc8ff610493c5"}
+{"ts_step": "build_gate_set", "msg": "asserts: {'pair_count_in_band': True, 'direction_balance_abs_le_1': True, 'burned_overlap_zero': True, 'corpus_fingerprint_ok': True, 'pair_ids_unique': True, 'dst_rows_all_in_corpus': True}"}
