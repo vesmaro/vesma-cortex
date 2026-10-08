@@ -191,6 +191,7 @@ def main() -> int:
         hs_src, hs_dst = text_hash(text_src), text_hash(text_dst)
         burned_hit = bool({hs_src, hs_dst} & burned)
         row_src, row_dst = corpus.get(hs_src), corpus.get(hs_dst)
+        pair_key = text_hash(f"{hs_src}\x00{hs_dst}")
         candidates.append(
             {
                 "class": cls,
@@ -201,6 +202,7 @@ def main() -> int:
                 "lang_dst": lang_dst,
                 "sha_src": hs_src,
                 "sha_dst": hs_dst,
+                "pair_key": pair_key,
                 "row_src": row_src,
                 "row_dst": row_dst,
                 "burned_hit": burned_hit,
@@ -320,13 +322,31 @@ def main() -> int:
             n_twin += 1
     emit(f"twin candidates: {n_twin}")
 
-    # ── eligibility: translation side must be a sealed corpus row of the
-    #    expected class; both sides must be absent from the burned set ──
+    # ── eligibility ─────────────────────────────────────────────────────────
+    # candidate-level dedup first (gen shards carry duplicate texts; every
+    # duplicate maps to the same kept corpus row and would create two gate
+    # pairs with identical surfaces). Deterministic: construction order,
+    # first occurrence wins.
+    stats: Counter = Counter()
+    seen_pair_keys: set[str] = set()
+    deduped: list[dict] = []
+    for c in candidates:
+        if c["pair_key"] in seen_pair_keys:
+            stats[f"{c['class']}:dup-candidate"] += 1
+            continue
+        seen_pair_keys.add(c["pair_key"])
+        deduped.append(c)
+
+    # class requirements: seed-dup and twin have BOTH sides as corpus rows
+    # of the family class; real/llm require the translation side only (the
+    # source unit legitimately lives outside the corpus when it is a
+    # truncated body prefix). Both sides must be absent from the burned set.
     expected_dst = {"seed-dup": "translated-dup", "real": "translated-real-r4",
                     "llm": "translated-llm-r4", "twin": "twin-"}
+    needs_src = {"seed-dup": True, "twin": True, "real": False, "llm": False}
+    expected_src = {"seed-dup": "translated-dup", "twin": "twin-"}
     eligible: list[dict] = []
-    stats: Counter = Counter()
-    for c in candidates:
+    for c in deduped:
         dst_row = c["row_dst"]
         if dst_row is None:
             stats[f"{c['class']}:dst-not-in-corpus"] += 1
@@ -335,16 +355,24 @@ def main() -> int:
         if not (dst_row["source"] == exp or exp.endswith("-") and dst_row["source"].startswith(exp)):
             stats[f"{c['class']}:dst-wrong-class:{dst_row['source']}"] += 1
             continue
+        if needs_src[c["class"]]:
+            src_row = c["row_src"]
+            if src_row is None:
+                stats[f"{c['class']}:src-not-in-corpus"] += 1
+                continue
+            exp_s = expected_src[c["class"]]
+            if not (src_row["source"] == exp_s or exp_s.endswith("-") and src_row["source"].startswith(exp_s)):
+                stats[f"{c['class']}:src-wrong-class:{src_row['source']}"] += 1
+                continue
         if c["burned_hit"]:
             stats[f"{c['class']}:burned-overlap"] += 1
             continue
         if c["direction"] not in ("ru->en", "en->ru"):
             stats[f"{c['class']}:bad-direction:{c['direction']}"] += 1
             continue
-        c["pair_key"] = text_hash(f"{c['sha_src']}\x00{c['sha_dst']}")
         eligible.append(c)
         stats[f"{c['class']}:eligible"] += 1
-    for c in candidates:
+    for c in deduped:
         src_in = c["row_src"] is not None
         stats[f"{c['class']}:src-side-in-corpus" if src_in else f"{c['class']}:src-side-not-in-corpus"] += 1
     emit("eligibility stats: " + json.dumps(dict(sorted(stats.items())), ensure_ascii=False))
@@ -479,9 +507,12 @@ def main() -> int:
                 )
 
     selection_rule = (
-        "Eligible pool = generation-record pairing verified (key match for real/llm; "
-        "inline for seed-dup/twin) AND translation side present in the sealed r4 corpus "
-        "under the expected source class AND zero overlap with the burned V43-TDUP surface. "
+        "Candidate dedup by pair_key (gen shards carry duplicate texts; first "
+        "occurrence in construction order wins). Eligible pool = pairing verified "
+        "(key match for real/llm; inline for seed-dup/twin) AND translation side "
+        "present in the sealed r4 corpus under the expected source class (AND, for "
+        "seed-dup/twin, the source side too — both sides are family rows there) "
+        "AND zero overlap with the burned V43-TDUP surface. "
         f"Quota: floor {FLOOR_PER_STRATUM}/stratum (pool-capped), remainder proportional to "
         f"stratum pool (largest remainder), total {TARGET_TOTAL}; direction split half/half "
         "per stratum (extra seat ru->en when odd, cell-pool capped, shortfall top-up from "
@@ -513,6 +544,7 @@ def main() -> int:
                 f"{cls}:{d}": n for (cls, d), n in sorted(class_dir_counts.items())
             },
             "candidates_before_eligibility": len(candidates),
+            "dup_candidates_dropped": len(candidates) - len(deduped),
             "eligible_pool": pool_total,
             "eligibility_stats": dict(sorted(stats.items())),
             "unmatched_real_keys": n_real_nomatch,
@@ -537,6 +569,8 @@ def main() -> int:
             "burned_overlap_zero": all(not c["burned_hit"] for c in selected),
             "corpus_fingerprint_ok": True,
             "pair_ids_unique": len(set(pair_ids)) == len(pair_ids),
+            "pair_text_sides_unique": len(id_text_shas) == 2 * len(selected)
+            and len({c["pair_key"] for c in selected}) == len(selected),
             "dst_rows_all_in_corpus": all(c["row_dst"] is not None for c in selected),
         },
     }
