@@ -1,0 +1,47 @@
+[verify] corpus+gate OK; ckpt=epoch10 embed_dim=384 mrl=[64, 128, 256, 384]
+[subset] 496 pairs (25% of pool 1982) by_class={'llm': 360, 'real': 62, 'seed-dup': 16, 'twin': 58}
+[npz] lockstep OK (25496, 1024)
+Loading weights:   0%|          | 0/55 [00:00<?, ?it/s]Loading weights: 100%|██████████| 55/55 [00:00<00:00, 11724.87it/s]
+[baseline] {"seed_dup_median": 0.8788, "llm_median": 0.8936, "mono_median": 0.8577, "burned144_median": 0.873, "subset_pair_cos_median": 0.8956}
+[train] 992 texts (496 pairs) -> 31 batches/epoch
+[grid] === control-lambda0 (lambda=0.0, tau=None) ===
+Loading weights:   0%|          | 0/55 [00:00<?, ?it/s]Loading weights: 100%|██████████| 55/55 [00:00<00:00, 15419.20it/s]
+[control-lambda0] ep1: kd=92.6241 ct=0.0000 seed_dup=0.8856 llm=0.8966 mono=0.857 burned=0.8784 subset_cos=0.9001
+[control-lambda0] ep2: kd=81.2931 ct=0.0000 seed_dup=0.8847 llm=0.8934 mono=0.8517 burned=0.8777 subset_cos=0.8998
+[grid] === l0.2_t0.05 (lambda=0.2, tau=0.05) ===
+Loading weights:   0%|          | 0/55 [00:00<?, ?it/s]Loading weights: 100%|██████████| 55/55 [00:00<00:00, 4411.17it/s]
+[l0.2_t0.05] ep1: kd=92.6232 ct=2.5306 seed_dup=0.8874 llm=0.8983 mono=0.8578 burned=0.8803 subset_cos=0.9019
+[l0.2_t0.05] ep2: kd=81.2975 ct=2.2883 seed_dup=0.8869 llm=0.8955 mono=0.8526 burned=0.8801 subset_cos=0.902
+[grid] === l0.2_t0.1 (lambda=0.2, tau=0.1) ===
+Loading weights:   0%|          | 0/55 [00:00<?, ?it/s]Loading weights: 100%|██████████| 55/55 [00:00<00:00, 7566.97it/s]
+[l0.2_t0.1] ep1: kd=92.6220 ct=2.1195 seed_dup=0.886 llm=0.8969 mono=0.8567 burned=0.8788 subset_cos=0.9005
+[l0.2_t0.1] ep2: kd=81.2925 ct=1.9539 seed_dup=0.8852 llm=0.8938 mono=0.8513 burned=0.8783 subset_cos=0.9004
+[grid] === l0.2_t0.2 (lambda=0.2, tau=0.2) ===
+Loading weights:   0%|          | 0/55 [00:00<?, ?it/s]Loading weights: 100%|██████████| 55/55 [00:00<00:00, 11989.95it/s]
+[l0.2_t0.2] ep1: kd=92.6226 ct=2.5532 seed_dup=0.8856 llm=0.8966 mono=0.8566 burned=0.8783 subset_cos=0.9001
+[l0.2_t0.2] ep2: kd=81.2924 ct=2.4340 seed_dup=0.8847 llm=0.8933 mono=0.8511 burned=0.8777 subset_cos=0.8998
+[grid] === l0.5_t0.05 (lambda=0.5, tau=0.05) ===
+Loading weights:   0%|          | 0/55 [00:00<?, ?it/s]Loading weights: 100%|██████████| 55/55 [00:00<00:00, 6864.04it/s]
+[l0.5_t0.05] ep1: kd=92.6257 ct=2.5062 seed_dup=0.8899 llm=0.9007 mono=0.8589 burned=0.883 subset_cos=0.9044
+[l0.5_t0.05] ep2: kd=81.3124 ct=2.2461 seed_dup=0.8899 llm=0.8985 mono=0.8539 burned=0.8834 subset_cos=0.9047
+[grid] === l0.5_t0.1 (lambda=0.5, tau=0.1) ===
+Loading weights:   0%|          | 0/55 [00:00<?, ?it/s]Loading weights: 100%|██████████| 55/55 [00:00<00:00, 8325.04it/s]
+[l0.5_t0.1] ep1: kd=92.6195 ct=2.1160 seed_dup=0.8866 llm=0.8974 mono=0.8563 burned=0.8793 subset_cos=0.901
+[l0.5_t0.1] ep2: kd=81.2932 ct=1.9459 seed_dup=0.886 llm=0.8945 mono=0.8508 burned=0.8791 subset_cos=0.9011
+[grid] === l0.5_t0.2 (lambda=0.5, tau=0.2) ===
+Loading weights:   0%|          | 0/55 [00:00<?, ?it/s]Loading weights: 100%|██████████| 55/55 [00:00<00:00, 10731.61it/s]
+[l0.5_t0.2] ep1: kd=92.6209 ct=2.5503 seed_dup=0.8856 llm=0.8965 mono=0.8559 burned=0.8783 subset_cos=0.9
+[l0.5_t0.2] ep2: kd=81.2927 ct=2.4281 seed_dup=0.8847 llm=0.8933 mono=0.8502 burned=0.8777 subset_cos=0.8998
+[grid] === l1.0_t0.05 (lambda=1.0, tau=0.05) ===
+Loading weights:   0%|          | 0/55 [00:00<?, ?it/s]Loading weights: 100%|██████████| 55/55 [00:00<00:00, 7980.86it/s]
+[l1.0_t0.05] ep1: kd=92.6388 ct=2.4691 seed_dup=0.8937 llm=0.9044 mono=0.8609 burned=0.8872 subset_cos=0.9082
+[l1.0_t0.05] ep2: kd=81.3550 ct=2.1848 seed_dup=0.8943 llm=0.9028 mono=0.8561 burned=0.8881 subset_cos=0.9087
+[grid] === l1.0_t0.1 (lambda=1.0, tau=0.1) ===
+Loading weights:   0%|          | 0/55 [00:00<?, ?it/s]Loading weights: 100%|██████████| 55/55 [00:00<00:00, 6017.18it/s]
+[l1.0_t0.1] ep1: kd=92.6167 ct=2.1103 seed_dup=0.8875 llm=0.8982 mono=0.8557 burned=0.8802 subset_cos=0.9019
+[l1.0_t0.1] ep2: kd=81.2981 ct=1.9332 seed_dup=0.8872 llm=0.8955 mono=0.85 burned=0.8805 subset_cos=0.9022
+[grid] === l1.0_t0.2 (lambda=1.0, tau=0.2) ===
+Loading weights:   0%|          | 0/55 [00:00<?, ?it/s]Loading weights: 100%|██████████| 55/55 [00:00<00:00, 7209.86it/s]
+[l1.0_t0.2] ep1: kd=92.6194 ct=2.5455 seed_dup=0.8855 llm=0.8963 mono=0.8549 burned=0.8782 subset_cos=0.9
+[l1.0_t0.2] ep2: kd=81.2963 ct=2.4184 seed_dup=0.8847 llm=0.8931 mono=0.849 burned=0.8778 subset_cos=0.8998
+[done] wall=602s -> /var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus/training-pilot/results/pilot_grid.json
