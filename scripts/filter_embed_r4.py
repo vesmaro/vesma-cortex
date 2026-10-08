@@ -41,7 +41,9 @@ from gen_embed_r4_texts import (  # noqa: E402
     TRANSLATED_SEED_DIR,
     load_jsonl,
     log_event,
+    real_units,
 )
+from translate_llm_rows import unique_llm_units  # noqa: E402
 
 EMBED_MODEL = "Qwen/Qwen3-Embedding-0.6B"
 ROUND3_TRAIN = _ENGINE / "training" / "probe" / "corpus" / "train.jsonl"

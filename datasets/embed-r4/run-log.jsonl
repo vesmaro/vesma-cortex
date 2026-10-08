@@ -1,0 +1,197 @@
+{"ts":"2026-10-07T18:07:47Z","event":"real-part-assembled","tool":"scripts/assemble_real_part.py","sources":["live","backup-20260920","backup-20260921","backup-20260924"],"unique_content_hashes":2418,"fingerprint":"d06be1e351e2f9fb3ea77c82538d6c68630890d441f44e813cdbdf67f0990e74","ru_centric":1326,"note":"evening slice; morning v43-redo build had 2410 (live store grew +8) — A.8.2 corpus-date rule"}
+{"ts":"2026-10-07T18:20:00Z","event":"phase-plan","plan":["A real paragraphs","B translated seed 320","C real-record translations (local teacher)","D synthetic regeneration 14 families x2, ~23000 rows incl 2000 twins","E decontamination (judged c2ce056d + sealed holdouts + round-3 pool)","F gates+split+rng42+fingerprint"],"target_share_translated":"0.15-0.20"}
+{"ts": "2026-10-07T18:19:46Z", "event": "translate-real-start", "total_records": 2418, "jobs_done": 0, "jobs_todo": 303}
+{"ts": "2026-10-07T18:19:54Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "dtype": "bfloat16", "threads": 14}
+{"ts": "2026-10-07T18:30:43Z", "event": "translate-real-start", "total_records": 2418, "jobs_done": 1, "jobs_todo": 302}
+{"ts": "2026-10-07T18:30:50Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "dtype": "bfloat16", "threads": 14}
+{"ts": "2026-10-07T18:35:03Z", "event": "decontam-judged-loaded", "entries": 89, "queries": 192, "hashes": 19}
+{"ts": "2026-10-07T18:35:04Z", "event": "decontam-holdouts-loaded", "files": 42, "hashes": 2454}
+{"ts": "2026-10-07T18:35:05Z", "event": "decontam-round3-loaded", "rows": 38192, "hashes": 38192}
+{"ts": "2026-10-07T18:35:06Z", "event": "collected-real", "rows": 14673}
+{"ts": "2026-10-07T18:35:06Z", "event": "collected-seed", "rows": 320}
+{"ts": "2026-10-07T18:35:06Z", "event": "collected-real-translations", "rows": 2}
+{"ts": "2026-10-07T18:35:06Z", "event": "collected-twins", "rows": 0}
+{"ts": "2026-10-07T18:35:06Z", "event": "collected-synthetic", "rows": 0}
+{"ts": "2026-10-07T18:35:07Z", "event": "assemble-done", "total": 7, "train": 6, "val": 1, "fingerprint": "c9d9a7a6184d4c734a2bc3133bc245e898bb71a72aad6d92872c57da8cbb7450", "ru_share": 0.8571, "translated_num": 2, "translated_den": 7, "translated_share": 0.2857, "by_source": {"real-part-r4": 5, "translated-real-r4": 2}, "counters": {"gate-fail:real": 1270, "round3-hit:real": 13357, "holdout-hit:real": 41, "round3-hit:seed": 320}, "asserts": {"A1_judged_intersection": true, "A2_holdout_intersection": true, "A3_round3_verbatim": true, "A4_ru_share_ge_040": true, "A5_translated_share_ge_015": true, "A6_gates": true}}
+{"ts": "2026-10-07T18:36:04Z", "event": "decontam-judged-loaded", "entries": 89, "queries": 192, "hashes": 19}
+{"ts": "2026-10-07T18:36:07Z", "event": "decontam-holdouts-loaded", "files": 42, "hashes": 2454}
+{"ts": "2026-10-07T18:36:07Z", "event": "decontam-round3-loaded", "rows": 38192, "synthetic_rows": 24949, "hashes": 24949}
+{"ts": "2026-10-07T18:36:09Z", "event": "collected-real", "rows": 14673}
+{"ts": "2026-10-07T18:36:09Z", "event": "collected-seed", "rows": 320}
+{"ts": "2026-10-07T18:36:09Z", "event": "collected-real-translations", "rows": 2}
+{"ts": "2026-10-07T18:36:09Z", "event": "collected-twins", "rows": 0}
+{"ts": "2026-10-07T18:36:09Z", "event": "collected-synthetic", "rows": 0}
+{"ts": "2026-10-07T18:36:11Z", "event": "assemble-done", "total": 13225, "train": 12564, "val": 661, "fingerprint": "8ef2e24b2e8df5a682950941aa644dbe8346958d9f1ea69f2540e440403e276e", "ru_share": 0.3663, "translated_num": 322, "translated_den": 13225, "translated_share": 0.0243, "by_source": {"real-part-r4": 12903, "translated-dup": 160, "translated-real-r4": 2, "translated-sibling": 160}, "counters": {"gate-fail:real": 1270, "holdout-hit:real": 41, "dup:real": 459}, "asserts": {"A1_judged_intersection": true, "A2_holdout_intersection": true, "A3_round3_verbatim": true, "A4_ru_share_ge_040": false, "A5_translated_share_ge_015": false, "A6_gates": true}}
+{"ts": "2026-10-07T18:36:53Z", "event": "decontam-judged-loaded", "entries": 89, "queries": 192, "hashes": 119}
+{"ts": "2026-10-07T18:36:54Z", "event": "decontam-holdouts-loaded", "files": 42, "hashes": 2454}
+{"ts": "2026-10-07T18:36:54Z", "event": "decontam-round3-loaded", "rows": 38192, "synthetic_rows": 24949, "hashes": 24949}
+{"ts": "2026-10-07T18:36:55Z", "event": "collected-real", "rows": 14673}
+{"ts": "2026-10-07T18:36:55Z", "event": "collected-seed", "rows": 320}
+{"ts": "2026-10-07T18:36:55Z", "event": "collected-real-translations", "rows": 2}
+{"ts": "2026-10-07T18:36:55Z", "event": "collected-twins", "rows": 0}
+{"ts": "2026-10-07T18:36:55Z", "event": "collected-synthetic", "rows": 0}
+{"ts": "2026-10-07T18:36:56Z", "event": "assemble-done", "total": 13225, "train": 12564, "val": 661, "fingerprint": "8ef2e24b2e8df5a682950941aa644dbe8346958d9f1ea69f2540e440403e276e", "ru_share": 0.3663, "translated_num": 322, "translated_den": 13225, "translated_share": 0.0243, "by_source": {"real-part-r4": 12903, "translated-dup": 160, "translated-real-r4": 2, "translated-sibling": 160}, "counters": {"gate-fail:real": 1270, "holdout-hit:real": 41, "dup:real": 459}, "asserts": {"A1_judged_intersection": true, "A2_holdout_intersection": true, "A3_round3_verbatim": true, "A4_ru_share_ge_040": false, "A5_translated_share_ge_015": false, "A6_gates": true}}
+{"ts": "2026-10-07T18:47:19Z", "event": "translate-real-start", "total_records": 2418, "jobs_done": 2, "jobs_todo": 301}
+{"ts": "2026-10-07T18:47:20Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "threads": 14}
+{"ts": "2026-10-07T18:53:49Z", "event": "translate-real-start", "total_records": 2418, "jobs_done": 4, "jobs_todo": 299}
+{"ts": "2026-10-07T18:53:50Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "threads": 14}
+{"ts": "2026-10-07T19:11:17Z", "event": "translate-real-start", "total_records": 2418, "jobs_done": 14, "jobs_todo": 145}
+{"ts": "2026-10-07T19:11:17Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "threads": 8}
+{"ts": "2026-10-07T19:18:46Z", "event": "translate-real-start", "total_records": 2418, "jobs_done": 0, "jobs_todo": 151}
+{"ts": "2026-10-07T19:18:46Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "threads": 8}
+{"ts": "2026-10-07T19:39:02Z", "event": "decontam-judged-loaded", "entries": 89, "queries": 192, "hashes": 119}
+{"ts": "2026-10-07T19:39:03Z", "event": "decontam-holdouts-loaded", "files": 42, "hashes": 2454}
+{"ts": "2026-10-07T19:39:04Z", "event": "decontam-round3-loaded", "rows": 38192, "synthetic_rows": 24949, "hashes": 24949}
+{"ts": "2026-10-07T19:39:05Z", "event": "collected-real", "rows": 14673}
+{"ts": "2026-10-07T19:39:05Z", "event": "collected-seed", "rows": 320}
+{"ts": "2026-10-07T19:39:05Z", "event": "collected-real-translations", "rows": 176}
+{"ts": "2026-10-07T19:39:05Z", "event": "collected-twins", "rows": 0}
+{"ts": "2026-10-07T19:39:05Z", "event": "collected-synthetic", "rows": 0}
+{"ts": "2026-10-07T19:39:06Z", "event": "assemble-done", "total": 13386, "train": 12717, "val": 669, "fingerprint": "c6c3fad07b534673650df7ca9588b9f7ceed6a16c6dc44d6bee7e7e22ca211d1", "ru_share": 0.3651, "translated_num": 483, "translated_den": 13386, "translated_share": 0.0361, "by_source": {"real-part-r4": 12903, "translated-dup": 160, "translated-real-r4": 163, "translated-sibling": 160}, "counters": {"gate-fail:real": 1270, "holdout-hit:real": 41, "dup:real": 459, "dup:real-translations": 13}, "asserts": {"A1_judged_intersection": true, "A2_holdout_intersection": true, "A3_round3_verbatim": true, "A4_ru_share_ge_040": false, "A5_translated_share_ge_015": false, "A6_gates": true}}
+{"ts": "2026-10-07T19:39:19Z", "event": "decontam-judged-loaded", "entries": 89, "queries": 192, "hashes": 119}
+{"ts": "2026-10-07T19:39:20Z", "event": "decontam-holdouts-loaded", "files": 42, "hashes": 2454}
+{"ts": "2026-10-07T19:39:21Z", "event": "decontam-round3-loaded", "rows": 38192, "synthetic_rows": 24949, "hashes": 24949}
+{"ts": "2026-10-07T19:39:22Z", "event": "collected-real", "rows": 14673}
+{"ts": "2026-10-07T19:39:22Z", "event": "collected-seed", "rows": 320}
+{"ts": "2026-10-07T19:39:22Z", "event": "collected-real-translations", "rows": 176}
+{"ts": "2026-10-07T19:39:22Z", "event": "collected-twins", "rows": 0}
+{"ts": "2026-10-07T19:39:22Z", "event": "collected-synthetic", "rows": 0}
+{"ts": "2026-10-07T19:39:23Z", "event": "assemble-done", "total": 13386, "train": 12717, "val": 669, "fingerprint": "c6c3fad07b534673650df7ca9588b9f7ceed6a16c6dc44d6bee7e7e22ca211d1", "ru_share": 0.3651, "translated_num": 483, "translated_den": 13386, "translated_share": 0.0361, "by_source": {"real-part-r4": 12903, "translated-dup": 160, "translated-real-r4": 163, "translated-sibling": 160}, "counters": {"gate-fail:real": 1270, "holdout-hit:real": 41, "dup:real": 459, "dup:real-translations": 13}, "asserts": {"A1_judged_intersection": true, "A2_holdout_intersection": true, "A3_round3_verbatim": true, "A4_ru_share_ge_040": false, "A5_translated_share_ge_015": false, "A6_gates": true}}
+{"ts": "2026-10-07T20:21:19Z", "event": "translate-real-start", "total_records": 2418, "jobs_done": 45, "jobs_todo": 106}
+{"ts": "2026-10-07T20:21:19Z", "event": "translate-real-start", "total_records": 2418, "jobs_done": 61, "jobs_todo": 98}
+{"ts": "2026-10-07T20:21:20Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "threads": 8}
+{"ts": "2026-10-07T20:21:20Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "threads": 8}
+{"ts": "2026-10-07T22:07:09Z", "event": "translate-real-pass1", "kept": 416, "dropped_json": 0, "dropped_digits": 118, "dropped_lang": 184, "dropped_copy": 60, "wall_sec": 6348.7}
+{"ts": "2026-10-07T22:07:11Z", "event": "translate-real-topup-start", "shard": 0, "todo": 565}
+{"ts": "2026-10-07T22:24:17Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "threads": 6}
+{"ts": "2026-10-07T22:24:17Z", "event": "synth-mono-pass", "jobs": 795, "mode": "main"}
+{"ts": "2026-10-07T22:24:17Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "threads": 6}
+{"ts": "2026-10-07T22:24:17Z", "event": "synth-mono-pass", "jobs": 794, "mode": "main"}
+{"ts": "2026-10-07T22:24:18Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "threads": 6}
+{"ts": "2026-10-07T22:24:18Z", "event": "synth-mono-pass", "jobs": 795, "mode": "main"}
+{"ts": "2026-10-07T22:25:50Z", "event": "translate-real-start", "total_records": 2418, "jobs_done": 176, "jobs_todo": 0}
+{"ts": "2026-10-07T22:25:50Z", "event": "translate-real-start", "total_records": 2418, "jobs_done": 77, "jobs_todo": 74}
+{"ts": "2026-10-07T22:25:51Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "threads": 8}
+{"ts": "2026-10-07T23:22:45Z", "event": "translate-real-pass1", "kept": 334, "dropped_json": 0, "dropped_digits": 68, "dropped_lang": 144, "dropped_copy": 46, "wall_sec": 3413.9}
+{"ts": "2026-10-07T23:22:48Z", "event": "translate-real-topup-start", "shard": 1, "todo": 572}
+{"ts": "2026-10-07T23:26:53Z", "event": "translate-real-start", "total_records": 2418, "jobs_done": 176, "jobs_todo": 0}
+{"ts": "2026-10-08T00:30:15Z", "event": "translate-real-topup-done", "shard": 1, "kept": 179, "still_bad": 393}
+{"ts": "2026-10-08T00:30:39Z", "event": "translate-real-start", "total_records": 2418, "jobs_done": 176, "jobs_todo": 0}
+{"ts": "2026-10-08T00:30:39Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "ctx": 1280, "threads": 6}
+{"ts": "2026-10-08T00:30:39Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "ctx": 1280, "threads": 6}
+{"ts": "2026-10-08T00:30:39Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "ctx": 1280, "threads": 6}
+{"ts": "2026-10-08T00:30:39Z", "event": "synth-mono-pass", "jobs": 795, "mode": "main"}
+{"ts": "2026-10-08T00:30:39Z", "event": "synth-mono-pass", "jobs": 794, "mode": "main"}
+{"ts": "2026-10-08T00:30:39Z", "event": "synth-mono-pass", "jobs": 795, "mode": "main"}
+{"ts": "2026-10-08T00:40:55Z", "event": "translate-real-start", "total_records": 2418, "jobs_done": 176, "jobs_todo": 0}
+{"ts": "2026-10-08T00:40:56Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "ctx": 3072, "threads": 8}
+{"ts": "2026-10-08T00:40:56Z", "event": "translate-real-pass1", "kept": 0, "dropped_json": 0, "dropped_digits": 0, "dropped_lang": 0, "dropped_copy": 0, "wall_sec": 0.0}
+{"ts": "2026-10-08T00:40:59Z", "event": "translate-real-topup-start", "shard": 0, "todo": 565}
+{"ts":"2026-10-08T07:35:00Z","event":"composition-decision","verdict":"TL verdict B","decision":"mono wall at ~12000 rows, twins 1500 pairs, seal today","rationale":["38-40k was TL anchor from round-3 structure, not ratified","ratified: real <=2.7k, translated share [15;20], asserts A1-A6, no-harm gates — all hold in B","B lands share ~17-19% vs A ~15.3% at band edge","wall-clock: sealing today shifts the whole line a day earlier","overnight kill-risk is a real tax (harness killed background tasks once)","ADR 0004: round is data-limited; corpus is the lever"],"note":"composition decision 2026-10-08; corpus marked mono-wall@12000 for the training lane"}
+{"ts": "2026-10-08T02:47:49Z", "event": "translate-real-topup-done", "shard": 0, "kept": 161, "still_bad": 404}
+{"ts": "2026-10-08T03:56:14Z", "event": "synth-mono-pass-done", "kept": 3788, "bad": 231, "wall_sec": 12335.0}
+{"ts": "2026-10-08T03:56:14Z", "event": "synth-twin-pass", "jobs": 112, "mode": "main"}
+{"ts": "2026-10-08T03:58:49Z", "event": "synth-mono-pass-done", "kept": 3285, "bad": 415, "wall_sec": 12489.5}
+{"ts": "2026-10-08T03:58:49Z", "event": "synth-twin-pass", "jobs": 111, "mode": "main"}
+{"ts": "2026-10-08T04:03:28Z", "event": "synth-mono-pass-done", "kept": 3113, "bad": 338, "wall_sec": 12769.0}
+{"ts": "2026-10-08T04:03:28Z", "event": "synth-twin-pass", "jobs": 112, "mode": "main"}
+{"ts": "2026-10-08T04:34:09Z", "event": "synth-twin-pass-done", "kept": 974, "bad": 160, "wall_sec": 2274.5}
+{"ts": "2026-10-08T04:34:09Z", "event": "synth-topup-round", "shard": 1, "round": 1}
+{"ts": "2026-10-08T04:34:09Z", "event": "synth-mono-pass", "jobs": 1880, "mode": "topup"}
+{"ts": "2026-10-08T07:42:00Z", "event": "mono-wall", "tl_verdict": "B", "rows_total": 11170, "rows_ok": 10186, "jobs_done": 1536, "full_scale_jobs": 2385, "jobs_short": 849, "rows_short_vs_full": 7910, "note": "wall enforced ~12000 rows; sy0/sy2 already in twins, sy1 mono-topup killed"}
+{"ts": "2026-10-08T04:36:09Z", "event": "synth-twin-pass-done", "kept": 984, "bad": 82, "wall_sec": 1961.0}
+{"ts": "2026-10-08T04:36:09Z", "event": "synth-topup-round", "shard": 0, "round": 1}
+{"ts": "2026-10-08T04:36:09Z", "event": "synth-mono-pass", "jobs": 1676, "mode": "topup"}
+{"ts": "2026-10-08T04:39:37Z", "event": "synth-twin-pass-done", "kept": 770, "bad": 318, "wall_sec": 2448.3}
+{"ts": "2026-10-08T04:39:37Z", "event": "synth-topup-round", "shard": 2, "round": 1}
+{"ts": "2026-10-08T04:39:37Z", "event": "synth-mono-pass", "jobs": 1672, "mode": "topup"}
+{"ts": "2026-10-08T04:42:43Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "ctx": 1280, "threads": 6}
+{"ts": "2026-10-08T04:42:43Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "ctx": 1280, "threads": 6}
+{"ts": "2026-10-08T04:42:43Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "ctx": 1280, "threads": 6}
+{"ts": "2026-10-08T04:42:43Z", "event": "synth-twin-pass", "jobs": 16, "mode": "main"}
+{"ts": "2026-10-08T04:42:43Z", "event": "synth-twin-pass", "jobs": 18, "mode": "main"}
+{"ts": "2026-10-08T04:42:43Z", "event": "synth-twin-pass", "jobs": 33, "mode": "main"}
+{"ts":"2026-10-08T08:05:00Z","event":"twins-shortfall-skip","ok_pairs":1364,"target_pairs":1500,"shortfall_notes_pairs":262,"reason":"3 twins-only workers died silently at model load (RAM pressure under parallel system load); share already in-band without the fill (16.9% pre-filter); noted honestly"}
+{"ts": "2026-10-08T04:46:15Z", "event": "embedder-loaded", "model": "Qwen/Qwen3-Embedding-0.6B", "threads": 8}
+{"ts": "2026-10-08T04:47:56Z", "event": "synth-twin-pass-done", "kept": 126, "bad": 70, "wall_sec": 312.8}
+{"ts": "2026-10-08T04:47:56Z", "event": "synth-topup-round", "shard": 2, "round": 1}
+{"ts": "2026-10-08T04:47:56Z", "event": "synth-twin-pass", "jobs": 177, "mode": "topup"}
+{"ts": "2026-10-08T04:52:37Z", "event": "synth-twin-pass-done", "kept": 96, "bad": 0, "wall_sec": 594.3}
+{"ts": "2026-10-08T04:52:37Z", "event": "synth-topup-round", "shard": 0, "round": 1}
+{"ts": "2026-10-08T04:52:37Z", "event": "synth-twin-pass", "jobs": 161, "mode": "topup"}
+{"ts": "2026-10-08T05:04:22Z", "event": "synth-twin-pass-done", "kept": 202, "bad": 14, "wall_sec": 1299.0}
+{"ts": "2026-10-08T05:04:22Z", "event": "synth-topup-round", "shard": 1, "round": 1}
+{"ts": "2026-10-08T05:04:22Z", "event": "synth-twin-pass", "jobs": 154, "mode": "topup"}
+{"ts": "2026-10-08T05:08:09Z", "event": "embedder-loaded", "model": "Qwen/Qwen3-Embedding-0.6B", "threads": 8}
+{"ts": "2026-10-08T05:36:42Z", "event": "filter-real-translations", "file": "real-translations.shard0.jsonl", "checked": 879, "rejected": 20}
+{"ts": "2026-10-08T06:00:57Z", "event": "filter-real-translations", "file": "real-translations.shard1.jsonl", "checked": 815, "rejected": 10}
+{"ts": "2026-10-08T06:02:50Z", "event": "filter-twins", "file": "synth-twins.shard0.jsonl", "checked": 748, "rejected": 7}
+{"ts": "2026-10-08T06:05:00Z", "event": "filter-twins", "file": "synth-twins.shard1.jsonl", "checked": 710, "rejected": 11}
+{"ts": "2026-10-08T06:06:48Z", "event": "filter-twins", "file": "synth-twins.shard2.jsonl", "checked": 704, "rejected": 22}
+{"ts": "2026-10-08T06:06:48Z", "event": "filter-pairs-done", "checked": 3856, "rejected": 70, "min_cos": 0.55, "wall_sec": 3519.0}
+{"ts": "2026-10-08T06:07:32Z", "event": "filter-seed-measured-only", "pairs": 160, "below_min_cos": 53, "min_cos": 0.55, "cos_min": 0.3516, "cos_p50": 0.6211}
+{"ts": "2026-10-08T06:27:19Z", "event": "filter-nonverbatim-sample", "worst_max_cos": 0.8711, "flag_at": 0.97, "per_family": {"agentchat-en": 0.7969, "agentchat-ru": 0.6133, "bugs-en": 0.8125, "bugs-ru": 0.6133, "chat-en": 0.5391, "chat-ru": 0.5273, "code-en": 0.6367, "code-ru": 0.6523, "commits-en": 0.6562, "commits-ru": 0.6484, "config-en": 0.8555, "config-ru": 0.7617, "docstrings-en": 0.6992, "docstrings-ru": 0.6484, "meeting-en": 0.6836, "meeting-ru": 0.5547, "mixed-en": 0.6172, "mixed-ru": 0.5586, "notes-en": 0.793, "notes-ru": 0.6875, "rules-en": 0.8281, "rules-ru": 0.7578, "science-ru": 0.4727, "snippets-en": 0.6172, "snippets-ru": 0.6367, "tech-en": 0.8711, "tech-ru": 0.7109}}
+{"ts": "2026-10-08T06:27:19Z", "event": "filter-done", "total_checked": 3856, "total_rejected": 70, "wall_sec": 4750.5}
+{"ts": "2026-10-08T06:36:57Z", "event": "decontam-judged-loaded", "entries": 89, "queries": 192, "hashes": 119}
+{"ts": "2026-10-08T06:36:57Z", "event": "decontam-holdouts-loaded", "files": 42, "hashes": 2454}
+{"ts": "2026-10-08T06:36:58Z", "event": "decontam-round3-loaded", "rows": 38192, "synthetic_rows": 24949, "hashes": 24949}
+{"ts": "2026-10-08T06:36:58Z", "event": "collected-real", "rows": 14673}
+{"ts": "2026-10-08T06:36:58Z", "event": "collected-seed", "rows": 320}
+{"ts": "2026-10-08T06:36:58Z", "event": "collected-real-translations", "rows": 1520}
+{"ts": "2026-10-08T06:36:58Z", "event": "collected-twins", "rows": 4244}
+{"ts": "2026-10-08T06:36:58Z", "event": "collected-synthetic", "rows": 10242}
+{"ts": "2026-10-08T06:36:59Z", "event": "assemble-done", "total": 17296, "train": 16430, "val": 866, "fingerprint": "503d29064105562149b0c5df19654be6c0b37fc0c8944cc51f3f197fee197998", "ru_share": 0.3951, "translated_num": 2421, "translated_den": 17296, "translated_share": 0.14, "by_source": {"real-part-r4": 12903, "synthetic-en-agentchat": 87, "synthetic-en-bugs": 97, "synthetic-en-chat": 2, "synthetic-en-code": 13, "synthetic-en-commits": 41, "synthetic-en-config": 42, "synthetic-en-docstrings": 108, "synthetic-en-meeting": 43, "synthetic-en-mixed": 58, "synthetic-en-notes": 140, "synthetic-en-rules": 49, "synthetic-en-snippets": 66, "synthetic-en-tech": 89, "synthetic-ru-agentchat": 111, "synthetic-ru-bugs": 71, "synthetic-ru-chat": 135, "synthetic-ru-code": 42, "synthetic-ru-commits": 119, "synthetic-ru-config": 40, "synthetic-ru-docstrings": 22, "synthetic-ru-meeting": 52, "synthetic-ru-mixed": 62, "synthetic-ru-notes": 248, "synthetic-ru-rules": 46, "synthetic-ru-science": 55, "synthetic-ru-snippets": 61, "synthetic-ru-tech": 73, "translated-dup": 160, "translated-real-r4": 1451, "translated-sibling": 160, "twin-en-meeting": 28, "twin-en-notes": 93, "twin-en-rules": 54, "twin-en-science": 55, "twin-en-tech": 98, "twin-ru-meeting": 29, "twin-ru-notes": 93, "twin-ru-rules": 54, "twin-ru-science": 52, "twin-ru-tech": 94}, "counters": {"gate-fail:real": 1270, "holdout-hit:real": 41, "dup:real": 459, "dup:real-translations": 69, "dup:twins": 3594, "dup:synthetic": 8270}, "asserts": {"A1_judged_intersection": true, "A2_holdout_intersection": true, "A3_round3_verbatim": true, "A4_ru_share_ge_040": false, "A5_translated_share_ge_015": false, "A6_gates": true}}
+{"ts":"2026-10-08T09:10:00Z","event":"llm-pool-collapse-found","mono_rows_ok":10186,"mono_unique_after_dedup":1583,"twin_texts_ok":4244,"twin_unique_after_dedup":705,"dup_dropped_synthetic":8270,"dup_dropped_twins":3594,"root_cause":"0.6B freeform generation collapses per family; unique rate ~23%","assembly_asserts":{"A4_ru_ge_040":false,"A5_translated_ge_015":false},"resolution":"template cross-product regeneration with extended vocab (round-3 machinery, new axes) + teacher filters; LLM unique rows kept; translated share repair via teacher translations/twins"}
+{"ts": "2026-10-08T06:44:11Z", "event": "translate-llm-start", "total_unique": 1972, "jobs_todo": 123}
+{"ts": "2026-10-08T06:44:11Z", "event": "translate-llm-start", "total_unique": 1972, "jobs_todo": 124}
+{"ts": "2026-10-08T06:44:12Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "ctx": 3072, "threads": 8}
+{"ts": "2026-10-08T06:44:12Z", "event": "generator-loaded", "model": "Qwen/Qwen3-0.6B", "runtime": "llama.cpp", "quant": "Q8_0", "ctx": 3072, "threads": 8}
+{"ts": "2026-10-08T07:09:25Z", "event": "translate-llm-done", "shard": 1, "kept": 864, "bad": 120, "wall_sec": 1512.9}
+{"ts": "2026-10-08T07:10:07Z", "event": "translate-llm-done", "shard": 0, "kept": 853, "bad": 135, "wall_sec": 1555.3}
+{"ts": "2026-10-08T07:12:40Z", "event": "embedder-loaded", "model": "Qwen/Qwen3-Embedding-0.6B", "threads": 8}
+{"ts": "2026-10-08T07:22:32Z", "event": "embedder-loaded", "model": "Qwen/Qwen3-Embedding-0.6B", "threads": 8}
+{"ts": "2026-10-08T07:28:08Z", "event": "filter-llm-translations", "file": "llm-translations.shard0.jsonl", "checked": 853, "rejected": 52}
+{"ts": "2026-10-08T07:34:04Z", "event": "filter-llm-translations", "file": "llm-translations.shard1.jsonl", "checked": 864, "rejected": 48}
+{"ts": "2026-10-08T07:34:04Z", "event": "filter-pairs-done", "checked": 1717, "rejected": 100, "min_cos": 0.55, "wall_sec": 691.8}
+{"ts": "2026-10-08T07:34:53Z", "event": "filter-seed-measured-only", "pairs": 160, "below_min_cos": 53, "min_cos": 0.55, "cos_min": 0.3516, "cos_p50": 0.6211}
+{"ts": "2026-10-08T07:58:12Z", "event": "filter-nonverbatim-sample", "worst_max_cos": 0.8711, "flag_at": 0.97, "per_family": {"agentchat-en": 0.7969, "agentchat-ru": 0.6133, "bugs-en": 0.8125, "bugs-ru": 0.6133, "chat-en": 0.5391, "chat-ru": 0.5273, "code-en": 0.6367, "code-ru": 0.6523, "commits-en": 0.6562, "commits-ru": 0.6484, "config-en": 0.8555, "config-ru": 0.7617, "docstrings-en": 0.6992, "docstrings-ru": 0.6484, "meeting-en": 0.6836, "meeting-ru": 0.5547, "mixed-en": 0.6172, "mixed-ru": 0.5586, "notes-en": 0.793, "notes-ru": 0.6875, "rules-en": 0.8281, "rules-ru": 0.7578, "science-ru": 0.4727, "snippets-en": 0.6172, "snippets-ru": 0.6367, "tech-en": 0.8711, "tech-ru": 0.7109}}
+{"ts": "2026-10-08T07:58:12Z", "event": "filter-done", "total_checked": 1717, "total_rejected": 100, "wall_sec": 2140.1}
+{"ts": "2026-10-08T08:03:51Z", "event": "embedder-loaded", "model": "Qwen/Qwen3-Embedding-0.6B", "threads": 8}
+{"ts": "2026-10-08T08:13:41Z", "event": "embedder-loaded", "model": "Qwen/Qwen3-Embedding-0.6B", "threads": 8}
+{"ts": "2026-10-08T08:25:55Z", "event": "template-nonverbatim-sample", "worst_max_cos": 0.9844, "flag_at": 0.97, "per_family": {"agentchat-en": 0.8906, "agentchat-ru": 0.8633, "bugs-en": 0.918, "bugs-ru": 0.9219, "chat-en": 0.9062, "chat-ru": 0.8945, "code-en": 0.9219, "code-ru": 0.9219, "commits-en": 0.9531, "commits-ru": 0.9492, "config-en": 0.9492, "config-ru": 0.9453, "docstrings-en": 0.8359, "docstrings-ru": 0.7969, "meeting-en": 0.9336, "meeting-ru": 0.9531, "mixed-en": 0.8281, "mixed-ru": 0.8242, "notes-en": 0.7812, "notes-ru": 0.7305, "rules-en": 0.8945, "rules-ru": 0.7969, "science-en": 0.9844, "science-ru": 0.9727, "snippets-en": 0.9297, "snippets-ru": 0.9492, "tech-en": 0.8477, "tech-ru": 0.8203}}
+{"ts": "2026-10-08T08:36:11Z", "event": "embedder-loaded", "model": "Qwen/Qwen3-Embedding-0.6B", "threads": 8}
+{"ts": "2026-10-08T08:38:41Z", "event": "template-flagged-sweep", "flagged": ["science"], "dropped_rows": 77, "per_family": {"science": {"checked": 300, "dropped": 77, "worst": 0.9922}}}
+{"ts": "2026-10-08T08:39:06Z", "event": "decontam-judged-loaded", "entries": 89, "queries": 192, "hashes": 119}
+{"ts": "2026-10-08T08:39:07Z", "event": "decontam-holdouts-loaded", "files": 42, "hashes": 2454}
+{"ts": "2026-10-08T08:39:07Z", "event": "decontam-round3-loaded", "rows": 38192, "synthetic_rows": 24949, "hashes": 24949}
+{"ts": "2026-10-08T08:39:08Z", "event": "collected-real", "rows": 14673}
+{"ts": "2026-10-08T08:39:08Z", "event": "collected-seed", "rows": 320}
+{"ts": "2026-10-08T08:39:08Z", "event": "collected-real-translations", "rows": 1520}
+{"ts": "2026-10-08T08:39:08Z", "event": "collected-twins", "rows": 4244}
+{"ts": "2026-10-08T08:39:08Z", "event": "collected-synthetic", "rows": 10242}
+{"ts": "2026-10-08T08:39:08Z", "event": "collected-llm-translations", "rows": 1617}
+{"ts": "2026-10-08T08:39:08Z", "event": "collected-template", "rows": 6583}
+{"ts": "2026-10-08T08:39:09Z", "event": "assemble-done", "total": 25496, "train": 24221, "val": 1275, "fingerprint": "7a3bf00b22951df59e3cb3e638c16e1c05f09a51223da8e19ef246ed29f8b645", "ru_share": 0.4208, "translated_num": 4038, "translated_den": 25496, "translated_share": 0.1584, "by_source": {"real-part-r4": 12903, "synthetic-en-agentchat": 327, "synthetic-en-bugs": 257, "synthetic-en-chat": 434, "synthetic-en-code": 73, "synthetic-en-commits": 341, "synthetic-en-config": 228, "synthetic-en-docstrings": 252, "synthetic-en-meeting": 115, "synthetic-en-mixed": 124, "synthetic-en-notes": 1100, "synthetic-en-rules": 229, "synthetic-en-science": 104, "synthetic-en-snippets": 126, "synthetic-en-tech": 409, "synthetic-ru-agentchat": 351, "synthetic-ru-bugs": 231, "synthetic-ru-chat": 567, "synthetic-ru-code": 102, "synthetic-ru-commits": 419, "synthetic-ru-config": 226, "synthetic-ru-docstrings": 166, "synthetic-ru-meeting": 124, "synthetic-ru-mixed": 128, "synthetic-ru-notes": 1208, "synthetic-ru-rules": 226, "synthetic-ru-science": 174, "synthetic-ru-snippets": 121, "synthetic-ru-tech": 393, "translated-dup": 160, "translated-llm-r4": 1617, "translated-real-r4": 1451, "translated-sibling": 160, "twin-en-meeting": 28, "twin-en-notes": 93, "twin-en-rules": 54, "twin-en-science": 55, "twin-en-tech": 98, "twin-ru-meeting": 29, "twin-ru-notes": 93, "twin-ru-rules": 54, "twin-ru-science": 52, "twin-ru-tech": 94}, "counters": {"gate-fail:real": 1270, "holdout-hit:real": 41, "dup:real": 459, "dup:real-translations": 69, "dup:twins": 3594, "dup:synthetic": 8270}, "asserts": {"A1_judged_intersection": true, "A2_holdout_intersection": true, "A3_round3_verbatim": true, "A4_ru_share_ge_040": true, "A5_translated_share_ge_015": true, "A6_gates": true}}
+{"ts": "2026-10-08T08:39:38Z", "event": "decontam-judged-loaded", "entries": 89, "queries": 192, "hashes": 119}
+{"ts": "2026-10-08T08:39:38Z", "event": "decontam-holdouts-loaded", "files": 42, "hashes": 2454}
+{"ts": "2026-10-08T08:39:39Z", "event": "decontam-round3-loaded", "rows": 38192, "synthetic_rows": 24949, "hashes": 24949}
+{"ts": "2026-10-08T08:39:40Z", "event": "collected-real", "rows": 14673}
+{"ts": "2026-10-08T08:39:40Z", "event": "collected-seed", "rows": 320}
+{"ts": "2026-10-08T08:39:40Z", "event": "collected-real-translations", "rows": 1520}
+{"ts": "2026-10-08T08:39:40Z", "event": "collected-twins", "rows": 4244}
+{"ts": "2026-10-08T08:39:40Z", "event": "collected-synthetic", "rows": 10242}
+{"ts": "2026-10-08T08:39:40Z", "event": "collected-llm-translations", "rows": 1617}
+{"ts": "2026-10-08T08:39:40Z", "event": "collected-template", "rows": 6583}
+{"ts": "2026-10-08T08:39:41Z", "event": "assemble-done", "total": 25496, "train": 24221, "val": 1275, "fingerprint": "7a3bf00b22951df59e3cb3e638c16e1c05f09a51223da8e19ef246ed29f8b645", "ru_share": 0.4208, "translated_num": 4038, "translated_den": 25496, "translated_share": 0.1584, "by_source": {"real-part-r4": 12903, "synthetic-en-agentchat": 327, "synthetic-en-bugs": 257, "synthetic-en-chat": 434, "synthetic-en-code": 73, "synthetic-en-commits": 341, "synthetic-en-config": 228, "synthetic-en-docstrings": 252, "synthetic-en-meeting": 115, "synthetic-en-mixed": 124, "synthetic-en-notes": 1100, "synthetic-en-rules": 229, "synthetic-en-science": 104, "synthetic-en-snippets": 126, "synthetic-en-tech": 409, "synthetic-ru-agentchat": 351, "synthetic-ru-bugs": 231, "synthetic-ru-chat": 567, "synthetic-ru-code": 102, "synthetic-ru-commits": 419, "synthetic-ru-config": 226, "synthetic-ru-docstrings": 166, "synthetic-ru-meeting": 124, "synthetic-ru-mixed": 128, "synthetic-ru-notes": 1208, "synthetic-ru-rules": 226, "synthetic-ru-science": 174, "synthetic-ru-snippets": 121, "synthetic-ru-tech": 393, "translated-dup": 160, "translated-llm-r4": 1617, "translated-real-r4": 1451, "translated-sibling": 160, "twin-en-meeting": 28, "twin-en-notes": 93, "twin-en-rules": 54, "twin-en-science": 55, "twin-en-tech": 98, "twin-ru-meeting": 29, "twin-ru-notes": 93, "twin-ru-rules": 54, "twin-ru-science": 52, "twin-ru-tech": 94}, "counters": {"gate-fail:real": 1270, "holdout-hit:real": 41, "dup:real": 459, "dup:real-translations": 69, "dup:twins": 3594, "dup:synthetic": 8270}, "asserts": {"A1_judged_intersection": true, "A2_holdout_intersection": true, "A3_round3_verbatim": true, "A4_ru_share_ge_040": true, "A5_translated_share_ge_015": true, "A6_gates": true}}
+{"ts": "2026-10-08T08:39:41Z", "event": "decontam-judged-loaded", "entries": 89, "queries": 192, "hashes": 119}
+{"ts": "2026-10-08T08:39:41Z", "event": "decontam-holdouts-loaded", "files": 42, "hashes": 2454}
+{"ts": "2026-10-08T08:39:42Z", "event": "decontam-round3-loaded", "rows": 38192, "synthetic_rows": 24949, "hashes": 24949}
+{"ts": "2026-10-08T08:39:43Z", "event": "collected-real", "rows": 14673}
+{"ts": "2026-10-08T08:39:43Z", "event": "collected-seed", "rows": 320}
+{"ts": "2026-10-08T08:39:43Z", "event": "collected-real-translations", "rows": 1520}
+{"ts": "2026-10-08T08:39:43Z", "event": "collected-twins", "rows": 4244}
+{"ts": "2026-10-08T08:39:43Z", "event": "collected-synthetic", "rows": 10242}
+{"ts": "2026-10-08T08:39:43Z", "event": "collected-llm-translations", "rows": 1617}
+{"ts": "2026-10-08T08:39:43Z", "event": "collected-template", "rows": 6583}
+{"ts": "2026-10-08T08:39:44Z", "event": "assemble-done", "total": 25496, "train": 24221, "val": 1275, "fingerprint": "7a3bf00b22951df59e3cb3e638c16e1c05f09a51223da8e19ef246ed29f8b645", "ru_share": 0.4208, "translated_num": 4038, "translated_den": 25496, "translated_share": 0.1584, "by_source": {"real-part-r4": 12903, "synthetic-en-agentchat": 327, "synthetic-en-bugs": 257, "synthetic-en-chat": 434, "synthetic-en-code": 73, "synthetic-en-commits": 341, "synthetic-en-config": 228, "synthetic-en-docstrings": 252, "synthetic-en-meeting": 115, "synthetic-en-mixed": 124, "synthetic-en-notes": 1100, "synthetic-en-rules": 229, "synthetic-en-science": 104, "synthetic-en-snippets": 126, "synthetic-en-tech": 409, "synthetic-ru-agentchat": 351, "synthetic-ru-bugs": 231, "synthetic-ru-chat": 567, "synthetic-ru-code": 102, "synthetic-ru-commits": 419, "synthetic-ru-config": 226, "synthetic-ru-docstrings": 166, "synthetic-ru-meeting": 124, "synthetic-ru-mixed": 128, "synthetic-ru-notes": 1208, "synthetic-ru-rules": 226, "synthetic-ru-science": 174, "synthetic-ru-snippets": 121, "synthetic-ru-tech": 393, "translated-dup": 160, "translated-llm-r4": 1617, "translated-real-r4": 1451, "translated-sibling": 160, "twin-en-meeting": 28, "twin-en-notes": 93, "twin-en-rules": 54, "twin-en-science": 55, "twin-en-tech": 98, "twin-ru-meeting": 29, "twin-ru-notes": 93, "twin-ru-rules": 54, "twin-ru-science": 52, "twin-ru-tech": 94}, "counters": {"gate-fail:real": 1270, "holdout-hit:real": 41, "dup:real": 459, "dup:real-translations": 69, "dup:twins": 3594, "dup:synthetic": 8270}, "asserts": {"A1_judged_intersection": true, "A2_holdout_intersection": true, "A3_round3_verbatim": true, "A4_ru_share_ge_040": true, "A5_translated_share_ge_015": true, "A6_gates": true}}
+{"ts": "2026-10-08T08:39:44Z", "event": "verify-double-assembly", "byte_identical": true, "fp1": "7a3bf00b22951df5", "fp2": "7a3bf00b22951df5"}
