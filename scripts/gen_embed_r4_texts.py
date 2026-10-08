@@ -303,8 +303,9 @@ def cmd_translate_real(threads: int, shard: int = 0, num_shards: int = 1) -> int
         jobs_done=len(done_jobs),
         jobs_todo=len(jobs),
     )
-    if not jobs:
-        return 0
+    bad_rows = [r for r in load_jsonl(out_path) if r.get("status") != "ok"]
+    if not jobs and not bad_rows:
+        return 0  # nothing to generate and nothing to retry
     gen = Generator(threads)
     t0 = time.time()
     kept = dropped_digits = dropped_json = dropped_lang = dropped_copy = 0
