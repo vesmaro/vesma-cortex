@@ -1,0 +1,71 @@
+{
+ "kind": "embed-r5-tatoeba-stratum-manifest",
+ "created": "2026-10-08",
+ "license": {
+  "name": "Creative Commons Attribution 2.0 France (CC-BY 2.0 FR)",
+  "statement": "Tatoeba text sentences default license per https://tatoeba.org/en/terms-of-use; attribution required: cite Tatoeba and the per-sentence author usernames.",
+  "attribution_string": "Sentence data from Tatoeba (https://tatoeba.org), CC-BY 2.0 FR; authors: see per-note 'authors' fields and the aggregated username list in this manifest.",
+  "exports_snapshot": "downloads.tatoeba.org/exports, files dated 2026-10-03",
+  "audio_not_included": true
+ },
+ "counts": {
+  "notes": 750,
+  "rows_both_langs": 1500,
+  "sentences": 4710,
+  "by_direction": {
+   "en->ru": 393,
+   "ru->en": 357
+  },
+  "distinct_authors": 332,
+  "pipeline": {
+   "direct_ru_en_link_pairs": 829792,
+   "quality_decontam_pass_pairs": 817178,
+   "drops": {
+    "dup-pair": 3642,
+    "en:gate": 2421,
+    "ru:gate": 6551
+   },
+   "notes_before_gates": 128580,
+   "note_gate_failures": {
+    "note-gate": 5046
+   }
+  }
+ },
+ "note_shape": "2-4 directly-linked ru-en sentence pairs, concatenated per side (parallel-concatenation unit, not narrative text); every Tatoeba sentence used at most once",
+ "selection_rule": "deterministic, no RNG: pairs sorted by (ru_id,en_id); groups advanced in order; notes sorted by note key; first TARGET_NOTES kept",
+ "decontamination": {
+  "method": "n-gram 8-13 zero tolerance + verbatim hash, note-level and sentence-level",
+  "surfaces": [
+   "burned V43-TDUP 144 pairs",
+   "r5 gate set 180 pairs",
+   "store-derived real-part-r4 rows",
+   "full r4 corpus (stricter extra layer)"
+  ]
+ },
+ "integrity": {
+  "tatoeba_notes_sha256": "0be59a697b00e2637a94ccae2ff82543d09844e2b81414c40462588cd2cc7130",
+  "gate_set_sha_used": "4a0ab11c62e08581b8f32b2e009215b41012929912b7f82add3c9835373ae569"
+ },
+ "top_authors_by_notes": {
+  "CK": 541,
+  "marafon": 405,
+  "odexed": 176,
+  "Hybrid": 93,
+  "CM": 81,
+  "CH": 47,
+  "sharptoothed": 47,
+  "Wezel": 47,
+  "ddnktr": 45,
+  "\\N": 42,
+  "AlanF_US": 42,
+  "sundown": 42,
+  "Ooneykcall": 30,
+  "Amastan": 28,
+  "Balamax": 25,
+  "Spamster": 24,
+  "Selena777": 23,
+  "CN": 21,
+  "rul": 19,
+  "soweli_Elepanto": 17
+ }
+}

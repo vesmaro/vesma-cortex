@@ -40,3 +40,43 @@
 {"ts_step": "build_gate_set", "msg": "gate_set.jsonl sha256=4a0ab11c62e08581b8f32b2e009215b41012929912b7f82add3c9835373ae569"}
 {"ts_step": "build_gate_set", "msg": "sorted pair_id list sha256=c96d91e3d71c3bc9d316e2f3ff75827a017c0623abe159c200ecc8ff610493c5"}
 {"ts_step": "build_gate_set", "msg": "asserts: {'pair_count_in_band': True, 'direction_balance_abs_le_1': True, 'burned_overlap_zero': True, 'corpus_fingerprint_ok': True, 'pair_ids_unique': True, 'dst_rows_all_in_corpus': True}"}
+{"ts_step": "build_tatoeba_stratum", "msg": "burned surface grams: 16098"}
+{"ts_step": "build_tatoeba_stratum", "msg": "grams after gate set: 37603"}
+{"ts_step": "build_tatoeba_stratum", "msg": "grams after store-derived stratum: 2341903 (corpus rows 25496)"}
+{"ts_step": "build_tatoeba_stratum", "msg": "sentences file lines: 13597683; ru+en kept: 0"}
+{"ts_step": "build_tatoeba_stratum", "msg": "direct ru-en link pairs: 0"}
+{"ts_step": "build_tatoeba_stratum", "msg": "quality+decontam pass pairs: 0; drops: {}"}
+{"ts_step": "build_tatoeba_stratum", "msg": "notes assembled: 0"}
+{"ts_step": "build_tatoeba_stratum", "msg": "notes after note-level gates: 0; failures: {}"}
+{"ts_step": "build_tatoeba_stratum", "msg": "notes in stratum: 0"}
+{"ts_step": "build_tatoeba_stratum", "msg": "tatoeba_notes.jsonl sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+{"ts_step": "build_tatoeba_stratum", "msg": "burned surface grams: 16098"}
+{"ts_step": "build_tatoeba_stratum", "msg": "grams after gate set: 37603"}
+{"ts_step": "build_tatoeba_stratum", "msg": "grams after store-derived stratum: 2341903 (corpus rows 25496)"}
+{"ts_step": "build_tatoeba_stratum", "msg": "sentences file lines: 13597683; ru+en kept: 0"}
+{"ts_step": "build_tatoeba_stratum", "msg": "direct ru-en link pairs: 0"}
+{"ts_step": "build_tatoeba_stratum", "msg": "quality+decontam pass pairs: 0; drops: {}"}
+{"ts_step": "build_tatoeba_stratum", "msg": "notes assembled: 0"}
+{"ts_step": "build_tatoeba_stratum", "msg": "notes after note-level gates: 0; failures: {}"}
+{"ts_step": "build_tatoeba_stratum", "msg": "notes in stratum: 0"}
+{"ts_step": "build_tatoeba_stratum", "msg": "tatoeba_notes.jsonl sha256=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
+{"ts_step": "build_tatoeba_stratum", "msg": "burned surface grams: 16098"}
+{"ts_step": "build_tatoeba_stratum", "msg": "grams after gate set: 37603"}
+{"ts_step": "build_tatoeba_stratum", "msg": "grams after store-derived stratum: 2341903 (corpus rows 25496)"}
+{"ts_step": "build_tatoeba_stratum", "msg": "sentences file lines: 13597683; ru+en kept: 3266239"}
+{"ts_step": "build_tatoeba_stratum", "msg": "direct ru-en link pairs: 829792"}
+{"ts_step": "build_tatoeba_stratum", "msg": "quality+decontam pass pairs: 817178; drops: {'dup-pair': 3642, 'en:gate': 2421, 'ru:gate': 6551}"}
+{"ts_step": "build_tatoeba_stratum", "msg": "notes assembled: 128580"}
+{"ts_step": "build_tatoeba_stratum", "msg": "notes after note-level gates: 123534; failures: {'note-gate': 5046}"}
+{"ts_step": "build_tatoeba_stratum", "msg": "notes in stratum: 750"}
+{"ts_step": "build_tatoeba_stratum", "msg": "tatoeba_notes.jsonl sha256=0be59a697b00e2637a94ccae2ff82543d09844e2b81414c40462588cd2cc7130"}
+{"ts_step": "build_tatoeba_stratum", "msg": "burned surface grams: 16098"}
+{"ts_step": "build_tatoeba_stratum", "msg": "grams after gate set: 37603"}
+{"ts_step": "build_tatoeba_stratum", "msg": "grams after store-derived stratum: 2341903 (corpus rows 25496)"}
+{"ts_step": "build_tatoeba_stratum", "msg": "sentences file lines: 13597683; ru+en kept: 3266239"}
+{"ts_step": "build_tatoeba_stratum", "msg": "direct ru-en link pairs: 829792"}
+{"ts_step": "build_tatoeba_stratum", "msg": "quality+decontam pass pairs: 817178; drops: {'dup-pair': 3642, 'en:gate': 2421, 'ru:gate': 6551}"}
+{"ts_step": "build_tatoeba_stratum", "msg": "notes assembled: 128580"}
+{"ts_step": "build_tatoeba_stratum", "msg": "notes after note-level gates: 123534; failures: {'note-gate': 5046}"}
+{"ts_step": "build_tatoeba_stratum", "msg": "notes in stratum: 750"}
+{"ts_step": "build_tatoeba_stratum", "msg": "tatoeba_notes.jsonl sha256=0be59a697b00e2637a94ccae2ff82543d09844e2b81414c40462588cd2cc7130"}
