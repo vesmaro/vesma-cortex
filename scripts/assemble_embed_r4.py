@@ -250,6 +250,34 @@ def collect_twins() -> list[tuple[str, str, str]]:
     return out
 
 
+def collect_template_mono() -> list[tuple[str, str, str]]:
+    """Extended-vocabulary template cross-product pool (TL-approved repair
+    2026-10-08; round-3 machinery, axis values replaced, hash-disjoint
+    from round-3 — verified at generation)."""
+    out: list[tuple[str, str, str]] = []
+    for row in load_jsonl(GEN_DIR / "synth-template-mono.jsonl"):
+        text = normalise(row["text"])
+        if not acceptable(text):
+            continue
+        out.append((text, row["lang"], f"synthetic-{row['lang']}-{row['family']}"))
+    return out
+
+
+def collect_llm_translations() -> list[tuple[str, str, str]]:
+    """Teacher translations of the unique LLM mono rows (content twins of
+    texts whose counterpart does not exist elsewhere)."""
+    out: list[tuple[str, str, str]] = []
+    for path in sorted(GEN_DIR.glob("llm-translations.shard*.jsonl")):
+        for row in load_jsonl(path):
+            if row.get("status") != "ok":
+                continue
+            text = normalise(row["text"])
+            if not acceptable(text):
+                continue
+            out.append((text, row["target_lang"], "translated-llm-r4"))
+    return out
+
+
 def collect_synth_mono() -> list[tuple[str, str, str]]:
     out: list[tuple[str, str, str]] = []
     for path in sorted(GEN_DIR.glob("synth-mono.shard*.jsonl")):
@@ -277,6 +305,8 @@ def assemble(min_share: float = 0.15) -> dict:
         ("real-translations", collect_real_translations()),
         ("twins", collect_twins()),
         ("synthetic", collect_synth_mono()),
+        ("llm-translations", collect_llm_translations()),
+        ("template", collect_template_mono()),
     ]
     for name, rows in collectors:
         log_event(f"collected-{name}", rows=len(rows))

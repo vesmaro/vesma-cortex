@@ -93,8 +93,8 @@ def cmd_filter(min_cos: float, threads: int) -> int:
         nonlocal checked, rejections
         rows = load_jsonl(path)
         live = [r for r in rows if r.get("status") == "ok"]
-        if not live:
-            return
+        if not live or all("cos" in r for r in live):
+            return  # nothing to gate / already gated
         s = emb.embed([normalise(get_pair(r)[0]) for r in live])
         d = emb.embed([normalise(get_pair(r)[1]) for r in live])
         cos = (s * d).sum(dim=1)
@@ -122,6 +122,12 @@ def cmd_filter(min_cos: float, threads: int) -> int:
     # twins: ru/en pairs per shard file
     for tw_path in sorted(GEN_DIR.glob("synth-twins.shard*.jsonl")):
         cos_gate(tw_path, lambda r: (r["ru"], r["en"]), "filter-twins")
+    # llm-row translations: cos gate vs their source rows
+    llm_units = {}
+    for key, _tgt, unit in unique_llm_units():
+        llm_units[key] = unit
+    for path in sorted(GEN_DIR.glob("llm-translations.shard*.jsonl")):
+        cos_gate(path, lambda r: (llm_units[r["key"]], r["text"]), "filter-llm-translations")
     log_event("filter-pairs-done", checked=checked, rejected=rejections, min_cos=min_cos,
               wall_sec=round(time.time() - t0, 1))
 
