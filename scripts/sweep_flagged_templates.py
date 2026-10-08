@@ -13,7 +13,7 @@ sys.path.insert(0, "/var/home/abyss/LABs/Projects/Project-Vesma/vesma")
 
 from training.dataset.prepare_dataset import normalise  # noqa: E402
 from filter_embed_r4 import Embedder, ROUND3_TRAIN, ROUND3_VAL, load_jsonl  # noqa: E402
-from gen_embed_r4_texts import RUN_LOG, log_event  # noqa: E402
+from gen_embed_r4_texts import log_event  # noqa: E402
 
 FLAGGED = {"science"}  # families whose sample max-cos crossed 0.97
 
@@ -42,14 +42,22 @@ def main() -> int:
         for i, v in zip(fam_idx, mx.tolist()):
             if v >= 0.97:
                 drop.add(i)
-        report[fam] = {"checked": len(fam_idx), "dropped": sum(1 for v in mx.tolist() if v >= 0.97),
-                       "worst": round(max(mx.tolist()), 4)}
+        report[fam] = {
+            "checked": len(fam_idx),
+            "dropped": sum(1 for v in mx.tolist() if v >= 0.97),
+            "worst": round(max(mx.tolist()), 4),
+        }
     if drop:
         kept = [r for i, r in enumerate(rows) if i not in drop]
         with open(path, "w", encoding="utf-8") as fh:
             for r in kept:
                 fh.write(json.dumps(r, ensure_ascii=False) + "\n")
-    log_event("template-flagged-sweep", flagged=sorted(FLAGGED), dropped_rows=len(drop), per_family=report)
+    log_event(
+        "template-flagged-sweep",
+        flagged=sorted(FLAGGED),
+        dropped_rows=len(drop),
+        per_family=report,
+    )
     print(json.dumps(report), flush=True)
     return 0
 

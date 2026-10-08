@@ -68,9 +68,9 @@ MIN_CHARS = 40
 MAX_CHARS = 4000
 MAX_TOKENS = 256
 
-BATCH = 8           # rows requested per one completion
-TWIN_PER_JOB = 6    # pairs requested per one twin completion
-JOB_BATCH = 8       # job prompts per generate() call (left-padded batch)
+BATCH = 8  # rows requested per one completion
+TWIN_PER_JOB = 6  # pairs requested per one twin completion
+JOB_BATCH = 8  # job prompts per generate() call (left-padded batch)
 TEMPERATURE = 0.9
 TOP_P = 0.95
 TOP_K = 50
@@ -87,7 +87,11 @@ def log_event(event: str, **fields: object) -> None:
     with open(RUN_LOG, "a", encoding="utf-8") as fh:
         fh.write(
             json.dumps(
-                {"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "event": event, **fields},
+                {
+                    "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "event": event,
+                    **fields,
+                },
                 ensure_ascii=False,
             )
             + "\n"
@@ -147,8 +151,17 @@ class Generator:
     def __init__(self, threads: int, ctx: int = 3072):
         from llama_cpp import Llama
 
-        self.llm = Llama(GEN_GGUF, n_ctx=ctx, n_threads=threads, n_batch=512, verbose=False)
-        log_event("generator-loaded", model=GEN_MODEL, runtime="llama.cpp", quant="Q8_0", ctx=ctx, threads=threads)
+        self.llm = Llama(
+            GEN_GGUF, n_ctx=ctx, n_threads=threads, n_batch=512, verbose=False
+        )
+        log_event(
+            "generator-loaded",
+            model=GEN_MODEL,
+            runtime="llama.cpp",
+            quant="Q8_0",
+            ctx=ctx,
+            threads=threads,
+        )
 
     @staticmethod
     def render(messages: list[dict]) -> str:
@@ -158,7 +171,9 @@ class Generator:
         out.append("<|im_start|>assistant\n<think>\n\n</think>\n")
         return "".join(out)
 
-    def chat(self, prompts: list[list[dict]], max_new_tokens: int, seed: int) -> list[str]:
+    def chat(
+        self, prompts: list[list[dict]], max_new_tokens: int, seed: int
+    ) -> list[str]:
         outs = []
         for p in prompts:
             res = self.llm(
@@ -228,11 +243,17 @@ def _translate_prompt(target: str, unit: str) -> list[dict]:
     if target == "en":
         return [
             {"role": "system", "content": TRANSLATE_SYSTEM_EN},
-            {"role": "user", "content": f"Example.\n{TRANSLATE_SHOT_EN}\n\nNow translate.\nSource:\n{unit}\n\nTranslation:"},
+            {
+                "role": "user",
+                "content": f"Example.\n{TRANSLATE_SHOT_EN}\n\nNow translate.\nSource:\n{unit}\n\nTranslation:",
+            },
         ]
     return [
         {"role": "system", "content": TRANSLATE_SYSTEM_RU},
-        {"role": "user", "content": f"Пример.\n{TRANSLATE_SHOT_RU}\n\nТеперь переведи.\nSource:\n{unit}\n\nTranslation:"},
+        {
+            "role": "user",
+            "content": f"Пример.\n{TRANSLATE_SHOT_RU}\n\nТеперь переведи.\nSource:\n{unit}\n\nTranslation:",
+        },
     ]
 
 
@@ -269,7 +290,11 @@ def real_units() -> list[tuple[str, str, str]]:
         if not isinstance(body, str) or not body.strip():
             continue
         key = rec.get("content_hash") or text_hash(body)
-        src_lang = (rec.get("side") or {}).get("language") or rec.get("language") or detect_lang(body)
+        src_lang = (
+            (rec.get("side") or {}).get("language")
+            or rec.get("language")
+            or detect_lang(body)
+        )
         target = "en" if src_lang == "ru" else "ru"
         unit = body.strip()
         while count_tokens(unit) > UNIT_TOKEN_CAP and "\n\n" in unit:
@@ -311,29 +336,72 @@ def cmd_translate_real(threads: int, shard: int = 0, num_shards: int = 1) -> int
     kept = dropped_digits = dropped_json = dropped_lang = dropped_copy = 0
     for n, (jid, chunk) in enumerate(jobs):
         prompts = [_translate_prompt(tgt, unit) for _key, tgt, unit in chunk]
-        raws = gen.chat(prompts, max_new_tokens=MAX_NEW_TOKENS_TRANSLATE, seed=100000 + n)
+        raws = gen.chat(
+            prompts, max_new_tokens=MAX_NEW_TOKENS_TRANSLATE, seed=100000 + n
+        )
         rows = []
         for (key, tgt, unit), raw in zip(chunk, raws):
             text = normalise(_clean_translation(raw))
             if not text:
                 dropped_json += 1
-                rows.append({"job": jid, "key": key, "target_lang": tgt, "status": "json-fail", "text": ""})
+                rows.append(
+                    {
+                        "job": jid,
+                        "key": key,
+                        "target_lang": tgt,
+                        "status": "json-fail",
+                        "text": "",
+                    }
+                )
                 continue
             lost = missing_digit_tokens(unit, text)
             if lost:
                 dropped_digits += 1
-                rows.append({"job": jid, "key": key, "target_lang": tgt, "status": "digit-fail", "lost": lost[:8], "text": text})
+                rows.append(
+                    {
+                        "job": jid,
+                        "key": key,
+                        "target_lang": tgt,
+                        "status": "digit-fail",
+                        "lost": lost[:8],
+                        "text": text,
+                    }
+                )
                 continue
             if detect_lang(text) != tgt:
                 dropped_lang += 1
-                rows.append({"job": jid, "key": key, "target_lang": tgt, "status": "lang-fail", "text": text})
+                rows.append(
+                    {
+                        "job": jid,
+                        "key": key,
+                        "target_lang": tgt,
+                        "status": "lang-fail",
+                        "text": text,
+                    }
+                )
                 continue
             if _is_copy(unit, text):
                 dropped_copy += 1
-                rows.append({"job": jid, "key": key, "target_lang": tgt, "status": "copy-fail", "text": text})
+                rows.append(
+                    {
+                        "job": jid,
+                        "key": key,
+                        "target_lang": tgt,
+                        "status": "copy-fail",
+                        "text": text,
+                    }
+                )
                 continue
             kept += 1
-            rows.append({"job": jid, "key": key, "target_lang": tgt, "status": "ok", "text": text})
+            rows.append(
+                {
+                    "job": jid,
+                    "key": key,
+                    "target_lang": tgt,
+                    "status": "ok",
+                    "text": text,
+                }
+            )
         append_jsonl(out_path, rows)
         if n % 10 == 0:
             rate = (n + 1) / max(1.0, time.time() - t0)
@@ -361,7 +429,9 @@ TOPUP_SYSTEM_EXTRA = (
 )
 
 
-def _top_up_translations(gen: "Generator", out_path: Path, shard: int, num_shards: int) -> int:
+def _top_up_translations(
+    gen: "Generator", out_path: Path, shard: int, num_shards: int
+) -> int:
     """Retry pass for this shard's non-ok rows (json/lang/digit/copy)."""
     rows = load_jsonl(out_path)
     bad = [r for r in rows if r.get("status") != "ok"]
@@ -391,8 +461,18 @@ def _top_up_translations(gen: "Generator", out_path: Path, shard: int, num_shard
         prompts = []
         for _key, tgt, unit in chunk:
             msgs = _translate_prompt(tgt, unit)
-            prompts.append([{"role": "system", "content": msgs[0]["content"] + TOPUP_SYSTEM_EXTRA}, msgs[1]])
-        raws = gen.chat(prompts, max_new_tokens=MAX_NEW_TOKENS_TRANSLATE, seed=777000 + i)
+            prompts.append(
+                [
+                    {
+                        "role": "system",
+                        "content": msgs[0]["content"] + TOPUP_SYSTEM_EXTRA,
+                    },
+                    msgs[1],
+                ]
+            )
+        raws = gen.chat(
+            prompts, max_new_tokens=MAX_NEW_TOKENS_TRANSLATE, seed=777000 + i
+        )
         out_rows = []
         for k, ((key, tgt, unit), raw) in enumerate(zip(chunk, raws)):
             text = normalise(_clean_translation(raw)) if raw.strip() else ""
@@ -404,7 +484,15 @@ def _top_up_translations(gen: "Generator", out_path: Path, shard: int, num_shard
                 and not _is_copy(unit, text)
             ):
                 kept += 1
-                out_rows.append({"job": f"topup-{i:05d}", "key": key, "target_lang": tgt, "status": "ok", "text": text})
+                out_rows.append(
+                    {
+                        "job": f"topup-{i:05d}",
+                        "key": key,
+                        "target_lang": tgt,
+                        "status": "ok",
+                        "text": text,
+                    }
+                )
             else:
                 still_bad += 1
         append_jsonl(out_path, out_rows)
@@ -417,16 +505,32 @@ def _top_up_translations(gen: "Generator", out_path: Path, shard: int, num_shard
 #: 14 round-3 families, per-family totals (probe-corpus distribution
 #: normalised to S=23000). Labels = the round-3 source-label set.
 SYNTH_TARGETS: dict[str, int] = {
-    "notes": 5967, "chat": 3274, "commits": 2310, "tech": 1979,
-    "agentchat": 1868, "config": 1290, "science": 1108, "rules": 1076,
-    "docstrings": 1076, "bugs": 1006, "mixed": 590, "meeting": 533,
-    "code": 464, "snippets": 459,
+    "notes": 5967,
+    "chat": 3274,
+    "commits": 2310,
+    "tech": 1979,
+    "agentchat": 1868,
+    "config": 1290,
+    "science": 1108,
+    "rules": 1076,
+    "docstrings": 1076,
+    "bugs": 1006,
+    "mixed": 590,
+    "meeting": 533,
+    "code": 464,
+    "snippets": 459,
 }
 #: RU<->EN twin rows inside prose families (translate-well shapes);
 #: counted TWICE toward the family total (one row per language).
 #: TL verdict B (2026-10-08): mono wall at ~12000 rows; twins 1500 pairs
 #: — composition decision, keeps the translated share inside [15;20].
-TWIN_TARGETS: dict[str, int] = {"notes": 600, "tech": 300, "science": 225, "rules": 225, "meeting": 150}
+TWIN_TARGETS: dict[str, int] = {
+    "notes": 600,
+    "tech": 300,
+    "science": 225,
+    "rules": 225,
+    "meeting": 150,
+}
 
 FAMILY_SPECS: dict[str, dict[str, str]] = {
     "notes": {
@@ -486,8 +590,30 @@ FAMILY_SPECS: dict[str, dict[str, str]] = {
         "en": "a tiny one-line code snippet (python-like) with a short usage note. 30-220 chars, no markdown fences",
     },
 }
-FAMILY_RU_PROJECTS = ["аурора-апи", "волт-юи", "мнемос-ядро", "атлас-парсер", "гелиос-индекс", "орбис-шлюз", "нова-поиск", "тесса-воркер", "сифра-деплой", "минерва-пакет"]
-FAMILY_EN_PROJECTS = ["aurora-api", "vault-ui", "mnemos-core", "atlas-parser", "helios-index", "orbis-gateway", "nova-search", "tessa-worker", "cipher-deploy", "minerva-pack"]
+FAMILY_RU_PROJECTS = [
+    "аурора-апи",
+    "волт-юи",
+    "мнемос-ядро",
+    "атлас-парсер",
+    "гелиос-индекс",
+    "орбис-шлюз",
+    "нова-поиск",
+    "тесса-воркер",
+    "сифра-деплой",
+    "минерва-пакет",
+]
+FAMILY_EN_PROJECTS = [
+    "aurora-api",
+    "vault-ui",
+    "mnemos-core",
+    "atlas-parser",
+    "helios-index",
+    "orbis-gateway",
+    "nova-search",
+    "tessa-worker",
+    "cipher-deploy",
+    "minerva-pack",
+]
 
 SYNTH_SYSTEM = (
     "You generate rows for a private memory-search corpus of {lang_name} work notes. "
@@ -501,7 +627,7 @@ TWIN_SYSTEM = (
     "You produce translation-twin pairs for a memory-search corpus: the SAME personal work note "
     "written in Russian AND in English, same meaning, same detail, every number/date/version identical in both. "
     "Vary topics, projects and phrasing across pairs. "
-    "Answer with a strict JSON array of {n} objects {{\"ru\": \"...\", \"en\": \"...\"}} and nothing else."
+    'Answer with a strict JSON array of {n} objects {{"ru": "...", "en": "..."}} and nothing else.'
 )
 
 
@@ -542,9 +668,19 @@ def _stable_seed(*parts: object) -> int:
     return 2000000 + zlib.crc32("|".join(str(p) for p in parts).encode()) % 700000
 
 
-def _run_mono_pass(gen: "Generator", out_path: Path, only_missing: bool, shard: int = 0, num_shards: int = 1) -> None:
+def _run_mono_pass(
+    gen: "Generator",
+    out_path: Path,
+    only_missing: bool,
+    shard: int = 0,
+    num_shards: int = 1,
+) -> None:
     done_jobs = {row.get("job") for row in load_jsonl(out_path)}
-    jobs = [j for o, j in enumerate(_mono_jobs()) if o % num_shards == shard and f"m-{j[0]}-{j[1]}-{j[2]:05d}" not in done_jobs]
+    jobs = [
+        j
+        for o, j in enumerate(_mono_jobs())
+        if o % num_shards == shard and f"m-{j[0]}-{j[1]}-{j[2]:05d}" not in done_jobs
+    ]
     if only_missing:
         # top-up mode: FRESH jobs for the shortfall (done jobs never
         # re-run — gate-fail rows inside them are backfilled by new
@@ -552,7 +688,9 @@ def _run_mono_pass(gen: "Generator", out_path: Path, only_missing: bool, shard: 
         kept: dict[tuple[str, str], int] = {}
         for row in load_jsonl(out_path):
             if row.get("status") == "ok":
-                kept[(row["family"], row["lang"])] = kept.get((row["family"], row["lang"]), 0) + 1
+                kept[(row["family"], row["lang"])] = (
+                    kept.get((row["family"], row["lang"]), 0) + 1
+                )
         max_base: dict[tuple[str, str], int] = {}
         for fam, lang, base, _n in jobs:
             max_base[(fam, lang)] = max(max_base.get((fam, lang), 0), base)
@@ -566,7 +704,9 @@ def _run_mono_pass(gen: "Generator", out_path: Path, only_missing: bool, shard: 
                 jobs.append((fam, lang, base, min(BATCH, shortfall)))
                 base += 1
                 shortfall -= BATCH
-    log_event("synth-mono-pass", jobs=len(jobs), mode="topup" if only_missing else "main")
+    log_event(
+        "synth-mono-pass", jobs=len(jobs), mode="topup" if only_missing else "main"
+    )
     if not jobs:
         return
     t0 = time.time()
@@ -582,10 +722,17 @@ def _run_mono_pass(gen: "Generator", out_path: Path, only_missing: bool, shard: 
             else:
                 hint = f"Topics: {', '.join(FAMILY_EN_PROJECTS)} and work themes (deploys, migrations, caching, reviews, reports)."
                 ask = f"Generate {nrows} distinct rows."
-            prompts.append([
-                {"role": "system", "content": SYNTH_SYSTEM.format(lang_name="Russian" if lang == "ru" else "English", n=nrows)},
-                {"role": "user", "content": f"{spec}\n{hint}\n{ask}"},
-            ])
+            prompts.append(
+                [
+                    {
+                        "role": "system",
+                        "content": SYNTH_SYSTEM.format(
+                            lang_name="Russian" if lang == "ru" else "English", n=nrows
+                        ),
+                    },
+                    {"role": "user", "content": f"{spec}\n{hint}\n{ask}"},
+                ]
+            )
         seed = _stable_seed("mono-batch", chunk[0][0], chunk[0][1], chunk[0][2])
         raws = gen.chat(prompts, MAX_NEW_TOKENS_SYNTH, seed)
         rows = []
@@ -597,27 +744,63 @@ def _run_mono_pass(gen: "Generator", out_path: Path, only_missing: bool, shard: 
                 ok = bool(txt) and acceptable(txt) and detect_lang(txt) == lang
                 if ok:
                     kept += 1
-                    rows.append({"job": jid, "family": fam, "lang": lang, "idx": base + k, "status": "ok", "text": txt})
+                    rows.append(
+                        {
+                            "job": jid,
+                            "family": fam,
+                            "lang": lang,
+                            "idx": base + k,
+                            "status": "ok",
+                            "text": txt,
+                        }
+                    )
                 else:
                     bad += 1
-                    rows.append({"job": jid, "family": fam, "lang": lang, "idx": base + k, "status": "gate-fail", "text": txt})
+                    rows.append(
+                        {
+                            "job": jid,
+                            "family": fam,
+                            "lang": lang,
+                            "idx": base + k,
+                            "status": "gate-fail",
+                            "text": txt,
+                        }
+                    )
         append_jsonl(out_path, rows)
         done_now = n + len(chunk)
         if (done_now // JOB_BATCH) % 10 == 0:
             rate = done_now / max(1.0, time.time() - t0)
-            print(f"synth-mono job {done_now}/{len(jobs)} rate={rate:.2f} jobs/s eta={(len(jobs) - done_now) / max(0.05, rate) / 60:.0f}min", flush=True)
-    log_event("synth-mono-pass-done", kept=kept, bad=bad, wall_sec=round(time.time() - t0, 1))
+            print(
+                f"synth-mono job {done_now}/{len(jobs)} rate={rate:.2f} jobs/s eta={(len(jobs) - done_now) / max(0.05, rate) / 60:.0f}min",
+                flush=True,
+            )
+    log_event(
+        "synth-mono-pass-done", kept=kept, bad=bad, wall_sec=round(time.time() - t0, 1)
+    )
 
 
-def _run_twin_pass(gen: "Generator", out_path: Path, only_missing: bool, shard: int = 0, num_shards: int = 1) -> None:
+def _run_twin_pass(
+    gen: "Generator",
+    out_path: Path,
+    only_missing: bool,
+    shard: int = 0,
+    num_shards: int = 1,
+) -> None:
     done_jobs = {row.get("job") for row in load_jsonl(out_path)}
-    jobs = [j for o, j in enumerate(_twin_jobs()) if o % num_shards == shard and f"t-{j[0]}-{j[1]:03d}" not in done_jobs]
+    jobs = [
+        j
+        for o, j in enumerate(_twin_jobs())
+        if o % num_shards == shard and f"t-{j[0]}-{j[1]:03d}" not in done_jobs
+    ]
     if only_missing:
         kept: dict[str, int] = {}
         for row in load_jsonl(out_path):
             if row.get("status") == "ok":
                 kept[row["family"]] = kept.get(row["family"], 0) + 1
-        max_idx = {fam: max((j[1] for j in jobs if j[0] == fam), default=0) for fam in TWIN_TARGETS}
+        max_idx = {
+            fam: max((j[1] for j in jobs if j[0] == fam), default=0)
+            for fam in TWIN_TARGETS
+        }
         jobs = []
         for fam in sorted(TWIN_TARGETS):
             shortfall = TWIN_TARGETS[fam] - kept.get(fam, 0)
@@ -626,7 +809,9 @@ def _run_twin_pass(gen: "Generator", out_path: Path, only_missing: bool, shard: 
                 jobs.append((fam, idx, min(TWIN_PER_JOB, shortfall)))
                 idx += 1
                 shortfall -= TWIN_PER_JOB
-    log_event("synth-twin-pass", jobs=len(jobs), mode="topup" if only_missing else "main")
+    log_event(
+        "synth-twin-pass", jobs=len(jobs), mode="topup" if only_missing else "main"
+    )
     if not jobs:
         return
     t0 = time.time()
@@ -635,19 +820,32 @@ def _run_twin_pass(gen: "Generator", out_path: Path, only_missing: bool, shard: 
         chunk = jobs[n : n + JOB_BATCH]
         prompts = []
         for fam, idx, npairs in chunk:
-            prompts.append([
-                {"role": "system", "content": TWIN_SYSTEM.format(n=npairs)},
-                {"role": "user", "content": f"Family: {FAMILY_SPECS[fam]['ru']} Topics: {', '.join(FAMILY_RU_PROJECTS[:6])}."},
-            ])
+            prompts.append(
+                [
+                    {"role": "system", "content": TWIN_SYSTEM.format(n=npairs)},
+                    {
+                        "role": "user",
+                        "content": f"Family: {FAMILY_SPECS[fam]['ru']} Topics: {', '.join(FAMILY_RU_PROJECTS[:6])}.",
+                    },
+                ]
+            )
         seed = _stable_seed("twin-batch", chunk[0][0], chunk[0][1])
         raws = gen.chat(prompts, MAX_NEW_TOKENS_SYNTH, seed)
         rows = []
         for (fam, idx, npairs), raw in zip(chunk, raws):
             arr = extract_json_array(raw) or []
-            pairs = [p for p in arr if isinstance(p, dict) and isinstance(p.get("ru"), str) and isinstance(p.get("en"), str)][:npairs]
+            pairs = [
+                p
+                for p in arr
+                if isinstance(p, dict)
+                and isinstance(p.get("ru"), str)
+                and isinstance(p.get("en"), str)
+            ][:npairs]
             for k, p in enumerate(pairs):
                 ru_t, en_t = normalise(p["ru"]), normalise(p["en"])
-                lost = missing_digit_tokens(ru_t, en_t) + missing_digit_tokens(en_t, ru_t)
+                lost = missing_digit_tokens(ru_t, en_t) + missing_digit_tokens(
+                    en_t, ru_t
+                )
                 ok = (
                     not lost
                     and acceptable(ru_t)
@@ -657,31 +855,67 @@ def _run_twin_pass(gen: "Generator", out_path: Path, only_missing: bool, shard: 
                 )
                 if ok:
                     kept += 2
-                    rows.append({"job": f"t-{fam}-{idx:03d}", "family": fam, "slot": k, "status": "ok", "ru": ru_t, "en": en_t})
+                    rows.append(
+                        {
+                            "job": f"t-{fam}-{idx:03d}",
+                            "family": fam,
+                            "slot": k,
+                            "status": "ok",
+                            "ru": ru_t,
+                            "en": en_t,
+                        }
+                    )
                 else:
                     bad += 2
-                    rows.append({"job": f"t-{fam}-{idx:03d}", "family": fam, "slot": k, "status": "gate-fail", "ru": ru_t, "en": en_t})
+                    rows.append(
+                        {
+                            "job": f"t-{fam}-{idx:03d}",
+                            "family": fam,
+                            "slot": k,
+                            "status": "gate-fail",
+                            "ru": ru_t,
+                            "en": en_t,
+                        }
+                    )
         append_jsonl(out_path, rows)
         done_now = n + len(chunk)
         if (done_now // JOB_BATCH) % 10 == 0:
             rate = done_now / max(1.0, time.time() - t0)
-            print(f"synth-twin job {done_now}/{len(jobs)} rate={rate:.2f} jobs/s eta={(len(jobs) - done_now) / max(0.05, rate) / 60:.0f}min", flush=True)
-    log_event("synth-twin-pass-done", kept=kept, bad=bad, wall_sec=round(time.time() - t0, 1))
+            print(
+                f"synth-twin job {done_now}/{len(jobs)} rate={rate:.2f} jobs/s eta={(len(jobs) - done_now) / max(0.05, rate) / 60:.0f}min",
+                flush=True,
+            )
+    log_event(
+        "synth-twin-pass-done", kept=kept, bad=bad, wall_sec=round(time.time() - t0, 1)
+    )
 
 
-def cmd_synth(threads: int, shard: int = 0, num_shards: int = 1, topup_rounds: int = 2,
-              twins_only: bool = False) -> int:
+def cmd_synth(
+    threads: int,
+    shard: int = 0,
+    num_shards: int = 1,
+    topup_rounds: int = 2,
+    twins_only: bool = False,
+) -> int:
     mono_path = GEN_DIR / f"synth-mono.shard{shard}.jsonl"
     twin_path = GEN_DIR / f"synth-twins.shard{shard}.jsonl"
     gen = Generator(threads, ctx=1280)  # synth prompts are small; lean KV
     if not twins_only:
-        _run_mono_pass(gen, mono_path, only_missing=False, shard=shard, num_shards=num_shards)
-    _run_twin_pass(gen, twin_path, only_missing=False, shard=shard, num_shards=num_shards)
+        _run_mono_pass(
+            gen, mono_path, only_missing=False, shard=shard, num_shards=num_shards
+        )
+    _run_twin_pass(
+        gen, twin_path, only_missing=False, shard=shard, num_shards=num_shards
+    )
     for r in range(topup_rounds):
         log_event("synth-topup-round", shard=shard, round=r + 1)
         if not twins_only:
-            _run_mono_pass(gen, mono_path, only_missing=True, shard=shard, num_shards=num_shards)
-        _run_twin_pass(gen, twin_path, only_missing=True, shard=shard, num_shards=num_shards)
+            _run_mono_pass(
+                gen, mono_path, only_missing=True, shard=shard, num_shards=num_shards
+            )
+        _run_twin_pass(
+            gen, twin_path, only_missing=True, shard=shard, num_shards=num_shards
+        )
     return 0
 
 
@@ -701,7 +935,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.cmd == "translate-real":
         return cmd_translate_real(args.threads, args.shard, args.num_shards)
     if args.cmd == "synth":
-        return cmd_synth(args.threads, args.shard, args.num_shards, twins_only=args.twins_only)
+        return cmd_synth(
+            args.threads, args.shard, args.num_shards, twins_only=args.twins_only
+        )
     return 2
 
 

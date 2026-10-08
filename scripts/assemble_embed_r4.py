@@ -56,7 +56,6 @@ for p in (str(REPO_ROOT / "src"), str(_ENGINE)):
         sys.path.insert(0, p)
 
 from training.dataset.prepare_dataset import (  # noqa: E402
-    count_tokens,
     detect_lang,
     normalise,
 )
@@ -65,7 +64,6 @@ from gen_embed_r4_texts import (  # noqa: E402
     MIN_CHARS,
     MAX_CHARS,
     REAL_PART,
-    RUN_LOG,
     TRANSLATED_SEED_DIR,
     acceptable,
     load_jsonl,
@@ -125,7 +123,12 @@ def build_judged_hashes() -> set[str]:
             texts.append(para)
     texts += [q.text for q in GOLDEN_QUERIES]
     hs = {text_hash(t) for t in texts if len(normalise(t)) >= MIN_CHARS}
-    log_event("decontam-judged-loaded", entries=len(LABELLED_ENTRIES), queries=len(GOLDEN_QUERIES), hashes=len(hs))
+    log_event(
+        "decontam-judged-loaded",
+        entries=len(LABELLED_ENTRIES),
+        queries=len(GOLDEN_QUERIES),
+        hashes=len(hs),
+    )
     return hs
 
 
@@ -183,7 +186,9 @@ def build_round3_hashes() -> set[str]:
             if len(t) >= MIN_CHARS:
                 texts.append(t)
     hs = hashset_of_texts(texts)
-    log_event("decontam-round3-loaded", rows=n_rows, synthetic_rows=n_synth, hashes=len(hs))
+    log_event(
+        "decontam-round3-loaded", rows=n_rows, synthetic_rows=n_synth, hashes=len(hs)
+    )
     return hs
 
 
@@ -314,7 +319,10 @@ def assemble(min_share: float = 0.15) -> dict:
     counters: Counter[str] = Counter()
     seen: set[str] = set()
     kept: list[tuple[str, str, str]] = []
-    is_translated = lambda src: src.startswith("translated-") or src.startswith("twin-")
+
+    def is_translated(src: str) -> bool:
+        return src.startswith("translated-") or src.startswith("twin-")
+
     for name, rows in collectors:
         for text, lang, src in rows:
             if not acceptable(text):  # A6 gate
@@ -338,7 +346,7 @@ def assemble(min_share: float = 0.15) -> dict:
 
     total = len(kept)
     by_source = Counter(src for _t, _l, src in kept)
-    ru = sum(1 for _t, l, _s in kept if l == "ru")
+    ru = sum(1 for _t, lang, _s in kept if lang == "ru")
     translated_n = sum(1 for _t, _l, src in kept if is_translated(src))
     ru_share = ru / total
     tr_share = translated_n / total
@@ -364,10 +372,20 @@ def assemble(min_share: float = 0.15) -> dict:
     val_path = OUT_DIR / "val.jsonl"
     with open(train_path, "w", encoding="utf-8") as fh:
         for text, lang, src in train_rows:
-            fh.write(json.dumps({"text": text, "lang": lang, "source": src}, ensure_ascii=False) + "\n")
+            fh.write(
+                json.dumps(
+                    {"text": text, "lang": lang, "source": src}, ensure_ascii=False
+                )
+                + "\n"
+            )
     with open(val_path, "w", encoding="utf-8") as fh:
         for text, lang, src in val_rows:
-            fh.write(json.dumps({"text": text, "lang": lang, "source": src}, ensure_ascii=False) + "\n")
+            fh.write(
+                json.dumps(
+                    {"text": text, "lang": lang, "source": src}, ensure_ascii=False
+                )
+                + "\n"
+            )
     digest = hashlib.sha256()
     digest.update(train_path.read_bytes())
     digest.update(val_path.read_bytes())
@@ -382,9 +400,14 @@ def assemble(min_share: float = 0.15) -> dict:
     a4 = ru_share >= 0.40
     a5 = tr_share >= min_share
     a6 = all(acceptable(t) for t, _l, _s in final_texts)
-    asserts = {"A1_judged_intersection": a1 == 0, "A2_holdout_intersection": a2 == 0,
-               "A3_round3_verbatim": a3 == 0, "A4_ru_share_ge_040": a4,
-               "A5_translated_share_ge_015": a5, "A6_gates": a6}
+    asserts = {
+        "A1_judged_intersection": a1 == 0,
+        "A2_holdout_intersection": a2 == 0,
+        "A3_round3_verbatim": a3 == 0,
+        "A4_ru_share_ge_040": a4,
+        "A5_translated_share_ge_015": a5,
+        "A6_gates": a6,
+    }
     log_event(
         "assemble-done",
         total=total,
@@ -404,13 +427,19 @@ def assemble(min_share: float = 0.15) -> dict:
         "built_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "fingerprint": fp,
         "counts": {"total": total, "train": len(train_rows), "val": len(val_rows)},
-        "shares": {"ru": round(ru_share, 4), "translated_num": translated_n, "translated_den": total,
-                    "translated": round(tr_share, 4)},
+        "shares": {
+            "ru": round(ru_share, 4),
+            "translated_num": translated_n,
+            "translated_den": total,
+            "translated": round(tr_share, 4),
+        },
         "by_source": dict(sorted(by_source.items())),
         "exclusion_counters": dict(counters),
         "asserts": asserts,
     }
-    (OUT_DIR / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8")
+    (OUT_DIR / "report.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
     if not all(asserts.values()):
         failed = [k for k, v in asserts.items() if not v]
         print(f"ASSERT FAILED: {failed}", flush=True)
@@ -421,17 +450,32 @@ def assemble(min_share: float = 0.15) -> dict:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="assemble the round-4 embedder corpus")
     p.add_argument("--min-share", type=float, default=0.15)
-    p.add_argument("--verify", action="store_true", help="double assembly; assert byte-identical fingerprint")
+    p.add_argument(
+        "--verify",
+        action="store_true",
+        help="double assembly; assert byte-identical fingerprint",
+    )
     args = p.parse_args(argv)
     rc = assemble(args.min_share)
     if args.verify and rc == 0:
         fp1 = (OUT_DIR / "fingerprint.txt").read_text()
-        b1 = (OUT_DIR / "train.jsonl").read_bytes(), (OUT_DIR / "val.jsonl").read_bytes()
+        b1 = (
+            (OUT_DIR / "train.jsonl").read_bytes(),
+            (OUT_DIR / "val.jsonl").read_bytes(),
+        )
         rc = assemble(args.min_share)
         fp2 = (OUT_DIR / "fingerprint.txt").read_text()
-        b2 = (OUT_DIR / "train.jsonl").read_bytes(), (OUT_DIR / "val.jsonl").read_bytes()
+        b2 = (
+            (OUT_DIR / "train.jsonl").read_bytes(),
+            (OUT_DIR / "val.jsonl").read_bytes(),
+        )
         same = fp1 == fp2 and b1 == b2
-        log_event("verify-double-assembly", byte_identical=same, fp1=fp1.strip()[:16], fp2=fp2.strip()[:16])
+        log_event(
+            "verify-double-assembly",
+            byte_identical=same,
+            fp1=fp1.strip()[:16],
+            fp2=fp2.strip()[:16],
+        )
         if not same:
             return 1
     return rc

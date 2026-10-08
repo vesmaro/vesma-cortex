@@ -19,15 +19,17 @@ import time
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-for p in (str(REPO_ROOT / "src"), "/var/home/abyss/LABs/Projects/Project-Vesma/vesma",
-          str(REPO_ROOT / "scripts")):
+for p in (
+    str(REPO_ROOT / "src"),
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma",
+    str(REPO_ROOT / "scripts"),
+):
     if p not in sys.path:
         sys.path.insert(0, p)
 
 from gen_embed_r4_texts import (  # noqa: E402
     BATCH,
     GEN_DIR,
-    RUN_LOG,
     _clean_translation,
     _is_copy,
     _translate_prompt,
@@ -60,7 +62,6 @@ def unique_llm_units() -> list[tuple[str, str, str]]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    import argparse
 
     p = argparse.ArgumentParser()
     p.add_argument("--threads", type=int, default=8)
@@ -101,15 +102,40 @@ def main(argv: list[str] | None = None) -> int:
             )
             if ok:
                 kept += 1
-                rows.append({"job": jid, "key": key, "target_lang": tgt, "status": "ok", "text": text})
+                rows.append(
+                    {
+                        "job": jid,
+                        "key": key,
+                        "target_lang": tgt,
+                        "status": "ok",
+                        "text": text,
+                    }
+                )
             else:
                 bad += 1
-                rows.append({"job": jid, "key": key, "target_lang": tgt, "status": "fail", "text": text})
+                rows.append(
+                    {
+                        "job": jid,
+                        "key": key,
+                        "target_lang": tgt,
+                        "status": "fail",
+                        "text": text,
+                    }
+                )
         append_jsonl(out_path, rows)
         if n % 10 == 0:
             rate = (n + 1) / max(1.0, time.time() - t0)
-            print(f"translate-llm job {n + 1}/{len(jobs)} rate={rate:.2f} eta={(len(jobs)-n-1)/max(0.05, rate)/60:.0f}min", flush=True)
-    log_event("translate-llm-done", shard=args.shard, kept=kept, bad=bad, wall_sec=round(time.time() - t0, 1))
+            print(
+                f"translate-llm job {n + 1}/{len(jobs)} rate={rate:.2f} eta={(len(jobs) - n - 1) / max(0.05, rate) / 60:.0f}min",
+                flush=True,
+            )
+    log_event(
+        "translate-llm-done",
+        shard=args.shard,
+        kept=kept,
+        bad=bad,
+        wall_sec=round(time.time() - t0, 1),
+    )
     return 0
 
 

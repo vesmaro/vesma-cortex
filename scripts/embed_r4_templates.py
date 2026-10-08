@@ -49,31 +49,123 @@ from collections.abc import Callable
 # ── Domain vocabularies (EN/RU lists are length-symmetric by design) ─────────
 
 _PROJECTS_EN = [
-    "kepler-etl","juno-metrics","vesta-cache","orion-auth","lyra-queue","rhea-scheduler","corvus-alerts","sable-gateway","mira-docs","talon-store",
+    "kepler-etl",
+    "juno-metrics",
+    "vesta-cache",
+    "orion-auth",
+    "lyra-queue",
+    "rhea-scheduler",
+    "corvus-alerts",
+    "sable-gateway",
+    "mira-docs",
+    "talon-store",
 ]
 _PROJECTS_RU = [
-    "кеплер-етл","юнона-метрикс","веста-кэш","орион-авторизация","лира-очередь","рея-планировщик","корвус-алерты","сейбл-шлюз","мира-доки","талон-стор",
+    "кеплер-етл",
+    "юнона-метрикс",
+    "веста-кэш",
+    "орион-авторизация",
+    "лира-очередь",
+    "рея-планировщик",
+    "корвус-алерты",
+    "сейбл-шлюз",
+    "мира-доки",
+    "талон-стор",
 ]
 
 _TOPICS_EN = [
-    "warm replicas","index compaction","payload compression","schema drift checks","queue lag alarms","fixture factories","cold storage tiering","blue-green cutover","latency budgets","snapshot pruning","query plan regression","webhook retries","quota enforcement","canary analysis","feature flag cleanup","disk watermarking","connection draining","binary size budget","seed scripts","multi-region failover","cache stampede control","trace sampling","slo burn alerts","partition rebalancing",
+    "warm replicas",
+    "index compaction",
+    "payload compression",
+    "schema drift checks",
+    "queue lag alarms",
+    "fixture factories",
+    "cold storage tiering",
+    "blue-green cutover",
+    "latency budgets",
+    "snapshot pruning",
+    "query plan regression",
+    "webhook retries",
+    "quota enforcement",
+    "canary analysis",
+    "feature flag cleanup",
+    "disk watermarking",
+    "connection draining",
+    "binary size budget",
+    "seed scripts",
+    "multi-region failover",
+    "cache stampede control",
+    "trace sampling",
+    "slo burn alerts",
+    "partition rebalancing",
 ]
 _TOPICS_RU = [
-    "тёплые реплики","компакция индекса","сжатие полезной нагрузки","проверки дрейфа схемы","алерты отставания очереди","фабрики фикстур","холодное хранилище","переключение blue-green","бюджеты задержки","обрезка снапшотов","регресс плана запроса","повторы вебхуков","квоты пользователей","канареечный анализ","чистка фиче-флагов","водяные знаки диска","дренирование соединений","бюджет размера бинарника","скрипты сидирования","мультирегиональный фейловер","контроль шторма кэша","сэмплирование трассиров","алерты выгорания SLO","перебалансировка партиций",
+    "тёплые реплики",
+    "компакция индекса",
+    "сжатие полезной нагрузки",
+    "проверки дрейфа схемы",
+    "алерты отставания очереди",
+    "фабрики фикстур",
+    "холодное хранилище",
+    "переключение blue-green",
+    "бюджеты задержки",
+    "обрезка снапшотов",
+    "регресс плана запроса",
+    "повторы вебхуков",
+    "квоты пользователей",
+    "канареечный анализ",
+    "чистка фиче-флагов",
+    "водяные знаки диска",
+    "дренирование соединений",
+    "бюджет размера бинарника",
+    "скрипты сидирования",
+    "мультирегиональный фейловер",
+    "контроль шторма кэша",
+    "сэмплирование трассиров",
+    "алерты выгорания SLO",
+    "перебалансировка партиций",
 ]
 
 _MODULES_EN = [
-    "src/etl/pipeline.py","src/metrics/agg.py","src/cache/warm.py","src/auth/session.py","src/queue/lag.py","src/sched/cron.py","src/alerts/route.py","src/gw/limits.py","src/docs/build.py","src/store/compaction.py",
+    "src/etl/pipeline.py",
+    "src/metrics/agg.py",
+    "src/cache/warm.py",
+    "src/auth/session.py",
+    "src/queue/lag.py",
+    "src/sched/cron.py",
+    "src/alerts/route.py",
+    "src/gw/limits.py",
+    "src/docs/build.py",
+    "src/store/compaction.py",
 ]
 _MODULES_RU = [
-    "модуль etl-конвейера","модуль агрегации метрик","модуль прогрева кэша","модуль сессий авторизации","модуль отставания очереди","модуль планировщика","модуль маршрутизации алертов","модуль лимитов шлюза","модуль сборки документации","модуль компакции хранилища",
+    "модуль etl-конвейера",
+    "модуль агрегации метрик",
+    "модуль прогрева кэша",
+    "модуль сессий авторизации",
+    "модуль отставания очереди",
+    "модуль планировщика",
+    "модуль маршрутизации алертов",
+    "модуль лимитов шлюза",
+    "модуль сборки документации",
+    "модуль компакции хранилища",
 ]
 
 _AGENTS_EN = [
-    "release-agent","oncall-agent","platform-agent","ml-agent","docs-agent","sec-agent",
+    "release-agent",
+    "oncall-agent",
+    "platform-agent",
+    "ml-agent",
+    "docs-agent",
+    "sec-agent",
 ]
 _AGENTS_RU = [
-    "релизный агент","дежурный агент","платформенный агент","ml-агент","документационный агент","агент безопасности",
+    "релизный агент",
+    "дежурный агент",
+    "платформенный агент",
+    "ml-агент",
+    "документационный агент",
+    "агент безопасности",
 ]
 
 _NAMES_EN = ["Noor", "Felix", "Iris", "Pavel", "Sana", "Yusuf"]
@@ -84,7 +176,14 @@ _NAMES_RU = ["Нур", "Феликс", "Ирис", "Павел", "Сана", "Ю
 _VERSIONS = ["0.7.4", "1.1.0", "2.9.3", "4.0.2", "6.3.5", "7.1.8", "21.7.2", "12.0.4"]
 
 _DATES = [
-    "2025-02-09","2025-04-13","2025-06-17","2025-08-25","2025-10-11","2025-12-03","2026-02-27","2026-03-14",
+    "2025-02-09",
+    "2025-04-13",
+    "2025-06-17",
+    "2025-08-25",
+    "2025-10-11",
+    "2025-12-03",
+    "2026-02-27",
+    "2026-03-14",
 ]
 
 _SEVERITIES_EN = ["blocker", "critical", "major", "minor"]
@@ -107,30 +206,85 @@ _BUG_STATUSES_RU = [
 
 _COMMIT_TYPES = ["feat", "fix", "refactor", "test", "docs", "chore"]
 _COMMIT_SCOPES = [
-    "etl","metrics","warm","session","lag","sched","alerts","gw","docs","store",
+    "etl",
+    "metrics",
+    "warm",
+    "session",
+    "lag",
+    "sched",
+    "alerts",
+    "gw",
+    "docs",
+    "store",
 ]
 
 _ENV_KEYS = [
-    "FLUSH_INTERVAL_S","RETRY_JITTER_MS","PAGE_MAX","SHARD_COUNT","WARM_POOL","DRAIN_TIMEOUT_S","ALERT_WINDOW_M","COMPACTION_GB",
+    "FLUSH_INTERVAL_S",
+    "RETRY_JITTER_MS",
+    "PAGE_MAX",
+    "SHARD_COUNT",
+    "WARM_POOL",
+    "DRAIN_TIMEOUT_S",
+    "ALERT_WINDOW_M",
+    "COMPACTION_GB",
 ]
 _ENV_VALUES = ["2", "5", "15", "45", "120", "600"]
 
 _VENUES = ["EMNLP", "SIGIR", "OSDI", "WWW", "ICDE"]
 
-_FUNCS = ["ingest", "evict", "seal", "compile", "snapshot", "rewind", "drain", "amplify"]
+_FUNCS = [
+    "ingest",
+    "evict",
+    "seal",
+    "compile",
+    "snapshot",
+    "rewind",
+    "drain",
+    "amplify",
+]
 _PARAMS = ["shard_key", "flush_ms", "max_depth", "warmup", "ttl_s", "quorum"]
 
 _SNIPPET_NAMES_EN = [
-    "lease","ledger","cursor","bucket","router","codec","wal","probe","shard","buffer",
+    "lease",
+    "ledger",
+    "cursor",
+    "bucket",
+    "router",
+    "codec",
+    "wal",
+    "probe",
+    "shard",
+    "buffer",
 ]
 _SNIPPET_NAMES_RU = [
-    "аренда","леджер","курсор","ведро","маршрутизатор","кодек","журнал","проба","шард","буфер",
+    "аренда",
+    "леджер",
+    "курсор",
+    "ведро",
+    "маршрутизатор",
+    "кодек",
+    "журнал",
+    "проба",
+    "шард",
+    "буфер",
 ]
 
 _MIXED_TERMS = [
-    "vector index","lease renewal","chunk merger","flush barrier","shadow traffic","tombstone sweep",
+    "vector index",
+    "lease renewal",
+    "chunk merger",
+    "flush barrier",
+    "shadow traffic",
+    "tombstone sweep",
 ]
-_MIXED_ENTITIES = ["segments", "replicas", "checkpoints", "fragments", "partitions", "manifests"]
+_MIXED_ENTITIES = [
+    "segments",
+    "replicas",
+    "checkpoints",
+    "fragments",
+    "partitions",
+    "manifests",
+]
 
 # ── Template families ────────────────────────────────────────────────────────
 #
@@ -176,7 +330,14 @@ def _ru_notes(rng: random.Random) -> list[str]:
 
 def _en_chat(rng: random.Random) -> list[str]:
     out: list[str] = []
-    openers = ["Quick check:", "Heads up:", "Found it —", "Follow-up on", "Status:", "FYI:"]
+    openers = [
+        "Quick check:",
+        "Heads up:",
+        "Found it —",
+        "Follow-up on",
+        "Status:",
+        "FYI:",
+    ]
     closers = [
         "will do.",
         "please confirm.",
@@ -231,11 +392,15 @@ def _en_code_headlines(rng: random.Random) -> list[str]:
         out.append(
             f"Refactor {module} — split the read path from the write path, unit tests first."
         )
-        out.append(f"Fix in {module}: off-by-one in the pagination cursor, regression test added.")
+        out.append(
+            f"Fix in {module}: off-by-one in the pagination cursor, regression test added."
+        )
         out.append(
             f"{module}: replace bare except with typed errors, keep the log line on failure."
         )
-        out.append(f"Perf note on {module}: the hot path allocates per request — reuse the buffer.")
+        out.append(
+            f"Perf note on {module}: the hot path allocates per request — reuse the buffer."
+        )
         out.append(
             f"Coverage gap in {module}: the error branch has no test, add one before release."
         )
@@ -246,7 +411,9 @@ def _ru_code_headlines(rng: random.Random) -> list[str]:
     out: list[str] = []
     for module in _MODULES_RU:
         out.append(f"{module}: вынести хелпер повторов в общий модуль — уже три копии.")
-        out.append(f"Рефакторинг {module}: разделить чтение и запись, сначала юнит-тесты.")
+        out.append(
+            f"Рефакторинг {module}: разделить чтение и запись, сначала юнит-тесты."
+        )
         out.append(
             f"Исправление в {module}: ошибка на единицу в курсоре пагинации, добавлен регресс-тест."
         )
@@ -257,7 +424,9 @@ def _ru_code_headlines(rng: random.Random) -> list[str]:
             f"Про производительность {module}: горячий путь аллоцирует на каждый "
             "запрос — переиспользовать буфер."
         )
-        out.append(f"Пробел в покрытии {module}: ветка ошибок без теста, добавить до релиза.")
+        out.append(
+            f"Пробел в покрытии {module}: ветка ошибок без теста, добавить до релиза."
+        )
     return out
 
 
@@ -499,7 +668,9 @@ def _en_config(rng: random.Random) -> list[str]:
         out.append(
             f'json limits for {proj}: {{"rps": {rps}, "burst": {rps * 2}, "retries": {retries}}}'
         )
-        out.append(f'json rollout ({proj}): {{"canary": true, "steps": [1, 10, 50, 100]}}')
+        out.append(
+            f'json rollout ({proj}): {{"canary": true, "steps": [1, 10, 50, 100]}}'
+        )
     # env: key x value (2 shapes)
     env_shapes = [
         "env: {k}={v}  # deploy override, revert after the rollout",
@@ -531,7 +702,9 @@ def _ru_config(rng: random.Random) -> list[str]:
         out.append(
             f'json лимиты для {proj}: {{"rps": {rps}, "burst": {rps * 2}, "retries": {retries}}}'
         )
-        out.append(f'json раскатка ({proj}): {{"canary": true, "steps": [1, 10, 50, 100]}}')
+        out.append(
+            f'json раскатка ({proj}): {{"canary": true, "steps": [1, 10, 50, 100]}}'
+        )
     env_shapes = [
         "env: {k}={v}  # переопределение на выкат, откатить после релиза",
         "строка dotenv: {k}={v} — только в стейджинговом namespace",

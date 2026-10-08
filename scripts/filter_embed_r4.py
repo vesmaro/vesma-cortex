@@ -37,7 +37,6 @@ for p in (str(REPO_ROOT / "src"), str(_ENGINE)):
 from training.dataset.prepare_dataset import normalise  # noqa: E402
 from gen_embed_r4_texts import (  # noqa: E402
     GEN_DIR,
-    RUN_LOG,
     TRANSLATED_SEED_DIR,
     load_jsonl,
     log_event,
@@ -68,7 +67,13 @@ class Embedder:
         out = []
         for i in range(0, len(texts), batch):
             chunk = texts[i : i + batch]
-            enc = self.tok(chunk, return_tensors="pt", padding=True, truncation=True, max_length=self.max_len)
+            enc = self.tok(
+                chunk,
+                return_tensors="pt",
+                padding=True,
+                truncation=True,
+                max_length=self.max_len,
+            )
             with torch.no_grad():
                 hidden = self.model(**enc).last_hidden_state
             # last-token pooling (Qwen3-Embedding contract)
@@ -112,14 +117,15 @@ def cmd_filter(min_cos: float, threads: int) -> int:
         log_event(mark_label, file=path.name, checked=len(live), rejected=rejected)
 
     units = {}
-    from gen_embed_r4_texts import real_units
 
     for key, _tgt, unit in real_units():
         units[key] = unit
 
     # 1. real-record translations: cos-gate per shard file --------------------
     for tr_path in sorted(GEN_DIR.glob("real-translations.shard*.jsonl")):
-        cos_gate(tr_path, lambda r: (units[r["key"]], r["text"]), "filter-real-translations")
+        cos_gate(
+            tr_path, lambda r: (units[r["key"]], r["text"]), "filter-real-translations"
+        )
 
     # twins: ru/en pairs per shard file
     for tw_path in sorted(GEN_DIR.glob("synth-twins.shard*.jsonl")):
@@ -129,9 +135,16 @@ def cmd_filter(min_cos: float, threads: int) -> int:
     for key, _tgt, unit in unique_llm_units():
         llm_units[key] = unit
     for path in sorted(GEN_DIR.glob("llm-translations.shard*.jsonl")):
-        cos_gate(path, lambda r: (llm_units[r["key"]], r["text"]), "filter-llm-translations")
-    log_event("filter-pairs-done", checked=checked, rejected=rejections, min_cos=min_cos,
-              wall_sec=round(time.time() - t0, 1))
+        cos_gate(
+            path, lambda r: (llm_units[r["key"]], r["text"]), "filter-llm-translations"
+        )
+    log_event(
+        "filter-pairs-done",
+        checked=checked,
+        rejected=rejections,
+        min_cos=min_cos,
+        wall_sec=round(time.time() - t0, 1),
+    )
 
     # 2. seed pairs: measure only (TL-validated content is not re-gated) ------
     seed_pairs: list[tuple[str, str]] = []
@@ -140,8 +153,12 @@ def cmd_filter(min_cos: float, threads: int) -> int:
             for a_key, b_key in (("record", "translation"), ("record", "sibling")):
                 a, b = row.get(a_key), row.get(b_key)
                 if isinstance(a, dict) and isinstance(b, dict):
-                    ta = normalise(f"{a.get('title', '')}. {a.get('body', '')}").strip(". ")
-                    tb = normalise(f"{b.get('title', '')}. {b.get('body', '')}").strip(". ")
+                    ta = normalise(f"{a.get('title', '')}. {a.get('body', '')}").strip(
+                        ". "
+                    )
+                    tb = normalise(f"{b.get('title', '')}. {b.get('body', '')}").strip(
+                        ". "
+                    )
                     if len(ta) >= 40 and len(tb) >= 40:
                         seed_pairs.append((ta, tb))
     if seed_pairs:
@@ -170,7 +187,9 @@ def cmd_filter(min_cos: float, threads: int) -> int:
     for path in sorted(GEN_DIR.glob("synth-mono.shard*.jsonl")):
         for r in load_jsonl(path):
             if r.get("status") == "ok":
-                by_fam_lang.setdefault((r["family"], r["lang"]), []).append(normalise(r["text"]))
+                by_fam_lang.setdefault((r["family"], r["lang"]), []).append(
+                    normalise(r["text"])
+                )
     rng = random.Random(42)
     report = {}
     worst = 0.0
@@ -185,8 +204,18 @@ def cmd_filter(min_cos: float, threads: int) -> int:
         mx = cos_matrix(a, b).max().item()
         worst = max(worst, mx)
         report[f"{fam}-{lang}"] = round(mx, 4)
-    log_event("filter-nonverbatim-sample", worst_max_cos=round(worst, 4), flag_at=0.97, per_family=report)
-    log_event("filter-done", total_checked=checked, total_rejected=rejections, wall_sec=round(time.time() - t0, 1))
+    log_event(
+        "filter-nonverbatim-sample",
+        worst_max_cos=round(worst, 4),
+        flag_at=0.97,
+        per_family=report,
+    )
+    log_event(
+        "filter-done",
+        total_checked=checked,
+        total_rejected=rejections,
+        wall_sec=round(time.time() - t0, 1),
+    )
     return 0
 
 
@@ -197,7 +226,9 @@ def append_rows(path: Path, rows: list[dict]) -> None:
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="teacher-embedding filter for the round-4 pool")
+    p = argparse.ArgumentParser(
+        description="teacher-embedding filter for the round-4 pool"
+    )
     p.add_argument("--min-cos", type=float, default=0.55)
     p.add_argument("--threads", type=int, default=10)
     args = p.parse_args(argv)
