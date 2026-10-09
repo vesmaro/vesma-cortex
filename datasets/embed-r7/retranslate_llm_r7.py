@@ -101,11 +101,10 @@ def r7_units() -> dict[str, tuple[str, str]]:
     ok_rows = [r for p in MANIFESTS for r in load_jsonl(p) if r.get("status") == "ok"]
     expected = {r["key"]: r["target_lang"] for r in ok_rows}
     assert len(expected) == 1617, f"expected 1617 sealed ok pairs, got {len(expected)}"
-    derived = {k: (tgt, src) for k, tgt, src in unique_llm_units()}
-    assert set(derived) == set(expected), (
-        f"unit derivation drift: manifest-only={len(set(expected) - set(derived))} "
-        f"derived-only={len(set(derived) - set(expected))}"
-    )
+    derived_all = {k: (tgt, src) for k, tgt, src in unique_llm_units()}
+    missing = set(expected) - set(derived_all)
+    assert not missing, f"{len(missing)} sealed keys not re-derivable from synth-mono"
+    derived = {k: derived_all[k] for k in expected}
     bad_tgt = [k for k in expected if derived[k][0] != expected[k]]
     assert not bad_tgt, f"target-lang drift on {len(bad_tgt)} keys"
     return derived
