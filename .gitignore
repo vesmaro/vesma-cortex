@@ -68,3 +68,17 @@ __pycache__/
 # embed-r4 generation venv (own venv, isolation rule — never another
 # product's env) and generation scratch logs
 /.venv-r4gen/
+
+# embed-r7 corpus (round-7 llm-quality variable): scripts + numbers-only
+# report + run-log only (same class as datasets/embed-r5); corpus texts
+# and generation manifests stay gitignored under data/embed-r7/.
+!/datasets/embed-r7/
+!/datasets/embed-r7/retranslate_llm_r7.py
+!/datasets/embed-r7/filter_llm_r7.py
+!/datasets/embed-r7/build_embed_r7_corpus.py
+!/datasets/embed-r7/run-log.jsonl
+!/datasets/embed-r7/corpus_report.numbers-only.json
+
+# embed-r7 generation venv (own venv, isolation rule — never another
+# product's env; mirrors /.venv-r4gen/)
+/.venv-r7gen/
