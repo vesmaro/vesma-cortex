@@ -116,7 +116,7 @@ def load_state(shard_paths: list[Path]) -> tuple[dict[str, str], set[tuple[str, 
     done: set[tuple[str, int]] = set()
     for p in shard_paths:
         for r in load_jsonl(p):
-            done[(r["key"], r["pass"])] = True
+            done.add((r["key"], r["pass"]))
             latest[r["key"]] = r["status"]
     return latest, done
 
