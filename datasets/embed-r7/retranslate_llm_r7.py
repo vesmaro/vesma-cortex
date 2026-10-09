@@ -65,7 +65,6 @@ from gen_embed_r4_texts import (  # noqa: E402
     append_jsonl,
     detect_lang,
     load_jsonl,
-    log_event,
     missing_digit_tokens,
     normalise,
 )

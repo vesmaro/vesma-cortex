@@ -43,8 +43,21 @@ MIN_COS = 0.55
 GRAM_LO, GRAM_HI = 8, 13
 
 sys.path.insert(0, str(R4_WT / "scripts"))
-from gen_embed_r4_texts import load_jsonl, log_event, normalise  # noqa: E402
+from gen_embed_r4_texts import load_jsonl, normalise  # noqa: E402
 from translate_llm_rows import unique_llm_units  # noqa: E402
+
+
+def log_event(event: str, **fields: object) -> None:
+    """Own append-only run-log (numbers only) — NOT the r4 run-log."""
+    import json as _json
+
+    RUN_LOG.parent.mkdir(parents=True, exist_ok=True)
+    with open(RUN_LOG, "a", encoding="utf-8") as fh:
+        fh.write(_json.dumps(
+            {"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+             "event": event, **fields},
+            ensure_ascii=False) + "\n")
+    print(f"[r7-run-log] {event} {fields}", flush=True)
 
 
 def ngrams(text: str) -> set[str]:

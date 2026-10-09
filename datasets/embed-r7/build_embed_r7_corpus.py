@@ -138,7 +138,7 @@ def assemble() -> tuple[bytes, bytes, dict]:
     assert len(gate_manifest["excluded_corpus_rows"]) == 315
     assert len(excluded_shas) == 360, len(excluded_shas)
 
-    gate_rows = [json.loads(l) for l in open(R5_GATE / "gate_set.jsonl", encoding="utf-8")]
+    gate_rows = [json.loads(line) for line in open(R5_GATE / "gate_set.jsonl", encoding="utf-8")]
     assert len(gate_rows) == N_GATE_PAIRS
     gate_dir = Counter(g["direction"] for g in gate_rows)
     assert gate_dir == Counter({"ru->en": 90, "en->ru": 90}), dict(gate_dir)
@@ -228,7 +228,7 @@ def assemble() -> tuple[bytes, bytes, dict]:
     tat_manifest = json.loads((R5_GATE / "tatoeba_manifest.json").read_text(encoding="utf-8"))
     tatoeba_sha = sha256_file(R5_GATE / "tatoeba_notes.jsonl")
     assert tat_manifest["integrity"]["tatoeba_notes_sha256"] == tatoeba_sha == EXPECTED_TATOEBA_SHA
-    tat_rows_raw = [json.loads(l) for l in open(R5_GATE / "tatoeba_notes.jsonl", encoding="utf-8")]
+    tat_rows_raw = [json.loads(line) for line in open(R5_GATE / "tatoeba_notes.jsonl", encoding="utf-8")]
     assert len(tat_rows_raw) == N_TATOEBA_NOTES
     tat_hashes = {text_hash(n[f"text_{s}"]) for n in tat_rows_raw for s in ("src", "dst")}
     assert len(tat_hashes) == N_TATOEBA_ROWS

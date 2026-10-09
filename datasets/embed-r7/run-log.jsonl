@@ -1,0 +1,4 @@
+{"ts": "2026-10-09T23:15:20Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 1, "shard": 0, "num_shards": 203, "units_total": 1617, "todo": 8}
+{"ts": "2026-10-09T23:16:44Z", "event": "retranslate-done", "gen_pass": 1, "shard": 0, "kept": 7, "bad": 1, "wall_sec": 79.9}
+{"ts": "2026-10-09T23:22:28Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 1, "shard": 1, "num_shards": 2, "units_total": 1617, "todo": 808}
+{"ts": "2026-10-09T23:22:28Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 1, "shard": 0, "num_shards": 2, "units_total": 1617, "todo": 801}
