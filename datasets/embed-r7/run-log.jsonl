@@ -36,3 +36,4 @@
 {"ts": "2026-10-10T03:30:34Z", "event": "r7-filter-cos", "file": "llm-translations-r7.shard1.jsonl", "checked": 24, "rejected": 3}
 {"ts": "2026-10-10T03:30:34Z", "event": "r7-filter-ngram", "file": "llm-translations-r7.shard1.jsonl", "checked": 468, "rejected": 10}
 {"ts": "2026-10-10T03:30:34Z", "event": "r7-filter-done", "wall_sec": 42.5}
+{"ts_step": "build_embed_r7_corpus", "msg": "round-7 corpus assembled; train=24841 val=1228 total=26069; replaced=937/1617 llm pairs; fp=ad3d438f89ce91f47d279b63f1e88157ce747cb3a128399db1df707e8e1a3b7e; double_run_byte_identical=True; all asserts PASS"}

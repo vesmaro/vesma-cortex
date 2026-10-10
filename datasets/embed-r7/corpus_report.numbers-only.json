@@ -1,0 +1,206 @@
+{
+ "kind": "dataset-embed-r7-corpus-report",
+ "created": "2026-10-10",
+ "prereg": "docs/specs/embed-round7-prereg-llmquality.md §2 (ACTIVATED, owner-ratified 2026-10-10)",
+ "assert_set": "feat/embed-r7-corpus (this commit)",
+ "fingerprint": "ad3d438f89ce91f47d279b63f1e88157ce747cb3a128399db1df707e8e1a3b7e",
+ "counts": {
+  "train": 24841,
+  "val": 1228,
+  "total": 26069
+ },
+ "base": {
+  "fp": "e64fdbea65f0e6a4f2830a42ea6bd0d74a2974854d381427c4d5ba2ea4901c62",
+  "counts": {
+   "train.jsonl": 25420,
+   "val.jsonl": 1261
+  }
+ },
+ "gate": {
+  "sha": "cb36757769fb88f2806065f50348f5fd8383cfdb0c19c66e6335eac8ace01123",
+  "pairs": 180,
+  "by_direction": {
+   "en->ru": 90,
+   "ru->en": 90
+  },
+  "llm_stratum_pair_keys_preserved": true
+ },
+ "tatoeba": {
+  "sha": "0be59a697b00e2637a94ccae2ff82543d09844e2b81414c40462588cd2cc7130",
+  "notes": 750,
+  "rows": 1500,
+  "license": "CC-BY-2.0-FR"
+ },
+ "delta": {
+  "kind": "llm-class re-translation (round-7 single variable)",
+  "teacher": "Qwen/Qwen3-1.7B-GGUF Q8_0 (llama.cpp)",
+  "old_teacher": "Qwen/Qwen3-0.6B-GGUF Q8_0 (round-4)",
+  "sealed_pairs": 1617,
+  "llm_rows_in_base": 1549,
+  "replaced": 937,
+  "replaced_by_split": {
+   "train.jsonl": 891,
+   "val.jsonl": 46
+  },
+  "outcomes": {
+   "dropped:cos-reject": 6,
+   "dropped:fail": 589,
+   "dropped:ngram-reject": 17
+  },
+  "generation_attempts": {
+   "attempts": 3015,
+   "gate-fail:copy": 1765,
+   "gate-fail:cos": 20,
+   "gate-fail:digit-loss": 61,
+   "gate-fail:lang": 1895,
+   "gate-fail:len": 1,
+   "gate-fail:ngram-8-13-hit": 65
+  }
+ },
+ "removed": {
+  "by_split": {
+   "train.jsonl": 579,
+   "val.jsonl": 33
+  },
+  "total": 612,
+  "note": "round-5 exclusions already applied in the sealed base; round-7 removals are gate-failed llm pairs only"
+ },
+ "by_source": {
+  "train": {
+   "real-part-r4": 12243,
+   "synthetic-en-agentchat": 309,
+   "synthetic-en-bugs": 238,
+   "synthetic-en-chat": 412,
+   "synthetic-en-code": 69,
+   "synthetic-en-commits": 323,
+   "synthetic-en-config": 216,
+   "synthetic-en-docstrings": 236,
+   "synthetic-en-meeting": 108,
+   "synthetic-en-mixed": 117,
+   "synthetic-en-notes": 1037,
+   "synthetic-en-rules": 215,
+   "synthetic-en-science": 99,
+   "synthetic-en-snippets": 118,
+   "synthetic-en-tech": 386,
+   "synthetic-ru-agentchat": 329,
+   "synthetic-ru-bugs": 217,
+   "synthetic-ru-chat": 534,
+   "synthetic-ru-code": 96,
+   "synthetic-ru-commits": 394,
+   "synthetic-ru-config": 213,
+   "synthetic-ru-docstrings": 157,
+   "synthetic-ru-meeting": 116,
+   "synthetic-ru-mixed": 120,
+   "synthetic-ru-notes": 1142,
+   "synthetic-ru-rules": 212,
+   "synthetic-ru-science": 165,
+   "synthetic-ru-snippets": 115,
+   "synthetic-ru-tech": 372,
+   "tatoeba-en": 750,
+   "tatoeba-ru": 750,
+   "translated-dup": 110,
+   "translated-llm-r4": 891,
+   "translated-real-r4": 1318,
+   "translated-sibling": 152,
+   "twin-en-meeting": 23,
+   "twin-en-notes": 80,
+   "twin-en-rules": 47,
+   "twin-en-science": 48,
+   "twin-en-tech": 85,
+   "twin-ru-meeting": 24,
+   "twin-ru-notes": 81,
+   "twin-ru-rules": 47,
+   "twin-ru-science": 46,
+   "twin-ru-tech": 81
+  },
+  "val": {
+   "real-part-r4": 644,
+   "synthetic-en-agentchat": 16,
+   "synthetic-en-bugs": 11,
+   "synthetic-en-chat": 22,
+   "synthetic-en-code": 4,
+   "synthetic-en-commits": 17,
+   "synthetic-en-config": 11,
+   "synthetic-en-docstrings": 13,
+   "synthetic-en-meeting": 6,
+   "synthetic-en-mixed": 6,
+   "synthetic-en-notes": 55,
+   "synthetic-en-rules": 11,
+   "synthetic-en-science": 5,
+   "synthetic-en-snippets": 6,
+   "synthetic-en-tech": 19,
+   "synthetic-ru-agentchat": 18,
+   "synthetic-ru-bugs": 12,
+   "synthetic-ru-chat": 28,
+   "synthetic-ru-code": 4,
+   "synthetic-ru-commits": 21,
+   "synthetic-ru-config": 11,
+   "synthetic-ru-docstrings": 8,
+   "synthetic-ru-meeting": 6,
+   "synthetic-ru-mixed": 6,
+   "synthetic-ru-notes": 60,
+   "synthetic-ru-rules": 11,
+   "synthetic-ru-science": 9,
+   "synthetic-ru-snippets": 6,
+   "synthetic-ru-tech": 20,
+   "translated-dup": 6,
+   "translated-llm-r4": 46,
+   "translated-real-r4": 72,
+   "translated-sibling": 8,
+   "twin-en-meeting": 1,
+   "twin-en-notes": 5,
+   "twin-en-rules": 2,
+   "twin-en-science": 3,
+   "twin-en-tech": 5,
+   "twin-ru-meeting": 1,
+   "twin-ru-notes": 4,
+   "twin-ru-rules": 2,
+   "twin-ru-science": 2,
+   "twin-ru-tech": 5
+  }
+ },
+ "shares": {
+  "ru": 0.4318,
+  "translated_family": 0.1226,
+  "translated_family_train": 0.1221,
+  "llm_class": 0.0359,
+  "ceiling_translated_family": 0.3
+ },
+ "quality_gates": {
+  "digit_preservation": "pass by construction on collected rows (lost-run gate)",
+  "teacher_cos_min": 0.55,
+  "cos_collected": 937,
+  "cos_min": 0.5508,
+  "cos_p10": 0.6758,
+  "cos_median": 0.832,
+  "anti_copy": "pass by construction on collected rows (hash + jaccard 0.9)",
+  "ngram_8_13_zero_tolerance_new_material": true,
+  "final_ok": 937
+ },
+ "monitored": {
+  "note": "NOT asserts — inherited base is hash-level disjoint per chair Option 1; gram overlap recorded for trend/attribution",
+  "inherited_rows_sharing_gate_8_13_grams": 172,
+  "inherited_rows_sharing_burned_8_13_grams": 106
+ },
+ "asserts": {
+  "base_fingerprint_ok": true,
+  "r7_manifests_cover_1617_sealed_keys": true,
+  "pair_identity_preserved": true,
+  "no_generation_mixing": true,
+  "non_llm_rows_byte_preserved_in_order": true,
+  "excluded_keys_absent_360_shas": true,
+  "gate_llm_keys_absent": true,
+  "burned_verbatim_disjoint": true,
+  "tatoeba_sha_ok_and_intact": true,
+  "corpus_unique_hashes": true,
+  "train_val_disjoint": true,
+  "gate_directions_90_90": true,
+  "digit_preservation_all_rows": true,
+  "teacher_cos_ge_055_all_rows": true,
+  "anti_copy_all_rows": true,
+  "ngram_8_13_zero_tolerance_new_material": true,
+  "translated_family_share_le_030": true,
+  "double_run_byte_identical": true
+ },
+ "runtime_s": 3.7
+}
