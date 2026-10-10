@@ -25,3 +25,14 @@
 {"ts": "2026-10-10T02:45:35Z", "event": "r7-filter-cos", "file": "llm-translations-r7.shard1.jsonl", "checked": 48, "rejected": 3}
 {"ts": "2026-10-10T02:45:36Z", "event": "r7-filter-ngram", "file": "llm-translations-r7.shard1.jsonl", "checked": 459, "rejected": 12}
 {"ts": "2026-10-10T02:45:36Z", "event": "r7-filter-done", "wall_sec": 32.8}
+{"ts": "2026-10-10T02:54:19Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 3, "shard": 1, "num_shards": 2, "units_total": 1617, "todo": 361}
+{"ts": "2026-10-10T02:54:20Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 3, "shard": 0, "num_shards": 2, "units_total": 1617, "todo": 308}
+{"ts": "2026-10-10T03:22:44Z", "event": "retranslate-done", "gen_pass": 3, "shard": 0, "kept": 28, "bad": 280, "wall_sec": 1702.9}
+{"ts": "2026-10-10T03:25:47Z", "event": "retranslate-done", "gen_pass": 3, "shard": 1, "kept": 24, "bad": 337, "wall_sec": 1886.5}
+{"ts": "2026-10-10T03:29:44Z", "event": "r7-banned-surface", "gate_pairs": 180, "burned_pairs": 144, "banned_grams": 44872}
+{"ts": "2026-10-10T03:29:52Z", "event": "embedder-loaded", "model": "Qwen/Qwen3-Embedding-0.6B", "threads": 8}
+{"ts": "2026-10-10T03:30:13Z", "event": "r7-filter-cos", "file": "llm-translations-r7.shard0.jsonl", "checked": 28, "rejected": 3}
+{"ts": "2026-10-10T03:30:13Z", "event": "r7-filter-ngram", "file": "llm-translations-r7.shard0.jsonl", "checked": 526, "rejected": 10}
+{"ts": "2026-10-10T03:30:34Z", "event": "r7-filter-cos", "file": "llm-translations-r7.shard1.jsonl", "checked": 24, "rejected": 3}
+{"ts": "2026-10-10T03:30:34Z", "event": "r7-filter-ngram", "file": "llm-translations-r7.shard1.jsonl", "checked": 468, "rejected": 10}
+{"ts": "2026-10-10T03:30:34Z", "event": "r7-filter-done", "wall_sec": 42.5}
