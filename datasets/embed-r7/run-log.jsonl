@@ -2,3 +2,6 @@
 {"ts": "2026-10-09T23:16:44Z", "event": "retranslate-done", "gen_pass": 1, "shard": 0, "kept": 7, "bad": 1, "wall_sec": 79.9}
 {"ts": "2026-10-09T23:22:28Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 1, "shard": 1, "num_shards": 2, "units_total": 1617, "todo": 808}
 {"ts": "2026-10-09T23:22:28Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 1, "shard": 0, "num_shards": 2, "units_total": 1617, "todo": 801}
+{"ts": "2026-10-10T00:26:44Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 1, "shard": 0, "num_shards": 2, "units_total": 1617, "todo": 761}
+{"ts": "2026-10-10T00:27:05Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 1, "shard": 1, "num_shards": 2, "units_total": 1617, "todo": 776}
+{"ts_step": "note", "msg": "coordinator correction 10.10: r7 prereg commit 723fe70 IS merged to origin/main via PR #36 (merge 72ddf3f) — earlier not-merged observation was stale local refs (pre-fetch); local main divergence (80e5d30) is a known coordination tail, not this lane"}
