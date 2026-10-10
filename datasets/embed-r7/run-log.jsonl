@@ -7,3 +7,10 @@
 {"ts_step": "note", "msg": "coordinator correction 10.10: r7 prereg commit 723fe70 IS merged to origin/main via PR #36 (merge 72ddf3f) — earlier not-merged observation was stale local refs (pre-fetch); local main divergence (80e5d30) is a known coordination tail, not this lane"}
 {"ts": "2026-10-10T01:48:50Z", "event": "retranslate-done", "gen_pass": 1, "shard": 0, "kept": 459, "bad": 302, "wall_sec": 4925.5}
 {"ts": "2026-10-10T01:50:12Z", "event": "retranslate-done", "gen_pass": 1, "shard": 1, "kept": 410, "bad": 366, "wall_sec": 4986.4}
+{"ts": "2026-10-10T01:55:37Z", "event": "r7-banned-surface", "gate_pairs": 180, "burned_pairs": 144, "banned_grams": 44872}
+{"ts": "2026-10-10T01:55:44Z", "event": "embedder-loaded", "model": "Qwen/Qwen3-Embedding-0.6B", "threads": 8}
+{"ts": "2026-10-10T01:59:48Z", "event": "r7-filter-cos", "file": "llm-translations-r7.shard0.jsonl", "checked": 490, "rejected": 4}
+{"ts": "2026-10-10T01:59:48Z", "event": "r7-filter-ngram", "file": "llm-translations-r7.shard0.jsonl", "checked": 486, "rejected": 12}
+{"ts": "2026-10-10T02:03:49Z", "event": "r7-filter-cos", "file": "llm-translations-r7.shard1.jsonl", "checked": 428, "rejected": 3}
+{"ts": "2026-10-10T02:03:49Z", "event": "r7-filter-ngram", "file": "llm-translations-r7.shard1.jsonl", "checked": 425, "rejected": 11}
+{"ts": "2026-10-10T02:03:49Z", "event": "r7-filter-done", "wall_sec": 485.5}
