@@ -1,0 +1,13 @@
+{"event": "scanner", "provenance": "engine"}
+{"edges": 1479, "event": "store_snapshot", "memories": 4335, "vectors": 4307}
+{"count": 48, "event": "components", "top10": [261, 108, 90, 54, 35, 32, 25, 20, 20, 19]}
+{"endpoints": 883, "event": "hygiene_pool", "excluded": 147, "passed": 736, "reasons": {"sql-gate:length<80": 12, "sql-gate:memory_type": 135}}
+{"event": "band_pairs", "total": 226669}
+{"control": 155854, "edge-common": 801, "edge-direct": 1140, "event": "strata_populations", "mint-top": 68874}
+{"after": 1786, "before": 68874, "event": "mint_topk", "top_k": 3}
+{"corpus_rows_unresolved": 3377, "dropped": {"occupied-text-key": 89}, "event": "dedup", "kept": 159492}
+{"event": "disjointness_asserts", "side_join": {"b2-holdout-180": {"pairs_touching_holdout_sides": 65960}, "burned-embed-side-flags": {"pairs": 27741}, "gate-side-flags": {"pairs": 2352}, "v42-holdout-276": {"pairs_touching_holdout_sides": 0}, "v43-holdout": {"pairs_touching_holdout_sides": 20667}}, "violations": {"side_overlap_burned_embed_FLAGGED": 27741, "side_overlap_gate_FLAGGED": 2352}}
+{"cap": 5000, "event": "control_file_trim", "kept": 5000, "population": 155838, "selection": "deterministic round-robin over components, pair_id order"}
+{"event": "pool_final", "pairs": 8654, "pool_fingerprint": "87b3d4c22a43befbfd81dc70c83a2cf7fdfce972378a9b550cc100922050cb1e", "strata": {"control": 5000, "edge-common": 801, "edge-direct": 1139, "mint-top": 1714}}
+{"event": "double_check_sample", "seed": 42, "size": 30, "verdicts": {"not-dup-razor": 30}}
+{"agreement": 0.8108, "dup_precision": 0.79, "event": "sifter_selftest"}

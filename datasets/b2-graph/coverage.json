@@ -1,0 +1,200 @@
+{
+  "band": [
+    0.85,
+    0.97
+  ],
+  "components": {
+    "count": 48,
+    "sizes_top10": [
+      261,
+      108,
+      90,
+      54,
+      35,
+      32,
+      25,
+      20,
+      20,
+      19
+    ]
+  },
+  "control_file": {
+    "file_cap": 5000,
+    "file_kept": 5000,
+    "population_total": 155838,
+    "selection": "deterministic round-robin over components, pair_id order"
+  },
+  "crosslang_share_by_stratum": {
+    "control": 0,
+    "edge-common": 0,
+    "edge-direct": 0,
+    "mint-top": 0
+  },
+  "dedup_dropped": {
+    "occupied-text-key": 89
+  },
+  "disjointness": {
+    "pair_level_violations": {
+      "side_overlap_burned_embed_FLAGGED": 27741,
+      "side_overlap_gate_FLAGGED": 2352
+    },
+    "side_join_report": {
+      "b2-holdout-180": {
+        "pairs_touching_holdout_sides": 65960
+      },
+      "burned-embed-side-flags": {
+        "pairs": 27741
+      },
+      "gate-side-flags": {
+        "pairs": 2352
+      },
+      "v42-holdout-276": {
+        "pairs_touching_holdout_sides": 0
+      },
+      "v43-holdout": {
+        "pairs_touching_holdout_sides": 20667
+      }
+    }
+  },
+  "double_check_sample": {
+    "seed": 42,
+    "size": 30,
+    "verdicts": {
+      "not-dup-razor": 30
+    }
+  },
+  "generated_at_utc": "2026-10-22T11:12:04Z",
+  "hygiene": {
+    "candidates_sql": 883,
+    "excluded_total": 147,
+    "pairs": 0,
+    "pool": 0,
+    "reasons": {
+      "sql-gate:length<80": 12,
+      "sql-gate:memory_type": 135
+    }
+  },
+  "mint_threshold": 0.92,
+  "mint_top_k": 3,
+  "mint_topk": {
+    "after": 1786,
+    "before": 68874
+  },
+  "pool_final": {
+    "by_sifter": {
+      "control|not-dup-razor": 5000,
+      "edge-common|not-dup-razor": 801,
+      "edge-direct|not-dup-razor": 1139,
+      "mint-top|not-dup-razor": 1714
+    },
+    "by_stratum": {
+      "control": 5000,
+      "edge-common": 801,
+      "edge-direct": 1139,
+      "mint-top": 1714
+    },
+    "components_covered": 46,
+    "pairs_in_file": 8654,
+    "pairs_population_full": 159492,
+    "projects_top15": {
+      "project:githubcopilotworkflow": 355,
+      "project:hysteria": 319,
+      "project:jira-tempo-mcp": 256,
+      "project:komus-agent-platform": 172,
+      "project:lighthouse": 229,
+      "project:mnemos-eyes": 584,
+      "project:mnemos-mesh": 743,
+      "project:ollama-cloud-provider": 667,
+      "project:vesma": 1808,
+      "project:vesma-cortex": 226,
+      "project:vesma-eyes": 356,
+      "project:vesma-mesh": 260,
+      "project:vesma-render-infra": 194,
+      "project:vesmaro-canon": 306,
+      "project:vesmaro-eyes": 420
+    }
+  },
+  "pool_fingerprint": "87b3d4c22a43befbfd81dc70c83a2cf7fdfce972378a9b550cc100922050cb1e",
+  "pool_fingerprint_scheme": "manifest(pair_id pair_sha256 sorted) → blake2b-256",
+  "populations_pre_dedup": {
+    "control": 155854,
+    "edge-common": 801,
+    "edge-direct": 1140,
+    "mint-top": 68874
+  },
+  "razor_token_buckets_by_stratum": {
+    "control": {
+      "11+": 4960,
+      "2-3": 1,
+      "4-10": 39
+    },
+    "edge-common": {
+      "11+": 792,
+      "4-10": 9
+    },
+    "edge-direct": {
+      "11+": 1122,
+      "4-10": 17
+    },
+    "mint-top": {
+      "11+": 1700,
+      "4-10": 14
+    }
+  },
+  "scanner_provenance": "engine",
+  "seconds": 180.2,
+  "seed": 42,
+  "sifter_selftest": {
+    "confusion_top": [
+      {
+        "correct": true,
+        "label": "not-duplicate",
+        "rows": 85,
+        "verdict": "not-dup-razor"
+      },
+      {
+        "correct": true,
+        "label": "duplicate",
+        "rows": 79,
+        "verdict": "dup-silver"
+      },
+      {
+        "correct": false,
+        "label": "not-duplicate",
+        "rows": 21,
+        "verdict": "dup-silver"
+      },
+      {
+        "correct": true,
+        "label": "not-duplicate",
+        "rows": 16,
+        "verdict": "not-dup-metadata"
+      },
+      {
+        "correct": false,
+        "label": "duplicate",
+        "rows": 15,
+        "verdict": "not-dup-razor"
+      },
+      {
+        "correct": false,
+        "label": "not-duplicate",
+        "rows": 6,
+        "verdict": "disputed"
+      }
+    ],
+    "crosslang_rows_excluded": 78,
+    "dup_silver_precision": 0.79,
+    "monolingual_rows": 222,
+    "reading": "mechanical sifter is SILVER-GRADE for negative confirmation only; dup verdicts are low-precision and never mint positives in this pool",
+    "row_agreement": 0.8108,
+    "sample": 300,
+    "seed": 42,
+    "surface": "v43-train labeled rows"
+  },
+  "store_snapshot": {
+    "edges": 1479,
+    "memories": 4335,
+    "vectors": 4307
+  }
+}
