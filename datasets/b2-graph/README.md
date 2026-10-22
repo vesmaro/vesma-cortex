@@ -1,8 +1,82 @@
 # datasets/b2-graph — v4.4 candidate pool, graph stratum (slice-1, numbers only)
 
-Status (slice-2 update, 2026-10-22): the pool is CONSUMED — corpus v4.4 is
-built and sealed per prereg v3 (ACTIVATED); see `v44/` below. The slice-1
-part of this file is kept as the historical pool record.
+Status (v4.4-r2 update, 2026-10-22): the TRAIN side of corpus v4.4 is
+REBUILT per prereg-v3 ADDENDUM-1 (NA-approved); see `v44-r2/` below. The
+sealed holdout v4.4 is untouched. Slice-1/slice-2 records are kept below as
+history.
+
+## v4.4-r2 — train rebuild per ADDENDUM-1 (razor fix, taxonomy rebalance)
+
+- Law: `docs/specs/b2-graph-prereg-v3.md` (ACTIVATED) +
+  `docs/specs/b2-graph-prereg-v3-ADDENDUM-1.md` (ratified + NA edits 1-5).
+  Builder `scripts/b2_graph_corpus_v44r2.py`; artifacts under gitignored
+  `data/b2-graph-corpus/v44-r2/`, numbers-only mirrors here in `v44-r2/`.
+- **Holdout seal (hard constant):** the 75-row holdout v4.4 is NOT
+  recreated, NOT rewritten, NOT read for content. Stage 0 reproduces the
+  slice-2 construction in memory and asserts byte-identity: train
+  `0463413e…`, holdout `a9760d1f…`, corpus `45ab0ae6…` — all three match
+  the seal; `holdout.jsonl` re-verified unchanged at exit.
+- **§A taxonomy glossary (mandatory card section):** 1 = identity
+  (P-identity/T0), 2 = cosmetic (P-cosmetic/T1), 3 = lexical substitution
+  (P-lexsub, template-twin heritage), 4 = paraphrase (P-para-*), 5/6 =
+  structural/compression — planned 1.n+1, NOT in this build, 7 = fact edit
+  (N-fact-edit, broken-field, mint-top — razor/T3), 8 = topic-adjacent
+  (N-para-notdup, DV3 template-twin, near/cross-topic). Silver rule: dup
+  iff bilateral entailment with all §8 slots preserved both ways; any slot
+  change → class 7 NOT dup; disputed → NOT dup (§8.3).
+- **§B.3 razor-block transfer (v4.2 train-824):** the block is 336 rows
+  (N-fact-edit 165 + N-para-notdup 27 + P-cosmetic 144); audit: 262/336
+  already in the train via the v4.3 inheritance (same pairs), 74/336 are
+  holdout-surface copies (transfer FORBIDDEN, listed in the manifest),
+  0 new rows; disjointness vs all holdout surfaces + burned = 0 violations.
+- **§B.1 class-7 band negatives:** legacy v4.2 same-length fact-token
+  cipher (digit cipher, char5_containment < 0.976415, len-delta 0, BOTH
+  orientations) on the injection bases; acceptance band cos ∈ [0.98, 1.0];
+  rows the raw cipher leaves above 0.985 are dose-placed into
+  [0.98, 0.985) by the legacy v4.3 case-dose lever (char geometry +
+  tag_jaccard=1.0 unchanged). Minted: 428 rows (120 dose-placed in
+  [0.98, 0.985)).
+- **§B.2 injection rebalance:** dup mints PREFER classes 3+4:
+  P-lexsub 53 (legacy synonym tables, net-zero guard) + P-para-light 55
+  (sentence swap + lexical replacement) minted BEFORE any class-1/2 row;
+  the formula remainder continues the legacy T0/T1 generator on fresh
+  bases: 202 rows (T0 135 / T1 67, 2:1 lineage).
+- **§C razor subzone (cos ≥ 0.95 ∧ tag_jaccard = 1.0):**
+  pre 854 pos / 572 neg, bins 53/1/518 → post 1000 neg vs 1000 pos —
+  parity coefficient exactly 1.0 on the dynamic census reading
+  (854 floor + 146 new class-1/2 subzone rows); strict classes-1-2 reading
+  1.534; static floor reading 1.171 — ALL readings ≥ 1.0. Bins
+  [0.95,0.97) 53 / [0.97,0.985) 121 / [0.985,1.0] 826 — all ≥ 30.
+  Добор негативов подзоны: +428.
+- **§D probe coverage (sanity v2, band ±0.005 + equal tag_jaccard +
+  continuity ≤ 0.005):** self_pair→P-identity@1.0: 542 rows; envelope→
+  P-envelope@1.0: 57; cosmetic_twin→P-cosmetic@0.99: 40; fact_edit_twin→
+  N-fact-edit@0.99: 76 (max gap 0.0024); unrelated→N-far@0.578 (tj=0.0):
+  30 (max gap 0.0028; the fill is the class's own heritage pairing:
+  real-part sides × authored far bases of dataset-v4.2 batch-near,
+  cross-language pairs quarantined). Gate-runner procedure: count rows of
+  the producing stratum with |cos − probe| ≤ 0.005 ∧ tj equal, assert
+  count ≥ 30 AND max consecutive in-band gap ≤ 0.005.
+- **Scaffold anti-collapse:** every minted class ≥ 20 scaffolds and ≤ 5%
+  of its rows per scaffold (max observed: N-far 3.7%); N-fact-edit 187
+  scaffolds on 428 rows. Train-injection scaffolds overlapping the sealed
+  holdout: 80 rows (ids from the recipe, holdout content NOT read) —
+  run-logged as the known limitation per §D.
+- **Cross-language quarantine (§A(i)):** script-detect over 8654 pool
+  pairs: 370 confident ru/en mismatches quarantined (never new mints);
+  6871 mixed-script pairs counted separately, never quarantined.
+- **Formula closure (universe surface, anchor-consistent):**
+  0.595·(x₃₄+w) = 0.295 + 0.405·(282+w_s) + 0.405·f with the measured
+  subzone mass of the continuation; exact integer fixed point
+  x₃₄=108, f=27, w=202 (w_s=146), y=428, n=310; universe dup share
+  0.404976 vs the 0.405 target. Legacy anchor re-asserted: the same
+  formula on the pre-addendum numbers reproduces 429 (and 410 on the
+  legacy pre-cleaning numbers).
+- **Shipped:** train 4097 (dup 1599 / not-dup 2498; dup share 0.3903),
+  765 new rows; hygiene: engine detectors over all 1530 minted sides,
+  0 hits. New train fp `bb1ca943…`; holdout fp unchanged `a9760d1f…`.
+- **Determinism:** double run byte-identical on all artifacts (verified
+  twice, including after ruff formatting of the builder).
 
 ## v4.4 — corpus built and sealed (slice-2, prereg v3 §1-§2)
 

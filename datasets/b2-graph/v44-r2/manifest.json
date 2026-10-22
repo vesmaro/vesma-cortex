@@ -1,0 +1,378 @@
+{
+  "addendum1_numbers": {
+    "coverage_probes": {
+      "N-fact-edit": {
+        "band_rows": 76,
+        "check": "fact_edit_twin",
+        "continuity_ok": true,
+        "k_ok": true,
+        "max_gap": 0.002356,
+        "probe_cos": 0.99,
+        "probe_tj": 1.0
+      },
+      "N-far": {
+        "band_rows": 30,
+        "check": "unrelated",
+        "continuity_ok": true,
+        "k_ok": true,
+        "max_gap": 0.002775,
+        "probe_cos": 0.578,
+        "probe_tj": 0.0
+      },
+      "P-cosmetic": {
+        "band_rows": 40,
+        "check": "cosmetic_twin",
+        "continuity_ok": true,
+        "k_ok": true,
+        "max_gap": 0.001753,
+        "probe_cos": 0.99,
+        "probe_tj": 1.0
+      },
+      "P-envelope": {
+        "band_rows": 57,
+        "check": "envelope_variant",
+        "continuity_ok": true,
+        "k_ok": true,
+        "max_gap": 3e-06,
+        "probe_cos": 1.0,
+        "probe_tj": 1.0
+      },
+      "P-identity": {
+        "band_rows": 542,
+        "check": "self_pair",
+        "continuity_ok": true,
+        "k_ok": true,
+        "max_gap": 1e-06,
+        "probe_cos": 1.0,
+        "probe_tj": 1.0
+      }
+    },
+    "cross_language_quarantine": {
+      "pool_pairs_mixed_script": 6871,
+      "pool_pairs_quarantined": 370,
+      "pool_pairs_undetectable": 0,
+      "rule": "script-detect body language; confident ru/en mismatch quarantined from new mints"
+    },
+    "holdout_scaffold_overlap": {
+      "by_class": {
+        "N-fact-edit": 38,
+        "N-far": 8,
+        "P-cosmetic": 6,
+        "P-identity": 12,
+        "P-lexsub": 8,
+        "P-para-light": 8
+      },
+      "rows": 80,
+      "status": "known limitation, run-logged per addendum §D"
+    },
+    "injection_rebalance": {
+      "class3_4_minted_before_any_class1_2": true,
+      "fixed_point": {
+        "f": 27,
+        "n": 310,
+        "w": 202,
+        "w_s": 146,
+        "x34": 108,
+        "y": 428
+      },
+      "formula": "0.595*(x34+w) = 0.295 + 0.405*(572+w_s) + 0.405*f (universe surface, anchor-consistent)",
+      "new_class1_2_rows": 202,
+      "new_class3_rows": 53,
+      "new_class4_rows": 55,
+      "nfar_fill_rows": 27,
+      "t3_band_rows": 428,
+      "universe_share": 0.404976
+    },
+    "probe_procedure_for_gate_runner": {
+      "asserts": "count >= 30 AND max gap between consecutive sorted in-band cos <= 0.005",
+      "band": "{r: |cos_r - cos_probe| <= 0.005 AND tag_jaccard_r == tag_jaccard_probe}",
+      "probe_points": {
+        "N-fact-edit": {
+          "cos": 0.99,
+          "tj": 1.0
+        },
+        "N-far": {
+          "cos": 0.578,
+          "tj": 0.0
+        },
+        "P-cosmetic": {
+          "cos": 0.99,
+          "tj": 1.0
+        },
+        "P-envelope": {
+          "cos": 1.0,
+          "tj": 1.0
+        },
+        "P-identity": {
+          "cos": 1.0,
+          "tj": 1.0
+        }
+      },
+      "source": "src/cortex/eval/sanity.py frozen probe constants (1.0, 0.99, 0.99, 1.0, 0.578) x producing-class strata"
+    },
+    "razor_block_transfer": {
+      "already_in_train": 262,
+      "block_rows": 336,
+      "blocked_holdout_surface": 74,
+      "blocked_pair_ids": [
+        "V4-COSM-0049",
+        "V4-COSM-0050",
+        "V4-COSM-0051",
+        "V4-COSM-0052",
+        "V4-COSM-0053",
+        "V4-COSM-0054",
+        "V4-COSM-0055",
+        "V4-COSM-0056",
+        "V4-COSM-0057",
+        "V4-COSM-0058",
+        "V4-COSM-0059",
+        "V4-COSM-0060",
+        "V4-COSM-0061",
+        "V4-COSM-0062",
+        "V4-COSM-0063",
+        "V4-COSM-0064",
+        "V4-COSM-0065",
+        "V4-COSM-0066",
+        "V4-COSM-0067",
+        "V4-COSM-0068",
+        "V4-FACT-0056",
+        "V4-FACT-0057",
+        "V4-FACT-0058",
+        "V4-FACT-0059",
+        "V4-FACT-0060",
+        "V4-FACT-0061",
+        "V4-FACT-0062",
+        "V4-FACT-0063",
+        "V4-FACT-0064",
+        "V4-FACT-0065",
+        "V4-FACT-0066",
+        "V4-FACT-0067",
+        "V4-FACT-0068",
+        "V4-FACT-0069",
+        "V4-FACT-0070",
+        "V4-FACT-0071",
+        "V4-FACT-0072",
+        "V4-FACT-0073",
+        "V4-FACT-0074",
+        "V4-FACT-0075",
+        "V4-FACT-0076",
+        "V4-FACT-0077",
+        "V4-FACT-0078",
+        "V4-FACT-0079",
+        "V4-FACT-0080",
+        "V4-FACT-0081",
+        "V4-FACT-0082",
+        "V4-FACT-0083",
+        "V4-FACT-0084",
+        "V4-FACT-0085",
+        "V4-FACT-0086",
+        "V4-FACT-0087",
+        "V4-FACT-0088",
+        "V4-FACT-0089",
+        "V4-FACT-0090",
+        "V4-FACT-0091",
+        "V4-FACT-0092",
+        "V4-FACT-0093",
+        "V4-FACT-0094",
+        "V4-PND-0010",
+        "V4-PND-0011",
+        "V4-PND-0012",
+        "V4-PND-0013",
+        "V4-PND-0014",
+        "V4-PND-0015",
+        "V4-PND-0016",
+        "V4-PND-0017",
+        "V4-PND-0018",
+        "V4-PND-0019",
+        "V4-PND-0020",
+        "V4-PND-0021",
+        "V4-PND-0022",
+        "V4-PND-0023",
+        "V4-PND-0024"
+      ],
+      "missing": 0,
+      "verdict": "as-is presence asserted; 0 rows re-inserted (dedup-before-splits)"
+    },
+    "razor_subzone": {
+      "dobor_negatives": 428,
+      "parity": {
+        "addendum_census_dynamic": [
+          1000,
+          1000
+        ],
+        "addendum_census_floor": [
+          1000,
+          854
+        ],
+        "strict_classes_1_2": [
+          1000,
+          652
+        ]
+      },
+      "post": {
+        "bins": {
+          "[0.95,0.97)": 53,
+          "[0.97,0.985)": 121,
+          "[0.985,1.0]": 826
+        },
+        "classes_1_2_strict": 652,
+        "neg": 1000,
+        "pos": 1108
+      },
+      "pre": {
+        "bins": {
+          "[0.95,0.97)": 53,
+          "[0.97,0.985)": 1,
+          "[0.985,1.0]": 518
+        },
+        "classes_1_2_strict": 506,
+        "neg": 572,
+        "pos": 854
+      },
+      "rule": "cos >= 0.95 AND tag_jaccard = 1.0"
+    },
+    "scaffolds": {
+      "N-fact-edit": {
+        "max_rows_per_scaffold": 4,
+        "max_share": 0.0093,
+        "ok": true,
+        "rows": 428,
+        "scaffolds": 187
+      },
+      "N-far": {
+        "max_rows_per_scaffold": 1,
+        "max_share": 0.037,
+        "ok": true,
+        "rows": 27,
+        "scaffolds": 27
+      },
+      "P-cosmetic": {
+        "max_rows_per_scaffold": 1,
+        "max_share": 0.0149,
+        "ok": true,
+        "rows": 67,
+        "scaffolds": 67
+      },
+      "P-identity": {
+        "max_rows_per_scaffold": 2,
+        "max_share": 0.0148,
+        "ok": true,
+        "rows": 135,
+        "scaffolds": 68
+      },
+      "P-lexsub": {
+        "max_rows_per_scaffold": 1,
+        "max_share": 0.0189,
+        "ok": true,
+        "rows": 53,
+        "scaffolds": 53
+      },
+      "P-para-light": {
+        "max_rows_per_scaffold": 1,
+        "max_share": 0.0182,
+        "ok": true,
+        "rows": 55,
+        "scaffolds": 55
+      }
+    }
+  },
+  "addendum1_taxonomy_glossary": {
+    "1_identity": [
+      "P-identity",
+      "T0S/T0C"
+    ],
+    "2_cosmetic": [
+      "P-cosmetic",
+      "T1"
+    ],
+    "3_lexical_substitution": [
+      "P-lexsub",
+      "template-twin heritage"
+    ],
+    "4_paraphrase": [
+      "P-para-light",
+      "P-para-sub",
+      "P-para-struct"
+    ],
+    "5_structural_reorg": "planned 1.n+1 (not in this build)",
+    "6_compression": "planned 1.n+1 (not in this build)",
+    "7_fact_edit": [
+      "N-fact-edit",
+      "broken-field",
+      "razor/T3",
+      "mint-top"
+    ],
+    "8_topic_adjacent": [
+      "N-para-notdup",
+      "template-twin (DV3)",
+      "near-topic",
+      "cross-topic"
+    ],
+    "silver_rule": "duplicate iff bilateral entailment with all §8 slots preserved both ways; any slot change -> class 7 NOT dup; disputed -> NOT dup (§8.3)"
+  },
+  "corpus": "b2-graph-v4.4-r2 (train rebuild per ADDENDUM-1)",
+  "counts": {
+    "holdout_rows": 75,
+    "new_rows": 765,
+    "train_dup_share": 0.390286,
+    "train_labels": {
+      "duplicate": 1599,
+      "not-duplicate": 2498
+    },
+    "train_rows": 4097,
+    "train_strata": {
+      "N-fact-edit": 774,
+      "N-far": 221,
+      "N-metadata": 205,
+      "N-near": 265,
+      "N-para-notdup": 132,
+      "P-cosmetic": 369,
+      "P-envelope": 57,
+      "P-identity": 542,
+      "P-lexsub": 53,
+      "P-para-light": 119,
+      "P-para-struct": 23,
+      "P-para-sub": 32,
+      "P-trans": 40,
+      "R-watchlist-family": 36,
+      "broken-field": 31,
+      "control": 54,
+      "cross-topic": 16,
+      "edge-common": 143,
+      "edge-direct": 230,
+      "light": 72,
+      "mint-top": 143,
+      "near-topic": 46,
+      "structural": 37,
+      "substantial": 75,
+      "template-twin": 94,
+      "translated-dup": 144,
+      "translated-sibling": 144
+    }
+  },
+  "determinism": "order-deterministic construction, no RNG; double run byte-identical asserted",
+  "fingerprints": {
+    "holdout_unchanged": "a9760d1f06ecdd40530bcc2dc37311f5e5bcd23aad653e03c87a49fe36761a97",
+    "labels_train": "e11e329849cd0f5fdca13a242db471ad4106f517c5e09e0277cb89af621b2f16",
+    "scheme": "manifest(pair_id pair_sha256 sorted) -> blake2b-256 (data-contract §5)",
+    "train": "bb1ca943d6beabf56a88450c977cd04f829bdee89d75b81dc1b5f394b1314106"
+  },
+  "hygiene": {
+    "engine_detectors": true,
+    "hits": 0,
+    "minted_sides_scanned": 1530
+  },
+  "law": [
+    "docs/specs/b2-graph-prereg-v3.md (ACTIVATED, owner 22.10)",
+    "docs/specs/b2-graph-prereg-v3-ADDENDUM-1.md (ratified + NA edits)"
+  ],
+  "seal": {
+    "holdout_fingerprint": "a9760d1f06ecdd40530bcc2dc37311f5e5bcd23aad653e03c87a49fe36761a97",
+    "holdout_rows": 75,
+    "holdout_untouched": true,
+    "ids_sha256": "42d690578723fed34549532f2837f4540181a3a034097ce208f922dd710ce229",
+    "orig_corpus_fingerprint": "45ab0ae642ccf57c73393a2e097036c2f0122a41bb3d92f4e84b06b89bd8928d",
+    "orig_train_fingerprint": "0463413ec7f4a8935211aef8652f1eed0ad039ede401695dd9191e61614eed98",
+    "reproduction": "byte-exact (stage 0 asserts)"
+  }
+}
