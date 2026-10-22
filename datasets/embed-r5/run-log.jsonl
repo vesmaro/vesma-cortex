@@ -111,3 +111,91 @@
 {"ts_step": "build_gate_baseline", "msg": "baseline complete; population={'real': 1451, 'llm': 1617, 'seed-dup': 80, 'twin': 330, 'sibling': 80}; aggregate={'n': 3478, 'median': 0.9155, 'mean': 0.8975, 'p10': 0.7894, 'p25': 0.8461, 'p75': 0.9616, 'min': 0.5803, 'max': 0.9982, 'share_ge_085': 0.7392, 'share_ge_080': 0.8764, 'count_ge_085': 2571}"}
 {"ts_step": "build_gate_baseline", "msg": "baseline complete; population={'real': 1451, 'llm': 1617, 'seed-dup': 80, 'twin': 330, 'sibling': 80}; aggregate={'n': 3478, 'median': 0.9155, 'mean': 0.8975, 'p10': 0.7894, 'p25': 0.8461, 'p75': 0.9616, 'min': 0.5803, 'max': 0.9982, 'share_ge_085': 0.7392, 'share_ge_080': 0.8764, 'count_ge_085': 2571}"}
 {"ts_step": "build_embed_r5_corpus", "msg": "round-5 corpus assembled; train=25420 val=1261 total=26681; removed=315 tatoeba=+1500; fp=e64fdbea65f0e6a4f2830a42ea6bd0d74a2974854d381427c4d5ba2ea4901c62; double_run_byte_identical=True; all asserts PASS"}
+{"ts_step": "survey_gate_v2_availability", "msg": "original ban set: grams=2346592 hashes=25829 sides={'burned': 576, 'gate': 360, 'r4-realpart-rows': 12903}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "sentences lines=13597683 ru+en=3266239"}
+{"ts_step": "survey_gate_v2_availability", "msg": "direct ru-en pairs: 829792"}
+{"ts_step": "survey_gate_v2_availability", "msg": "quality+decontam pass pairs: 817178 drops={'dup-pair': 3642, 'en:gate': 2421, 'ru:gate': 6551}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "notes assembled: 128580"}
+{"ts_step": "survey_gate_v2_availability", "msg": "notes after original gates: 123534 failures={'note-gate': 5046}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "replication asserts: PASS (pairs, notes, stratum-750 keys byte-exact)"}
+{"ts_step": "survey_gate_v2_availability", "msg": "expanded ban set: grams=5265881 hashes=35198 sides={'burned': 576, 'gate-v1': 360, 'r4-corpus': 25496, 'r4-gen-llm-translations': 1972, 'r4-gen-real-translations': 2859, 'r4-gen-synth-mono': 11226, 'r4-gen-synth-twins': 5138, 'r4-gen-template': 6583, 'r5-corpus': 26681, 'r7-corpus': 26069, 'r7-gen': 3015, 'real-part': 4836, 'v43-seed': 640}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "gate-v1 sides counted=360 label-noise shas=['1228623e1e4d99b4d8bfd39dcbdc983a58e2342af73ded7a8e1e624e1cd9f844', '70bcb265117dfcacb5b1a1d1990097c9835c7a4085d88225b61561d34296fed9', '88ddafcc2b7c2ca72aac33db8ebfc670fea3d1a5b2dd3a7e5562e3bf099a0601', 'bba82461408420cfaaa1949c7b63ac767933feb0047f0f9e7e9ec2657b959492', 'c3aeb351d5afdbd55bf56c436b9a0188ec50c0543db0ba17052a495631d527bb', 'cc3544748d9150ef34ac1aa3c68eefc100ebde9406cb7595296e47ec8f07a985']"}
+{"ts_step": "survey_gate_v2_availability", "msg": "pool before expanded decontam: 122784"}
+{"ts_step": "survey_gate_v2_availability", "msg": "CLEAN POOL: 122747 notes; drops={'note-ngram': 2, 'sent-ngram': 35}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "clean pool by direction: {'en->ru': 61373, 'ru->en': 61374}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "clean head first 3000: directions={'en->ru': 1491, 'ru->en': 1509} sentence-groups={2: 985, 3: 624, 4: 1391}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "allocation dry-run: llm_pool=180 {'en->ru': 93, 'ru->en': 87}; seed_pool=60 {'ru->en': 35, 'en->ru': 25}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "original ban set: grams=2346592 hashes=25829 sides={'burned': 576, 'gate': 360, 'r4-realpart-rows': 12903}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "sentences lines=13597683 ru+en=3266239"}
+{"ts_step": "survey_gate_v2_availability", "msg": "direct ru-en pairs: 829792"}
+{"ts_step": "survey_gate_v2_availability", "msg": "quality+decontam pass pairs: 817178 drops={'dup-pair': 3642, 'en:gate': 2421, 'ru:gate': 6551}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "notes assembled: 128580"}
+{"ts_step": "survey_gate_v2_availability", "msg": "notes after original gates: 123534 failures={'note-gate': 5046}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "replication asserts: PASS (pairs, notes, stratum-750 keys byte-exact)"}
+{"ts_step": "survey_gate_v2_availability", "msg": "expanded ban set: grams=5265881 hashes=35198 sides={'burned': 576, 'gate-v1': 360, 'r4-corpus': 25496, 'r4-gen-llm-translations': 1972, 'r4-gen-real-translations': 2859, 'r4-gen-synth-mono': 11226, 'r4-gen-synth-twins': 5138, 'r4-gen-template': 6583, 'r5-corpus': 26681, 'r7-corpus': 26069, 'r7-gen': 3015, 'real-part': 4836, 'v43-seed': 640}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "gate-v1 sides counted=360 label-noise shas=['1228623e1e4d99b4d8bfd39dcbdc983a58e2342af73ded7a8e1e624e1cd9f844', '70bcb265117dfcacb5b1a1d1990097c9835c7a4085d88225b61561d34296fed9', '88ddafcc2b7c2ca72aac33db8ebfc670fea3d1a5b2dd3a7e5562e3bf099a0601', 'bba82461408420cfaaa1949c7b63ac767933feb0047f0f9e7e9ec2657b959492', 'c3aeb351d5afdbd55bf56c436b9a0188ec50c0543db0ba17052a495631d527bb', 'cc3544748d9150ef34ac1aa3c68eefc100ebde9406cb7595296e47ec8f07a985']"}
+{"ts_step": "survey_gate_v2_availability", "msg": "pool before expanded decontam: 122784"}
+{"ts_step": "survey_gate_v2_availability", "msg": "CLEAN POOL: 122747 notes; drops={'note-ngram': 2, 'sent-ngram': 35}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "clean pool by direction: {'en->ru': 61373, 'ru->en': 61374}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "clean head first 3000: directions={'en->ru': 1491, 'ru->en': 1509} sentence-groups={2: 985, 3: 624, 4: 1391}"}
+{"ts_step": "survey_gate_v2_availability", "msg": "allocation dry-run: llm_pool=180 {'en->ru': 93, 'ru->en': 87}; seed_pool=60 {'ru->en': 35, 'en->ru': 25}"}
+{"ts": "2026-10-22T00:30:20Z", "ts_step": "gate_v2:sources", "msg": "replication asserts PASS: pairs=817178 notes=123534 stratum750-keys exact"}
+{"ts": "2026-10-22T00:30:26Z", "ts_step": "gate_v2:sources", "msg": "expanded ban set: grams=5265881 hashes=35198"}
+{"ts": "2026-10-22T00:30:34Z", "ts_step": "gate_v2:sources", "msg": "clean pool: 122747 notes; drops={'note-ngram': 2, 'sent-ngram': 35}"}
+{"ts": "2026-10-22T00:30:34Z", "ts_step": "gate_v2:sources", "msg": "note allocation: llm=240 {'en->ru': 118, 'ru->en': 122}; seed=90 {'en->ru': 45, 'ru->en': 45}"}
+{"ts": "2026-10-22T00:30:34Z", "ts_step": "gate_v2:sources", "msg": "real sources: 7 (sql=24, privacy=17, secrets=0, dedup=7, lang=0)"}
+{"ts": "2026-10-22T00:30:34Z", "ts_step": "gate_v2:sources", "msg": "real sources: 7; directions={'ru->en': 7}"}
+{"ts": "2026-10-22T00:30:34Z", "ts_step": "gate_v2:sources", "msg": "twin jobs: 20 x 6 pairs = 120 requested"}
+{"ts": "2026-10-22T00:30:34Z", "ts_step": "gate_v2:sources", "msg": "sources.jsonl fp=6edb723f77c9a8967cde7c4169ab7d7d56d49ca886bf219f5fd24012a1bbd4ef"}
+{"ts": "2026-10-22T00:31:22Z", "event": "gate_v2:gen-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 1, "trans_todo": 337, "twin_todo": 20, "seeds": "385918605+pass*1e6+job_idx"}
+{"ts": "2026-10-22T01:02:49Z", "event": "gate_v2:gen-done", "gen_pass": 1, "kept": 300, "bad": 110, "wall_sec": 1884.4}
+{"ts": "2026-10-22T01:03:07Z", "event": "gate_v2:gen-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 2, "trans_todo": 102, "twin_todo": 7, "seeds": "385918605+pass*1e6+job_idx"}
+{"ts": "2026-10-22T01:11:53Z", "event": "gate_v2:gen-done", "gen_pass": 2, "kept": 19, "bad": 100, "wall_sec": 525.7}
+{"ts": "2026-10-22T01:12:06Z", "event": "gate_v2:gen-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 3, "trans_todo": 95, "twin_todo": 5, "seeds": "385918605+pass*1e6+job_idx"}
+{"ts": "2026-10-22T01:13:43Z", "ts_step": "gate_v2:extend1", "msg": "replication asserts PASS: pairs=817178 notes=123534 stratum750-keys exact"}
+{"ts": "2026-10-22T01:13:53Z", "ts_step": "gate_v2:extend1", "msg": "expanded ban set: grams=5265881 hashes=35198"}
+{"ts": "2026-10-22T01:14:05Z", "ts_step": "gate_v2:extend1", "msg": "clean pool: 122747 notes; drops={'note-ngram': 2, 'sent-ngram': 35}"}
+{"ts": "2026-10-22T01:14:05Z", "ts_step": "gate_v2:extend1", "msg": "extension-1 written: 95 rows (llm 60, seed 30, twin jobs 4); fp=61c66451026b96fd10a9ebfaff0506fd3fb1d53e07baa1b349464e98c5b4e6b1"}
+{"ts": "2026-10-22T01:19:26Z", "event": "gate_v2:gen-done", "gen_pass": 3, "kept": 16, "bad": 91, "wall_sec": 439.1}
+{"ts": "2026-10-22T01:21:01Z", "event": "gate_v2:gen-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 4, "trans_todo": 178, "twin_todo": 8, "seeds": "385918605+pass*1e6+job_idx"}
+{"ts": "2026-10-22T01:28:19Z", "event": "gate_v2:gen-done", "gen_pass": 4, "kept": 80, "bad": 27, "wall_sec": 437.8}
+{"ts": "2026-10-22T01:32:31Z", "event": "gate_v2:filter-ban-set-start", "surfaces": 13}
+{"ts": "2026-10-22T01:32:37Z", "event": "gate_v2:filter-ban-set", "banned_grams": 5265881}
+{"ts": "2026-10-22T01:32:44Z", "event": "gate_v2:embedder-loaded", "model": "Qwen/Qwen3-Embedding-0.6B", "threads": 8}
+{"ts": "2026-10-22T01:33:13Z", "event": "gate_v2:filter-cos", "file": "synth-twins-v2.jsonl", "checked": 101, "rejected": 1}
+{"ts": "2026-10-22T01:33:13Z", "event": "gate_v2:filter-ngram", "file": "synth-twins-v2.jsonl", "checked": 100, "rejected": 0}
+{"ts": "2026-10-22T01:36:31Z", "event": "gate_v2:filter-ban-set-start", "surfaces": 13}
+{"ts": "2026-10-22T01:36:37Z", "event": "gate_v2:filter-ban-set", "banned_grams": 5265881}
+{"ts": "2026-10-22T01:36:43Z", "event": "gate_v2:embedder-loaded", "model": "Qwen/Qwen3-Embedding-0.6B", "threads": 8}
+{"ts": "2026-10-22T01:36:43Z", "event": "gate_v2:filter-ngram", "file": "synth-twins-v2.jsonl", "checked": 100, "rejected": 0}
+{"ts": "2026-10-22T01:38:19Z", "event": "gate_v2:filter-cos", "file": "translations-v2.llm.jsonl", "checked": 219, "rejected": 4}
+{"ts": "2026-10-22T01:38:19Z", "event": "gate_v2:filter-ngram", "file": "translations-v2.llm.jsonl", "checked": 215, "rejected": 0}
+{"ts": "2026-10-22T01:38:30Z", "event": "gate_v2:filter-cos", "file": "translations-v2.real.jsonl", "checked": 6, "rejected": 0}
+{"ts": "2026-10-22T01:38:30Z", "event": "gate_v2:filter-ngram", "file": "translations-v2.real.jsonl", "checked": 6, "rejected": 0}
+{"ts": "2026-10-22T01:38:59Z", "event": "gate_v2:filter-cos", "file": "translations-v2.seed-dup.jsonl", "checked": 89, "rejected": 3}
+{"ts": "2026-10-22T01:38:59Z", "event": "gate_v2:filter-ngram", "file": "translations-v2.seed-dup.jsonl", "checked": 86, "rejected": 0}
+{"ts": "2026-10-22T01:38:59Z", "event": "gate_v2:filter-done", "wall_sec": 136.6}
+{"ts": "2026-10-22T01:41:04Z", "ts_step": "gate_v2:assemble", "msg": "frozen pool: 407 pairs; stats={'llm:cos-reject': 4, 'llm:fail': 222, 'llm:ok': 215, 'real:fail': 3, 'real:ok': 6, 'seed-dup:cos-reject': 3, 'seed-dup:fail': 85, 'seed-dup:ok': 86, 'twin:cos-reject': 1, 'twin:fail': 18, 'twin:ok': 100}"}
+{"ts": "2026-10-22T01:41:04Z", "ts_step": "gate_v2:assemble", "msg": "pool cells: {('llm', 'en->ru'): 142, ('llm', 'ru->en'): 73, ('real', 'ru->en'): 6, ('seed-dup', 'en->ru'): 61, ('seed-dup', 'ru->en'): 25, ('twin', 'en->ru'): 42, ('twin', 'ru->en'): 58}"}
+{"ts": "2026-10-22T01:41:48Z", "ts_step": "gate_v2:assemble", "msg": "frozen pool: 407 pairs; stats={'llm:cos-reject': 4, 'llm:fail': 222, 'llm:ok': 215, 'real:fail': 3, 'real:ok': 6, 'seed-dup:cos-reject': 3, 'seed-dup:fail': 85, 'seed-dup:ok': 86, 'twin:cos-reject': 1, 'twin:fail': 18, 'twin:ok': 100}"}
+{"ts": "2026-10-22T01:41:48Z", "ts_step": "gate_v2:assemble", "msg": "pool cells: {('llm', 'en->ru'): 142, ('llm', 'ru->en'): 73, ('real', 'ru->en'): 6, ('seed-dup', 'en->ru'): 61, ('seed-dup', 'ru->en'): 25, ('twin', 'en->ru'): 42, ('twin', 'ru->en'): 58}"}
+{"ts": "2026-10-22T01:41:48Z", "ts_step": "gate_v2:assemble", "msg": "cell coverage asserts PASS (post-gate pools cover quotas)"}
+{"ts": "2026-10-22T01:41:48Z", "ts_step": "gate_v2:assemble", "msg": "frozen_pool.jsonl fp=819e0c3d60598a9792bf58e45c5a12a4f34ff0de551af6094178c99659e462dd (POOL FROZEN — generation never re-runs)"}
+{"ts": "2026-10-22T01:41:48Z", "ts_step": "gate_v2:select", "msg": "pool loaded: 407 pairs, fp=819e0c3d60598a97"}
+{"ts": "2026-10-22T01:41:48Z", "ts_step": "gate_v2:select", "msg": "double-run byte-identical PASS (seed=385918605, legacy also recorded: 42)"}
+{"ts": "2026-10-22T01:41:48Z", "ts_step": "gate_v2:select", "msg": "selected: 223; classes={'llm': 125, 'real': 6, 'seed-dup': 40, 'twin': 52}; directions={'en->ru': 108, 'ru->en': 115}"}
+{"ts": "2026-10-22T01:41:48Z", "ts_step": "gate_v2:select", "msg": "class x direction: {('llm', 'en->ru'): 62, ('llm', 'ru->en'): 63, ('real', 'ru->en'): 6, ('seed-dup', 'en->ru'): 20, ('seed-dup', 'ru->en'): 20, ('twin', 'en->ru'): 26, ('twin', 'ru->en'): 26}"}
+{"ts": "2026-10-22T01:41:48Z", "ts_step": "gate_v2:select", "msg": "gate_set.jsonl sha256=9e3fc8a1398cf542fda59e9922e75edae00f8d7e8d6ca7c1265488f18fc8d2ae"}
+{"ts": "2026-10-22T01:42:19Z", "ts_step": "gate_v2:select", "msg": "pool loaded: 407 pairs, fp=819e0c3d60598a97"}
+{"ts": "2026-10-22T01:42:19Z", "ts_step": "gate_v2:select", "msg": "double-run byte-identical PASS (seed=385918605, legacy also recorded: 42)"}
+{"ts": "2026-10-22T01:42:19Z", "ts_step": "gate_v2:select", "msg": "selected: 223; classes={'llm': 125, 'real': 6, 'seed-dup': 40, 'twin': 52}; directions={'en->ru': 108, 'ru->en': 115}"}
+{"ts": "2026-10-22T01:42:19Z", "ts_step": "gate_v2:select", "msg": "class x direction: {('llm', 'en->ru'): 62, ('llm', 'ru->en'): 63, ('real', 'ru->en'): 6, ('seed-dup', 'en->ru'): 20, ('seed-dup', 'ru->en'): 20, ('twin', 'en->ru'): 26, ('twin', 'ru->en'): 26}"}
+{"ts": "2026-10-22T01:42:19Z", "ts_step": "gate_v2:select", "msg": "gate_set.jsonl sha256=9e3fc8a1398cf542fda59e9922e75edae00f8d7e8d6ca7c1265488f18fc8d2ae"}
+{"ts": "2026-10-22T01:42:30Z", "ts_step": "gate_v2:proofs", "msg": "ban set rebuilt: grams=5265881 hashes=35198"}
+{"ts": "2026-10-22T01:42:30Z", "ts_step": "gate_v2:proofs", "msg": "zero-overlap: hash_hits_vs_all_surfaces=0 vs_cb367577=0 vs_label_noise=0 ngram_hit_sides=0"}
+{"ts": "2026-10-22T01:42:30Z", "ts_step": "gate_v2:proofs", "msg": "manifest written: /var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus/datasets/embed-r5/gate_manifest_v2.numbers-only.json"}
+{"ts": "2026-10-22T01:42:30Z", "ts_step": "gate_v2:proofs", "msg": "SEALED: gate_set sha256=9e3fc8a1398cf542fda59e9922e75edae00f8d7e8d6ca7c1265488f18fc8d2ae"}
+{"ts": "2026-10-22T01:43:55Z", "ts_step": "gate_v2:proofs", "msg": "ban set rebuilt: grams=5265881 hashes=35198"}
+{"ts": "2026-10-22T01:43:55Z", "ts_step": "gate_v2:proofs", "msg": "zero-overlap: hash_hits_vs_all_surfaces=0 vs_cb367577=0 vs_label_noise=0 ngram_hit_sides=0"}
+{"ts": "2026-10-22T01:43:55Z", "ts_step": "gate_v2:proofs", "msg": "manifest written: /var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus/datasets/embed-r5/gate_manifest_v2.numbers-only.json"}
+{"ts": "2026-10-22T01:43:55Z", "ts_step": "gate_v2:proofs", "msg": "SEALED: gate_set sha256=9e3fc8a1398cf542fda59e9922e75edae00f8d7e8d6ca7c1265488f18fc8d2ae"}
