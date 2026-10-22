@@ -43,9 +43,15 @@ import unicodedata
 from collections import Counter
 from pathlib import Path
 
-R4_WT = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r4-corpus")
-R5_WT = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus")
-REDO_WT = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/corpus-v43-redo")
+R4_WT = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r4-corpus"
+)
+R5_WT = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus"
+)
+REDO_WT = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/corpus-v43-redo"
+)
 
 BASE_CORPUS = R5_WT / "data" / "embed-r5" / "corpus"
 R4_GEN = R4_WT / "data" / "embed-r4" / "gen"
@@ -59,7 +65,9 @@ BURNED_PAIRS = REDO_WT / "data" / "stage2" / "v43" / "train.jsonl"
 EXPECTED_BASE_FP = "e64fdbea65f0e6a4f2830a42ea6bd0d74a2974854d381427c4d5ba2ea4901c62"
 EXPECTED_R4_BASE_FP = "7a3bf00b22951df59e3cb3e638c16e1c05f09a51223da8e19ef246ed29f8b645"
 EXPECTED_GATE_SHA = "cb36757769fb88f2806065f50348f5fd8383cfdb0c19c66e6335eac8ace01123"
-EXPECTED_TATOEBA_SHA = "0be59a697b00e2637a94ccae2ff82543d09844e2b81414c40462588cd2cc7130"
+EXPECTED_TATOEBA_SHA = (
+    "0be59a697b00e2637a94ccae2ff82543d09844e2b81414c40462588cd2cc7130"
+)
 N_SEALED_LLM_PAIRS = 1617
 N_GATE_PAIRS = 180
 N_BURNED_PAIRS = 144
@@ -108,7 +116,9 @@ def assemble() -> tuple[bytes, bytes, dict]:
     d.update((BASE_CORPUS / "train.jsonl").read_bytes())
     d.update((BASE_CORPUS / "val.jsonl").read_bytes())
     base_fp = d.hexdigest()
-    assert base_fp == EXPECTED_BASE_FP, f"base fp {base_fp[:12]} != {EXPECTED_BASE_FP[:12]}"
+    assert base_fp == EXPECTED_BASE_FP, (
+        f"base fp {base_fp[:12]} != {EXPECTED_BASE_FP[:12]}"
+    )
 
     base: dict[str, list[tuple[str, dict]]] = {}
     for fn in ("train.jsonl", "val.jsonl"):
@@ -118,8 +128,12 @@ def assemble() -> tuple[bytes, bytes, dict]:
     assert n_base == {"train.jsonl": 25420, "val.jsonl": 1261}, n_base
 
     # ── 2. pair-key mapping through the sealed round-4 ok manifest ──────────
-    r4_ok = [r for p in sorted(R4_GEN.glob("llm-translations.shard*.jsonl"))
-             for r in load_jsonl(p) if r.get("status") == "ok"]
+    r4_ok = [
+        r
+        for p in sorted(R4_GEN.glob("llm-translations.shard*.jsonl"))
+        for r in load_jsonl(p)
+        if r.get("status") == "ok"
+    ]
     assert len(r4_ok) == N_SEALED_LLM_PAIRS, len(r4_ok)
     oldhash_to_key: dict[str, str] = {}
     key_to_lang: dict[str, str] = {}
@@ -132,18 +146,23 @@ def assemble() -> tuple[bytes, bytes, dict]:
     # ── 3. gate set / manifest integrity + banned surface ───────────────────
     gate_manifest = json.loads((R5_GATE / "manifest.json").read_text(encoding="utf-8"))
     gate_sha = sha256_file(R5_GATE / "gate_set.jsonl")
-    assert gate_manifest["integrity"]["gate_set_sha256"] == gate_sha == EXPECTED_GATE_SHA
+    assert (
+        gate_manifest["integrity"]["gate_set_sha256"] == gate_sha == EXPECTED_GATE_SHA
+    )
     assert gate_manifest["inputs"]["corpus_fingerprint"] == EXPECTED_R4_BASE_FP
     excluded_shas = set(gate_manifest["excluded_text_shas_all_sides"])
     assert len(gate_manifest["excluded_corpus_rows"]) == 315
     assert len(excluded_shas) == 360, len(excluded_shas)
 
-    gate_rows = [json.loads(line) for line in open(R5_GATE / "gate_set.jsonl", encoding="utf-8")]
+    gate_rows = [
+        json.loads(line) for line in open(R5_GATE / "gate_set.jsonl", encoding="utf-8")
+    ]
     assert len(gate_rows) == N_GATE_PAIRS
     gate_dir = Counter(g["direction"] for g in gate_rows)
     assert gate_dir == Counter({"ru->en": 90, "en->ru": 90}), dict(gate_dir)
-    gate_llm_keys = {g["provenance"]["pair_key"] for g in gate_rows
-                     if g["source_class"] == "llm"}
+    gate_llm_keys = {
+        g["provenance"]["pair_key"] for g in gate_rows if g["source_class"] == "llm"
+    }
     assert len(gate_llm_keys) == 68, len(gate_llm_keys)
 
     banned_grams: set[str] = set()
@@ -189,17 +208,23 @@ def assemble() -> tuple[bytes, bytes, dict]:
                 continue
             n_llm_rows += 1
             key = oldhash_to_key.get(text_hash(row["text"]))
-            assert key is not None, f"llm row not in sealed manifest: {row['text'][:50]}"
+            assert key is not None, (
+                f"llm row not in sealed manifest: {row['text'][:50]}"
+            )
             if key in gate_llm_keys:
                 gate_key_hit.append(key)
                 continue
             r7 = final[key]
-            assert key_to_lang[key] == r7["target_lang"] == row["lang"], f"lang mismatch {key}"
+            assert key_to_lang[key] == r7["target_lang"] == row["lang"], (
+                f"lang mismatch {key}"
+            )
             if r7["status"] != "ok":
                 outcome[f"dropped:{r7['status']}"] += 1
                 continue
             assert float(r7["cos"]) >= MIN_COS, f"cos below gate slipped through: {key}"
-            assert not (ngrams(r7["text"]) & banned_grams), f"ngram hit slipped through: {key}"
+            assert not (ngrams(r7["text"]) & banned_grams), (
+                f"ngram hit slipped through: {key}"
+            )
             h_new = text_hash(r7["text"])
             if h_new in excluded_shas:
                 outcome["dropped:gate-sha-collision"] += 1
@@ -209,10 +234,16 @@ def assemble() -> tuple[bytes, bytes, dict]:
                 continue
             seen_hashes.add(h_new)
             cos_values.append(float(r7["cos"]))
-            out.append(json.dumps(
-                {"text": r7["text"], "lang": row["lang"], "source": "translated-llm-r4"},
-                ensure_ascii=False,
-            ))
+            out.append(
+                json.dumps(
+                    {
+                        "text": r7["text"],
+                        "lang": row["lang"],
+                        "source": "translated-llm-r4",
+                    },
+                    ensure_ascii=False,
+                )
+            )
             n_replaced[fn] += 1
         new_lines[fn] = out
         non_llm_kept[fn] = kept_non_llm
@@ -225,12 +256,23 @@ def assemble() -> tuple[bytes, bytes, dict]:
         assert non_llm_kept[fn] == old_non_llm, f"non-llm bytes drifted in {fn}"
 
     # ── 6. exclusion + tatoeba + inherited asserts (round-5 battery) ────────
-    tat_manifest = json.loads((R5_GATE / "tatoeba_manifest.json").read_text(encoding="utf-8"))
+    tat_manifest = json.loads(
+        (R5_GATE / "tatoeba_manifest.json").read_text(encoding="utf-8")
+    )
     tatoeba_sha = sha256_file(R5_GATE / "tatoeba_notes.jsonl")
-    assert tat_manifest["integrity"]["tatoeba_notes_sha256"] == tatoeba_sha == EXPECTED_TATOEBA_SHA
-    tat_rows_raw = [json.loads(line) for line in open(R5_GATE / "tatoeba_notes.jsonl", encoding="utf-8")]
+    assert (
+        tat_manifest["integrity"]["tatoeba_notes_sha256"]
+        == tatoeba_sha
+        == EXPECTED_TATOEBA_SHA
+    )
+    tat_rows_raw = [
+        json.loads(line)
+        for line in open(R5_GATE / "tatoeba_notes.jsonl", encoding="utf-8")
+    ]
     assert len(tat_rows_raw) == N_TATOEBA_NOTES
-    tat_hashes = {text_hash(n[f"text_{s}"]) for n in tat_rows_raw for s in ("src", "dst")}
+    tat_hashes = {
+        text_hash(n[f"text_{s}"]) for n in tat_rows_raw for s in ("src", "dst")
+    }
     assert len(tat_hashes) == N_TATOEBA_ROWS
 
     final_rows: list[tuple[str, dict]] = [
@@ -249,7 +291,9 @@ def assemble() -> tuple[bytes, bytes, dict]:
     assert not (train_h & val_h), "train/val intersection non-empty"
     assert tat_hashes <= train_h, "tatoeba rows lost from train"
     val_src = Counter(row["source"] for s, row in final_rows if s == "val")
-    assert not any(src.startswith("tatoeba-") for src in val_src), "tatoeba leaked into val"
+    assert not any(src.startswith("tatoeba-") for src in val_src), (
+        "tatoeba leaked into val"
+    )
 
     # monitored (NOT asserts — chair Option 1): inherited gram overlap
     gate_grams_only: set[str] = set()
@@ -274,10 +318,15 @@ def assemble() -> tuple[bytes, bytes, dict]:
     for c in by_source.values():
         total_by_source.update(c)
     n_total = len(new_lines["train.jsonl"]) + len(new_lines["val.jsonl"])
-    fam = sum(v for k, v in total_by_source.items()
-              if k.startswith("translated-") or k.startswith("twin-"))
+    fam = sum(
+        v
+        for k, v in total_by_source.items()
+        if k.startswith("translated-") or k.startswith("twin-")
+    )
     fam_share = fam / n_total
-    assert fam_share <= TRANSLATED_FAMILY_CEILING, f"translated-family share {fam_share:.4f}"
+    assert fam_share <= TRANSLATED_FAMILY_CEILING, (
+        f"translated-family share {fam_share:.4f}"
+    )
 
     train_bytes = ("\n".join(new_lines["train.jsonl"]) + "\n").encode("utf-8")
     val_bytes = ("\n".join(new_lines["val.jsonl"]) + "\n").encode("utf-8")
@@ -290,11 +339,18 @@ def assemble() -> tuple[bytes, bytes, dict]:
 
     numbers = {
         "base": {"fp": base_fp, "counts": n_base},
-        "gate": {"sha": gate_sha, "pairs": N_GATE_PAIRS,
-                 "by_direction": dict(sorted(gate_dir.items())),
-                 "llm_stratum_pair_keys_preserved": True},
-        "tatoeba": {"sha": tatoeba_sha, "notes": N_TATOEBA_NOTES,
-                    "rows": N_TATOEBA_ROWS, "license": "CC-BY-2.0-FR"},
+        "gate": {
+            "sha": gate_sha,
+            "pairs": N_GATE_PAIRS,
+            "by_direction": dict(sorted(gate_dir.items())),
+            "llm_stratum_pair_keys_preserved": True,
+        },
+        "tatoeba": {
+            "sha": tatoeba_sha,
+            "notes": N_TATOEBA_NOTES,
+            "rows": N_TATOEBA_ROWS,
+            "license": "CC-BY-2.0-FR",
+        },
         "delta": {
             "kind": "llm-class re-translation (round-7 single variable)",
             "teacher": "Qwen/Qwen3-1.7B-GGUF Q8_0 (llama.cpp)",
@@ -310,19 +366,29 @@ def assemble() -> tuple[bytes, bytes, dict]:
             "by_split": {fn: n_base[fn] - len(new_lines[fn]) for fn in n_base},
             "total": sum(v for k, v in outcome.items() if k.startswith("dropped:")),
             "note": "round-5 exclusions already applied in the sealed base; "
-                    "round-7 removals are gate-failed llm pairs only",
+            "round-7 removals are gate-failed llm pairs only",
         },
-        "counts": {"train": len(new_lines["train.jsonl"]),
-                   "val": len(new_lines["val.jsonl"]), "total": n_total},
+        "counts": {
+            "train": len(new_lines["train.jsonl"]),
+            "val": len(new_lines["val.jsonl"]),
+            "total": n_total,
+        },
         "by_source": {k: dict(sorted(v.items())) for k, v in by_source.items()},
         "shares": {
             "ru": round(langs["ru"] / n_total, 4),
             "translated_family": round(fam_share, 4),
             "translated_family_train": round(
-                sum(v for k, v in by_source["train"].items()
-                    if k.startswith("translated-") or k.startswith("twin-"))
-                / len(new_lines["train.jsonl"]), 4),
-            "llm_class": round(total_by_source.get("translated-llm-r4", 0) / n_total, 4),
+                sum(
+                    v
+                    for k, v in by_source["train"].items()
+                    if k.startswith("translated-") or k.startswith("twin-")
+                )
+                / len(new_lines["train.jsonl"]),
+                4,
+            ),
+            "llm_class": round(
+                total_by_source.get("translated-llm-r4", 0) / n_total, 4
+            ),
             "ceiling_translated_family": TRANSLATED_FAMILY_CEILING,
         },
         "quality_gates": {
@@ -330,15 +396,19 @@ def assemble() -> tuple[bytes, bytes, dict]:
             "teacher_cos_min": MIN_COS,
             "cos_collected": n_cos,
             "cos_min": round(min(cos_sorted), 4) if cos_sorted else None,
-            "cos_p10": round(cos_sorted[max(0, n_cos // 10)], 4) if cos_sorted else None,
-            "cos_median": round(cos_sorted[max(0, n_cos // 2)], 4) if cos_sorted else None,
+            "cos_p10": round(cos_sorted[max(0, n_cos // 10)], 4)
+            if cos_sorted
+            else None,
+            "cos_median": round(cos_sorted[max(0, n_cos // 2)], 4)
+            if cos_sorted
+            else None,
             "anti_copy": "pass by construction on collected rows (hash + jaccard 0.9)",
             "ngram_8_13_zero_tolerance_new_material": True,
             "final_ok": sum(n_replaced.values()),
         },
         "monitored": {
             "note": "NOT asserts — inherited base is hash-level disjoint per chair "
-                    "Option 1; gram overlap recorded for trend/attribution",
+            "Option 1; gram overlap recorded for trend/attribution",
             "inherited_rows_sharing_gate_8_13_grams": gram_hits_gate,
             "inherited_rows_sharing_burned_8_13_grams": gram_hits_burned,
         },
@@ -354,7 +424,9 @@ def main() -> int:
     identical = (train_a, val_a) == (train_b, val_b)
     assert identical, "DOUBLE-RUN DIVERGENCE: run A != run B"
     assert num_a["fingerprint"] == num_b["fingerprint"]
-    print(f"double-run byte-identical: True; fp {num_a['fingerprint'][:12]}", flush=True)
+    print(
+        f"double-run byte-identical: True; fp {num_a['fingerprint'][:12]}", flush=True
+    )
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     (OUT_DIR / "train.jsonl").write_bytes(train_a)
@@ -364,7 +436,7 @@ def main() -> int:
         "kind": "dataset-embed-r7-corpus-report",
         "created": time.strftime("%Y-%m-%d"),
         "prereg": "docs/specs/embed-round7-prereg-llmquality.md §2 (ACTIVATED, "
-                  "owner-ratified 2026-10-10)",
+        "owner-ratified 2026-10-10)",
         "assert_set": "feat/embed-r7-corpus (this commit)",
         "fingerprint": num_a["fingerprint"],
         "counts": num_a["counts"],
@@ -406,20 +478,38 @@ def main() -> int:
         json.dumps(report, ensure_ascii=False, indent=1) + "\n", encoding="utf-8"
     )
     with open(RUN_LOG, "a", encoding="utf-8") as fh:
-        fh.write(json.dumps({
-            "ts_step": "build_embed_r7_corpus",
-            "msg": (
-                f"round-7 corpus assembled; train={num_a['counts']['train']} "
-                f"val={num_a['counts']['val']} total={num_a['counts']['total']}; "
-                f"replaced={num_a['delta']['replaced']}/{N_SEALED_LLM_PAIRS} llm pairs; "
-                f"fp={num_a['fingerprint']}; double_run_byte_identical={identical}; "
-                f"all asserts PASS"
-            ),
-        }, ensure_ascii=False) + "\n")
-    print(json.dumps({"counts": num_a["counts"], "shares": num_a["shares"],
-                      "delta_outcomes": num_a["delta"]["outcomes"],
-                      "fingerprint": num_a["fingerprint"]}, indent=1), flush=True)
-    print(f"report.json + numbers-only copy written; {round(time.time() - t0, 1)}s", flush=True)
+        fh.write(
+            json.dumps(
+                {
+                    "ts_step": "build_embed_r7_corpus",
+                    "msg": (
+                        f"round-7 corpus assembled; train={num_a['counts']['train']} "
+                        f"val={num_a['counts']['val']} total={num_a['counts']['total']}; "
+                        f"replaced={num_a['delta']['replaced']}/{N_SEALED_LLM_PAIRS} llm pairs; "
+                        f"fp={num_a['fingerprint']}; double_run_byte_identical={identical}; "
+                        f"all asserts PASS"
+                    ),
+                },
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
+    print(
+        json.dumps(
+            {
+                "counts": num_a["counts"],
+                "shares": num_a["shares"],
+                "delta_outcomes": num_a["delta"]["outcomes"],
+                "fingerprint": num_a["fingerprint"],
+            },
+            indent=1,
+        ),
+        flush=True,
+    )
+    print(
+        f"report.json + numbers-only copy written; {round(time.time() - t0, 1)}s",
+        flush=True,
+    )
     return 0
 
 

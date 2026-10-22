@@ -31,8 +31,12 @@ from pathlib import Path
 import numpy as np
 
 # ---------------- paths and expected fingerprints ----------------
-R4_WT = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r4-corpus")
-REDO_WT = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/corpus-v43-redo")
+R4_WT = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r4-corpus"
+)
+REDO_WT = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/corpus-v43-redo"
+)
 GATE_DIR = R4_WT / "data" / "embed-r4" / "r5_gate"
 GATE_FILE = GATE_DIR / "gate_set.jsonl"
 GATE_MANIFEST = GATE_DIR / "manifest.json"
@@ -42,7 +46,9 @@ CORPUS_DIR = R4_WT / "data" / "embed-r4" / "corpus"
 CORPUS_TRAIN = CORPUS_DIR / "train.jsonl"
 EXPECTED_CORPUS_FP = "7a3bf00b22951df59e3cb3e638c16e1c05f09a51223da8e19ef246ed29f8b645"
 
-PROD_DIR = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma/src/vesmaro/models/vesma-embed-v1")
+PROD_DIR = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma/src/vesmaro/models/vesma-embed-v1"
+)
 EXPECTED_PROD_SHA = "3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba"
 
 BURNED_FILE = REDO_WT / "data" / "stage2" / "v43" / "train.jsonl"
@@ -54,8 +60,8 @@ OUT_DIR = Path(__file__).resolve().parent / "results"
 OUT_JSON = OUT_DIR / "audit_kd_teachers.json"
 
 MAX_SEQ = 256
-POOL_PER_LANG = 240   # identical to run_phase0.py
-POOL_SEED = 42        # identical to run_phase0.py
+POOL_PER_LANG = 240  # identical to run_phase0.py
+POOL_SEED = 42  # identical to run_phase0.py
 RANK_K = 5
 
 E5_PREFIX = "query: "  # intfloat model card: symmetric tasks -> "query: " on both sides
@@ -116,7 +122,8 @@ class NanoHarness:
         opts.intra_op_num_threads = 4
         opts.inter_op_num_threads = 1
         self._session = ort.InferenceSession(
-            str(artifact_dir / "model.onnx"), sess_options=opts,
+            str(artifact_dir / "model.onnx"),
+            sess_options=opts,
             providers=["CPUExecutionProvider"],
         )
         self._model_inputs = {inp.name for inp in self._session.get_inputs()}
@@ -145,7 +152,13 @@ class NanoHarness:
 class HFMeanEncoder:
     """HF AutoModel + (optional prefix) + mask-aware mean pooling + L2."""
 
-    def __init__(self, model_id: str, prefix: str, max_length: int = MAX_SEQ, batch_size: int = 32):
+    def __init__(
+        self,
+        model_id: str,
+        prefix: str,
+        max_length: int = MAX_SEQ,
+        batch_size: int = 32,
+    ):
         import torch
         from transformers import AutoModel, AutoTokenizer
 
@@ -166,7 +179,10 @@ class HFMeanEncoder:
         for start in range(0, len(texts), self.batch_size):
             chunk = [self.prefix + t for t in texts[start : start + self.batch_size]]
             enc = self._tok(
-                chunk, padding=True, truncation=True, max_length=self.max_length,
+                chunk,
+                padding=True,
+                truncation=True,
+                max_length=self.max_length,
                 return_tensors="pt",
             )
             hs = self._model(**enc).last_hidden_state
@@ -191,12 +207,13 @@ class STEncoder:
         self.pooling_mode = getattr(pool, "get_pooling_config_str", lambda: "?")()
 
     def embed_all(self, texts: list[str]) -> np.ndarray:
-        return (
-            self._st.encode(
-                texts, batch_size=self.batch_size, convert_to_numpy=True,
-                normalize_embeddings=True, show_progress_bar=False,
-            ).astype(np.float64)
-        )
+        return self._st.encode(
+            texts,
+            batch_size=self.batch_size,
+            convert_to_numpy=True,
+            normalize_embeddings=True,
+            show_progress_bar=False,
+        ).astype(np.float64)
 
 
 # ---------------- harness statistics (run_phase0 protocol) ----------------
@@ -241,9 +258,9 @@ def build_pool(rows: list[dict], corpus_rows: list[dict]):
             ref = r.get("corpus_row_" + side)
             if ref and ref.get("source"):
                 lang = r["lang_" + side]
-                side_families[lang][ref["source"]] = side_families[lang].get(ref["source"], 0) + 1
-    gate_texts_en = {r["text_src"] if r["lang_src"] == "en" else r["text_dst"] for r in rows}
-    gate_texts_ru = {r["text_src"] if r["lang_src"] == "ru" else r["text_dst"] for r in rows}
+                side_families[lang][ref["source"]] = (
+                    side_families[lang].get(ref["source"], 0) + 1
+                )
 
     seen_pool_sha = set()
     deduped: list[dict] = []
@@ -302,20 +319,30 @@ def gate_text_set_check(rows: list[dict]) -> set:
     return s
 
 
-def evaluate_space(vec: np.ndarray, gate_order: list[str], rows: list[dict],
-                   pair_sides: list[dict], pool_texts: dict, pool_vec: dict) -> dict:
+def evaluate_space(
+    vec: np.ndarray,
+    gate_order: list[str],
+    rows: list[dict],
+    pair_sides: list[dict],
+    pool_texts: dict,
+    pool_vec: dict,
+) -> dict:
     """Proxy + retrieval blocks exactly as run_phase0.py."""
     n_gate = len(gate_order)
     gv = vec[:n_gate]
     sha_row = {s: i for i, s in enumerate(gate_order)}
 
-    cos = np.array([
-        float(np.dot(gv[sha_row[a]], gv[sha_row[b]]))
-        for a, b in ((s["src"][0], s["dst"][0]) for s in pair_sides)
-    ])
+    cos = np.array(
+        [
+            float(np.dot(gv[sha_row[a]], gv[sha_row[b]]))
+            for a, b in ((s["src"][0], s["dst"][0]) for s in pair_sides)
+        ]
+    )
     dir_en2ru = [r["direction"] == "en->ru" for r in rows]
-    cls_masks = {c: [r["source_class"] == c for r in rows]
-                 for c in ("twin", "llm", "real", "seed-dup")}
+    cls_masks = {
+        c: [r["source_class"] == c for r in rows]
+        for c in ("twin", "llm", "real", "seed-dup")
+    }
     proxy = {
         "overall": proxy_stats(cos),
         "by_direction": {
@@ -351,7 +378,9 @@ def evaluate_space(vec: np.ndarray, gate_order: list[str], rows: list[dict],
         return {
             "n": int(mask.sum()),
             "median_best_distractor_cos": round(float(np.median(margins[mask])), 4),
-            "P10_best_distractor_cos": round(float(np.percentile(margins[mask], 10)), 4),
+            "P10_best_distractor_cos": round(
+                float(np.percentile(margins[mask], 10)), 4
+            ),
             "max_best_distractor_cos": round(float(margins[mask].max()), 4),
             "share_best_ge_085": round(float((margins[mask] >= 0.85).mean()), 4),
         }
@@ -368,7 +397,9 @@ def evaluate_space(vec: np.ndarray, gate_order: list[str], rows: list[dict],
         "cross": {
             "note": "candidates = 240 same-language distractors + 1 correct; rank of correct",
             "overall": rank_stats(np.array([r[2] for r in cross_ranks])),
-            "by_query_lang": {q: rank_stats(np.array(v)) for q, v in cross_by_qlang.items()},
+            "by_query_lang": {
+                q: rank_stats(np.array(v)) for q, v in cross_by_qlang.items()
+            },
             "by_class": {c: rank_stats(np.array(v)) for c, v in cross_by_class.items()},
         },
         "mono": {
@@ -388,35 +419,58 @@ def main() -> int:
 
     # 0. input verification (hard stop on mismatch)
     gate_sha = sha256_file(GATE_FILE)
-    verify["gate_set"] = {"sha256": gate_sha, "expected": EXPECTED_GATE_SHA,
-                          "ok": gate_sha == EXPECTED_GATE_SHA}
+    verify["gate_set"] = {
+        "sha256": gate_sha,
+        "expected": EXPECTED_GATE_SHA,
+        "ok": gate_sha == EXPECTED_GATE_SHA,
+    }
     assert verify["gate_set"]["ok"], "gate_set sha mismatch - STOP"
 
     prod_sha = sha256_file(PROD_DIR / "model.onnx")
-    verify["model_prod"] = {"model_sha256": prod_sha, "expected": EXPECTED_PROD_SHA,
-                            "ok": prod_sha == EXPECTED_PROD_SHA}
+    verify["model_prod"] = {
+        "model_sha256": prod_sha,
+        "expected": EXPECTED_PROD_SHA,
+        "ok": prod_sha == EXPECTED_PROD_SHA,
+    }
     assert verify["model_prod"]["ok"], "prod model sha mismatch - STOP"
 
     fp_file = (CORPUS_DIR / "fingerprint.txt").read_text().strip()
-    verify["corpus"] = {"fingerprint_txt": fp_file, "expected": EXPECTED_CORPUS_FP,
-                        "ok": fp_file == EXPECTED_CORPUS_FP}
+    verify["corpus"] = {
+        "fingerprint_txt": fp_file,
+        "expected": EXPECTED_CORPUS_FP,
+        "ok": fp_file == EXPECTED_CORPUS_FP,
+    }
     assert verify["corpus"]["ok"], "corpus fingerprint mismatch - STOP"
 
-    burned_rows = [json.loads(l) for l in open(BURNED_FILE, encoding="utf-8") if l.strip()]
-    burned_sel = [r for r in burned_rows
-                  if r.get("stratum") == "translated-dup" and r.get("label") == "duplicate"]
-    verify["burned_pairs"] = {"file_rows": len(burned_rows), "selected": len(burned_sel)}
-    assert len(burned_sel) == 144, f"expected 144 burned translated-dup pairs, got {len(burned_sel)}"
+    burned_rows = [
+        json.loads(line) for line in open(BURNED_FILE, encoding="utf-8") if line.strip()
+    ]
+    burned_sel = [
+        r
+        for r in burned_rows
+        if r.get("stratum") == "translated-dup" and r.get("label") == "duplicate"
+    ]
+    verify["burned_pairs"] = {
+        "file_rows": len(burned_rows),
+        "selected": len(burned_sel),
+    }
+    assert len(burned_sel) == 144, (
+        f"expected 144 burned translated-dup pairs, got {len(burned_sel)}"
+    )
 
     # 1. gate set + pair sides
-    rows = [json.loads(l) for l in open(GATE_FILE, encoding="utf-8") if l.strip()]
+    rows = [
+        json.loads(line) for line in open(GATE_FILE, encoding="utf-8") if line.strip()
+    ]
     assert len(rows) == 180
     pair_sides = []
     for r in rows:
-        pair_sides.append({
-            "src": (sha256_text(r["text_src"]), r["lang_src"]),
-            "dst": (sha256_text(r["text_dst"]), r["lang_dst"]),
-        })
+        pair_sides.append(
+            {
+                "src": (sha256_text(r["text_src"]), r["lang_src"]),
+                "dst": (sha256_text(r["text_dst"]), r["lang_dst"]),
+            }
+        )
     uniq_texts: dict[str, str] = {}
     for r in rows:
         for side in ("src", "dst"):
@@ -436,54 +490,90 @@ def main() -> int:
                 burned_texts.append(body)
 
     # 2. distractor pool — verbatim run_phase0 construction, cross-checked vs npz
-    corpus_rows = [json.loads(l) for l in open(CORPUS_TRAIN, encoding="utf-8") if l.strip()]
+    corpus_rows = [
+        json.loads(line)
+        for line in open(CORPUS_TRAIN, encoding="utf-8")
+        if line.strip()
+    ]
     pool = build_pool(rows, corpus_rows)
     pool_texts = {lang: [r["text"] for r in pool[lang]] for lang in ("en", "ru")}
     if CHARACT_NPZ.exists():
         npz = np.load(CHARACT_NPZ, allow_pickle=True)
-        assert list(npz["pool_en_sha"]) == [r["_sha"] for r in pool["en"]], "en pool mismatch vs npz"
-        assert list(npz["pool_ru_sha"]) == [r["_sha"] for r in pool["ru"]], "ru pool mismatch vs npz"
+        assert list(npz["pool_en_sha"]) == [r["_sha"] for r in pool["en"]], (
+            "en pool mismatch vs npz"
+        )
+        assert list(npz["pool_ru_sha"]) == [r["_sha"] for r in pool["ru"]], (
+            "ru pool mismatch vs npz"
+        )
         verify["pool_vs_npz"] = "identical (pool_en/pool_ru sha lists equal)"
     else:
-        verify["pool_vs_npz"] = "npz not found - pool reconstructed from verbatim recipe"
+        verify["pool_vs_npz"] = (
+            "npz not found - pool reconstructed from verbatim recipe"
+        )
 
     all_texts = gate_text_list + burned_texts + pool_texts["en"] + pool_texts["ru"]
     n_gate, n_burned = len(gate_text_list), len(burned_texts)
     n_en, n_ru = len(pool_texts["en"]), len(pool_texts["ru"])
-    print(f"[texts] gate={n_gate} burned={n_burned} pool_en={n_en} pool_ru={n_ru} total={len(all_texts)}")
+    print(
+        f"[texts] gate={n_gate} burned={n_burned} pool_en={n_en} pool_ru={n_ru} total={len(all_texts)}"
+    )
 
     # 3. production floor (plumbing validation vs stored characterization)
     prod_res = NanoHarness(PROD_DIR, "production-3b752e06")
     prod_vec = prod_res.embed_all(all_texts)
-    prod_out = evaluate_space(prod_vec, gate_order, rows, pair_sides, pool_texts,
-                              {"en": prod_vec[n_gate + n_burned:n_gate + n_burned + n_en],
-                               "ru": prod_vec[n_gate + n_burned + n_en:]})
-    burned_vec = prod_vec[n_gate:n_gate + n_burned]
+    prod_out = evaluate_space(
+        prod_vec,
+        gate_order,
+        rows,
+        pair_sides,
+        pool_texts,
+        {
+            "en": prod_vec[n_gate + n_burned : n_gate + n_burned + n_en],
+            "ru": prod_vec[n_gate + n_burned + n_en :],
+        },
+    )
+    burned_vec = prod_vec[n_gate : n_gate + n_burned]
     prod_burned_median = burned_median(burned_sel, burned_index, burned_vec)
     stored = json.loads(CHARACT_JSON.read_text()) if CHARACT_JSON.exists() else None
-    plumbing = {"measured": {
-        "proxy_median": prod_out["proxy"]["overall"]["M_cal_median"],
-        "proxy_S_cal": prod_out["proxy"]["overall"]["S_cal_share_ge_085"],
-        "mono_median": prod_out["retrieval"]["mono"]["overall"]["median_best_distractor_cos"],
-        "cross_R@5": prod_out["retrieval"]["cross"]["overall"]["R@5"],
-        "burned144_median": prod_burned_median,
-    }}
+    plumbing = {
+        "measured": {
+            "proxy_median": prod_out["proxy"]["overall"]["M_cal_median"],
+            "proxy_S_cal": prod_out["proxy"]["overall"]["S_cal_share_ge_085"],
+            "mono_median": prod_out["retrieval"]["mono"]["overall"][
+                "median_best_distractor_cos"
+            ],
+            "cross_R@5": prod_out["retrieval"]["cross"]["overall"]["R@5"],
+            "burned144_median": prod_burned_median,
+        }
+    }
     if stored:
         plumbing["stored_phase0"] = {
-            "proxy_median": stored["results"]["proxy"]["production"]["overall"]["M_cal_median"],
-            "proxy_S_cal": stored["results"]["proxy"]["production"]["overall"]["S_cal_share_ge_085"],
-            "mono_median": stored["results"]["retrieval"]["production"]["mono"]["overall"]["median_best_distractor_cos"],
-            "cross_R@5": stored["results"]["retrieval"]["production"]["cross"]["overall"]["R@5"],
+            "proxy_median": stored["results"]["proxy"]["production"]["overall"][
+                "M_cal_median"
+            ],
+            "proxy_S_cal": stored["results"]["proxy"]["production"]["overall"][
+                "S_cal_share_ge_085"
+            ],
+            "mono_median": stored["results"]["retrieval"]["production"]["mono"][
+                "overall"
+            ]["median_best_distractor_cos"],
+            "cross_R@5": stored["results"]["retrieval"]["production"]["cross"][
+                "overall"
+            ]["R@5"],
         }
     verify["production_plumbing"] = plumbing
-    prod_mono_median = prod_out["retrieval"]["mono"]["overall"]["median_best_distractor_cos"]
+    prod_mono_median = prod_out["retrieval"]["mono"]["overall"][
+        "median_best_distractor_cos"
+    ]
 
-    results: dict = {"production": {
-        "sha256": prod_sha,
-        "burned144_median": prod_burned_median,
-        "mono_median_best_distractor_cos": prod_mono_median,
-        "gate": {k: v for k, v in prod_out.items() if k != "pair_cosines"},
-    }}
+    results: dict = {
+        "production": {
+            "sha256": prod_sha,
+            "burned144_median": prod_burned_median,
+            "mono_median_best_distractor_cos": prod_mono_median,
+            "gate": {k: v for k, v in prod_out.items() if k != "pair_cosines"},
+        }
+    }
 
     # 4. candidates, one at a time (RAM discipline), fp32 torch reference pass
     for cand in CANDIDATES:
@@ -495,33 +585,49 @@ def main() -> int:
             enc = STEncoder(cand["id"])
         vec = enc.embed_all(all_texts)
         assert vec.shape[1] == cand["dim"], f"dim mismatch {vec.shape} vs {cand['dim']}"
-        out = evaluate_space(vec, gate_order, rows, pair_sides, pool_texts,
-                             {"en": vec[n_gate + n_burned:n_gate + n_burned + n_en],
-                              "ru": vec[n_gate + n_burned + n_en:]})
-        burned_vec = vec[n_gate:n_gate + n_burned]
+        out = evaluate_space(
+            vec,
+            gate_order,
+            rows,
+            pair_sides,
+            pool_texts,
+            {
+                "en": vec[n_gate + n_burned : n_gate + n_burned + n_en],
+                "ru": vec[n_gate + n_burned + n_en :],
+            },
+        )
+        burned_vec = vec[n_gate : n_gate + n_burned]
         bmed = burned_median(burned_sel, burned_index, burned_vec)
         mono_med = out["retrieval"]["mono"]["overall"]["median_best_distractor_cos"]
         d_mono = round(mono_med - prod_mono_median, 4)
         verdict_a = bmed >= 0.90
         verdict_b = abs(d_mono) <= 0.005
         results[cand["short"]] = {
-            "model_id": cand["id"], "params": cand["params"], "license": cand["license"],
-            "dim": cand["dim"], "prefix": cand["prefix"] or "(none)",
+            "model_id": cand["id"],
+            "params": cand["params"],
+            "license": cand["license"],
+            "dim": cand["dim"],
+            "prefix": cand["prefix"] or "(none)",
             "pooling": getattr(enc, "pooling_mode", "mean"),
             "burned144_median": bmed,
             "criterion_a_median_ge_090": {"value": bmed, "pass": bool(verdict_a)},
             "mono_median_best_distractor_cos": mono_med,
-            "criterion_b_mono_delta_le_0005": {"delta_vs_prod": d_mono,
-                                               "prod": prod_mono_median, "pass": bool(verdict_b)},
+            "criterion_b_mono_delta_le_0005": {
+                "delta_vs_prod": d_mono,
+                "prod": prod_mono_median,
+                "pass": bool(verdict_b),
+            },
             "audit_pass": bool(verdict_a and verdict_b),
             "gate": {k: v for k, v in out.items() if k != "pair_cosines"},
             "wall_seconds": round(time.time() - tc, 1),
         }
-        print(f"[cand] {cand['short']}: burned144={bmed:.4f} mono={mono_med:.4f} "
-              f"dMono={d_mono:+.4f} S_cal={out['proxy']['overall']['S_cal_share_ge_085']} "
-              f"median={out['proxy']['overall']['M_cal_median']} "
-              f"R@5={out['retrieval']['cross']['overall']['R@5']} "
-              f"PASS={verdict_a and verdict_b} ({time.time()-tc:.0f}s)")
+        print(
+            f"[cand] {cand['short']}: burned144={bmed:.4f} mono={mono_med:.4f} "
+            f"dMono={d_mono:+.4f} S_cal={out['proxy']['overall']['S_cal_share_ge_085']} "
+            f"median={out['proxy']['overall']['M_cal_median']} "
+            f"R@5={out['retrieval']['cross']['overall']['R@5']} "
+            f"PASS={verdict_a and verdict_b} ({time.time() - tc:.0f}s)"
+        )
         del enc, vec, out
         gc.collect()
 
@@ -537,8 +643,12 @@ def main() -> int:
         },
         "harness": {
             "recipe": "run_phase0.py verbatim (NanoProvider ORT for prod; HF fp32 torch for "
-                      "candidates; max_seq 256; mean+L2; e5 'query: ' prefix per model card)",
-            "pool": {"per_language": POOL_PER_LANG, "seed": POOL_SEED, "identity": verify.get("pool_vs_npz")},
+            "candidates; max_seq 256; mean+L2; e5 'query: ' prefix per model card)",
+            "pool": {
+                "per_language": POOL_PER_LANG,
+                "seed": POOL_SEED,
+                "identity": verify.get("pool_vs_npz"),
+            },
             "runtime": {"wall_seconds": round(wall, 1)},
         },
         "inputs_verification": {k: v for k, v in verify.items()},
@@ -553,7 +663,9 @@ def burned_pairs_ok(sel: list[dict]) -> int:
     return len(sel)
 
 
-def burned_median(burned_sel: list[dict], burned_index: dict, burned_vec: np.ndarray) -> float:
+def burned_median(
+    burned_sel: list[dict], burned_index: dict, burned_vec: np.ndarray
+) -> float:
     cos = []
     for r in burned_sel:
         ia = burned_index[str(r["record"].get("body") or "").strip()]

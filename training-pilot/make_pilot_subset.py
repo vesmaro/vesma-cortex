@@ -31,9 +31,15 @@ import sys
 import time
 from pathlib import Path
 
-R4_WT = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r4-corpus")
-REDO_WT = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/corpus-v43-redo")
-R5_WT = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus")
+R4_WT = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r4-corpus"
+)
+REDO_WT = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/corpus-v43-redo"
+)
+R5_WT = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus"
+)
 GEN_DIR = R4_WT / "data" / "embed-r4" / "gen"
 CORPUS_DIR = R4_WT / "data" / "embed-r4" / "corpus"
 SEED_DIR = R4_WT / "datasets" / "corpus-v43"
@@ -73,7 +79,11 @@ def real_units() -> dict[str, tuple[str, str]]:
         if not isinstance(body, str) or not body.strip():
             continue
         key = rec.get("content_hash") or text_hash(body)
-        src_lang = (rec.get("side") or {}).get("language") or rec.get("language") or detect_lang(body)
+        src_lang = (
+            (rec.get("side") or {}).get("language")
+            or rec.get("language")
+            or detect_lang(body)
+        )
         target = "en" if src_lang == "ru" else "ru"
         unit = body.strip()
         while count_tokens(unit) > UNIT_TOKEN_CAP and "\n\n" in unit:
@@ -119,8 +129,13 @@ def load_corpus() -> dict[str, dict]:
                 h = text_hash(row["text"])
                 if h in corpus:
                     raise SystemExit(f"corpus hash collision at {fn}:{i}")
-                corpus[h] = {"file": fn, "line": i, "source": row["source"],
-                             "lang": row["lang"], "text": row["text"]}
+                corpus[h] = {
+                    "file": fn,
+                    "line": i,
+                    "source": row["source"],
+                    "lang": row["lang"],
+                    "text": row["text"],
+                }
     return corpus
 
 
@@ -132,24 +147,29 @@ def main() -> int:
 
     corpus = load_corpus()
     units_real, units_llm = real_units(), llm_units()
-    print(f"corpus verified rows={len(corpus)}; real units={len(units_real)}; llm units={len(units_llm)}")
+    print(
+        f"corpus verified rows={len(corpus)}; real units={len(units_real)}; llm units={len(units_llm)}"
+    )
 
     candidates: list[dict] = []
 
     def add_candidate(cls, text_src, lang_src, text_dst, lang_dst, provenance):
         hs_src, hs_dst = text_hash(text_src), text_hash(text_dst)
-        candidates.append({
-            "class": cls,
-            "sha_src": hs_src, "sha_dst": hs_dst,
-            "text_src": corpus[hs_src]["text"] if hs_src in corpus else text_src,
-            "lang_src": lang_src,
-            "text_dst": corpus[hs_dst]["text"] if hs_dst in corpus else text_dst,
-            "lang_dst": lang_dst,
-            "row_src": corpus.get(hs_src),
-            "row_dst": corpus.get(hs_dst),
-            "pair_key": text_hash(f"{hs_src}\x00{hs_dst}"),
-            "provenance": provenance,
-        })
+        candidates.append(
+            {
+                "class": cls,
+                "sha_src": hs_src,
+                "sha_dst": hs_dst,
+                "text_src": corpus[hs_src]["text"] if hs_src in corpus else text_src,
+                "lang_src": lang_src,
+                "text_dst": corpus[hs_dst]["text"] if hs_dst in corpus else text_dst,
+                "lang_dst": lang_dst,
+                "row_src": corpus.get(hs_src),
+                "row_dst": corpus.get(hs_dst),
+                "pair_key": text_hash(f"{hs_src}\x00{hs_dst}"),
+                "provenance": provenance,
+            }
+        )
 
     # seed-dup (inline, verbatim recipe)
     n_seed = 0
@@ -163,8 +183,14 @@ def main() -> int:
                 continue
             lang_rec = str(rec.get("lang") or rec.get("language") or "")
             lang_tr = str(tr.get("lang") or tr.get("language") or "")
-            add_candidate("seed-dup", t_rec, lang_rec, t_tr, lang_tr,
-                          {"gen_file": path.name, "gen_line": ln})
+            add_candidate(
+                "seed-dup",
+                t_rec,
+                lang_rec,
+                t_tr,
+                lang_tr,
+                {"gen_file": path.name, "gen_line": ln},
+            )
             n_seed += 1
 
     # real (key match)
@@ -181,8 +207,14 @@ def main() -> int:
             if not tr_text:
                 continue
             lang_src = "ru" if target == "en" else "en"
-            add_candidate("real", unit_text, lang_src, tr_text, target,
-                          {"gen_file": path.name, "gen_line": ln})
+            add_candidate(
+                "real",
+                unit_text,
+                lang_src,
+                tr_text,
+                target,
+                {"gen_file": path.name, "gen_line": ln},
+            )
             n_real += 1
 
     # llm (key match)
@@ -199,8 +231,14 @@ def main() -> int:
             if not tr_text:
                 continue
             lang_src = "ru" if target == "en" else "en"
-            add_candidate("llm", unit_text, lang_src, tr_text, target,
-                          {"gen_file": path.name, "gen_line": ln})
+            add_candidate(
+                "llm",
+                unit_text,
+                lang_src,
+                tr_text,
+                target,
+                {"gen_file": path.name, "gen_line": ln},
+            )
             n_llm += 1
 
     # twin (inline)
@@ -212,8 +250,9 @@ def main() -> int:
             ru_t, en_t = normalise(row["ru"]), normalise(row["en"])
             if not ru_t or not en_t:
                 continue
-            add_candidate("twin", ru_t, "ru", en_t, "en",
-                          {"gen_file": path.name, "gen_line": ln})
+            add_candidate(
+                "twin", ru_t, "ru", en_t, "en", {"gen_file": path.name, "gen_line": ln}
+            )
             n_twin += 1
 
     print(f"candidates: seed-dup={n_seed} real={n_real} llm={n_llm} twin={n_twin}")
@@ -228,8 +267,12 @@ def main() -> int:
         deduped.append(c)
 
     # pilot eligibility: both sides in TRAIN slice + expected classes + gate exclusion
-    expected_dst = {"seed-dup": "translated-dup", "real": "translated-real-r4",
-                    "llm": "translated-llm-r4", "twin": "twin-"}
+    expected_dst = {
+        "seed-dup": "translated-dup",
+        "real": "translated-real-r4",
+        "llm": "translated-llm-r4",
+        "twin": "twin-",
+    }
     expected_src = {"seed-dup": "translated-dup", "twin": "twin-"}
     stats: dict[str, int] = {}
     pool: list[dict] = []
@@ -238,10 +281,14 @@ def main() -> int:
         cls = c["class"]
         rs, rd = c["row_src"], c["row_dst"]
         if rs is None or rd is None:
-            stats[f"{cls}:not-both-sides-in-corpus"] = stats.get(f"{cls}:not-both-sides-in-corpus", 0) + 1
+            stats[f"{cls}:not-both-sides-in-corpus"] = (
+                stats.get(f"{cls}:not-both-sides-in-corpus", 0) + 1
+            )
             continue
         if rs["file"] != "train.jsonl" or rd["file"] != "train.jsonl":
-            stats[f"{cls}:side-in-val-slice"] = stats.get(f"{cls}:side-in-val-slice", 0) + 1
+            stats[f"{cls}:side-in-val-slice"] = (
+                stats.get(f"{cls}:side-in-val-slice", 0) + 1
+            )
             continue
         if not rd["source"].startswith(expected_dst[cls]):
             stats[f"{cls}:dst-wrong-class"] = stats.get(f"{cls}:dst-wrong-class", 0) + 1
@@ -258,7 +305,9 @@ def main() -> int:
             if h in used_texts:
                 clash = used_texts[h]
         if clash:
-            stats[f"{cls}:text-reused-in-{clash}"] = stats.get(f"{cls}:text-reused-in-{clash}", 0) + 1
+            stats[f"{cls}:text-reused-in-{clash}"] = (
+                stats.get(f"{cls}:text-reused-in-{clash}", 0) + 1
+            )
             continue
         used_texts[c["sha_src"]] = cls
         used_texts[c["sha_dst"]] = cls
@@ -271,33 +320,46 @@ def main() -> int:
     out = {
         "kind": "embed-r5-phase05-pilot-subset",
         "created_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "authority": ["docs/specs/embed-round5-prereg.md §1.1-1.2, §3", "ADR-0005",
-                      "TL mission phase-0.5 Job 2"],
+        "authority": [
+            "docs/specs/embed-round5-prereg.md §1.1-1.2, §3",
+            "ADR-0005",
+            "TL mission phase-0.5 Job 2",
+        ],
         "subset_rule": f"pair pool sorted by pair_key, every {SUBSET_STEP}th kept "
-                       f"(deterministic 25%, no RNG); pool = build_gate_set.py pairing "
-                       f"recipe verbatim, both sides in sealed TRAIN slice, expected "
-                       f"source classes, one-pair-per-text, gate manifest "
-                       f"excluded_text_shas_all_sides applied to BOTH sides",
+        f"(deterministic 25%, no RNG); pool = build_gate_set.py pairing "
+        f"recipe verbatim, both sides in sealed TRAIN slice, expected "
+        f"source classes, one-pair-per-text, gate manifest "
+        f"excluded_text_shas_all_sides applied to BOTH sides",
         "counts": {
             "candidates_raw": len(candidates),
             "after_pair_key_dedup": len(deduped),
             "pool": len(pool),
             "subset": len(subset),
             "subset_share": round(len(subset) / max(1, len(pool)), 4),
-            "by_class_pool": {k.replace(":pool", ""): v for k, v in sorted(stats.items()) if k.endswith(":pool")},
+            "by_class_pool": {
+                k.replace(":pool", ""): v
+                for k, v in sorted(stats.items())
+                if k.endswith(":pool")
+            },
             "by_class_subset": {},
             "eligibility_stats": dict(sorted(stats.items())),
         },
         "pool_key_list_sha256": hashlib.sha256(
-            "\n".join(c["pair_key"] for c in pool).encode()).hexdigest(),
+            "\n".join(c["pair_key"] for c in pool).encode()
+        ).hexdigest(),
         "subset_key_list_sha256": hashlib.sha256(
-            "\n".join(c["pair_key"] for c in subset).encode()).hexdigest(),
+            "\n".join(c["pair_key"] for c in subset).encode()
+        ).hexdigest(),
         "pairs": [
             {
-                "pair_key": c["pair_key"], "class": c["class"],
-                "text_src": c["text_src"], "lang_src": c["lang_src"],
-                "text_dst": c["text_dst"], "lang_dst": c["lang_dst"],
-                "sha_src": c["sha_src"], "sha_dst": c["sha_dst"],
+                "pair_key": c["pair_key"],
+                "class": c["class"],
+                "text_src": c["text_src"],
+                "lang_src": c["lang_src"],
+                "text_dst": c["text_dst"],
+                "lang_dst": c["lang_dst"],
+                "sha_src": c["sha_src"],
+                "sha_dst": c["sha_dst"],
                 "row_src": {k: c["row_src"][k] for k in ("file", "line", "source")},
                 "row_dst": {k: c["row_dst"][k] for k in ("file", "line", "source")},
             }
@@ -311,9 +373,11 @@ def main() -> int:
 
     OUT_JSON.parent.mkdir(parents=True, exist_ok=True)
     OUT_JSON.write_text(json.dumps(out, indent=1, ensure_ascii=False))
-    print(f"pool={len(pool)} subset={len(subset)} ({out['counts']['subset_share']:.0%}) "
-          f"by_class_subset={out['counts']['by_class_subset']}")
-    print(f"-> {OUT_JSON} ({time.time()-t0:.0f}s)")
+    print(
+        f"pool={len(pool)} subset={len(subset)} ({out['counts']['subset_share']:.0%}) "
+        f"by_class_subset={out['counts']['by_class_subset']}"
+    )
+    print(f"-> {OUT_JSON} ({time.time() - t0:.0f}s)")
     return 0
 
 

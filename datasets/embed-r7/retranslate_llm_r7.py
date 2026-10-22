@@ -37,8 +37,12 @@ import sys
 import time
 from pathlib import Path
 
-R4_WT = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r4-corpus")
-R5_WT = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus")
+R4_WT = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r4-corpus"
+)
+R5_WT = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus"
+)
 GEN_DIR_R4 = R4_WT / "data" / "embed-r4" / "gen"
 OUT_DIR = R5_WT / "data" / "embed-r7" / "gen"
 NUMBERS_DIR = R5_WT / "datasets" / "embed-r7"
@@ -87,10 +91,14 @@ def log(msg_event: str, **fields: object) -> None:
     with open(RUN_LOG, "a", encoding="utf-8") as fh:
         fh.write(
             json.dumps(
-                {"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-                 "event": msg_event, **fields},
+                {
+                    "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "event": msg_event,
+                    **fields,
+                },
                 ensure_ascii=False,
-            ) + "\n"
+            )
+            + "\n"
         )
     print(f"[r7-run-log] {msg_event} {fields}", flush=True)
 
@@ -131,8 +139,9 @@ def main(argv: list[str] | None = None) -> int:
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     out_path = OUT_DIR / f"llm-translations-r7.shard{args.shard}.jsonl"
-    shard_paths = [OUT_DIR / f"llm-translations-r7.shard{s}.jsonl"
-                   for s in range(args.num_shards)]
+    shard_paths = [
+        OUT_DIR / f"llm-translations-r7.shard{s}.jsonl" for s in range(args.num_shards)
+    ]
 
     units = r7_units()
     latest, done = load_state(shard_paths)
@@ -140,8 +149,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.gen_pass == 1:
         todo_keys = [k for k in units if (k, 1) not in done]
     else:
-        todo_keys = [k for k in units
-                     if latest.get(k) != "ok" and (k, args.gen_pass) not in done]
+        todo_keys = [
+            k for k in units if latest.get(k) != "ok" and (k, args.gen_pass) not in done
+        ]
     # deterministic shard split over the pass-1 unit order; retry passes
     # keep the same order filtered to failures (same shard owns a key)
     todo_set = set(todo_keys)
@@ -171,8 +181,9 @@ def main(argv: list[str] | None = None) -> int:
 
     from llama_cpp import Llama
 
-    llm = Llama(TEACHER_GGUF, n_ctx=3072, n_threads=args.threads,
-                n_batch=512, verbose=False)
+    llm = Llama(
+        TEACHER_GGUF, n_ctx=3072, n_threads=args.threads, n_batch=512, verbose=False
+    )
 
     def render(messages: list[dict]) -> str:
         out = []
@@ -204,7 +215,9 @@ def main(argv: list[str] | None = None) -> int:
             if not text:
                 reasons.append("empty")
             if missing_digit_tokens(src, text):
-                reasons.append("digit-loss:" + ",".join(missing_digit_tokens(src, text)[:3]))
+                reasons.append(
+                    "digit-loss:" + ",".join(missing_digit_tokens(src, text)[:3])
+                )
             if detect_lang(text) != tgt:
                 reasons.append(f"lang:{detect_lang(text)}!={tgt}")
             if _is_copy(src, text):
@@ -213,14 +226,29 @@ def main(argv: list[str] | None = None) -> int:
                 reasons.append(f"len:{len(text)}")
             if reasons:
                 bad += 1
-                rows.append({"job": jid, "key": key, "target_lang": tgt,
-                             "pass": args.gen_pass, "status": "fail",
-                             "text": text, "reason": ";".join(reasons)})
+                rows.append(
+                    {
+                        "job": jid,
+                        "key": key,
+                        "target_lang": tgt,
+                        "pass": args.gen_pass,
+                        "status": "fail",
+                        "text": text,
+                        "reason": ";".join(reasons),
+                    }
+                )
             else:
                 kept += 1
-                rows.append({"job": jid, "key": key, "target_lang": tgt,
-                             "pass": args.gen_pass, "status": "ok",
-                             "text": text})
+                rows.append(
+                    {
+                        "job": jid,
+                        "key": key,
+                        "target_lang": tgt,
+                        "pass": args.gen_pass,
+                        "status": "ok",
+                        "text": text,
+                    }
+                )
         append_jsonl(out_path, rows)
         if n % 5 == 0:
             rate = (n + 1) / max(1.0, time.time() - t0)

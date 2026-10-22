@@ -30,9 +30,15 @@ import time
 import unicodedata
 from pathlib import Path
 
-R4_WT = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r4-corpus")
-R5_WT = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus")
-REDO_WT = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/corpus-v43-redo")
+R4_WT = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r4-corpus"
+)
+R5_WT = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus"
+)
+REDO_WT = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/corpus-v43-redo"
+)
 R7_GEN = R5_WT / "data" / "embed-r7" / "gen"
 NUMBERS_DIR = R5_WT / "datasets" / "embed-r7"
 RUN_LOG = NUMBERS_DIR / "run-log.jsonl"
@@ -53,10 +59,17 @@ def log_event(event: str, **fields: object) -> None:
 
     RUN_LOG.parent.mkdir(parents=True, exist_ok=True)
     with open(RUN_LOG, "a", encoding="utf-8") as fh:
-        fh.write(_json.dumps(
-            {"ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-             "event": event, **fields},
-            ensure_ascii=False) + "\n")
+        fh.write(
+            _json.dumps(
+                {
+                    "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+                    "event": event,
+                    **fields,
+                },
+                ensure_ascii=False,
+            )
+            + "\n"
+        )
     print(f"[r7-run-log] {event} {fields}", flush=True)
 
 
@@ -86,8 +99,12 @@ def banned_surface() -> set[str]:
                 v = str(side.get(fld) or "").strip()
                 if v:
                     grams |= ngrams(v)
-    log_event("r7-banned-surface", gate_pairs=180, burned_pairs=n_burned,
-              banned_grams=len(grams))
+    log_event(
+        "r7-banned-surface",
+        gate_pairs=180,
+        burned_pairs=n_burned,
+        banned_grams=len(grams),
+    )
     return grams
 
 
@@ -102,8 +119,11 @@ def rewrite(path: Path, rows: list[dict]) -> None:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser()
     p.add_argument("--threads", type=int, default=8)
-    p.add_argument("--skip-cos", action="store_true",
-                   help="n-gram gate only (cos already annotated)")
+    p.add_argument(
+        "--skip-cos",
+        action="store_true",
+        help="n-gram gate only (cos already annotated)",
+    )
     args = p.parse_args(argv)
 
     units = {k: src for k, _tgt, src in unique_llm_units()}
@@ -124,7 +144,9 @@ def main(argv: list[str] | None = None) -> int:
         class Embedder:
             def __init__(self):
                 self.torch = torch
-                self.tok = AutoTokenizer.from_pretrained(EMBED_MODEL, padding_side="right")
+                self.tok = AutoTokenizer.from_pretrained(
+                    EMBED_MODEL, padding_side="right"
+                )
                 self.model = AutoModel.from_pretrained(
                     EMBED_MODEL, dtype=torch.bfloat16
                 ).eval()
@@ -134,8 +156,13 @@ def main(argv: list[str] | None = None) -> int:
                 out = []
                 for i in range(0, len(texts), batch):
                     chunk = texts[i : i + batch]
-                    enc = self.tok(chunk, return_tensors="pt", padding=True,
-                                   truncation=True, max_length=512)
+                    enc = self.tok(
+                        chunk,
+                        return_tensors="pt",
+                        padding=True,
+                        truncation=True,
+                        max_length=512,
+                    )
                     with torch.no_grad():
                         hidden = self.model(**enc).last_hidden_state
                     lens = enc["attention_mask"].sum(dim=1) - 1
@@ -163,8 +190,9 @@ def main(argv: list[str] | None = None) -> int:
                     r["status"] = "cos-reject"
                     r["reason"] = f"cos:{r['cos']}<{MIN_COS}"
                     rejected += 1
-            log_event("r7-filter-cos", file=path.name, checked=len(live),
-                      rejected=rejected)
+            log_event(
+                "r7-filter-cos", file=path.name, checked=len(live), rejected=rejected
+            )
         # n-gram zero-tolerance (new material) — ok rows only
         live2 = [r for r in rows if r.get("status") == "ok"]
         ng_rejected = 0
@@ -175,8 +203,9 @@ def main(argv: list[str] | None = None) -> int:
                 r["reason"] = "ngram-8-13-hit"
                 r["ngram_hits"] = len(hit)
                 ng_rejected += 1
-        log_event("r7-filter-ngram", file=path.name, checked=len(live2),
-                  rejected=ng_rejected)
+        log_event(
+            "r7-filter-ngram", file=path.name, checked=len(live2), rejected=ng_rejected
+        )
         rewrite(path, rows)
     log_event("r7-filter-done", wall_sec=round(time.time() - t0, 1))
     return 0
