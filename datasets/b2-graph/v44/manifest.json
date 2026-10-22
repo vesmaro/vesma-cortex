@@ -1,0 +1,362 @@
+{
+  "base_clean": {
+    "identification": "canonical pair-key join at build time (slice-1 recipe)",
+    "removed": [
+      {
+        "holdout_pair_id": "V4-IDENT-0022",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v42-holdout-276",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0022",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0023",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v42-holdout-276",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0023",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0024",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v42-holdout-276",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0024",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0025",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0025",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0026",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0026",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0027",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0027",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0028",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0028",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0029",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0029",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0030",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0030",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0031",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0031",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0032",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0032",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0033",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0033",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0034",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0034",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0035",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0035",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0036",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0036",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0037",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0037",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0038",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0038",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0039",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0039",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0040",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0040",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "V4-IDENT-0041",
+        "holdout_stratum": "P-identity",
+        "holdout_surface": "v43-holdout",
+        "label": "duplicate",
+        "train_pair_id": "V4-ENV-0041",
+        "train_stratum": "P-envelope"
+      },
+      {
+        "holdout_pair_id": "DV3-N-005",
+        "holdout_stratum": "template-twin",
+        "holdout_surface": "v43-holdout",
+        "label": "not-duplicate",
+        "train_pair_id": "V43-RNN-0220",
+        "train_stratum": "N-near"
+      }
+    ],
+    "removed_labels": {
+      "duplicate": 20,
+      "not-duplicate": 1
+    },
+    "rule": "exclude 21 train∩holdout pair-copies (train side; holdouts untouched)",
+    "train_dups_after": 905,
+    "train_rows_after": 2378,
+    "train_rows_before": 2399
+  },
+  "corpus": "b2-graph-v4.4",
+  "counts": {
+    "dup_share_target": 0.405,
+    "files_dup_share": 0.391547,
+    "files_dup_share_note": "train+fresh-holdout files only; the formula surface is the universe accounting (adds the three untouched historical holdouts) — see injection.formula_values",
+    "holdout_labels": {
+      "duplicate": 45,
+      "not-duplicate": 30
+    },
+    "holdout_rows": 75,
+    "holdout_strata": {
+      "P-cosmetic": 15,
+      "P-identity": 30,
+      "control": 6,
+      "edge-common": 7,
+      "edge-direct": 10,
+      "mint-top": 7
+    },
+    "total_rows": 3407,
+    "train_dup_share": 0.386855,
+    "train_labels": {
+      "duplicate": 1289,
+      "not-duplicate": 2043
+    },
+    "train_rows": 3332,
+    "train_strata": {
+      "N-fact-edit": 346,
+      "N-far": 194,
+      "N-metadata": 205,
+      "N-near": 265,
+      "N-para-notdup": 132,
+      "P-cosmetic": 302,
+      "P-envelope": 57,
+      "P-identity": 407,
+      "P-para-light": 64,
+      "P-para-struct": 23,
+      "P-para-sub": 32,
+      "P-trans": 40,
+      "R-watchlist-family": 36,
+      "broken-field": 31,
+      "control": 54,
+      "cross-topic": 16,
+      "edge-common": 143,
+      "edge-direct": 230,
+      "light": 72,
+      "mint-top": 143,
+      "near-topic": 46,
+      "structural": 37,
+      "substantial": 75,
+      "template-twin": 94,
+      "translated-dup": 144,
+      "translated-sibling": 144
+    }
+  },
+  "disjointness": {
+    "checked": {
+      "new_material_checked": 1029,
+      "violations": 0
+    },
+    "fresh_holdout": "pair-level 0 vs v4.4 train (T0 units atomic); 0 gate-side hits — asserted",
+    "g5": "pair-level 0 vs v43-holdout / v42-276 / b2-180 / v4.3 universe / dataset-v3 / burned translated — asserted"
+  },
+  "fingerprints": {
+    "corpus_v44": "45ab0ae642ccf57c73393a2e097036c2f0122a41bb3d92f4e84b06b89bd8928d",
+    "holdout": "a9760d1f06ecdd40530bcc2dc37311f5e5bcd23aad653e03c87a49fe36761a97",
+    "labels_holdout": "df21fb17435b91d96a038b2969747fe9df239c0e4467bbf47ed3e3bcced9682e",
+    "labels_train": "a433097094aea3d79fdd9aa35891be5bd41b7a0dec0153dbdb2692248f98649e",
+    "scheme": "manifest(pair_id pair_sha256 sorted) → blake2b-256 (data-contract §5)",
+    "train": "0463413ec7f4a8935211aef8652f1eed0ad039ede401695dd9191e61614eed98"
+  },
+  "graph_stratum": {
+    "component_cap": 90,
+    "component_cap_rule": "15% of stratum total (600) per component_a",
+    "components_covered": 29,
+    "filled": {
+      "control": 60,
+      "edge-common": 150,
+      "edge-direct": 240,
+      "mint-top": 150
+    },
+    "label_semantics": {
+      "control": "not-duplicate",
+      "edge-common": "not-duplicate",
+      "edge-direct": "not-duplicate",
+      "mint-top": "not-duplicate"
+    },
+    "quotas": {
+      "control": 60,
+      "edge-common": 150,
+      "edge-direct": 240,
+      "mint-top": 150
+    },
+    "selection": "stratum order (prereg §2), pair_id order, deterministic"
+  },
+  "holdout": {
+    "carve": "per (label, stratum), ceil, unit-level (T0 self+clone never split), pair_id order",
+    "eval_eligible_rows": 707,
+    "eval_row_filter": "zero side-flags (holdout/gate/burned) — slice-1 pre-gate recipe; flagged rows stay in TRAIN (corpus-family side-sharing norm)",
+    "fraction": 0.1,
+    "graph_flagged_train_only": 322,
+    "ids_sha256": "42d690578723fed34549532f2837f4540181a3a034097ce208f922dd710ce229",
+    "per_cell": {
+      "duplicate/P-cosmetic": {
+        "holdout_rows": 15,
+        "holdout_units": 15,
+        "units": 143
+      },
+      "duplicate/P-identity": {
+        "holdout_rows": 30,
+        "holdout_units": 15,
+        "units": 143
+      },
+      "not-duplicate/control": {
+        "holdout_rows": 6,
+        "holdout_units": 6,
+        "units": 60
+      },
+      "not-duplicate/edge-common": {
+        "holdout_rows": 7,
+        "holdout_units": 7,
+        "units": 61
+      },
+      "not-duplicate/edge-direct": {
+        "holdout_rows": 10,
+        "holdout_units": 10,
+        "units": 91
+      },
+      "not-duplicate/mint-top": {
+        "holdout_rows": 7,
+        "holdout_units": 7,
+        "units": 66
+      }
+    },
+    "rows": 75,
+    "rule": "sealed 10% of NEW material (graph strata + injection), seed/construction-fixed"
+  },
+  "injection": {
+    "anchor_check": {
+      "legacy_values": {
+        "dups": 1267,
+        "rows": 3131
+      },
+      "n": 410,
+      "n_real": 410.175,
+      "note": "reproduces the prereg's '≈410' — same formula, pre-cleaning numbers"
+    },
+    "bases": "pool endpoint sides; holdout/gate/burned-side records excluded at MINT time",
+    "formula": "n = (0.405*(uni_clean_rows+600)-uni_clean_dups)/0.595, round-half-up",
+    "formula_surface": "assembled corpus universe (legacy prereg accounting incl. v43/v42/b2 holdouts) — pinned by the ≈410 anchor",
+    "formula_values": {
+      "graph_rows": 600,
+      "n_injection": 429,
+      "n_real": 429.4958,
+      "uni_clean_dups": 1247,
+      "uni_clean_rows": 3110
+    },
+    "generator": "v3/v4.3-lineage deterministic (self+clone T0, swapcase T1)",
+    "hygiene": "engine detectors over every minted side; 0 hits tolerated",
+    "policy": "labeling-policy-b2 §4 T0/T1 synthesis (LLM pass rejected per prereg)",
+    "result": {
+      "P-cosmetic": 143,
+      "P-identity": 286
+    },
+    "rng_note": "construction order-deterministic; no RNG draws (seed recorded per prereg)",
+    "seed": 42,
+    "split_rule": "v4.3 real-part lineage ratio T0:T1 ≈ 2:1 (96:50)",
+    "t0_rows": 286,
+    "t0_units": 143,
+    "t1_rows": 143
+  },
+  "inputs": {
+    "embedder_pin": "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba",
+    "pool_commit": "230745b",
+    "pool_fingerprint": "87b3d4c22a43befbfd81dc70c83a2cf7fdfce972378a9b550cc100922050cb1e",
+    "pool_rows": 8654,
+    "v43_universe_dups": 1267,
+    "v43_universe_rows": 3131
+  },
+  "prereg": "docs/specs/b2-graph-prereg-v3.md (ACTIVATED, owner 22.10)"
+}

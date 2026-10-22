@@ -1,9 +1,49 @@
 # datasets/b2-graph — v4.4 candidate pool, graph stratum (slice-1, numbers only)
 
-Status: CANDIDATE POOL — corpus NOT sealed, quotas NOT pinned. Population and
-quota pinning belongs to pre-gate v3 (owner ratification). The pool data
-(§3 sides included) lives under gitignored `data/b2-graph-corpus/`; this
-directory carries numbers, fingerprints and the double-check sample metadata.
+Status (slice-2 update, 2026-10-22): the pool is CONSUMED — corpus v4.4 is
+built and sealed per prereg v3 (ACTIVATED); see `v44/` below. The slice-1
+part of this file is kept as the historical pool record.
+
+## v4.4 — corpus built and sealed (slice-2, prereg v3 §1-§2)
+
+- Builder `scripts/b2_graph_corpus.py`, verifier
+  `scripts/b2_graph_corpus_verify.py` (independent re-check from disk).
+- Artifacts under gitignored `data/b2-graph-corpus/v44/` (train/holdout jsonl,
+  labels, holdout-ids seal, manifest, run-log); numbers-only mirrors here in
+  `v44/` (manifest.json, run-log.jsonl, train-manifest.txt, holdout-ids.json).
+- Base: v4.3 universe minus the 21 train∩holdout pair-copies (pair-key join
+  at build time; 18 v43-holdout + 3 v42-holdout; 20 duplicate + 1
+  not-duplicate train-side rows removed, holdouts untouched; 2399 → 2378).
+- Graph stratum 600: edge-direct 240 / edge-common 150 / mint-top 150 /
+  control 60; per-component cap 90 (=15% of 600), max observed 90; 46
+  components available in pool, 30 covered at selection; ALL not-duplicate
+  per prereg §2 semantics (edge-direct = HARD NEG).
+- Injection 429 by the ratied formula n = (0.405×(uni_clean_rows+600) −
+  uni_clean_dups)/0.595 = 429.4958 → 429 (round-half-up; on legacy
+  pre-cleaning numbers the same formula gives 410.175 → the prereg's «≈410»).
+  T0 143 self + 143 clone units, T1 143 swapcase (v4.3 real-part lineage
+  ratio ≈2:1); bases = pool endpoint sides, holdout/gate/burned-side records
+  excluded at MINT time; engine-detector hygiene over every minted side:
+  0 hits; vectors re-measured under the frozen embedder pin
+  `nano:sha256:3b752e06…`.
+- Holdout: sealed 75 rows = 10% (ceil) per (label, stratum) over the
+  EVAL-ELIGIBLE new material (707 of 1029 rows; 322 graph rows carry
+  side-overlap flags and stay train-only per the slice-1 pre-gate recipe).
+  T0 units atomic (self+clone never split). Pair-level 0 vs v4.4 train and
+  vs every historical surface (v43-holdout, v42-276, b2-180, v4.3 universe,
+  dataset-v3, burned translated); 0 gate-side hits.
+- Shipped: train 3332 (dup 1289 / not-dup 2043), holdout 75 (45/30).
+  Dup shares: train 0.3869, files 0.3915, formula surface (universe
+  accounting) 0.4049 vs 0.405 target.
+- Fingerprints (data-contract §5): corpus v4.4
+  `45ab0ae642ccf57c73393a2e097036c2f0122a41bb3d92f4e84b06b89bd8928d`,
+  train `0463413ec7f4a8935211aef8652f1eed0ad039ede401695dd9191e61614eed98`,
+  holdout `a9760d1f06ecdd40530bcc2dc37311f5e5bcd23aad653e03c87a49fe36761a97`.
+- Determinism: double run byte-identical on ALL 8 artifacts (no RNG draws —
+  construction is order-deterministic; seed 42 recorded per prereg); the
+  verifier passes 47/47 checks on both runs.
+
+
 
 - Branch: `feat/b2-graph-corpus` (from `origin/main` @ `d01d28f`).
 - Builder: `scripts/b2_graph_pool.py` (seed 42; deterministic; double-run
