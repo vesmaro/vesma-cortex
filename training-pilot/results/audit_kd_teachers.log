@@ -1,0 +1,12 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+[texts] gate=360 burned=144 pool_en=240 pool_ru=240 total=984
+[cand] e5-base loading...
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 2822.68it/s]
+[cand] e5-base: burned144=0.9075 mono=0.8813 dMono=-0.0171 S_cal=0.9889 median=0.9197 R@5=1.0 PASS=False (298s)
+[cand] LaBSE loading...
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 6281.07it/s]
+[cand] LaBSE: burned144=0.8920 mono=0.5545 dMono=-0.3439 S_cal=0.6556 median=0.8792 R@5=1.0 PASS=False (240s)
+[cand] MiniLM-L12-v2 loading...
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 8191.36it/s]
+[cand] MiniLM-L12-v2: burned144=0.8003 mono=0.5862 dMono=-0.3122 S_cal=0.3444 median=0.8026 R@5=0.9806 PASS=False (77s)
+[done] wall=637s -> /var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus/training-pilot/results/audit_kd_teachers.json

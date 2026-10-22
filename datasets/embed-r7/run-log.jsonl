@@ -1,0 +1,39 @@
+{"ts": "2026-10-09T23:15:20Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 1, "shard": 0, "num_shards": 203, "units_total": 1617, "todo": 8}
+{"ts": "2026-10-09T23:16:44Z", "event": "retranslate-done", "gen_pass": 1, "shard": 0, "kept": 7, "bad": 1, "wall_sec": 79.9}
+{"ts": "2026-10-09T23:22:28Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 1, "shard": 1, "num_shards": 2, "units_total": 1617, "todo": 808}
+{"ts": "2026-10-09T23:22:28Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 1, "shard": 0, "num_shards": 2, "units_total": 1617, "todo": 801}
+{"ts": "2026-10-10T00:26:44Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 1, "shard": 0, "num_shards": 2, "units_total": 1617, "todo": 761}
+{"ts": "2026-10-10T00:27:05Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 1, "shard": 1, "num_shards": 2, "units_total": 1617, "todo": 776}
+{"ts_step": "note", "msg": "coordinator correction 10.10: r7 prereg commit 723fe70 IS merged to origin/main via PR #36 (merge 72ddf3f) — earlier not-merged observation was stale local refs (pre-fetch); local main divergence (80e5d30) is a known coordination tail, not this lane"}
+{"ts": "2026-10-10T01:48:50Z", "event": "retranslate-done", "gen_pass": 1, "shard": 0, "kept": 459, "bad": 302, "wall_sec": 4925.5}
+{"ts": "2026-10-10T01:50:12Z", "event": "retranslate-done", "gen_pass": 1, "shard": 1, "kept": 410, "bad": 366, "wall_sec": 4986.4}
+{"ts": "2026-10-10T01:55:37Z", "event": "r7-banned-surface", "gate_pairs": 180, "burned_pairs": 144, "banned_grams": 44872}
+{"ts": "2026-10-10T01:55:44Z", "event": "embedder-loaded", "model": "Qwen/Qwen3-Embedding-0.6B", "threads": 8}
+{"ts": "2026-10-10T01:59:48Z", "event": "r7-filter-cos", "file": "llm-translations-r7.shard0.jsonl", "checked": 490, "rejected": 4}
+{"ts": "2026-10-10T01:59:48Z", "event": "r7-filter-ngram", "file": "llm-translations-r7.shard0.jsonl", "checked": 486, "rejected": 12}
+{"ts": "2026-10-10T02:03:49Z", "event": "r7-filter-cos", "file": "llm-translations-r7.shard1.jsonl", "checked": 428, "rejected": 3}
+{"ts": "2026-10-10T02:03:49Z", "event": "r7-filter-ngram", "file": "llm-translations-r7.shard1.jsonl", "checked": 425, "rejected": 11}
+{"ts": "2026-10-10T02:03:49Z", "event": "r7-filter-done", "wall_sec": 485.5}
+{"ts": "2026-10-10T02:06:40Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 2, "shard": 0, "num_shards": 2, "units_total": 1617, "todo": 335}
+{"ts": "2026-10-10T02:06:40Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 2, "shard": 1, "num_shards": 2, "units_total": 1617, "todo": 394}
+{"ts": "2026-10-10T02:36:40Z", "event": "retranslate-done", "gen_pass": 2, "shard": 0, "kept": 41, "bad": 294, "wall_sec": 1798.3}
+{"ts": "2026-10-10T02:40:51Z", "event": "retranslate-done", "gen_pass": 2, "shard": 1, "kept": 48, "bad": 346, "wall_sec": 2049.2}
+{"ts": "2026-10-10T02:44:56Z", "event": "r7-banned-surface", "gate_pairs": 180, "burned_pairs": 144, "banned_grams": 44872}
+{"ts": "2026-10-10T02:45:03Z", "event": "embedder-loaded", "model": "Qwen/Qwen3-Embedding-0.6B", "threads": 8}
+{"ts": "2026-10-10T02:45:16Z", "event": "r7-filter-cos", "file": "llm-translations-r7.shard0.jsonl", "checked": 41, "rejected": 4}
+{"ts": "2026-10-10T02:45:16Z", "event": "r7-filter-ngram", "file": "llm-translations-r7.shard0.jsonl", "checked": 511, "rejected": 10}
+{"ts": "2026-10-10T02:45:35Z", "event": "r7-filter-cos", "file": "llm-translations-r7.shard1.jsonl", "checked": 48, "rejected": 3}
+{"ts": "2026-10-10T02:45:36Z", "event": "r7-filter-ngram", "file": "llm-translations-r7.shard1.jsonl", "checked": 459, "rejected": 12}
+{"ts": "2026-10-10T02:45:36Z", "event": "r7-filter-done", "wall_sec": 32.8}
+{"ts": "2026-10-10T02:54:19Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 3, "shard": 1, "num_shards": 2, "units_total": 1617, "todo": 361}
+{"ts": "2026-10-10T02:54:20Z", "event": "retranslate-start", "teacher": "Qwen/Qwen3-1.7B-GGUF", "quant": "Q8_0", "gen_pass": 3, "shard": 0, "num_shards": 2, "units_total": 1617, "todo": 308}
+{"ts": "2026-10-10T03:22:44Z", "event": "retranslate-done", "gen_pass": 3, "shard": 0, "kept": 28, "bad": 280, "wall_sec": 1702.9}
+{"ts": "2026-10-10T03:25:47Z", "event": "retranslate-done", "gen_pass": 3, "shard": 1, "kept": 24, "bad": 337, "wall_sec": 1886.5}
+{"ts": "2026-10-10T03:29:44Z", "event": "r7-banned-surface", "gate_pairs": 180, "burned_pairs": 144, "banned_grams": 44872}
+{"ts": "2026-10-10T03:29:52Z", "event": "embedder-loaded", "model": "Qwen/Qwen3-Embedding-0.6B", "threads": 8}
+{"ts": "2026-10-10T03:30:13Z", "event": "r7-filter-cos", "file": "llm-translations-r7.shard0.jsonl", "checked": 28, "rejected": 3}
+{"ts": "2026-10-10T03:30:13Z", "event": "r7-filter-ngram", "file": "llm-translations-r7.shard0.jsonl", "checked": 526, "rejected": 10}
+{"ts": "2026-10-10T03:30:34Z", "event": "r7-filter-cos", "file": "llm-translations-r7.shard1.jsonl", "checked": 24, "rejected": 3}
+{"ts": "2026-10-10T03:30:34Z", "event": "r7-filter-ngram", "file": "llm-translations-r7.shard1.jsonl", "checked": 468, "rejected": 10}
+{"ts": "2026-10-10T03:30:34Z", "event": "r7-filter-done", "wall_sec": 42.5}
+{"ts_step": "build_embed_r7_corpus", "msg": "round-7 corpus assembled; train=24841 val=1228 total=26069; replaced=937/1617 llm pairs; fp=ad3d438f89ce91f47d279b63f1e88157ce747cb3a128399db1df707e8e1a3b7e; double_run_byte_identical=True; all asserts PASS"}

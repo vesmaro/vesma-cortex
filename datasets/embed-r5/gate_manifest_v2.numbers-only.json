@@ -1,0 +1,183 @@
+{
+ "kind": "embed-r5-gate-v2-manifest",
+ "created": "2026-10-22",
+ "contract": "docs/specs/embed-round7-confirm-ADDENDUM-1.md §2.3; TL decisions 2026-10-22 (OK 0b): real via real-part-ceiling cut, redistribution llm125/seed-dup40/twin52/real7; realized 125/40/52/6 = 223 (real seat 7 -> 6, see deviations)",
+ "pa_q1_formula": "UNCHANGED (owner pre-registration): strata llm/real/seed-dup/twin, direction-balanced cells, thresholds G1..G5 unchanged",
+ "teacher": {
+  "model": "Qwen/Qwen3-1.7B-GGUF",
+  "quant": "Q8_0",
+  "runtime": "llama.cpp (.venv-r7gen, llama-cpp-python 0.3.36, CPU, threads=8)",
+  "contracts": "translation prompt + gates = round-7 verbatim; twin prompt + gates = round-4 verbatim"
+ },
+ "seeds": {
+  "selection_v2": 385918605,
+  "legacy": 42,
+  "generation": "385918605 + pass*1_000_000 + global_job_index"
+ },
+ "inputs": {
+  "sources_fp": "6edb723f77c9a8967cde7c4169ab7d7d56d49ca886bf219f5fd24012a1bbd4ef",
+  "sources_extension1_fp": "61c66451026b96fd10a9ebfaff0506fd3fb1d53e07baa1b349464e98c5b4e6b1",
+  "frozen_pool_fp": "819e0c3d60598a9792bf58e45c5a12a4f34ff0de551af6094178c99659e462dd",
+  "ban_set": {
+   "grams": 5265881,
+   "hashes": 35198,
+   "surfaces": [
+    "r4 corpus train+val",
+    "r5 corpus train+val (incl. tatoeba-750)",
+    "r7 corpus train+val",
+    "r4 gen shards (mono/template/llm/real/twins)",
+    "r7 gen llm-translations",
+    "v43 seed batch-translated-{dup,sibling}",
+    "real-part.jsonl",
+    "burned V43-TDUP 288 sides",
+    "cb367577 gate set 360 sides"
+   ],
+   "cross_check_vs_survey": "grams 5265881 and hashes 35198 asserted equal"
+  },
+  "pool_replication_asserts": {
+   "quality_pass_pairs": 817178,
+   "notes_after_gates": 123534,
+   "stratum750_keys": "exact",
+   "clean_pool": 122747
+  }
+ },
+ "counts": {
+  "total_pairs": 223,
+  "by_class": {
+   "llm": 125,
+   "real": 6,
+   "seed-dup": 40,
+   "twin": 52
+  },
+  "by_direction": {
+   "en->ru": 108,
+   "ru->en": 115
+  },
+  "by_class_x_direction": {
+   "llm:en->ru": 62,
+   "llm:ru->en": 63,
+   "real:ru->en": 6,
+   "seed-dup:en->ru": 20,
+   "seed-dup:ru->en": 20,
+   "twin:en->ru": 26,
+   "twin:ru->en": 26
+  },
+  "direction_abs_delta": 7
+ },
+ "generation": {
+  "discipline": "SINGLE-SHOT (ADDENDUM 1): pool frozen after filtering; double-run determinism covers SELECTION only",
+  "stats_by_pass": {
+   "pass1:bad": 110,
+   "pass1:kept": 300,
+   "pass2:bad": 100,
+   "pass2:kept": 19,
+   "pass3:bad": 91,
+   "pass3:kept": 16,
+   "pass4:bad": 27,
+   "pass4:kept": 80
+  },
+  "reject_reasons": {
+   "copy": 291,
+   "digit-loss": 4,
+   "lang": 304,
+   "len": 3,
+   "parse-empty": 17
+  },
+  "filter_gates": {
+   "filter-cos:checked": 415,
+   "filter-cos:rejected": 8,
+   "filter-ngram:checked": 507,
+   "filter-ngram:rejected": 0
+  },
+  "pool_after_filter": {
+   "llm": 215,
+   "seed-dup": 86,
+   "real": 6,
+   "twin": 100,
+   "total": 407
+  },
+  "wall_sec_total": 3287.0,
+  "shards": [
+   "synth-twins-v2.jsonl",
+   "translations-v2.llm.jsonl",
+   "translations-v2.real.jsonl",
+   "translations-v2.seed-dup.jsonl"
+  ]
+ },
+ "selection_rule": "Frozen pool sorted by (stratum, pair_key); strata alphabetical; per stratum quota seats: ru->en gets ceil(q/2), en->ru floor(q/2); real fills available cells only (en->ru pool empty, 6 of 7 seats realized); random.Random(385918605).sample over each sorted cell in fixed order (en->ru before ru->en); selected sorted by pair_key -> R5G2-%04d. Quotas: llm 125 / seed-dup 40 / twin 52 / real 7 = 224 seats, 223 realized (direct proportions of cb367577 68/22/29/61 redistributed after the real-stratum shortfall; TL-ratified 2026-10-22).",
+ "double_run": {
+  "runs": 2,
+  "byte_identical": true,
+  "gate_set_sha256": "9e3fc8a1398cf542fda59e9922e75edae00f8d7e8d6ca7c1265488f18fc8d2ae",
+  "run_b_sha256": "9e3fc8a1398cf542fda59e9922e75edae00f8d7e8d6ca7c1265488f18fc8d2ae"
+ },
+ "proofs": {
+  "hash_overlap_vs_all_training_surfaces": 0,
+  "hash_overlap_vs_cb367577_360sides": 0,
+  "hash_overlap_vs_label_noise_106_141_163": 0,
+  "ngram_8_13_hit_sides_vs_all_surfaces": 0,
+  "pair_ids_sequential_unique": true,
+  "text_shas_unique": true
+ },
+ "license": {
+  "tatoeba": "CC-BY-2.0-FR; attribution: Tatoeba (tatoeba.org) + per-note authors (authors and sentence ids ride the frozen pool rows of llm/seed-dup)",
+  "real": "owner's own store records (private; local gitignored data only)",
+  "llm_twin_dst_sides": "teacher output on clean inputs"
+ },
+ "real_sql_provenance": {
+  "sql": "SELECT title, content, tags, memory_type, created_at, metadata FROM memories WHERE status IN ('published','raw') AND memory_type IN ('note','snippet','fact') AND length(content) >= 120 AND created_at > '2026-10-07T16:30:06'",
+  "tag_prefixes": [
+   "task:",
+   "telemetry"
+  ],
+  "scanner_provenance": "engine",
+  "counters": {
+   "dedup:unique_content_hashes": 7,
+   "excluded:privacy-tag": 17,
+   "sql_candidates": 24
+  },
+  "cyrillic_ru_centric_threshold": 0.2,
+  "min_content_chars": 120,
+  "unit_token_cap": 100,
+  "survivor_tag_names": [
+   "agent:gcw-tech-lead",
+   "agent:tech-lead",
+   "committee",
+   "domain:ci",
+   "domain:hermes",
+   "domain:tunnel",
+   "mnemos:bug-pattern",
+   "mnemos:checkpoint",
+   "mnemos:decision",
+   "mnemos:learning",
+   "project:agentsnode",
+   "project:komus-agent-platform",
+   "project:vesma",
+   "project:vesma-agent",
+   "project:vesma-cortex",
+   "severity:medium",
+   "stack:containers",
+   "stack:github-actions",
+   "stack:helm",
+   "stack:zcode"
+  ]
+ },
+ "deviations": [
+  "real 82 -> 6 realized (7 seats): only 7 clean post-real-part-ceiling store records exist (created_at > 2026-10-07T16:30:05Z); 1 of the 7 is untranslatable under the ratified teacher contract (echo-class failure on all 3 passes, no clean replacement exists); strict post-freeze cut would yield 0; G2-real floor degenerates to zero-miss-on-6 (conservative falsifier)",
+  "total 224 seats -> 223 realized (redistribution ratified by TL 2026-10-22)",
+  "real direction cells 6/0 (en->ru empty) - publish as monitoring",
+  "overall direction |delta|=7 (50/50 unattainable with real x/0)",
+  "seed-dup material source: owner seed dataset is a burned training surface; v2 uses tatoeba-derived notes (record/translation construction preserved, no title)",
+  "llm/seed-dup unit shape: tatoeba pseudo-note <=256 tokens/side (r4 unit cap was 100)",
+  "generation is single-shot; double-run = selection only",
+  "pair_id prefix R5G2- (schema unchanged)",
+  "twin sampling seeds new (385918605-based), prompt/gates unchanged",
+  "source extension-1 (pre-registered rule, fp in inputs): echo-class generation failures proved seed-independent (pass-2/3 recovery 6%/15%), cells closed with fresh clean notes llm ranks 330-389 / seed 430-459 / 4 twin jobs, never by re-prompting burned or dirty material"
+ ],
+ "integrity": {
+  "gate_set_sha256": "9e3fc8a1398cf542fda59e9922e75edae00f8d7e8d6ca7c1265488f18fc8d2ae",
+  "sorted_pair_id_list_sha256": "b3c642e6708aa01356bda24d1c096fc5175ac5fc50655695928eef1f1ef21f82",
+  "sorted_text_sha_list_sha256": "d718c6688fed25166cb37e8ba69c465ec330cc0ee7b7e170d7f7a54e16cd09ca",
+  "n_text_shas": 446
+ }
+}
