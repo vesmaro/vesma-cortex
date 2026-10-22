@@ -98,9 +98,21 @@ class OnnxScorer:
     def predict(self, vectors) -> np.ndarray:
         if vectors[0].names != self.feature_names:
             raise ValueError("feature contract mismatch vs artifact manifest")
-        matrix = np.asarray([v.values for v in vectors], dtype=np.float32)
-        (out,) = self.session.run(None, {self.input_name: matrix})
-        return np.ravel(np.asarray(out, dtype=np.float64))
+        # The d-boost export contract is float32[K] -> probability[1]: ONE
+        # pair per call (the graph's Reshape pins shape_2d=[1, K], so batch
+        # feeding is undefined). Row-by-row, same path as sanity._score_pair
+        # and the engine's serving wrapper.
+        probs = []
+        for vector in vectors:
+            row = np.asarray(vector.values, dtype=np.float32)
+            (out,) = self.session.run(None, {self.input_name: row})
+            values = np.ravel(np.asarray(out, dtype=np.float64))
+            if values.shape != (1,):
+                raise ValueError(
+                    f"artifact returned {values.shape} values — expected one probability"
+                )
+            probs.append(float(values[0]))
+        return np.asarray(probs, dtype=np.float64)
 
 
 def phase1_sanity(gate_dir: Path, bundles: list[Path]) -> dict:
@@ -138,30 +150,51 @@ def phase1_sanity(gate_dir: Path, bundles: list[Path]) -> dict:
     return {"reports": reports, "g1": verdict}
 
 
-def phase2_corpus_verify(gate_dir: Path, corpus_dir: Path) -> dict:
-    """g5 part 1 — the independent 47-check verifier re-run."""
+def phase2_corpus_verify(gate_dir: Path, corpus_dir: Path, train_dir: Path) -> dict:
+    """g5 part 1 — verifiers re-run: the ORIGINAL v44 seal verifier (universe
+    + sealed holdout) AND the independent r2 train verifier (ADDENDUM-1)."""
     proc = subprocess.run(
         [sys.executable, str(REPO_ROOT / "scripts" / "b2_graph_corpus_verify.py"),
          "--dir", str(corpus_dir)],
         capture_output=True, text=True, timeout=1800,
     )
-    (gate_dir / "corpus-verify.txt").write_text(
-        proc.stdout + "\n--- stderr ---\n" + proc.stderr, encoding="utf-8"
+    surfaces = [
+        "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/data/stage2/dataset-v4-holdout/holdout.jsonl",
+        "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/data/stage2/v43-holdout/holdout.jsonl",
+        "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/data/stage2/b2/holdout.jsonl",
+    ]
+    sidecar = REPO_ROOT / "data/b2-graph-corpus/rev1n/graph-sidecar-train.jsonl"
+    proc_r2 = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts" / "b2_graph_corpus_verify_r2.py"),
+         "--train-dir", str(train_dir), "--corpus-dir", str(corpus_dir),
+         "--sidecar", str(sidecar), "--holdout-surfaces", *surfaces],
+        capture_output=True, text=True, timeout=1800,
     )
-    line = next((l for l in proc.stdout.splitlines() if "checks passed" in l), "")
-    _log(gate_dir, "corpus_verify", {"exit": proc.returncode, "line": line.strip()})
+    (gate_dir / "corpus-verify.txt").write_text(
+        proc.stdout + "\n--- stderr ---\n" + proc.stderr
+        + "\n\n===== r2 verifier =====\n" + proc_r2.stdout
+        + "\n--- stderr ---\n" + proc_r2.stderr,
+        encoding="utf-8",
+    )
+    line = next((ln for ln in proc.stdout.splitlines() if "checks passed" in ln), "")
+    line_r2 = next(
+        (ln for ln in proc_r2.stdout.splitlines() if "checks" in ln), ""
+    )
+    _log(gate_dir, "corpus_verify", {"exit": proc.returncode, "line": line.strip(),
+                                     "exit_r2": proc_r2.returncode, "line_r2": line_r2.strip()})
     return {
         "gate": "g5",
-        "what": "corpus build verifier re-run (disjointness included)",
-        "required": "all checks, exit 0",
-        "measured": line.strip(),
-        "pass": proc.returncode == 0,
+        "what": "corpus verifiers re-run: v44 seal (47 checks) + v44-r2 train (independent)",
+        "required": "all checks, both exit 0",
+        "measured": {"v44_seal": line.strip(), "v44_r2_train": line_r2.strip()},
+        "pass": proc.returncode == 0 and proc_r2.returncode == 0,
     }
 
 
-def phase3_disjointness(gate_dir: Path, corpus_dir: Path, v42_dir: Path) -> dict:
+def phase3_disjointness(gate_dir: Path, corpus_dir: Path, v42_dir: Path,
+                        train_dir: Path) -> dict:
     """g5 part 2 — pair-level disjointness of the eval surfaces."""
-    train_ids = {r["pair_id"] for r in load_jsonl(corpus_dir / "train.jsonl")}
+    train_ids = {r["pair_id"] for r in load_jsonl(train_dir / "train.jsonl")}
     hold_ids = {r["pair_id"] for r in load_jsonl(corpus_dir / "holdout.jsonl")}
     v42_ids = {r["pair_id"] for r in load_jsonl(v42_dir / "holdout.jsonl")}
     checks = {
@@ -219,7 +252,11 @@ def _stratum_table(provenance, labels, probs) -> dict:
 def main(argv: list[str] | None = None) -> int:
     t0 = time.monotonic()
     parser = argparse.ArgumentParser(prog="b2-gate-rev1n")
-    parser.add_argument("--corpus-dir", required=True)
+    parser.add_argument("--corpus-dir", required=True,
+                        help="sealed v44 corpus dir (holdout + seal manifest)")
+    parser.add_argument("--train-dir", default=None,
+                        help="train dir (rev1n-retry: the v44-r2 rebuild); "
+                             "defaults to --corpus-dir")
     parser.add_argument("--run-a", required=True)
     parser.add_argument("--run-b", required=True)
     parser.add_argument("--v42-dir", required=True)
@@ -227,6 +264,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     corpus_dir = Path(args.corpus_dir)
+    train_dir = Path(args.train_dir) if args.train_dir else corpus_dir
     run_a = Path(args.run_a)
     run_b = Path(args.run_b)
     v42_dir = Path(args.v42_dir)
@@ -248,8 +286,8 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     # ── PHASE 2/3: g5 corpus verification + disjointness asserts ────────────
-    gates = [sanity["g1"], phase2_corpus_verify(gate_dir, corpus_dir),
-             phase3_disjointness(gate_dir, corpus_dir, v42_dir)]
+    gates = [sanity["g1"], phase2_corpus_verify(gate_dir, corpus_dir, train_dir),
+             phase3_disjointness(gate_dir, corpus_dir, v42_dir, train_dir)]
     if not all(g["pass"] for g in gates):
         report = {"verdict": "ABORT — g5 red", "gates": gates,
                   "wall_s": round(time.monotonic() - t0, 1)}
@@ -376,7 +414,15 @@ def main(argv: list[str] | None = None) -> int:
 
     report = {
         "verdict": "ADOPT-candidate" if all(g["pass"] for g in gates) else "FAIL",
-        "prereg": "docs/specs/b2-graph-prereg-v3.md (ACTIVATED 2026-10-22)",
+        "prereg": "docs/specs/b2-graph-prereg-v3.md (ACTIVATED 2026-10-22) "
+                  "+ ADDENDUM-1 (NA-amended; thresholds unchanged)",
+        "holdout_reads": (
+            "2 — attempt 1 (16:28:41Z) crashed in the scorer harness "
+            "(rank-2 batch feed vs the float32[K] single-pair export "
+            "contract) BEFORE any probability or gate number existed; "
+            "zero eval signal emitted (logged: infra_failure_holdout_read_1); "
+            "attempt 2 produced these numbers. No metric-driven re-roll."
+        ),
         "gates": gates,
         "holdout_v44": {
             "full": hold_full, "ablated": hold_abl,

@@ -1,0 +1,91 @@
+{
+  "corpus_identity": {
+    "rows": 4097,
+    "dups": 1599,
+    "not_dups": 2498,
+    "train_fingerprint": "bb1ca943d6beabf56a88450c977cd04f829bdee89d75b81dc1b5f394b1314106",
+    "labels_fingerprint": "e11e329849cd0f5fdca13a242db471ad4106f517c5e09e0277cb89af621b2f16",
+    "ok": true
+  },
+  "containment": {
+    "old_train_rows": 3332,
+    "r2_rows": 4097,
+    "new_rows": 765,
+    "new_rows_without_generator": 0,
+    "old_subset_of_r2": true,
+    "ok": true
+  },
+  "sidecar_coverage": {
+    "sidecar_rows": 3332,
+    "nonpool_nongen_rows": 2378,
+    "uncovered": 0,
+    "ok": true
+  },
+  "census_c": {
+    "subzone_pos": 1108,
+    "subzone_neg": 1000,
+    "pos_classes_1_2_strict": 652,
+    "new_class12_subzone_rows": 146,
+    "parity_dynamic": [
+      1000,
+      1000
+    ],
+    "parity_floor": [
+      1000,
+      854
+    ],
+    "parity_strict": [
+      1000,
+      652
+    ],
+    "bins": {
+      "[0.95,0.97)": 53,
+      "[0.97,0.985)": 121,
+      "[0.985,1.0]": 826
+    },
+    "parity_ok": true,
+    "bins_ok": true
+  },
+  "probe_bands_d": {
+    "P-identity": {
+      "check": "self_pair",
+      "count": 542,
+      "max_gap": 1e-06,
+      "k_ok": true,
+      "continuity_ok": true,
+      "ok": true
+    },
+    "P-envelope": {
+      "check": "envelope_variant",
+      "count": 57,
+      "max_gap": 3e-06,
+      "k_ok": true,
+      "continuity_ok": true,
+      "ok": true
+    },
+    "P-cosmetic": {
+      "check": "cosmetic_twin",
+      "count": 40,
+      "max_gap": 0.001753,
+      "k_ok": true,
+      "continuity_ok": true,
+      "ok": true
+    },
+    "N-fact-edit": {
+      "check": "fact_edit_twin",
+      "count": 76,
+      "max_gap": 0.002356,
+      "k_ok": true,
+      "continuity_ok": true,
+      "ok": true
+    },
+    "N-far": {
+      "check": "unrelated",
+      "count": 30,
+      "max_gap": 0.002775,
+      "k_ok": true,
+      "continuity_ok": true,
+      "ok": true
+    }
+  }
+}

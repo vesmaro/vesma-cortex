@@ -52,13 +52,15 @@ from cortex.artifacts import (  # noqa: E402
     sha256_file,
 )
 from cortex.candidates.d_boost import GRID_D, DBoostModel  # noqa: E402
-from cortex.data.fingerprints import corpus_fingerprint, manifest_bytes  # noqa: E402
 from cortex.features.pair import FeatureVector  # noqa: E402
 from cortex.select.cv import CV_FOLDS, CV_SEEDS, run_cv  # noqa: E402
 
 CORPUS_FP = "45ab0ae642ccf57c73393a2e097036c2f0122a41bb3d92f4e84b06b89bd8928d"
-TRAIN_FP = "0463413ec7f4a8935211aef8652f1eed0ad039ede401695dd9191e61614eed98"
-LABELS_TRAIN_FP = "a433097094aea3d79fdd9aa35891be5bd41b7a0dec0153dbdb2692248f98649e"
+# rev1n-retry (ADDENDUM-1): the v44-r2 TRAIN rebuild pins. The corpus
+# (pool universe) and the sealed holdout are UNCHANGED (seal a9760d1f…);
+# only the train split was rebuilt → new train/labels fingerprints.
+TRAIN_FP = "bb1ca943d6beabf56a88450c977cd04f829bdee89d75b81dc1b5f394b1314106"
+LABELS_TRAIN_FP = "e11e329849cd0f5fdca13a242db471ad4106f517c5e09e0277cb89af621b2f16"
 EMBEDDER_PIN = "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba"
 
 #: Frozen eval threshold of the line (prereg lineage; NOT a g2 gate here).
@@ -267,7 +269,7 @@ def DGridConfigShim(config, names: tuple[str, ...]):
 def main(argv: list[str] | None = None) -> int:
     t_start = time.monotonic()
     parser = argparse.ArgumentParser(prog="b2-train-rev1n")
-    parser.add_argument("--corpus-dir", default="data/b2-graph-corpus/v44")
+    parser.add_argument("--corpus-dir", default="data/b2-graph-corpus/v44-r2")
     parser.add_argument("--sidecar", required=True)
     parser.add_argument("--run-dir", required=True)
     args = parser.parse_args(argv)

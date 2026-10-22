@@ -1,0 +1,525 @@
+{
+  "verdict": "FAIL",
+  "prereg": "docs/specs/b2-graph-prereg-v3.md (ACTIVATED 2026-10-22) + ADDENDUM-1 (NA-amended; thresholds unchanged)",
+  "holdout_reads": "2 — attempt 1 (16:28:41Z) crashed in the scorer harness (rank-2 batch feed vs the float32[K] single-pair export contract) BEFORE any probability or gate number existed; zero eval signal emitted (logged: infra_failure_holdout_read_1); attempt 2 produced these numbers. No metric-driven re-roll.",
+  "gates": [
+    {
+      "gate": "g1",
+      "what": "sanity suite v2 on the gated full artifact",
+      "required": "9/9",
+      "measured": "9/9",
+      "pass": true
+    },
+    {
+      "gate": "g5",
+      "what": "corpus verifiers re-run: v44 seal (47 checks) + v44-r2 train (independent)",
+      "required": "all checks, both exit 0",
+      "measured": {
+        "v44_seal": "",
+        "v44_r2_train": "[verify-r2] OK: 40 checks passed"
+      },
+      "pass": true
+    },
+    {
+      "gate": "g5b",
+      "what": "pair-level disjointness of eval surfaces",
+      "required": "0 intersections",
+      "measured": {
+        "holdout_v44_vs_train": true,
+        "v42_276_vs_v44_train": true,
+        "v42_276_vs_v44_holdout": true
+      },
+      "pass": true
+    },
+    {
+      "gate": "g2",
+      "what": "sealed v4.4 holdout (75), full model",
+      "required": "BA>=0.93, sens>=0.95, spec>=0.90, Brier<=0.05",
+      "measured": {
+        "ba": 1.0,
+        "sens": 1.0,
+        "spec": 1.0,
+        "brier": 0.0058
+      },
+      "pass": true
+    },
+    {
+      "gate": "g3",
+      "what": "no-harm corridor on v42-276 (full model)",
+      "required": "BA >= 0.9662 - max(0.02; CI95) = 0.9449 (CI95=0.0213 from BA(prev) at n=276)",
+      "measured": {
+        "ba": 0.8684
+      },
+      "pass": false
+    },
+    {
+      "gate": "g4",
+      "what": "graph ablation on the holdout evidence stratum",
+      "required": "BA(full) - BA(ablated) >= +0.02",
+      "measured": {
+        "ba_full": 1.0,
+        "ba_ablated": 1.0,
+        "delta_pp": 0.0,
+        "evidence_rows": 18
+      },
+      "pass": false
+    },
+    {
+      "gate": "g6",
+      "what": "anti-collapse: control spec vs evidence spec (full)",
+      "required": "spec(control) >= spec(evidence) - 5pp",
+      "measured": {
+        "spec_control": 1.0,
+        "spec_evidence": 1.0,
+        "control_rows": 6
+      },
+      "pass": true
+    }
+  ],
+  "holdout_v44": {
+    "full": {
+      "n": 75,
+      "dups": 45,
+      "not_dups": 30,
+      "ba": 1.0,
+      "sens": 1.0,
+      "spec": 1.0,
+      "brier": 0.005826152198017631,
+      "tp": 45,
+      "fn": 0,
+      "tn": 30,
+      "fp": 0
+    },
+    "ablated": {
+      "n": 75,
+      "dups": 45,
+      "not_dups": 30,
+      "ba": 1.0,
+      "sens": 1.0,
+      "spec": 1.0,
+      "brier": 0.005826152198017631,
+      "tp": 45,
+      "fn": 0,
+      "tn": 30,
+      "fp": 0
+    },
+    "per_stratum_full": {
+      "P-cosmetic": {
+        "n": 15,
+        "dups": 15,
+        "not_dups": 0,
+        "ba": 1.0,
+        "sens": 1.0,
+        "spec": 0.0,
+        "brier": 4.5309569117080175e-06,
+        "tp": 15,
+        "fn": 0,
+        "tn": 0,
+        "fp": 0
+      },
+      "P-identity": {
+        "n": 30,
+        "dups": 30,
+        "not_dups": 0,
+        "ba": 1.0,
+        "sens": 1.0,
+        "spec": 0.0,
+        "brier": 0.01456295272129111,
+        "tp": 30,
+        "fn": 0,
+        "tn": 0,
+        "fp": 0
+      },
+      "control": {
+        "n": 6,
+        "dups": 0,
+        "not_dups": 6,
+        "ba": 1.0,
+        "sens": 0.0,
+        "spec": 1.0,
+        "brier": 1.1009908540415836e-09,
+        "tp": 0,
+        "fn": 0,
+        "tn": 6,
+        "fp": 0
+      },
+      "edge-common": {
+        "n": 7,
+        "dups": 0,
+        "not_dups": 7,
+        "ba": 1.0,
+        "sens": 0.0,
+        "spec": 1.0,
+        "brier": 6.029263437718718e-10,
+        "tp": 0,
+        "fn": 0,
+        "tn": 7,
+        "fp": 0
+      },
+      "edge-direct": {
+        "n": 10,
+        "dups": 0,
+        "not_dups": 10,
+        "ba": 1.0,
+        "sens": 0.0,
+        "spec": 1.0,
+        "brier": 9.478747386992837e-09,
+        "tp": 0,
+        "fn": 0,
+        "tn": 10,
+        "fp": 0
+      },
+      "mint-top": {
+        "n": 7,
+        "dups": 0,
+        "not_dups": 7,
+        "ba": 1.0,
+        "sens": 0.0,
+        "spec": 1.0,
+        "brier": 6.804635728536417e-07,
+        "tp": 0,
+        "fn": 0,
+        "tn": 7,
+        "fp": 0
+      }
+    },
+    "per_stratum_ablated": {
+      "P-cosmetic": {
+        "n": 15,
+        "dups": 15,
+        "not_dups": 0,
+        "ba": 1.0,
+        "sens": 1.0,
+        "spec": 0.0,
+        "brier": 4.5309569117080175e-06,
+        "tp": 15,
+        "fn": 0,
+        "tn": 0,
+        "fp": 0
+      },
+      "P-identity": {
+        "n": 30,
+        "dups": 30,
+        "not_dups": 0,
+        "ba": 1.0,
+        "sens": 1.0,
+        "spec": 0.0,
+        "brier": 0.01456295272129111,
+        "tp": 30,
+        "fn": 0,
+        "tn": 0,
+        "fp": 0
+      },
+      "control": {
+        "n": 6,
+        "dups": 0,
+        "not_dups": 6,
+        "ba": 1.0,
+        "sens": 0.0,
+        "spec": 1.0,
+        "brier": 1.1009908540415836e-09,
+        "tp": 0,
+        "fn": 0,
+        "tn": 6,
+        "fp": 0
+      },
+      "edge-common": {
+        "n": 7,
+        "dups": 0,
+        "not_dups": 7,
+        "ba": 1.0,
+        "sens": 0.0,
+        "spec": 1.0,
+        "brier": 6.029263437718718e-10,
+        "tp": 0,
+        "fn": 0,
+        "tn": 7,
+        "fp": 0
+      },
+      "edge-direct": {
+        "n": 10,
+        "dups": 0,
+        "not_dups": 10,
+        "ba": 1.0,
+        "sens": 0.0,
+        "spec": 1.0,
+        "brier": 9.478747386992837e-09,
+        "tp": 0,
+        "fn": 0,
+        "tn": 10,
+        "fp": 0
+      },
+      "mint-top": {
+        "n": 7,
+        "dups": 0,
+        "not_dups": 7,
+        "ba": 1.0,
+        "sens": 0.0,
+        "spec": 1.0,
+        "brier": 6.804635728536417e-07,
+        "tp": 0,
+        "fn": 0,
+        "tn": 7,
+        "fp": 0
+      }
+    },
+    "evidence_stratum": {
+      "full": {
+        "n": 18,
+        "dups": 0,
+        "not_dups": 18,
+        "ba": 1.0,
+        "sens": 0.0,
+        "spec": 1.0,
+        "brier": 5.530616705347787e-09,
+        "tp": 0,
+        "fn": 0,
+        "tn": 18,
+        "fp": 0
+      },
+      "ablated": {
+        "n": 18,
+        "dups": 0,
+        "not_dups": 18,
+        "ba": 1.0,
+        "sens": 0.0,
+        "spec": 1.0,
+        "brier": 5.530616705347787e-09,
+        "tp": 0,
+        "fn": 0,
+        "tn": 18,
+        "fp": 0
+      }
+    },
+    "control_stratum_full": {
+      "n": 6,
+      "dups": 0,
+      "not_dups": 6,
+      "ba": 1.0,
+      "sens": 0.0,
+      "spec": 1.0,
+      "brier": 1.1009908540415836e-09,
+      "tp": 0,
+      "fn": 0,
+      "tn": 6,
+      "fp": 0
+    },
+    "evidence_definition": "pool rows with frozen-column evidence OR sidecar has_graph_evidence"
+  },
+  "v42_276": {
+    "full": {
+      "n": 276,
+      "dups": 144,
+      "not_dups": 132,
+      "ba": 0.8683712121212122,
+      "sens": 0.8958333333333334,
+      "spec": 0.8409090909090909,
+      "brier": 0.10828044273227415,
+      "tp": 129,
+      "fn": 15,
+      "tn": 111,
+      "fp": 21
+    },
+    "ablated": {
+      "n": 276,
+      "dups": 144,
+      "not_dups": 132,
+      "ba": 0.8683712121212122,
+      "sens": 0.8958333333333334,
+      "spec": 0.8409090909090909,
+      "brier": 0.10828044273227415,
+      "tp": 129,
+      "fn": 15,
+      "tn": 111,
+      "fp": 21
+    },
+    "per_stratum_full": {
+      "N-fact-edit": {
+        "n": 55,
+        "dups": 0,
+        "not_dups": 55,
+        "ba": 0.7272727272727273,
+        "sens": 0.0,
+        "spec": 0.7272727272727273,
+        "brier": 0.20484482865556997,
+        "tp": 0,
+        "fn": 0,
+        "tn": 40,
+        "fp": 15
+      },
+      "N-far": {
+        "n": 27,
+        "dups": 0,
+        "not_dups": 27,
+        "ba": 1.0,
+        "sens": 0.0,
+        "spec": 1.0,
+        "brier": 0.0002326324969952496,
+        "tp": 0,
+        "fn": 0,
+        "tn": 27,
+        "fp": 0
+      },
+      "N-metadata": {
+        "n": 28,
+        "dups": 0,
+        "not_dups": 28,
+        "ba": 1.0,
+        "sens": 0.0,
+        "spec": 1.0,
+        "brier": 2.248375195008328e-06,
+        "tp": 0,
+        "fn": 0,
+        "tn": 28,
+        "fp": 0
+      },
+      "N-near": {
+        "n": 13,
+        "dups": 0,
+        "not_dups": 13,
+        "ba": 0.5384615384615384,
+        "sens": 0.0,
+        "spec": 0.5384615384615384,
+        "brier": 0.35243268960959756,
+        "tp": 0,
+        "fn": 0,
+        "tn": 7,
+        "fp": 6
+      },
+      "N-para-notdup": {
+        "n": 9,
+        "dups": 0,
+        "not_dups": 9,
+        "ba": 1.0,
+        "sens": 0.0,
+        "spec": 1.0,
+        "brier": 0.0026120963664529504,
+        "tp": 0,
+        "fn": 0,
+        "tn": 9,
+        "fp": 0
+      },
+      "P-cosmetic": {
+        "n": 48,
+        "dups": 48,
+        "not_dups": 0,
+        "ba": 1.0,
+        "sens": 1.0,
+        "spec": 0.0,
+        "brier": 7.640923709676764e-06,
+        "tp": 48,
+        "fn": 0,
+        "tn": 0,
+        "fp": 0
+      },
+      "P-envelope": {
+        "n": 12,
+        "dups": 12,
+        "not_dups": 0,
+        "ba": 1.0,
+        "sens": 1.0,
+        "spec": 0.0,
+        "brier": 7.447490930208762e-05,
+        "tp": 12,
+        "fn": 0,
+        "tn": 0,
+        "fp": 0
+      },
+      "P-identity": {
+        "n": 24,
+        "dups": 24,
+        "not_dups": 0,
+        "ba": 1.0,
+        "sens": 1.0,
+        "spec": 0.0,
+        "brier": 6.810950911232776e-05,
+        "tp": 24,
+        "fn": 0,
+        "tn": 0,
+        "fp": 0
+      },
+      "P-para-light": {
+        "n": 24,
+        "dups": 24,
+        "not_dups": 0,
+        "ba": 0.9166666666666666,
+        "sens": 0.9166666666666666,
+        "spec": 0.0,
+        "brier": 0.059070365188793494,
+        "tp": 22,
+        "fn": 2,
+        "tn": 0,
+        "fp": 0
+      },
+      "P-para-struct": {
+        "n": 9,
+        "dups": 9,
+        "not_dups": 0,
+        "ba": 1.0,
+        "sens": 1.0,
+        "spec": 0.0,
+        "brier": 0.01830668110553704,
+        "tp": 9,
+        "fn": 0,
+        "tn": 0,
+        "fp": 0
+      },
+      "P-para-sub": {
+        "n": 12,
+        "dups": 12,
+        "not_dups": 0,
+        "ba": 1.0,
+        "sens": 1.0,
+        "spec": 0.0,
+        "brier": 0.00012499438912646119,
+        "tp": 12,
+        "fn": 0,
+        "tn": 0,
+        "fp": 0
+      },
+      "P-trans": {
+        "n": 15,
+        "dups": 15,
+        "not_dups": 0,
+        "ba": 0.13333333333333333,
+        "sens": 0.13333333333333333,
+        "spec": 0.0,
+        "brier": 0.828040989019024,
+        "tp": 2,
+        "fn": 13,
+        "tn": 0,
+        "fp": 0
+      }
+    },
+    "corridor_floor": 0.9449,
+    "ci95": 0.0213
+  },
+  "artifacts": {
+    "full": {
+      "sha256": "84bcfb8c267caa5df4fbea1ed221217f004eba347deb8dc4dc9e842390e0e6a1",
+      "feature_set_sha256": "d4a89769036b7c17949c95a43f0785e9d79173b09d3a17637f93053003706550",
+      "cv_config": "d-l15-lr010"
+    },
+    "ablated": {
+      "sha256": "d90aeb54c53dc7f801c7be047c7c91a8c70d49ac99d851e3b80939761419da12",
+      "feature_set_sha256": "dd86228f8c634f28d8a15b2d8279da1b99735d68e309be02d30f1c24698fa6af",
+      "cv_config": "d-l15-lr010"
+    }
+  },
+  "sidecars": {
+    "holdout-v44": {
+      "fingerprint": "feab259c43a89b1448b42b5e563d08ed7d444b76c4339910fc70c911a62e0b37",
+      "evidence_pairs": 10
+    },
+    "v42-276": {
+      "fingerprint": "5fce766bd178610cfd6fe9008c97163711c6e8e7c5d6b2a7eae0d82383d4ea34",
+      "evidence_pairs": 0
+    }
+  },
+  "determinism_double_run": {
+    "full_byte_identical": true,
+    "ablated_byte_identical": true,
+    "booster_txt_identical": true
+  },
+  "wall_s": 5.3
+}
