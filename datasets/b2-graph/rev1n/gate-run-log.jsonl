@@ -1,0 +1,3 @@
+{"event": "sanity", "ts": "2026-10-22T13:43:25Z", "bundle": "model-full.onnx", "passed": false, "n_checks": 9, "failed": ["fact_edit_twin", "monotonicity"]}
+{"event": "sanity", "ts": "2026-10-22T13:43:25Z", "bundle": "model-ablated.onnx", "passed": false, "n_checks": 9, "failed": ["fact_edit_twin", "monotonicity"]}
+{"event": "abort_g1_red", "ts": "2026-10-22T13:43:25Z", "wall_s": 0.1}

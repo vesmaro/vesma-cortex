@@ -61,6 +61,11 @@ class DGridConfig:
     min_data_in_leaf: int
     field_cosines: bool  # ablation axis: with/without field cosines
     seed: int
+    #: Gated feature-contract override (B2 rev 1.n, ADR 0002): when set,
+    #: vectors must carry EXACTLY these names — the prereg-gated composition
+    #: ``FEATURE_NAMES + GRAPH_FEATURES`` rides here instead of growing a
+    #: boolean axis. None (default) = the frozen A3 legacy behavior.
+    feature_contract: tuple[str, ...] | None = None
 
 
 #: Frozen grid, ≤ 8 configurations (ADR 0001 V1: "гриды ≤ 8 конфигураций,
@@ -112,6 +117,13 @@ GRID_D: Final[tuple[DGridConfig, ...]] = (
 
 _CORE_NAMES: Final[tuple[str, ...]] = FEATURE_NAMES
 _EXTENDED_NAMES: Final[tuple[str, ...]] = FEATURE_NAMES + FIELD_COSINE_FEATURES
+
+
+def _contract_of(config: DGridConfig) -> tuple[str, ...]:
+    """The feature contract one grid point demands (gated override wins)."""
+    if config.feature_contract is not None:
+        return tuple(config.feature_contract)
+    return _EXTENDED_NAMES if config.field_cosines else _CORE_NAMES
 
 
 def _sigmoid(z: np.ndarray) -> np.ndarray:
@@ -171,7 +183,7 @@ class DBoostModel:
         import lightgbm as lgb  # local: train-env import (addendum P2)
 
         matrix, y = self._validate_train_input(vectors, labels, config)
-        expected = _EXTENDED_NAMES if config.field_cosines else _CORE_NAMES
+        expected = _contract_of(config)
         clf = lgb.LGBMClassifier(**self._lgbm_kwargs(config))
         clf.fit(matrix, y)
         self._booster = clf.booster_
@@ -194,9 +206,14 @@ class DBoostModel:
             raise ValueError(
                 "all training vectors must share one feature-name contract"
             )
-        expected = _EXTENDED_NAMES if config.field_cosines else _CORE_NAMES
+        expected = _contract_of(config)
         names = observed.pop()
         if names != expected:
+            if config.feature_contract is not None:
+                raise ValueError(
+                    f"config {config.name} expects the gated contract "
+                    f"{len(expected)} features, vectors carry {len(names)}"
+                )
             kind = "with" if config.field_cosines else "without"
             raise ValueError(
                 f"config {config.name} expects field cosines {kind} "

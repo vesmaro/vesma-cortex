@@ -1,0 +1,13 @@
+{
+  "verdict": "ABORT — g1 red: holdout not read",
+  "gates": [
+    {
+      "gate": "g1",
+      "what": "sanity suite v2 on the gated full artifact",
+      "required": "9/9",
+      "measured": "7/9",
+      "pass": false
+    }
+  ],
+  "wall_s": 0.1
+}
