@@ -1,0 +1,34 @@
+{
+  "interpreter": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/.venv/bin/python (3.12.13; the repo venv \u2014 the canonical real interpreter; PATH python3 is a broken toolbox-shim)",
+  "deps": {
+    "lightgbm": "4.7.0",
+    "onnxruntime": "1.30.0",
+    "sklearn": "1.9.1",
+    "numpy": "2.5.3"
+  },
+  "embedder_pin": "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba (matches frozen, asserted by builder make_embedder)",
+  "corpus_identity": {
+    "train_fp": "3bf7ed53e1dbf9092ec1e557c539b6fedd202ffd8fdbe9798643e2f6fc828a70 (recomputed, MATCH)",
+    "labels_fp": "cad44ab10797c507f090fa2998b6dfc5edfc63f30a892506eadc75e4e98fdaac (recomputed, MATCH)",
+    "rows": 4840,
+    "dups": 1756,
+    "label_mismatches": 0
+  },
+  "train_sidecar": "merged rev1n base (3332) + v45 new material (868) = 4200 rows, 0 evidence conflicts",
+  "estimates_pre_launch": {
+    "train_wall_s": "~60/run (rev1n baseline 50.3 at 4097 rows, +18% corpus)",
+    "train_maxrss_mb": "~650 (<1GB budget)",
+    "gate_wall_s": "<60",
+    "store": "read-only sidecar probes only"
+  },
+  "actual": {
+    "train_wall_s": [
+      76.1,
+      78.2
+    ],
+    "train_maxrss_mb": [
+      638.6,
+      638.2
+    ]
+  }
+}

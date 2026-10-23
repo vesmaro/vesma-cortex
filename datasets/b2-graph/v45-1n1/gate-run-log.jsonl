@@ -1,0 +1,4 @@
+{"event": "gate_start", "ts": "2026-10-23T08:56:05Z", "revision": "1.n+1", "corpus_dir": "data/b2-graph-corpus/v45", "sealed_holdout": "9eae5ec12b0be03f", "sealed_g4spec": "af167dc4d192b9cc", "store_uri": "file:/var/home/abyss/.vesma/data/vesma.db?mode=ro"}
+{"event": "sanity", "ts": "2026-10-23T08:56:05Z", "bundle": "model-full.onnx", "passed": true, "n_pass": 9, "n_checks": 9, "failed": []}
+{"event": "sanity", "ts": "2026-10-23T08:56:05Z", "bundle": "model-ablated.onnx", "passed": false, "n_pass": 8, "n_checks": 9, "failed": ["monotonicity"]}
+{"event": "abort_pregate_red", "ts": "2026-10-23T08:56:05Z", "wall_s": 0.1}

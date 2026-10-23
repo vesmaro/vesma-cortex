@@ -1,0 +1,52 @@
+{
+  "bundle": "data/b2-graph-corpus/v45/run-rev1n1-a/model-full.onnx",
+  "weights_sha256": "a708ddb72bc798b823688fe45491ae6da349be3902187c1c0203301a53fa099b",
+  "passed": true,
+  "checks": [
+    {
+      "name": "bundle_integrity",
+      "passed": true,
+      "detail": "sha256(model.onnx)=a708ddb72bc7… vs manifest=a708ddb72bc7… match"
+    },
+    {
+      "name": "feature_contract",
+      "passed": true,
+      "detail": "manifest order == gated FEATURE_NAMES+GRAPH_FEATURES; ONNX metadata matches manifest; feature_set_sha256 ok"
+    },
+    {
+      "name": "candidate_supported",
+      "passed": true,
+      "detail": "d-boost"
+    },
+    {
+      "name": "self_pair",
+      "passed": true,
+      "detail": "P(dup | probe vs itself, cos=1.0) = 0.9973 (required ≥ 0.9)"
+    },
+    {
+      "name": "cosmetic_twin",
+      "passed": true,
+      "detail": "P(dup | probe vs cosmetic twin, cos=0.99) = 0.9987 (required ≥ 0.5; policy v1.1 §8.2: title punctuation is the cosmetic/T1 class)"
+    },
+    {
+      "name": "fact_edit_twin",
+      "passed": true,
+      "detail": "P(dup | probe vs fact-edit twin, cos=0.99) = 0.1196 (required < 0.5; policy v1.1 §8.2: a key-fact edit is razor/T3 = NOT dup)"
+    },
+    {
+      "name": "envelope_variant",
+      "passed": true,
+      "detail": "P(dup | probe vs envelope-variant, cos=1.0) = 0.9973 (required ≥ 0.5; policy v1.1 §8.1 whitelist; feature-degenerate to the self-pair by OQ-2 — degeneracy pinned by test)"
+    },
+    {
+      "name": "unrelated",
+      "passed": true,
+      "detail": "P(dup | probe vs unrelated, cos=0.578) = 0.0000 (required < 0.5)"
+    },
+    {
+      "name": "monotonicity",
+      "passed": true,
+      "detail": "non-increasing outside the razor zone over the fixed pair [cos=1.00:0.9997, cos=0.99:0.9987, cos=0.95:0.9997, cos=0.80:0.9997, cos=0.50:0.9655] (zoned v2: steps above cos=0.95 unchecked — two-valued zone; tolerance 1e-06)"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "booster_txt_sha256": {
+    "full": "7e9cacb4d62fa6a4006b9ff0d60e03b71b7b3e095d414a417cd6877aba68a6a6",
+    "ablated": "a7721923404be6c9476f499dffc4beb071ae1295d8ed726818c04efc0c5af6e3"
+  },
+  "byte_identical_ab": {
+    "booster_full": true,
+    "booster_ablated": true
+  },
+  "onnx_sha256": {
+    "run_a": {
+      "full": "a708ddb72bc798b823688fe45491ae6da349be3902187c1c0203301a53fa099b",
+      "ablated": "25d4ebeafd405a19f1ad90d291c707729c1a92790ef3f5cd3fc537a700210870"
+    },
+    "run_b": {
+      "full": "1391152eea5358737bc840b78df9fef1b6f19ef83dde185f23003c7a39a87e69",
+      "ablated": "4b34e55a3e4300d0ae11bf36447cf8b976bf1ac008fc9274f02bb73b4fa4826c"
+    }
+  },
+  "onnx_note": "ONNX bytes differ A/B ONLY via the embedded trained_at metadata stamp (build_metadata_props); the model graph/weights (booster.txt) are byte-identical \u2014 same convention as rev1n-retry",
+  "predictions": "byte-identity of run-a/run-b predictions is asserted inside the gate read (b2_gate_rev1n1.py); the gate aborted at g1 BEFORE any sealed read, so the prediction leg never executed"
+}

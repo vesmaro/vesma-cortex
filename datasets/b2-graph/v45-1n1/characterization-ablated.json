@@ -1,0 +1,245 @@
+{
+  "model": "ablated",
+  "feature_names": [
+    "cos_target",
+    "char3_jaccard",
+    "char4_jaccard",
+    "char5_jaccard",
+    "char3_containment",
+    "char4_containment",
+    "char5_containment",
+    "tag_jaccard",
+    "title_len_delta",
+    "body_len_delta",
+    "tag_count_delta",
+    "type_match",
+    "lang_match"
+  ],
+  "feature_set_sha256": "dd86228f8c634f28d8a15b2d8279da1b99735d68e309be02d30f1c24698fa6af",
+  "cv_selected": {
+    "config": "d-l15-lr010",
+    "config_payload": {
+      "num_leaves": 15,
+      "learning_rate": 0.1,
+      "min_data_in_leaf": 10,
+      "seed": 1,
+      "feature_contract": [
+        "cos_target",
+        "char3_jaccard",
+        "char4_jaccard",
+        "char5_jaccard",
+        "char3_containment",
+        "char4_containment",
+        "char5_containment",
+        "tag_jaccard",
+        "title_len_delta",
+        "body_len_delta",
+        "tag_count_delta",
+        "type_match",
+        "lang_match"
+      ]
+    },
+    "ba_mean": 0.9789968579101777,
+    "ba_std": 0.0013330690692851216,
+    "brier_mean": 0.018223545520258413,
+    "brier_std": 0.0009393105888235732,
+    "wall_s": 7.0
+  },
+  "cv_protocol": {
+    "folds": 5,
+    "seeds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+    ],
+    "calibration": "platt-at-final-fit-only"
+  },
+  "final_fit_wall_s": 0.4,
+  "in_sample_ba": 0.9922178988326849,
+  "in_sample_brier": 0.009400093710621558,
+  "per_stratum_in_sample": {
+    "A-resave": {
+      "n": 61,
+      "dups": 61,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "N-fact-edit": {
+      "n": 928,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "N-far": {
+      "n": 221,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "N-metadata": {
+      "n": 205,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.23414634146341465
+    },
+    "N-near": {
+      "n": 697,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "N-para-notdup": {
+      "n": 132,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "P-cosmetic": {
+      "n": 369,
+      "dups": 369,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "P-envelope": {
+      "n": 57,
+      "dups": 57,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "P-identity": {
+      "n": 542,
+      "dups": 542,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "P-lexsub": {
+      "n": 53,
+      "dups": 53,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "P-para-light": {
+      "n": 119,
+      "dups": 119,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "P-para-struct": {
+      "n": 23,
+      "dups": 23,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "P-para-sub": {
+      "n": 32,
+      "dups": 32,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "R-watchlist-family": {
+      "n": 36,
+      "dups": 36,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "broken-field": {
+      "n": 31,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "control": {
+      "n": 54,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "cross-topic": {
+      "n": 16,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "edge-common": {
+      "n": 143,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "edge-direct": {
+      "n": 230,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "light": {
+      "n": 72,
+      "dups": 72,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "mint-top": {
+      "n": 143,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "near-topic": {
+      "n": 46,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "structural": {
+      "n": 37,
+      "dups": 37,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "substantial": {
+      "n": 75,
+      "dups": 75,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "template-twin": {
+      "n": 94,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "translated-dup": {
+      "n": 280,
+      "dups": 280,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "translated-sibling": {
+      "n": 144,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    }
+  },
+  "platt": [
+    0.9367497534141701,
+    0.30474098441484176
+  ]
+}
