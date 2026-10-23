@@ -1,10 +1,20 @@
 #!/usr/bin/env python3
 """Single-shot gate runner for B2 is-duplicate revision 1.n+1 (corpus v4.5).
 
-DISCIPLINE (hard order, b2p-v41 precedent; prereg v3 §6 + ADDENDUM-2):
+ATTEMPT 2 of the gate cycle (attempt 1, commit 5e9407f, aborted at g1 on the
+ablated plateau step; ADDENDUM-3 ratified by the owner and activated by TL
+BEFORE this run — commit 74dcc71).
+
+DISCIPLINE (hard order, b2p-v41 precedent; prereg v3 §6 + ADDENDUM-2 + ADDENDUM-3):
 
   PHASE 1 — pre-gates, sealed artifacts UNTOUCHED:
-    g1  sanity suite v2, 9/9 hard on BOTH models
+    g1  sanity suite v2, 9/9 hard on BOTH models under the ADDENDUM-3 A3.1
+        plateau rule implemented RUNNER-SIDE (src/cortex/eval/sanity.py is
+        frozen prod code — the M3 migration on ADOPT is a separate decision):
+        a controlled zoned-ladder step passes with tolerance 1e-4 IFF both of
+        its points are >= 0.99 (deep decision plateau), else 1e-6; steps
+        starting strictly above RAZOR_ZONE_COS_LOW=0.95 stay uncontrolled.
+        Raw ladder values + per-step applied tolerances go to the report.
         (red ⇒ ABORT, the holdout is never read);
     g1b flora of unseen scaffolds (A2.6), both models, 4 probe classes;
     g3  no-harm corridor on v42-276, BA(full) ≥ 0.9449 (frozen;
@@ -57,7 +67,12 @@ from cortex.data.fingerprints import (  # noqa: E402
     manifest_bytes,
 )
 from cortex.features.graph import GRAPH_FEATURES, GraphEvidence  # noqa: E402
-from cortex.features.pair import FeatureVector, PairRecord, features  # noqa: E402
+from cortex.features.pair import (  # noqa: E402
+    FEATURE_NAMES,
+    FeatureVector,
+    PairRecord,
+    features,
+)
 
 STORE_URI_DEFAULT = "file:/var/home/abyss/.vesma/data/vesma.db?mode=ro"
 
@@ -85,6 +100,20 @@ G2 = {"ba": 0.93, "sens": 0.95, "spec": 0.90, "brier": 0.05}
 G4SPEC_MIN = 0.90
 G6_MIN_MARGIN = 0.05
 CUT = 0.5
+
+# ── ADDENDUM-3 (ACTIVATED 2026-10-23, before the attempt-2 run) ──────────────
+# A3.1 plateau exclusion — RUNNER-SIDE only (the frozen suite keeps its 1e-6
+# constant; prod migration is an M3 question on ADOPT).
+A31_PLATEAU_TOL = 1e-4
+A31_PLATEAU_FLOOR = 0.99
+
+# Byte-continuity tripwire: the attempt-2 training MUST reproduce the
+# attempt-1 boosters (commit 5e9407f) byte-in-byte; a mismatch means the
+# environment drifted — STOP and escalate, do NOT gate.
+ATTEMPT1_BOOSTER_SHA = {
+    "full": "7e9cacb4d62fa6a4006b9ff0d60e03b71b7b3e095d414a417cd6877aba68a6a6",
+    "ablated": "a7721923404be6c9476f499dffc4beb071ae1295d8ed726818c04efc0c5af6e3",
+}
 
 
 def _log(gate_dir: Path, event: str, payload: dict) -> None:
@@ -241,35 +270,128 @@ def _seal_check(rows_path: Path, expected_fp: str, expected_ids_sha: str,
             "ids_sha256": ids_sha, "ok": ok}
 
 
+def _a31_for_bundle(onnx_path: Path) -> dict:
+    """ADDENDUM-3 A3.1 plateau re-evaluation of the zoned ladder (RUNNER-SIDE).
+
+    Raw probabilities come from the FROZEN suite helper (same probes, same
+    order, same graph-empty gating) — the suite itself stays untouched and
+    keeps its 1e-6 constant; this function adds the ratified zone:
+    a controlled step passes at tol 1e-4 IFF both its points >= 0.99,
+    else at 1e-6; steps starting strictly above RAZOR_ZONE_COS_LOW are not
+    controlled (zoned v2, unchanged)."""
+    import onnxruntime as ort
+
+    from cortex.eval.sanity import (
+        COS_LADDER,
+        MONOTONICITY_TOLERANCE,
+        RAZOR_ZONE_COS_LOW,
+        ladder_probabilities,
+    )
+
+    manifest = json.loads(onnx_path.with_suffix(".manifest.json").read_text())
+    graph_gated = tuple(manifest["features"]) == FEATURE_NAMES + GRAPH_FEATURES
+    session = ort.InferenceSession(str(onnx_path), providers=["CPUExecutionProvider"])
+    ps = [float(p) for p in ladder_probabilities(session, graph_gated=graph_gated)]
+    steps: list[dict] = []
+    ok = True
+    for i in range(len(COS_LADDER) - 1):
+        lo, hi = COS_LADDER[i], COS_LADDER[i + 1]
+        if lo > RAZOR_ZONE_COS_LOW:
+            steps.append({"from_cos": lo, "to_cos": hi, "controlled": False,
+                          "tol": None, "pass": None})
+            continue
+        tol = (A31_PLATEAU_TOL
+               if ps[i] >= A31_PLATEAU_FLOOR and ps[i + 1] >= A31_PLATEAU_FLOOR
+               else MONOTONICITY_TOLERANCE)
+        step_pass = bool(ps[i] >= ps[i + 1] - tol)
+        steps.append({"from_cos": lo, "to_cos": hi, "controlled": True,
+                      "p_from": ps[i], "p_to": ps[i + 1],
+                      "delta_p_to_minus_p_from": ps[i + 1] - ps[i],
+                      "tol": tol, "pass": step_pass})
+        ok = ok and step_pass
+    return {"raw_ladder": {str(cos): p for cos, p in zip(COS_LADDER, ps)},
+            "steps": steps, "pass": bool(ok)}
+
+
+def _a31_crosscheck(monotonicity_detail: str, raw_ladder: dict) -> None:
+    """Drift guard: the recomputed raw ladder must reproduce the numbers the
+    frozen suite itself printed (4-decimal) — a divergence means the probe or
+    scoring contract moved between the suite run and this re-evaluation."""
+    import re
+
+    printed = [(cos, float(p)) for cos, p in
+               re.findall(r"cos=([\d.]+):([\d.]+)", monotonicity_detail)]
+    if not printed:
+        raise RuntimeError("monotonicity detail carries no ladder values — "
+                           "sanity suite output contract changed; STOP")
+    for cos, p_printed in printed:
+        # the suite prints two-decimal cosines ("cos=0.80"); raw_ladder is
+        # keyed by str(COS_LADDER floats) ("0.8") — normalize through float.
+        p_raw = raw_ladder.get(str(float(cos)))
+        if p_raw is None or f"{p_raw:.4f}" != f"{p_printed:.4f}":
+            raise RuntimeError(
+                f"raw ladder drift at cos={cos}: recomputed {p_raw!r} vs "
+                f"suite-printed {p_printed!r} — STOP, do not gate")
+
+
 def phase1_pregates(gate_dir: Path, run_a: Path, args) -> tuple[list[dict], bool]:
     """g1 + g1b + g3 — sealed artifacts untouched."""
     gates: list[dict] = []
     from cortex.eval.sanity import run_sanity_suite
 
-    # ── g1: sanity v2, 9/9 on BOTH models ────────────────────────────────
+    # ── g1: sanity v2, 9/9 on BOTH models under ADDENDUM-3 A3.1 ──────────
     g1_reports = {}
     g1_ok = True
     for onnx in (run_a / "model-full.onnx", run_a / "model-ablated.onnx"):
         report = run_sanity_suite(onnx)
+        a31 = _a31_for_bundle(onnx)
+        mono = next(c for c in report.checks if c.name == "monotonicity")
+        _a31_crosscheck(mono.detail, a31["raw_ladder"])
+        others_ok = all(c.passed for c in report.checks if c.name != "monotonicity")
+        model_ok = others_ok and len(report.checks) == 9 and a31["pass"]
         payload = {
             "bundle": str(onnx), "weights_sha256": report.weights_sha256,
             "passed": report.passed,
             "checks": [{"name": c.name, "passed": c.passed, "detail": c.detail}
                        for c in report.checks],
+            "a3_1": {
+                "rule": "ADDENDUM-3 A3.1 (ACTIVATED 23.10): controlled step "
+                        "tol = 1e-4 iff BOTH points >= 0.99, else 1e-6; steps "
+                        "starting strictly above cos=0.95 uncontrolled (zoned "
+                        "v2); implemented RUNNER-SIDE — sanity.py untouched",
+                "production_suite_passed": report.passed,
+                "raw_ladder": a31["raw_ladder"],
+                "steps": a31["steps"],
+                "pass_under_a3_1": a31["pass"],
+                "model_pass_under_a3_1": model_ok,
+            },
         }
         g1_reports[onnx.stem] = payload
         (gate_dir / f"sanity-{onnx.stem}.json").write_text(
             json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8")
         n_pass = sum(c["passed"] for c in payload["checks"])
-        _log(gate_dir, "sanity", {"bundle": onnx.name, "passed": report.passed,
+        _log(gate_dir, "sanity", {"bundle": onnx.name,
+                                  "production": report.passed,
+                                  "under_a3_1": model_ok,
                                   "n_pass": n_pass, "n_checks": len(payload["checks"]),
-                                  "failed": [c.name for c in report.failed]})
-        g1_ok = g1_ok and report.passed and len(payload["checks"]) == 9
+                                  "failed": [c.name for c in report.failed],
+                                  "raw_ladder": a31["raw_ladder"],
+                                  "steps": a31["steps"]})
+        g1_ok = g1_ok and model_ok
     gates.append({
-        "gate": "g1", "what": "sanity suite v2, BOTH models",
-        "required": "9/9 on full AND ablated",
-        "measured": {k: f"{sum(c['passed'] for c in v['checks'])}/{len(v['checks'])}"
-                     for k, v in g1_reports.items()},
+        "gate": "g1", "what": "sanity suite v2, BOTH models (A3.1 plateau rule)",
+        "required": "9/9 on full AND ablated under ADDENDUM-3 A3.1 "
+                    "(raw ladders + per-step tolerances in sanity-*.json)",
+        "measured": {k: {
+            "checks_production_suite": f"{sum(c['passed'] for c in v['checks'])}/{len(v['checks'])}",
+            "under_a3_1": "9/9" if v["a3_1"]["pass_under_a3_1"] and
+                          all(c["passed"] for c in v["checks"] if c["name"] != "monotonicity")
+                          else "RED",
+            "raw_ladder": v["a3_1"]["raw_ladder"],
+            "step_tolerances": {f"{s['from_cos']}->{s['to_cos']}":
+                                (s["tol"] if s["controlled"] else "uncontrolled")
+                                for s in v["a3_1"]["steps"]},
+        } for k, v in g1_reports.items()},
         "pass": g1_ok,
     })
     if not g1_ok:

@@ -1,0 +1,72 @@
+{
+  "probe_scaffolds": [
+    "S24"
+  ],
+  "train_used_scaffolds": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S13",
+    "S14",
+    "S15",
+    "S16",
+    "S17",
+    "S18",
+    "S19",
+    "S20",
+    "S21",
+    "S22",
+    "S23",
+    "S25",
+    "S26",
+    "S27",
+    "S28",
+    "S29",
+    "S30"
+  ],
+  "scaffold_disjointness": "asserted (probe scaffolds ∩ train-used = ∅)",
+  "scaffold_source": "SCAFFOLDS (frozen builder library), same generator recipe",
+  "embedder_pin": "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba",
+  "counts": {
+    "paradup": 32,
+    "factedit": 24,
+    "xlangdup": 16,
+    "xlangsib": 8
+  },
+  "total": 80,
+  "similarity_stats": {
+    "paradup": {
+      "n": 32,
+      "cos_min": 0.957597,
+      "cos_max": 0.990507,
+      "cos_mean": 0.975694
+    },
+    "factedit": {
+      "n": 24,
+      "cos_min": 0.992467,
+      "cos_max": 0.995209,
+      "cos_mean": 0.994111
+    },
+    "xlangdup": {
+      "n": 16,
+      "cos_min": 0.757492,
+      "cos_max": 0.822852,
+      "cos_mean": 0.792218
+    },
+    "xlangsib": {
+      "n": 8,
+      "cos_min": 0.761939,
+      "cos_max": 0.790739,
+      "cos_mean": 0.779449
+    }
+  }
+}
