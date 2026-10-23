@@ -1,0 +1,13 @@
+store_snapshot = {'memories': 4407, 'edges': 1527, 'vectors': 4379}
+hygiene_passed = 3295
+pool_endpoints_still_passing = 736
+pairs_ge_092 = 936314
+pairs_ge_097 = 44140
+silver_classes = {'disputed': 913137, 'quarantine': 23109, 'silver-dup': 68}
+band_x_class = {'disputed|[0.92,0.97)': 869135, 'disputed|[0.97,1.0]': 44002, 'silver-dup|[0.97,1.0]': 68}
+dup_evidence_split = {'silver-dup|zero-evidence': 68, 'silver-dup|no-edge': 68, 'silver-dup|[0.97,1.0]': 68}
+dup rows: 68
+distinct side prefixes: 130
+created_delta all True: True
+cos distinct: [1.0]
+edge kinds among dups: Counter({'None': 68})

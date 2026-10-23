@@ -1,0 +1,19 @@
+{
+ "edge_zone_by_band": {
+  "[0.92,0.97)": 1179,
+  "[0.97,1.0]": 117
+ },
+ "edge_kind_zone": {
+  "relates_to|auto-dedupe|[0.92,0.97)": 1179,
+  "relates_to|auto-dedupe|[0.97,1.0]": 117
+ },
+ "all97": 44140,
+ "edge97": 117,
+ "dup_pairs": 68,
+ "dup_records": 130,
+ "cluster_sizes": {
+  "2": 62,
+  "3": 2
+ },
+ "dup_records_in_pool_endpoints": 0
+}
