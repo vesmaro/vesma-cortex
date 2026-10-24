@@ -1,0 +1,99 @@
+{
+  "verdict": "ABORT — pre-gate red: sealed artifacts not read",
+  "gates": [
+    {
+      "gate": "g1",
+      "what": "sanity suite v2, BOTH models (A3.1 plateau rule)",
+      "required": "9/9 on full AND ablated under ADDENDUM-3 A3.1 (raw ladders + per-step tolerances in sanity-*.json)",
+      "measured": {
+        "model-full": {
+          "checks_production_suite": "9/9",
+          "under_a3_1": "9/9",
+          "raw_ladder": {
+            "1.0": 0.9996991157531738,
+            "0.99": 0.9987173080444336,
+            "0.95": 0.9996956586837769,
+            "0.8": 0.9996558427810669,
+            "0.5": 0.9654698371887207
+          },
+          "step_tolerances": {
+            "1.0->0.99": "uncontrolled",
+            "0.99->0.95": "uncontrolled",
+            "0.95->0.8": 0.0001,
+            "0.8->0.5": 1e-06
+          }
+        },
+        "model-ablated": {
+          "checks_production_suite": "8/9",
+          "under_a3_1": "9/9",
+          "raw_ladder": {
+            "1.0": 0.9996964931488037,
+            "0.99": 0.9994359016418457,
+            "0.95": 0.999817430973053,
+            "0.8": 0.9998288750648499,
+            "0.5": 0.983472466468811
+          },
+          "step_tolerances": {
+            "1.0->0.99": "uncontrolled",
+            "0.99->0.95": "uncontrolled",
+            "0.95->0.8": 0.0001,
+            "0.8->0.5": 1e-06
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "gate": "g1b",
+      "what": "flora of unseen scaffolds (A2.6), both models",
+      "required": "paradup: P(dup) >= 0.95; factedit: P(dup) < 0.5; xlangdup: P(dup) >= 0.5; xlangsib: P(dup) < 0.5",
+      "measured": {
+        "full": {
+          "paradup": 0.977632,
+          "factedit": 0.019464,
+          "xlangdup": 0.520758,
+          "xlangsib": 0.988874
+        },
+        "ablated": {
+          "paradup": 0.980299,
+          "factedit": 0.024989,
+          "xlangdup": 0.424696,
+          "xlangsib": 0.986748
+        }
+      },
+      "pass": false
+    }
+  ],
+  "wall_s": 0.2,
+  "prereg_na_forecast": "Прогноз NA (23.10): aligned dup-пробы P≥0.5 на ≥15/16, sib-пробы P<0.5 на ≥7/8 (model-full). Красный на выровненной геометрии = материальное подтверждение слоя (б) — предел контракта 13 фич — маршрут меняется на ратификацию A2.6 / чартер 1.n+2",
+  "prereg_provenance": "recorded verbatim BEFORE the gate invocation: v45 run-log event rev1n1_attempt3_prereg (2026-10-24T08:15Z) and first entry of this gate-run-log.jsonl; this report key is a verbatim copy appended post-run, gate measurements untouched",
+  "prereg_power_declaration": "мощность 1/30: S24 — единственный неиспользованный скаффолд из 30; xlangsib K=8 проб (порог-статистика max)",
+  "forecast_vs_fact": {
+    "model-full": {
+      "xlangdup": {
+        "forecast": "P>=0.5 on >=15/16",
+        "fact": "16/16",
+        "binding_min": 0.520758,
+        "verdict": "CONFIRMED"
+      },
+      "xlangsib": {
+        "forecast": "P<0.5 on >=7/8",
+        "fact": "1/8 (max 0.988874)",
+        "binding_max": 0.988874,
+        "verdict": "NOT CONFIRMED — RED on aligned geometry"
+      }
+    },
+    "model-ablated_informational": {
+      "xlangdup": "12/16 >=0.5 (binding 0.424696 < 0.5 — gate red)",
+      "xlangsib": "2/8 <0.5 (binding 0.986748 — gate red)"
+    },
+    "consequence_prereg": "красный на выровненной геометрии (sib-нога, full): материальное подтверждение слоя (б) — предел контракта 13 фич — маршрут: ратификация A2.6 / чартер 1.n+2"
+  },
+  "cycle_facts": {
+    "worktree": "wt/b2-graph-corpus @ 9a72655",
+    "probes": "regenerated into attempt-3 (sha256 g1b-probes.jsonl = 82dbff7b91519862cdafa1a39a2cd2fae7bb6ee37ae4cda853fe2daf1d5e381f; byte-identical to the /tmp test run; NA-fix generator 9a72655)",
+    "booster_continuity_attempt1": "MATCH x4 (full 7e9cacb4…, ablated a7721923…, A==B==attempt-1)",
+    "sealed_artifacts": "NOT READ — abort at pre-gate g1b; holdout v4.5 (9eae5ec1…) and g4-spec-v1 (af167dc4…) remain virgin; zero eval reads (attempts 1-3 cumulative: 0)",
+    "g3_g2_g4_g5_g6_a2.8": "not executed (abort before single-shot)"
+  }
+}
