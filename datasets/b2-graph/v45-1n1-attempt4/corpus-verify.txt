@@ -1,0 +1,3 @@
+[verify-v45] OK train=4840 holdout=85 train_fp=3bf7ed53e1dbf909... holdout_seal=9eae5ec12b0be03f... strata_A_train=61 holdout_clusters=3
+
+--- stderr ---
