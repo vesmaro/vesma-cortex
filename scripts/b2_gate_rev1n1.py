@@ -1044,7 +1044,11 @@ def phase1_pregates(gate_dir: Path, run_a: Path, args,
         "pass": m_full["ba"] >= G3_FLOOR,
     })
     _log(gate_dir, "g3", {"ba": m_full["ba"], "floor": G3_FLOOR})
-    return gates, True, pre_out
+    # g3 red MUST abort phase 1 like g1/g1b (ADDENDUM-4 §B: red pre-gate =
+    # ABORT before the sealed read). Found by TL read: this return was
+    # unconditional True, so a red g3 flowed into single-shot prep.
+    pregates_ok = g1_ok and g1b_ok
+    return gates, pregates_ok and (m_full["ba"] >= G3_FLOOR), pre_out
 
 
 # ════════════════════════════════════ MAIN ═══════════════════════════════════
