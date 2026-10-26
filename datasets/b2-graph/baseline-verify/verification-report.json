@@ -1,0 +1,182 @@
+{
+  "schema_version": 1,
+  "purpose": "baseline verification — prod v42 re-measured on holdout-276 with the attempt-4 rev1n1 instrument (owner directive 2026-10-25)",
+  "date": "2026-10-25",
+  "diagnostic_not_reroll": true,
+  "seals_touched": "NONE — holdout v4.5 and g4-spec-v1 not read by this run",
+  "identity": {
+    "prod_onnx_path": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/b2-graph-corpus/models/vesma-cortex-v1/model.onnx",
+    "prod_manifest_path": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/b2-graph-corpus/models/vesma-cortex-v1/manifest.json",
+    "onnx_sha256": "00fc6b71c62dbfa8268db358b39c0a4d9f30148805a4a18986487bc70e8346b2",
+    "manifest_declared_sha256": "00fc6b71c62dbfa8268db358b39c0a4d9f30148805a4a18986487bc70e8346b2",
+    "manifest_file_sha256": "bd9fd28a7fe1013bdf2d66a6aa87bb0537951b9f987b632aa044275f64ff168f",
+    "registry_eval_manifest_sha256": true,
+    "weights_pin": "00fc6b71c62dbfa8268db358b39c0a4d9f30148805a4a18986487bc70e8346b2",
+    "trained_at": "2026-10-05T16:28:27+00:00",
+    "candidate": "d-boost",
+    "features_match_ablated_contract": true,
+    "feature_set_sha256": "dd86228f8c634f28d8a15b2d8279da1b99735d68e309be02d30f1c24698fa6af",
+    "feature_set_digest_recomputed": "dd86228f8c634f28d8a15b2d8279da1b99735d68e309be02d30f1c24698fa6af",
+    "cortex_package": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/b2-graph-corpus/src/cortex/__init__.py",
+    "checks": {
+      "onnx_sha == 00fc6b71 pin": true,
+      "manifest sha256 == onnx sha": true,
+      "manifest file sha == eval-results pin": true,
+      "13-feature contract (order) == ABLATED_NAMES": true,
+      "feature_set digest == dd86228f pin": true
+    }
+  },
+  "context_records": {
+    "brief_literal_path": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/data/stage2/artifact-b2",
+    "brief_literal_path_sha256": "71f0572de76c0657c6dd33df81c1155ede4f3e05b4e44f1c75e0080ff367baa7",
+    "brief_literal_path_verdict": "RECALLED B2 (2026-10-03 self-pair inversion) — NOT the v42 model; identity resolved via the recorded weights fingerprint 00fc6b71 instead",
+    "prod_bundle_a5_ds1000_sha256": "281bd0fd39bf9935c86a8b32fed68191fa9b7da95a83b53eb10844a5fd100ac7",
+    "prod_bundle_a5_role": "engine-side serving bundle (superseded by B1 beb0a65d); not the holder of the 0.9662 number"
+  },
+  "surface": {
+    "path": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/data/stage2/dataset-v4-holdout/holdout.jsonl",
+    "rows": 276,
+    "dups": 144,
+    "not_dups": 132,
+    "labels_jsonl_agrees": true
+  },
+  "sidecar": {
+    "path": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/b2-graph-corpus/datasets/b2-graph/v45-1n1-attempt4/graph-sidecar-fresh-v42-276.jsonl",
+    "sha256": "fbd0da24b49ecfba4e084047bedf13dd2ce62abc6d50c214a199be01978287b6",
+    "rows": 276,
+    "zero_evidence_rows": 276
+  },
+  "pin_inputs": {
+    "onnx": {
+      "prod": "00fc6b71c62dbfa8268db358b39c0a4d9f30148805a4a18986487bc70e8346b2",
+      "full": "4fa3dd93f03040d9df77cb185a1626485e0642db47edeaea5f0686600ac88a9b",
+      "ablated": "772c6ba1bed2e212a3925477c63a119c5ebc0993a6a2d4df0655abf443520ac7"
+    },
+    "sidecar": "fbd0da24b49ecfba4e084047bedf13dd2ce62abc6d50c214a199be01978287b6"
+  },
+  "prod_inputs_equal_ablated_inputs_float32": true,
+  "control_cand_full": {
+    "today_ba": 0.90625,
+    "attempt4_g3_runlog_ba": 0.90625,
+    "ok": true
+  },
+  "metrics": {
+    "prod": {
+      "n": 276,
+      "dups": 144,
+      "not_dups": 132,
+      "ba": 0.9662247474747475,
+      "sens": 0.9930555555555556,
+      "spec": 0.9393939393939394,
+      "brier": 0.03291801412476868,
+      "tp": 143,
+      "fn": 1,
+      "tn": 124,
+      "fp": 8
+    },
+    "cand_full": {
+      "n": 276,
+      "dups": 144,
+      "not_dups": 132,
+      "ba": 0.90625,
+      "sens": 0.8958333333333334,
+      "spec": 0.9166666666666666,
+      "brier": 0.08514210010597738,
+      "tp": 129,
+      "fn": 15,
+      "tn": 121,
+      "fp": 11
+    },
+    "cand_ablated": {
+      "n": 276,
+      "dups": 144,
+      "not_dups": 132,
+      "ba": 0.90625,
+      "sens": 0.8958333333333334,
+      "spec": 0.9166666666666666,
+      "brier": 0.08094973121597618,
+      "tp": 129,
+      "fn": 15,
+      "tn": 121,
+      "fp": 11
+    }
+  },
+  "csv": {
+    "prod": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/b2-graph-corpus/datasets/b2-graph/baseline-verify/prod-v42-276.csv",
+    "cand_full": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/b2-graph-corpus/datasets/b2-graph/baseline-verify/cand_full-v42-276.csv",
+    "cand_ablated": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/b2-graph-corpus/datasets/b2-graph/baseline-verify/cand_ablated-v42-276.csv"
+  },
+  "determinism": {
+    "prod": true,
+    "cand_full": true,
+    "cand_ablated": true
+  },
+  "analysis": {
+    "prev_ba": 0.9662,
+    "prev_n": 276,
+    "ci95_halfwidth": 0.02132,
+    "ci_band": [
+      0.94488,
+      0.98752
+    ],
+    "prod_ba_today": 0.9662247474747475,
+    "delta_vs_prev": 2.5e-05,
+    "branch": "b_within_ci",
+    "prod_vs_cand_full": {
+      "flips_total": 17,
+      "flips_by_class": {
+        "duplicate_flips": 14,
+        "not_duplicate_flips": 3
+      },
+      "flips_straddling_cut": 17,
+      "top5_divergent": [
+        {
+          "pair_id": "V4-TRANS-0002",
+          "label": "duplicate",
+          "p_prod": 0.9954805374145508,
+          "p_full": 0.000291973352432251,
+          "abs_dp": 0.9951885640621185
+        },
+        {
+          "pair_id": "V4-TRANS-0003",
+          "label": "duplicate",
+          "p_prod": 0.9953020811080933,
+          "p_full": 0.00021153688430786133,
+          "abs_dp": 0.9950905442237854
+        },
+        {
+          "pair_id": "V4-TRANS-0013",
+          "label": "duplicate",
+          "p_prod": 0.9954084157943726,
+          "p_full": 0.000718533992767334,
+          "abs_dp": 0.9946898818016052
+        },
+        {
+          "pair_id": "V4-TRANS-0001",
+          "label": "duplicate",
+          "p_prod": 0.9939146041870117,
+          "p_full": 4.655122756958008e-05,
+          "abs_dp": 0.9938680529594421
+        },
+        {
+          "pair_id": "V4-TRANS-0010",
+          "label": "duplicate",
+          "p_prod": 0.9944690465927124,
+          "p_full": 0.0008767545223236084,
+          "abs_dp": 0.9935922920703888
+        }
+      ]
+    },
+    "cand_full_vs_cand_ablated": {
+      "ba_full": 0.90625,
+      "ba_ablated": 0.90625,
+      "delta_pp": 0.0,
+      "pred_flips": 4
+    },
+    "prod_vs_cand_ablated": {
+      "flips_total": 17
+    },
+    "env_note": "onnxruntime pinned 1.30.0 (prolog §D.1 fail-closed); known embedder env-sensitivity Δcos ≤ 0.005 — see report"
+  },
+  "wall_s": 2.0
+}
