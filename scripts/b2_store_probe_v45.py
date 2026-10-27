@@ -99,9 +99,14 @@ def ro(db: Path) -> sqlite3.Connection:
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(prog="b2_store_probe_v45")
-    p.add_argument("--store-uri", required=True,
-                   help="read-only URI of vesma.db (file:...?mode=ro); vectors.db is its sibling")
-    p.add_argument("--out", required=True, help="output directory (gitignored data/ tree)")
+    p.add_argument(
+        "--store-uri",
+        required=True,
+        help="read-only URI of vesma.db (file:...?mode=ro); vectors.db is its sibling",
+    )
+    p.add_argument(
+        "--out", required=True, help="output directory (gitignored data/ tree)"
+    )
     return p.parse_args(argv)
 
 
@@ -124,12 +129,17 @@ def main() -> int:
         " quarantine_reason, status FROM memories"
     ):
         mem[row[0]] = row
-    edges = list(conn.execute(
-        "SELECT from_memory_id, to_memory_id, kind, provenance, weight FROM memory_edges"))
+    edges = list(
+        conn.execute(
+            "SELECT from_memory_id, to_memory_id, kind, provenance, weight FROM memory_edges"
+        )
+    )
     conn.close()
     conn = ro(vectors_db)
     embeddings: dict[str, tuple[bytes, str]] = {}
-    for mid, blob, meta_json in conn.execute("SELECT id, vector, metadata FROM embeddings"):
+    for mid, blob, meta_json in conn.execute(
+        "SELECT id, vector, metadata FROM embeddings"
+    ):
         if isinstance(blob, bytes) and len(blob) == BLOB:
             embeddings[mid] = (blob, meta_json or "{}")
     conn.close()
@@ -140,38 +150,53 @@ def main() -> int:
     for mid, row in mem.items():
         (rid, title, content, tags_json, mtype, created, meta_json, quar, status) = row
         if status != "published":
-            counters.exclude("sql-gate:status"); continue
+            counters.exclude("sql-gate:status")
+            continue
         if mtype not in ("note", "snippet", "fact"):
-            counters.exclude("sql-gate:memory_type"); continue
+            counters.exclude("sql-gate:memory_type")
+            continue
         if len(content or "") < 80:
-            counters.exclude("sql-gate:length<80"); continue
+            counters.exclude("sql-gate:length<80")
+            continue
         tags = tuple(str(t) for t in json.loads(tags_json or "[]"))
         if "mnemos:no-federate" in tags:
-            counters.exclude("no-federate"); continue
+            counters.exclude("no-federate")
+            continue
         if quar:
-            counters.exclude("quarantine"); continue
+            counters.exclude("quarantine")
+            continue
         emb = embeddings.get(rid)
         if emb is None:
-            counters.exclude("missing-embedding"); continue
+            counters.exclude("missing-embedding")
+            continue
         blob, meta_j = emb
         meta = json.loads(meta_j)
         pin = meta.get("model_fingerprint")
         if not pin or not str(pin).startswith(PIN_PREFIX):
-            counters.exclude("unpinned/mismatch"); continue
+            counters.exclude("unpinned/mismatch")
+            continue
         if not meta.get("content_hash"):
-            counters.exclude("missing-content-hash"); continue
+            counters.exclude("missing-content-hash")
+            continue
         import numpy as np
 
         vec = np.frombuffer(blob, dtype=np.float32)
         nrm = float(np.linalg.norm(vec))
         if not np.isfinite(nrm) or abs(nrm - 1.0) > UNIT_TOL:
-            counters.exclude("bad-vector"); continue
+            counters.exclude("bad-vector")
+            continue
         if scanner.scan(title or "", content or "", list(tags)):
-            counters.exclude("scanner"); continue
+            counters.exclude("scanner")
+            continue
         passed[rid] = {
-            "body": content or "", "title": title or "", "vec": vec / nrm,
-            "tags": list(tags), "record_type": mtype,
-            "language": (json.loads(meta_json or "{}").get("canon") or {}).get("language"),
+            "body": content or "",
+            "title": title or "",
+            "vec": vec / nrm,
+            "tags": list(tags),
+            "record_type": mtype,
+            "language": (json.loads(meta_json or "{}").get("canon") or {}).get(
+                "language"
+            ),
             "created_at": created,
         }
 
@@ -184,12 +209,12 @@ def main() -> int:
         adjacency.setdefault(d, set()).add(s)
 
     ids = sorted(passed)
-    index = {m: i for i, m in enumerate(ids)}
+    _index = {m: i for i, m in enumerate(ids)}
     pairs: list[dict] = []
     quarantined_cross = 0
     for ii, ia in enumerate(ids):
         a = passed[ia]
-        for ib in ids[ii + 1:]:
+        for ib in ids[ii + 1 :]:
             b = passed[ib]
             if norm1(a["body"]) != norm1(b["body"]):
                 continue
@@ -209,7 +234,11 @@ def main() -> int:
             tb = b["created_at"]
             if not ta or not tb:
                 continue
-            delta = abs((datetime.fromisoformat(tb) - datetime.fromisoformat(ta)).total_seconds())
+            delta = abs(
+                (
+                    datetime.fromisoformat(tb) - datetime.fromisoformat(ta)
+                ).total_seconds()
+            )
             if delta > CREATED_DELTA_MAX_S:
                 continue
             # store-vector cosine (both sides pinned unit vectors)
@@ -221,28 +250,40 @@ def main() -> int:
                 refuse(f"silver-dup pair carries an edge: {ia[:8]}..--{ib[:8]}..; STOP")
             cn = len(n_a & n_b)
             if cn:
-                refuse(f"silver-dup pair has common neighbors ({cn}): {ia[:8]}..--{ib[:8]}..; STOP")
-            pairs.append({
-                "a_store_id": ia,
-                "b_store_id": ib,
-                "cluster_key": None,
-                "store_cos": round(min(1.0, max(0.0, float(dot))), 9),
-                "created_delta_s": round(delta, 3),
-                "detect_lang": la if la == lb else f"{la}|{lb}",
-                "record": {
-                    "title": a["title"], "body": a["body"], "tags": a["tags"],
-                    "language": a["language"], "record_type": a["record_type"],
-                    "created_at": a["created_at"],
-                },
-                "candidate": {
-                    "title": b["title"], "body": b["body"], "tags": b["tags"],
-                    "language": b["language"], "record_type": b["record_type"],
-                    "created_at": b["created_at"],
-                },
-            })
+                refuse(
+                    f"silver-dup pair has common neighbors ({cn}): {ia[:8]}..--{ib[:8]}..; STOP"
+                )
+            pairs.append(
+                {
+                    "a_store_id": ia,
+                    "b_store_id": ib,
+                    "cluster_key": None,
+                    "store_cos": round(min(1.0, max(0.0, float(dot))), 9),
+                    "created_delta_s": round(delta, 3),
+                    "detect_lang": la if la == lb else f"{la}|{lb}",
+                    "record": {
+                        "title": a["title"],
+                        "body": a["body"],
+                        "tags": a["tags"],
+                        "language": a["language"],
+                        "record_type": a["record_type"],
+                        "created_at": a["created_at"],
+                    },
+                    "candidate": {
+                        "title": b["title"],
+                        "body": b["body"],
+                        "tags": b["tags"],
+                        "language": b["language"],
+                        "record_type": b["record_type"],
+                        "created_at": b["created_at"],
+                    },
+                }
+            )
 
     if not pairs:
-        refuse("silver-dup population is empty at probe time; strata A cannot be built; STOP")
+        refuse(
+            "silver-dup population is empty at probe time; strata A cannot be built; STOP"
+        )
 
     # union-find clusters over shared members
     parent: dict[str, str] = {}
@@ -268,13 +309,16 @@ def main() -> int:
 
     bad_cos = [p for p in pairs if p["store_cos"] < 0.9999]
     if bad_cos:
-        refuse(f"{len(bad_cos)} silver pairs with store cos < 0.9999; census geometry violated; STOP")
+        refuse(
+            f"{len(bad_cos)} silver pairs with store cos < 0.9999; census geometry violated; STOP"
+        )
 
     pairs.sort(key=lambda p: (p["a_store_id"], p["b_store_id"]))
     snapshot_fp = hashlib.blake2b(
         "\n".join(
             f"{p['a_store_id']}--{p['b_store_id']} {p['store_cos']:.9f}" for p in pairs
-        ).encode("utf-8") + b"\n",
+        ).encode("utf-8")
+        + b"\n",
         digest_size=32,
     ).hexdigest()
 
@@ -285,19 +329,30 @@ def main() -> int:
     numbers = {
         "probe": "b2-store-probe-v45 (A2.4 strata A snapshot)",
         "store_uri": args.store_uri,
-        "store_snapshot": {"memories": len(mem), "edges": len(edges), "vectors": len(embeddings)},
+        "store_snapshot": {
+            "memories": len(mem),
+            "edges": len(edges),
+            "vectors": len(embeddings),
+        },
         "hygiene": counters.to_dict() | {"passed": len(passed)},
         "silver_dup_pairs": len(pairs),
         "clusters": len(clusters),
         "cluster_size_histogram": {str(k): v for k, v in sorted(cluster_sizes.items())},
-        "census_anchor": {"pairs": CENSUS_PAIRS, "clusters": CENSUS_CLUSTERS,
-                          "date": "2026-10-22"},
+        "census_anchor": {
+            "pairs": CENSUS_PAIRS,
+            "clusters": CENSUS_CLUSTERS,
+            "date": "2026-10-22",
+        },
         "growth_vs_census_pairs": len(pairs) - CENSUS_PAIRS,
         "growth_vs_census_clusters": len(clusters) - CENSUS_CLUSTERS,
-        "store_cos_range": [min(p["store_cos"] for p in pairs),
-                            max(p["store_cos"] for p in pairs)],
+        "store_cos_range": [
+            min(p["store_cos"] for p in pairs),
+            max(p["store_cos"] for p in pairs),
+        ],
         "created_delta_s_max": max(p["created_delta_s"] for p in pairs),
-        "created_delta_s_median": sorted(p["created_delta_s"] for p in pairs)[len(pairs) // 2],
+        "created_delta_s_median": sorted(p["created_delta_s"] for p in pairs)[
+            len(pairs) // 2
+        ],
         "quarantined_cross_lang": quarantined_cross,
         "graph_vector_assert": "edge_ab=0 AND common_neighbors=0 for every pair (refused otherwise)",
         "snapshot_fingerprint": snapshot_fp,
@@ -307,9 +362,21 @@ def main() -> int:
         json.dumps(numbers, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
-    print(json.dumps({k: numbers[k] for k in (
-        "silver_dup_pairs", "clusters", "cluster_size_histogram",
-        "growth_vs_census_pairs", "snapshot_fingerprint")}, ensure_ascii=False))
+    print(
+        json.dumps(
+            {
+                k: numbers[k]
+                for k in (
+                    "silver_dup_pairs",
+                    "clusters",
+                    "cluster_size_histogram",
+                    "growth_vs_census_pairs",
+                    "snapshot_fingerprint",
+                )
+            },
+            ensure_ascii=False,
+        )
+    )
     return 0
 
 

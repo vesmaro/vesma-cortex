@@ -50,9 +50,7 @@ def main(argv: list[str] | None = None) -> int:
                 if not line.strip():
                     continue
                 row = json.loads(line)
-                if not isinstance(row, dict) or not isinstance(
-                    row.get("pair_id"), str
-                ):
+                if not isinstance(row, dict) or not isinstance(row.get("pair_id"), str):
                     raise SystemExit(f"{path}: row without a string pair_id")
                 entry = {
                     "pair_id": row["pair_id"],

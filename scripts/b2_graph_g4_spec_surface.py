@@ -85,8 +85,10 @@ def refuse(msg: str) -> None:
 def log(runlog: list[dict], event: str, **fields) -> None:
     entry = {"event": event, **fields}
     runlog.append(entry)
-    print(f"[g4-spec] {event}: " + " ".join(f"{k}={v}" for k, v in fields.items()),
-          file=sys.stderr)
+    print(
+        f"[g4-spec] {event}: " + " ".join(f"{k}={v}" for k, v in fields.items()),
+        file=sys.stderr,
+    )
 
 
 def norm1(s: str) -> str:
@@ -100,17 +102,26 @@ def text_hash(text: str) -> str:
 
 def side_sha(s: dict) -> str:
     payload = json.dumps(
-        {"title": s.get("title"), "body": s.get("body"),
-         "tags": sorted(s.get("tags") or []), "language": s.get("language"),
-         "record_type": s.get("record_type")},
-        ensure_ascii=False, sort_keys=True)
+        {
+            "title": s.get("title"),
+            "body": s.get("body"),
+            "tags": sorted(s.get("tags") or []),
+            "language": s.get("language"),
+            "record_type": s.get("record_type"),
+        },
+        ensure_ascii=False,
+        sort_keys=True,
+    )
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
 def pair_key(row_or_pair) -> tuple[str, str]:
     if isinstance(row_or_pair, dict) and "record" in row_or_pair:
-        return tuple(sorted((side_sha(row_or_pair["record"]),
-                             side_sha(row_or_pair["candidate"]))))
+        return tuple(
+            sorted(
+                (side_sha(row_or_pair["record"]), side_sha(row_or_pair["candidate"]))
+            )
+        )
     a, b = row_or_pair
     return tuple(sorted((side_sha(a), side_sha(b))))
 
@@ -118,7 +129,7 @@ def pair_key(row_or_pair) -> tuple[str, str]:
 def corpus_rows(path: Path) -> list[dict]:
     if not path.is_file():
         refuse(f"frozen input missing: {path}")
-    return [json.loads(l) for l in path.open(encoding="utf-8") if l.strip()]
+    return [json.loads(ln) for ln in path.open(encoding="utf-8") if ln.strip()]
 
 
 def write_jsonl(path: Path, rows: list[dict]) -> None:
@@ -129,6 +140,7 @@ def write_jsonl(path: Path, rows: list[dict]) -> None:
 
 def ro(db: Path):
     import sqlite3
+
     conn = sqlite3.connect(f"file:{db.as_posix()}?mode=ro", uri=True, timeout=5.0)
     conn.execute("PRAGMA query_only=ON")
     return conn
@@ -136,10 +148,16 @@ def ro(db: Path):
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(prog="b2_graph_g4_spec_surface")
-    p.add_argument("--store-uri", required=True,
-                   help="read-only URI of vesma.db (file:...?mode=ro)")
-    p.add_argument("--out", required=True,
-                   help="output directory (default: data/b2-graph-corpus/v45)")
+    p.add_argument(
+        "--store-uri",
+        required=True,
+        help="read-only URI of vesma.db (file:...?mode=ro)",
+    )
+    p.add_argument(
+        "--out",
+        required=True,
+        help="output directory (default: data/b2-graph-corpus/v45)",
+    )
     return p.parse_args(argv)
 
 
@@ -162,9 +180,12 @@ def main() -> int:
         " quarantine_reason, status FROM memories"
     ):
         mem[row[0]] = row
-    edges = list(conn.execute(
-        "SELECT from_memory_id, to_memory_id, kind, provenance, weight"
-        " FROM memory_edges"))
+    edges = list(
+        conn.execute(
+            "SELECT from_memory_id, to_memory_id, kind, provenance, weight"
+            " FROM memory_edges"
+        )
+    )
     conn.close()
     conn = ro(vectors_db)
     embeddings: dict[str, tuple[bytes, str]] = {}
@@ -179,52 +200,77 @@ def main() -> int:
     counters.candidates_sql = len(mem)
     passed: dict[str, dict] = {}
     for mid, row in mem.items():
-        (rid, title, content, tags_json, mtype, created, meta_json,
-         quar, status) = row
+        (rid, title, content, tags_json, mtype, created, meta_json, quar, status) = row
         if status != "published":
-            counters.exclude("sql-gate:status"); continue
+            counters.exclude("sql-gate:status")
+            continue
         if mtype not in ("note", "snippet", "fact"):
-            counters.exclude("sql-gate:memory_type"); continue
+            counters.exclude("sql-gate:memory_type")
+            continue
         if len(content or "") < 80:
-            counters.exclude("sql-gate:length<80"); continue
+            counters.exclude("sql-gate:length<80")
+            continue
         tags = tuple(str(t) for t in json.loads(tags_json or "[]"))
         if "mnemos:no-federate" in tags:
-            counters.exclude("no-federate"); continue
+            counters.exclude("no-federate")
+            continue
         if quar:
-            counters.exclude("quarantine"); continue
+            counters.exclude("quarantine")
+            continue
         emb = embeddings.get(rid)
         if emb is None:
-            counters.exclude("missing-embedding"); continue
+            counters.exclude("missing-embedding")
+            continue
         blob, meta_j = emb
         meta = json.loads(meta_j)
         pin = meta.get("model_fingerprint")
         if not pin or not str(pin).startswith(PIN_PREFIX):
-            counters.exclude("unpinned/mismatch"); continue
+            counters.exclude("unpinned/mismatch")
+            continue
         if not meta.get("content_hash"):
-            counters.exclude("missing-content-hash"); continue
+            counters.exclude("missing-content-hash")
+            continue
         vec = np.frombuffer(blob, dtype=np.float32)
         nrm = float(np.linalg.norm(vec))
         if not np.isfinite(nrm) or abs(nrm - 1.0) > UNIT_TOL:
-            counters.exclude("bad-vector"); continue
+            counters.exclude("bad-vector")
+            continue
         if scanner.scan(title or "", content or "", list(tags)):
-            counters.exclude("scanner"); continue
+            counters.exclude("scanner")
+            continue
         passed[rid] = {
-            "body": content or "", "title": title or "", "vec": vec / nrm,
-            "tags": list(tags), "record_type": mtype,
+            "body": content or "",
+            "title": title or "",
+            "vec": vec / nrm,
+            "tags": list(tags),
+            "record_type": mtype,
             "language": (json.loads(meta_json or "{}").get("canon") or {}).get(
-                "language"),
+                "language"
+            ),
             "created_at": created,
         }
 
     snapshot_fp = hashlib.blake2b(
-        "\n".join(f"{rid} {text_hash(passed[rid]['title'] + chr(10) + passed[rid]['body'])}"
-                  for rid in sorted(passed)).encode("utf-8") + b"\n",
-        digest_size=32).hexdigest()
-    log(runlog, "store_probe", uri=args.store_uri,
-        store_snapshot={"memories": len(mem), "edges": len(edges),
-                        "vectors": len(embeddings)},
-        hygiene=counters.to_dict(), passed=len(passed),
-        snapshot_fingerprint=snapshot_fp)
+        "\n".join(
+            f"{rid} {text_hash(passed[rid]['title'] + chr(10) + passed[rid]['body'])}"
+            for rid in sorted(passed)
+        ).encode("utf-8")
+        + b"\n",
+        digest_size=32,
+    ).hexdigest()
+    log(
+        runlog,
+        "store_probe",
+        uri=args.store_uri,
+        store_snapshot={
+            "memories": len(mem),
+            "edges": len(edges),
+            "vectors": len(embeddings),
+        },
+        hygiene=counters.to_dict(),
+        passed=len(passed),
+        snapshot_fingerprint=snapshot_fp,
+    )
 
     # adjacency (undirected) over ALL edges — the evidence flag is a graph fact
     adjacency: dict[str, set[str]] = defaultdict(set)
@@ -247,8 +293,12 @@ def main() -> int:
                 evidence_ids.add(frozenset((nl[i], nl[j])))
     # keep only pairs where BOTH sides resolve (hygiene-passed)
     evidence_ids = {fs for fs in evidence_ids if all(m in passed for m in fs)}
-    log(runlog, "evidence_pairs", raw=len(evidence_ids),
-        with_edge=sum(1 for fs in evidence_ids if fs in edge_pairs))
+    log(
+        runlog,
+        "evidence_pairs",
+        raw=len(evidence_ids),
+        with_edge=sum(1 for fs in evidence_ids if fs in edge_pairs),
+    )
 
     # ── phase 3: frozen-embedder cosine (builder formula), filter >= 0.97 ───
     if ENGINE_SRC not in sys.path:
@@ -286,56 +336,86 @@ def main() -> int:
         if sim < COS_MIN:
             below_band += 1
             continue
-        if (norm1(a["body"]) == norm1(b["body"])
-                and norm1(a["title"]) == norm1(b["title"])
-                and set(a["tags"]) == set(b["tags"])
-                and a["record_type"] == b["record_type"]
-                and a["language"] == b["language"]):
+        if (
+            norm1(a["body"]) == norm1(b["body"])
+            and norm1(a["title"]) == norm1(b["title"])
+            and set(a["tags"]) == set(b["tags"])
+            and a["record_type"] == b["record_type"]
+            and a["language"] == b["language"]
+        ):
             # silver §A says dup — the surface is negatives-only; §8.3
             # conservative: quarantined with a counter, never squeezed in
             silver_dup += 1
             continue
-        qualified.append({
-            "ids": (ia, ib), "a": a, "b": b, "similarity": sim,
-            "has_edge": fs in edge_pairs,
-            "kinds": sorted(edge_kinds.get(fs, set())),
-            "cn": len(adjacency[ia] & adjacency[ib]),
-        })
-    log(runlog, "cos_band_filter", cos_min=COS_MIN, below_band=below_band,
-        silver_dup_quarantined=silver_dup, qualified=len(qualified))
+        qualified.append(
+            {
+                "ids": (ia, ib),
+                "a": a,
+                "b": b,
+                "similarity": sim,
+                "has_edge": fs in edge_pairs,
+                "kinds": sorted(edge_kinds.get(fs, set())),
+                "cn": len(adjacency[ia] & adjacency[ib]),
+            }
+        )
+    log(
+        runlog,
+        "cos_band_filter",
+        cos_min=COS_MIN,
+        below_band=below_band,
+        silver_dup_quarantined=silver_dup,
+        qualified=len(qualified),
+    )
     if len(qualified) < FLOOR:
-        refuse(f"qualifying pairs {len(qualified)} < FLOOR {FLOOR}; the "
-               "definition is not to be squeezed; STOP and escalate to TL")
+        refuse(
+            f"qualifying pairs {len(qualified)} < FLOOR {FLOOR}; the "
+            "definition is not to be squeezed; STOP and escalate to TL"
+        )
 
     # ── phase 4: exclusions (pair-level, both orientations + content hashes)
     surfaces: dict[str, set] = {}
     content_surfaces: dict[str, set] = {}
-    for name in ("v43-holdout/holdout.jsonl", "dataset-v4-holdout/holdout.jsonl",
-                 "b2/holdout.jsonl"):
+    for name in (
+        "v43-holdout/holdout.jsonl",
+        "dataset-v4-holdout/holdout.jsonl",
+        "b2/holdout.jsonl",
+    ):
         rows = corpus_rows(BASE / name)
         surfaces[f"historical:{name}"] = {pair_key(r) for r in rows}
         content_surfaces[f"historical:{name}"] = {
-            (text_hash(r["record"]["title"] + "\n" + r["record"]["body"]),
-             text_hash(r["candidate"]["title"] + "\n" + r["candidate"]["body"]))
-            for r in rows}
+            (
+                text_hash(r["record"]["title"] + "\n" + r["record"]["body"]),
+                text_hash(r["candidate"]["title"] + "\n" + r["candidate"]["body"]),
+            )
+            for r in rows
+        }
     v44_rows = corpus_rows(REPO_ROOT / "data/b2-graph-corpus/v44/holdout.jsonl")
     surfaces["historical:v4.4-holdout"] = {pair_key(r) for r in v44_rows}
     content_surfaces["historical:v4.4-holdout"] = {
-        (text_hash(r["record"]["title"] + "\n" + r["record"]["body"]),
-         text_hash(r["candidate"]["title"] + "\n" + r["candidate"]["body"]))
-        for r in v44_rows}
+        (
+            text_hash(r["record"]["title"] + "\n" + r["record"]["body"]),
+            text_hash(r["candidate"]["title"] + "\n" + r["candidate"]["body"]),
+        )
+        for r in v44_rows
+    }
     hold45 = corpus_rows(V45_DIR / "holdout.jsonl")
     surfaces["holdout-v4.5"] = {pair_key(r) for r in hold45}
     content_surfaces["holdout-v4.5"] = {
-        (text_hash(r["record"]["title"] + "\n" + r["record"]["body"]),
-         text_hash(r["candidate"]["title"] + "\n" + r["candidate"]["body"]))
-        for r in hold45}
+        (
+            text_hash(r["record"]["title"] + "\n" + r["record"]["body"]),
+            text_hash(r["candidate"]["title"] + "\n" + r["candidate"]["body"]),
+        )
+        for r in hold45
+    }
     train45 = corpus_rows(V45_DIR / "train.jsonl")
     surfaces["train-v4.5"] = {pair_key(r) for r in train45}
     content_surfaces["train-v4.5"] = {
-        (text_hash(r["record"]["title"] + "\n" + r["record"]["body"]),
-         text_hash(r["candidate"]["title"] + "\n" + r["candidate"]["body"]))
-        for r in train45}
+        (
+            text_hash(r["record"]["title"] + "\n" + r["record"]["body"]),
+            text_hash(r["candidate"]["title"] + "\n" + r["candidate"]["body"]),
+        )
+        for r in train45
+    }
     # strata A: the FULL probe snapshot (stricter than the corpus rows)
     snap = corpus_rows(V45_DIR / "strata-a-snapshot.jsonl")
     snap_keys = set()
@@ -343,8 +423,12 @@ def main() -> int:
     for p in snap:
         k = pair_key((p["record"], p["candidate"]))
         snap_keys.add(k)
-        snap_content.add((text_hash(p["record"]["title"] + "\n" + p["record"]["body"]),
-                          text_hash(p["candidate"]["title"] + "\n" + p["candidate"]["body"])))
+        snap_content.add(
+            (
+                text_hash(p["record"]["title"] + "\n" + p["record"]["body"]),
+                text_hash(p["candidate"]["title"] + "\n" + p["candidate"]["body"]),
+            )
+        )
     surfaces["strata-A"] = snap_keys
     content_surfaces["strata-A"] = snap_content
 
@@ -353,8 +437,10 @@ def main() -> int:
     for q in qualified:
         a, b = q["a"], q["b"]
         pk = pair_key((a, b))
-        ch = (text_hash(a["title"] + "\n" + a["body"]),
-              text_hash(b["title"] + "\n" + b["body"]))
+        ch = (
+            text_hash(a["title"] + "\n" + a["body"]),
+            text_hash(b["title"] + "\n" + b["body"]),
+        )
         hit = None
         for name, keys in surfaces.items():
             if pk in keys:
@@ -370,24 +456,40 @@ def main() -> int:
             excluded[hit] += 1
             continue
         kept.append(q)
-    log(runlog, "exclusions",
+    log(
+        runlog,
+        "exclusions",
         total_surfaces=len(surfaces) + len(content_surfaces),
-        excluded=dict(sorted(excluded.items())), kept=len(kept))
+        excluded=dict(sorted(excluded.items())),
+        kept=len(kept),
+    )
     if len(kept) < FLOOR:
-        refuse(f"after exclusions {len(kept)} pairs < FLOOR {FLOOR}; the "
-               "definition is not to be squeezed; STOP and escalate to TL")
+        refuse(
+            f"after exclusions {len(kept)} pairs < FLOOR {FLOOR}; the "
+            "definition is not to be squeezed; STOP and escalate to TL"
+        )
 
     # ── phase 5: rows (one orientation: lexicographic store-id order) ───────
     rows: list[dict] = []
     for n, q in enumerate(sorted(kept, key=lambda q: q["ids"]), start=1):
         ia, ib = q["ids"]
         a, b = q["a"], q["b"]
-        rec = {"title": a["title"], "body": a["body"], "tags": a["tags"],
-               "language": a["language"], "record_type": a["record_type"],
-               "created_at": a["created_at"]}
-        cand = {"title": b["title"], "body": b["body"], "tags": b["tags"],
-                "language": b["language"], "record_type": b["record_type"],
-                "created_at": b["created_at"]}
+        rec = {
+            "title": a["title"],
+            "body": a["body"],
+            "tags": a["tags"],
+            "language": a["language"],
+            "record_type": a["record_type"],
+            "created_at": a["created_at"],
+        }
+        cand = {
+            "title": b["title"],
+            "body": b["body"],
+            "tags": b["tags"],
+            "language": b["language"],
+            "record_type": b["record_type"],
+            "created_at": b["created_at"],
+        }
         pair_obj = {"record": rec, "candidate": cand, "similarity": q["similarity"]}
         nbrs_a = adjacency[ia]
         nbrs_b = adjacency[ib]
@@ -402,16 +504,16 @@ def main() -> int:
             "similarity": q["similarity"],
             "pair_sha256": pair_sha256(pair_obj),
             "label_rule": "silver §A -> NOT dup (disputed -> NOT dup §8.3; "
-                          "whole mint zone NOT-dup per census)",
-            "id_a": ia, "id_b": ib,
+            "whole mint zone NOT-dup per census)",
+            "id_a": ia,
+            "id_b": ib,
             "orientation_rule": "lexicographic store-id order (deterministic)",
             "seed": SEED,
             "edge_ab": int(q["has_edge"]),
             "edge_kind_supersedes": int(1 if "supersedes" in q["kinds"] else 0),
             "edge_kinds": q["kinds"],
             "common_neighbors": len(common),
-            "neighbor_jaccard": (round(len(common) / len(union), 6)
-                                 if union else 0.0),
+            "neighbor_jaccard": (round(len(common) / len(union), 6) if union else 0.0),
             "has_graph_evidence": bool(q["has_edge"] or len(common) >= 1),
         }
         rows.append(row)
@@ -423,8 +525,9 @@ def main() -> int:
         if ev != r["has_graph_evidence"]:
             refuse(f"evidence reading drift on {r['pair_id']}; STOP")
         if not r["has_graph_evidence"]:
-            refuse(f"row {r['pair_id']} without evidence on an evidence-only "
-                   "surface; STOP")
+            refuse(
+                f"row {r['pair_id']} without evidence on an evidence-only surface; STOP"
+            )
 
     # ── phase 6: fresh sidecar agreement (A2.5.3 discipline) ────────────────
     cat = out / "g4-spec-sidecar-catalog"
@@ -433,16 +536,33 @@ def main() -> int:
     write_jsonl(pre_jsonl, rows)
     py = sys.executable
     r1 = subprocess.run(
-        [py, str(REPO_ROOT / "scripts" / "b2_rev1n_sidecar_input.py"),
-         "--rows", str(pre_jsonl), "--out-dir", str(cat)],
-        capture_output=True, text=True)
+        [
+            py,
+            str(REPO_ROOT / "scripts" / "b2_rev1n_sidecar_input.py"),
+            "--rows",
+            str(pre_jsonl),
+            "--out-dir",
+            str(cat),
+        ],
+        capture_output=True,
+        text=True,
+    )
     if r1.returncode != 0:
         refuse(f"sidecar input converter failed: {r1.stderr[-400:]}")
     r2 = subprocess.run(
-        [py, str(REPO_ROOT / "scripts" / "b2_graph_sidecar.py"),
-         "--dataset-dir", str(cat), "--store-uri", args.store_uri,
-         "--out", str(side_out)],
-        capture_output=True, text=True)
+        [
+            py,
+            str(REPO_ROOT / "scripts" / "b2_graph_sidecar.py"),
+            "--dataset-dir",
+            str(cat),
+            "--store-uri",
+            args.store_uri,
+            "--out",
+            str(side_out),
+        ],
+        capture_output=True,
+        text=True,
+    )
     if r2.returncode != 0:
         refuse(f"fresh sidecar run failed: {r2.stderr[-400:]}")
     side = {r["pair_id"]: r for r in corpus_rows(side_out)}
@@ -451,57 +571,79 @@ def main() -> int:
         sr = side.get(r["pair_id"])
         if sr is None:
             refuse(f"sidecar output missing {r['pair_id']}; STOP")
-        if (int(sr.get("edge_ab") or 0) != r["edge_ab"]
-                or int(sr.get("common_neighbors") or 0) != r["common_neighbors"]):
+        if (
+            int(sr.get("edge_ab") or 0) != r["edge_ab"]
+            or int(sr.get("common_neighbors") or 0) != r["common_neighbors"]
+        ):
             mismatch += 1
         if not sr.get("a_store_id") or not sr.get("b_store_id"):
             refuse(f"side {r['pair_id']} unresolved by the fresh sidecar; STOP")
     if mismatch:
-        refuse(f"fresh sidecar disagrees with frozen columns on {mismatch} "
-               "rows; STOP")
-    cov = json.loads((out / "g4-spec-graph-sidecar.coverage.json").read_text(
-        encoding="utf-8"))
+        refuse(f"fresh sidecar disagrees with frozen columns on {mismatch} rows; STOP")
+    cov = json.loads(
+        (out / "g4-spec-graph-sidecar.coverage.json").read_text(encoding="utf-8")
+    )
     sidecar_fp = cov.get("sidecar_fingerprint")
-    log(runlog, "evidence_columns_frozen", rows=len(rows),
-        sidecar_fp=sidecar_fp, mismatch=0,
-        unresolved=0)
+    log(
+        runlog,
+        "evidence_columns_frozen",
+        rows=len(rows),
+        sidecar_fp=sidecar_fp,
+        mismatch=0,
+        unresolved=0,
+    )
 
     # side-overlap flags for the gate runner (informational; the exclusion
     # asserts above already removed every overlapping pair)
-    flag_sets: dict[str, set] = {"holdout_side_overlap": set(),
-                                 "gate_side_overlap": set(),
-                                 "burned_side_overlap": set()}
-    for name in ("v43-holdout/holdout.jsonl", "dataset-v4-holdout/holdout.jsonl",
-                 "b2/holdout.jsonl"):
+    flag_sets: dict[str, set] = {
+        "holdout_side_overlap": set(),
+        "gate_side_overlap": set(),
+        "burned_side_overlap": set(),
+    }
+    for name in (
+        "v43-holdout/holdout.jsonl",
+        "dataset-v4-holdout/holdout.jsonl",
+        "b2/holdout.jsonl",
+    ):
         for r in corpus_rows(BASE / name):
             for s in (r["record"], r["candidate"]):
                 flag_sets["holdout_side_overlap"].add(
-                    text_hash(s["title"] + "\n" + s["body"]))
-    R4 = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r4-corpus")
-    R5 = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus")
-    for gp in (R4 / "data/embed-r4/r5_gate/gate_set.jsonl",
-               R4 / "data/embed-r4/r5_gate/tatoeba_notes.jsonl",
-               R5 / "data/embed-r4/r5_gate_v2/gate_set.jsonl",
-               R5 / "data/embed-r4/r5_gate_v2/gate_set.run-b.jsonl",
-               R5 / "data/embed-r4/r5_gate_v2/frozen_pool.jsonl"):
+                    text_hash(s["title"] + "\n" + s["body"])
+                )
+    R4 = Path(
+        "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r4-corpus"
+    )
+    R5 = Path(
+        "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus"
+    )
+    for gp in (
+        R4 / "data/embed-r4/r5_gate/gate_set.jsonl",
+        R4 / "data/embed-r4/r5_gate/tatoeba_notes.jsonl",
+        R5 / "data/embed-r4/r5_gate_v2/gate_set.jsonl",
+        R5 / "data/embed-r4/r5_gate_v2/gate_set.run-b.jsonl",
+        R5 / "data/embed-r4/r5_gate_v2/frozen_pool.jsonl",
+    ):
         if gp.is_file():
             for row in corpus_rows(gp):
                 for key in ("text_src", "text_dst", "text"):
                     if row.get(key):
                         flag_sets["gate_side_overlap"].add(text_hash(row[key]))
-    for bp in (R4 / "data/embed-r4/corpus/train.jsonl",
-               R4 / "data/embed-r4/corpus/val.jsonl",
-               R5 / "data/embed-r5/corpus/train.jsonl",
-               R5 / "data/embed-r5/corpus/val.jsonl",
-               R5 / "data/embed-r7/corpus/train.jsonl",
-               R5 / "data/embed-r7/corpus/val.jsonl"):
+    for bp in (
+        R4 / "data/embed-r4/corpus/train.jsonl",
+        R4 / "data/embed-r4/corpus/val.jsonl",
+        R5 / "data/embed-r5/corpus/train.jsonl",
+        R5 / "data/embed-r5/corpus/val.jsonl",
+        R5 / "data/embed-r7/corpus/train.jsonl",
+        R5 / "data/embed-r7/corpus/val.jsonl",
+    ):
         if bp.is_file():
             for row in corpus_rows(bp):
                 for side_key in ("record", "candidate"):
                     s = row.get(side_key)
                     if s:
                         flag_sets["burned_side_overlap"].add(
-                            text_hash(s["title"] + "\n" + s["body"]))
+                            text_hash(s["title"] + "\n" + s["body"])
+                        )
     flag_counts: Counter = Counter()
     for r in rows:
         h = text_hash(r["record"]["title"] + "\n" + r["record"]["body"])
@@ -513,17 +655,26 @@ def main() -> int:
 
     # ── phase 7: seal ────────────────────────────────────────────────────────
     surface_fp = corpus_fingerprint(
-        manifest_bytes([(r["pair_id"], r["pair_sha256"]) for r in rows]))
+        manifest_bytes([(r["pair_id"], r["pair_sha256"]) for r in rows])
+    )
     write_jsonl(out / "g4-spec-surface.jsonl", rows)
     ids = sorted(r["pair_id"] for r in rows)
     ids_sha = hashlib.sha256(canonical_json(ids).encode("utf-8")).hexdigest()
     (out / "g4-spec-surface-ids.json").write_text(
-        json.dumps({"surface": "g4-spec-v1",
-                    "holdout_ids": ids,
-                    "surface_ids_sha256": ids_sha,
-                    "surface_fingerprint": surface_fp},
-                   ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8")
+        json.dumps(
+            {
+                "surface": "g4-spec-v1",
+                "holdout_ids": ids,
+                "surface_ids_sha256": ids_sha,
+                "surface_fingerprint": surface_fp,
+            },
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     manifest = {
         "surface": "g4-spec-v1 (spec leg of gate g4'; eval-only sealed slice)",
         "law": [
@@ -535,15 +686,18 @@ def main() -> int:
         "definition": {
             "evidence_flag": "edge_ab=1 OR common_neighbors>=1",
             "cos": ">= 0.97, frozen embedder (nano:sha256:3b752e06...), corpus "
-                   "builder formula",
+            "builder formula",
             "label": "not-duplicate (silver §A; disputed -> NOT dup §8.3)",
             "orientation": "one per pair, lexicographic store-id order",
             "subsampling": "none (whole qualifying population)",
             "floor": FLOOR,
         },
         "funnel": {
-            "store_snapshot": {"memories": len(mem), "edges": len(edges),
-                               "vectors": len(embeddings)},
+            "store_snapshot": {
+                "memories": len(mem),
+                "edges": len(edges),
+                "vectors": len(embeddings),
+            },
             "hygiene_passed": len(passed),
             "snapshot_fingerprint": snapshot_fp,
             "evidence_pairs": len(evidence_ids),
@@ -568,7 +722,7 @@ def main() -> int:
         },
         "fingerprints": {
             "scheme": "manifest(pair_id pair_sha256 sorted) -> blake2b-256 "
-                      "(data-contract §5)",
+            "(data-contract §5)",
             "surface_seal": surface_fp,
             "surface_ids_sha256": ids_sha,
             "rows": len(rows),
@@ -583,12 +737,18 @@ def main() -> int:
     }
     (out / "g4-spec-manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8")
+        encoding="utf-8",
+    )
     (out / "g4-spec-run-log.jsonl").write_text(
-        "".join(json.dumps(e, ensure_ascii=False, sort_keys=True) + "\n"
-                for e in runlog), encoding="utf-8")
-    print(f"[g4-spec] DONE rows={len(rows)} "
-          f"surface_seal={surface_fp[:16]}... snapshot={snapshot_fp[:16]}...")
+        "".join(
+            json.dumps(e, ensure_ascii=False, sort_keys=True) + "\n" for e in runlog
+        ),
+        encoding="utf-8",
+    )
+    print(
+        f"[g4-spec] DONE rows={len(rows)} "
+        f"surface_seal={surface_fp[:16]}... snapshot={snapshot_fp[:16]}..."
+    )
     return 0
 
 

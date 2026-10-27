@@ -51,7 +51,11 @@ CUT = 0.5
 
 
 def _log(gate_dir: Path, event: str, payload: dict) -> None:
-    entry = {"event": event, "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), **payload}
+    entry = {
+        "event": event,
+        "ts": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        **payload,
+    }
     with (gate_dir / "gate-run-log.jsonl").open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(entry, ensure_ascii=False) + "\n")
     print(json.dumps(entry, ensure_ascii=False), file=sys.stderr)
@@ -77,7 +81,10 @@ def _metrics(labels, probs) -> dict:
         "sens": float(sens),
         "spec": float(spec),
         "brier": float(brier_score_loss(labels, probs)),
-        "tp": tp, "fn": fn, "tn": tn, "fp": fp,
+        "tp": tp,
+        "fn": fn,
+        "tn": tn,
+        "fp": fp,
     }
 
 
@@ -135,9 +142,16 @@ def phase1_sanity(gate_dir: Path, bundles: list[Path]) -> dict:
         (gate_dir / f"sanity-{bundle.stem}.json").write_text(
             json.dumps(payload, indent=2, ensure_ascii=False), encoding="utf-8"
         )
-        _log(gate_dir, "sanity", {"bundle": bundle.name, "passed": report.passed,
-                                  "n_checks": len(report.checks),
-                                  "failed": [c.name for c in report.failed]})
+        _log(
+            gate_dir,
+            "sanity",
+            {
+                "bundle": bundle.name,
+                "passed": report.passed,
+                "n_checks": len(report.checks),
+                "failed": [c.name for c in report.failed],
+            },
+        )
     full = next(p for p in bundles if p.stem.endswith("full"))
     gate_payload = reports[full.name]
     verdict = {
@@ -154,9 +168,15 @@ def phase2_corpus_verify(gate_dir: Path, corpus_dir: Path, train_dir: Path) -> d
     """g5 part 1 — verifiers re-run: the ORIGINAL v44 seal verifier (universe
     + sealed holdout) AND the independent r2 train verifier (ADDENDUM-1)."""
     proc = subprocess.run(
-        [sys.executable, str(REPO_ROOT / "scripts" / "b2_graph_corpus_verify.py"),
-         "--dir", str(corpus_dir)],
-        capture_output=True, text=True, timeout=1800,
+        [
+            sys.executable,
+            str(REPO_ROOT / "scripts" / "b2_graph_corpus_verify.py"),
+            "--dir",
+            str(corpus_dir),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=1800,
     )
     surfaces = [
         "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/data/stage2/dataset-v4-holdout/holdout.jsonl",
@@ -165,23 +185,44 @@ def phase2_corpus_verify(gate_dir: Path, corpus_dir: Path, train_dir: Path) -> d
     ]
     sidecar = REPO_ROOT / "data/b2-graph-corpus/rev1n/graph-sidecar-train.jsonl"
     proc_r2 = subprocess.run(
-        [sys.executable, str(REPO_ROOT / "scripts" / "b2_graph_corpus_verify_r2.py"),
-         "--train-dir", str(train_dir), "--corpus-dir", str(corpus_dir),
-         "--sidecar", str(sidecar), "--holdout-surfaces", *surfaces],
-        capture_output=True, text=True, timeout=1800,
+        [
+            sys.executable,
+            str(REPO_ROOT / "scripts" / "b2_graph_corpus_verify_r2.py"),
+            "--train-dir",
+            str(train_dir),
+            "--corpus-dir",
+            str(corpus_dir),
+            "--sidecar",
+            str(sidecar),
+            "--holdout-surfaces",
+            *surfaces,
+        ],
+        capture_output=True,
+        text=True,
+        timeout=1800,
     )
     (gate_dir / "corpus-verify.txt").write_text(
-        proc.stdout + "\n--- stderr ---\n" + proc.stderr
-        + "\n\n===== r2 verifier =====\n" + proc_r2.stdout
-        + "\n--- stderr ---\n" + proc_r2.stderr,
+        proc.stdout
+        + "\n--- stderr ---\n"
+        + proc.stderr
+        + "\n\n===== r2 verifier =====\n"
+        + proc_r2.stdout
+        + "\n--- stderr ---\n"
+        + proc_r2.stderr,
         encoding="utf-8",
     )
     line = next((ln for ln in proc.stdout.splitlines() if "checks passed" in ln), "")
-    line_r2 = next(
-        (ln for ln in proc_r2.stdout.splitlines() if "checks" in ln), ""
+    line_r2 = next((ln for ln in proc_r2.stdout.splitlines() if "checks" in ln), "")
+    _log(
+        gate_dir,
+        "corpus_verify",
+        {
+            "exit": proc.returncode,
+            "line": line.strip(),
+            "exit_r2": proc_r2.returncode,
+            "line_r2": line_r2.strip(),
+        },
     )
-    _log(gate_dir, "corpus_verify", {"exit": proc.returncode, "line": line.strip(),
-                                     "exit_r2": proc_r2.returncode, "line_r2": line_r2.strip()})
     return {
         "gate": "g5",
         "what": "corpus verifiers re-run: v44 seal (47 checks) + v44-r2 train (independent)",
@@ -191,8 +232,9 @@ def phase2_corpus_verify(gate_dir: Path, corpus_dir: Path, train_dir: Path) -> d
     }
 
 
-def phase3_disjointness(gate_dir: Path, corpus_dir: Path, v42_dir: Path,
-                        train_dir: Path) -> dict:
+def phase3_disjointness(
+    gate_dir: Path, corpus_dir: Path, v42_dir: Path, train_dir: Path
+) -> dict:
     """g5 part 2 — pair-level disjointness of the eval surfaces."""
     train_ids = {r["pair_id"] for r in load_jsonl(train_dir / "train.jsonl")}
     hold_ids = {r["pair_id"] for r in load_jsonl(corpus_dir / "holdout.jsonl")}
@@ -221,23 +263,47 @@ def phase4_sidecars(gate_dir: Path, corpus_dir: Path, v42_dir: Path) -> dict:
     ):
         catalog = gate_dir / f"sidecar-in-{tag}"
         subprocess.run(
-            [sys.executable, str(REPO_ROOT / "scripts" / "b2_rev1n_sidecar_input.py"),
-             "--rows", str(rows_path), "--out-dir", str(catalog)],
-            capture_output=True, text=True, check=True,
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts" / "b2_rev1n_sidecar_input.py"),
+                "--rows",
+                str(rows_path),
+                "--out-dir",
+                str(catalog),
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
         )
         out = gate_dir / f"graph-sidecar-{tag}.jsonl"
         proc = subprocess.run(
-            [sys.executable, str(REPO_ROOT / "scripts" / "b2_graph_sidecar.py"),
-             "--dataset-dir", str(catalog), "--store-path", STORE_PATH,
-             "--out", str(out)],
-            capture_output=True, text=True, timeout=1800,
+            [
+                sys.executable,
+                str(REPO_ROOT / "scripts" / "b2_graph_sidecar.py"),
+                "--dataset-dir",
+                str(catalog),
+                "--store-path",
+                STORE_PATH,
+                "--out",
+                str(out),
+            ],
+            capture_output=True,
+            text=True,
+            timeout=1800,
         )
         if proc.returncode != 0:
             raise RuntimeError(f"sidecar {tag} failed: {proc.stderr[-800:]}")
         summary = json.loads(proc.stdout.strip().splitlines()[-1])
         results[tag] = summary
-        _log(gate_dir, "sidecar", {"tag": tag, "fingerprint": summary["sidecar_fingerprint"],
-                                   "evidence_pairs": summary["pairs_with_graph_evidence"]})
+        _log(
+            gate_dir,
+            "sidecar",
+            {
+                "tag": tag,
+                "fingerprint": summary["sidecar_fingerprint"],
+                "evidence_pairs": summary["pairs_with_graph_evidence"],
+            },
+        )
     return results
 
 
@@ -252,11 +318,16 @@ def _stratum_table(provenance, labels, probs) -> dict:
 def main(argv: list[str] | None = None) -> int:
     t0 = time.monotonic()
     parser = argparse.ArgumentParser(prog="b2-gate-rev1n")
-    parser.add_argument("--corpus-dir", required=True,
-                        help="sealed v44 corpus dir (holdout + seal manifest)")
-    parser.add_argument("--train-dir", default=None,
-                        help="train dir (rev1n-retry: the v44-r2 rebuild); "
-                             "defaults to --corpus-dir")
+    parser.add_argument(
+        "--corpus-dir",
+        required=True,
+        help="sealed v44 corpus dir (holdout + seal manifest)",
+    )
+    parser.add_argument(
+        "--train-dir",
+        default=None,
+        help="train dir (rev1n-retry: the v44-r2 rebuild); defaults to --corpus-dir",
+    )
     parser.add_argument("--run-a", required=True)
     parser.add_argument("--run-b", required=True)
     parser.add_argument("--v42-dir", required=True)
@@ -277,8 +348,11 @@ def main(argv: list[str] | None = None) -> int:
     # ── PHASE 1: g1 sanity FIRST — a red suite means the holdout is never read ──
     sanity = phase1_sanity(gate_dir, [full_onnx, ablated_onnx])
     if not sanity["g1"]["pass"]:
-        report = {"verdict": "ABORT — g1 red: holdout not read",
-                  "gates": [sanity["g1"]], "wall_s": round(time.monotonic() - t0, 1)}
+        report = {
+            "verdict": "ABORT — g1 red: holdout not read",
+            "gates": [sanity["g1"]],
+            "wall_s": round(time.monotonic() - t0, 1),
+        }
         (gate_dir / "gate-report.json").write_text(
             json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
         )
@@ -286,11 +360,17 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     # ── PHASE 2/3: g5 corpus verification + disjointness asserts ────────────
-    gates = [sanity["g1"], phase2_corpus_verify(gate_dir, corpus_dir, train_dir),
-             phase3_disjointness(gate_dir, corpus_dir, v42_dir, train_dir)]
+    gates = [
+        sanity["g1"],
+        phase2_corpus_verify(gate_dir, corpus_dir, train_dir),
+        phase3_disjointness(gate_dir, corpus_dir, v42_dir, train_dir),
+    ]
     if not all(g["pass"] for g in gates):
-        report = {"verdict": "ABORT — g5 red", "gates": gates,
-                  "wall_s": round(time.monotonic() - t0, 1)}
+        report = {
+            "verdict": "ABORT — g5 red",
+            "gates": gates,
+            "wall_s": round(time.monotonic() - t0, 1),
+        }
         (gate_dir / "gate-report.json").write_text(
             json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
         )
@@ -305,7 +385,8 @@ def main(argv: list[str] | None = None) -> int:
     # ── PHASE 5: THE single holdout read + the v42-276 corridor ────────────
     hold_rows = load_jsonl(corpus_dir / "holdout.jsonl")
     hold_labels_rows = {
-        r["pair_id"]: str(r["label"]) for r in load_jsonl(corpus_dir / "labels-holdout.jsonl")
+        r["pair_id"]: str(r["label"])
+        for r in load_jsonl(corpus_dir / "labels-holdout.jsonl")
     }
     for r in hold_rows:
         if hold_labels_rows.get(str(r["pair_id"])) != str(r["label"]):
@@ -320,7 +401,9 @@ def main(argv: list[str] | None = None) -> int:
     def eval_surface(rows, sidecar, scorer_full, scorer_abl):
         vecs_f, labels, prov = build_dataset(rows, sidecar, GATED_NAMES)
         vecs_a, labels_a, prov_a = build_dataset(rows, sidecar, ABLATED_NAMES)
-        if labels != labels_a or [p["pair_id"] for p in prov] != [p["pair_id"] for p in prov_a]:
+        if labels != labels_a or [p["pair_id"] for p in prov] != [
+            p["pair_id"] for p in prov_a
+        ]:
             raise RuntimeError("full/ablated dataset construction diverged")
         pf = scorer_full.predict(vecs_f)
         pa = scorer_abl.predict(vecs_a)
@@ -346,8 +429,14 @@ def main(argv: list[str] | None = None) -> int:
     g4_delta = ev_full["ba"] - ev_abl["ba"]
 
     ctrl_idx = [i for i, p in enumerate(hold["prov"]) if p["stratum"] == "control"]
-    ctrl_full = _metrics([hold["labels"][i] for i in ctrl_idx],
-                         [hold["probs_full"][i] for i in ctrl_idx]) if ctrl_idx else None
+    ctrl_full = (
+        _metrics(
+            [hold["labels"][i] for i in ctrl_idx],
+            [hold["probs_full"][i] for i in ctrl_idx],
+        )
+        if ctrl_idx
+        else None
+    )
 
     ci95 = CI95_Z * float(np.sqrt(PREV_BA * (1.0 - PREV_BA) / PREV_N))
     corridor = max(0.02, ci95)
@@ -358,40 +447,58 @@ def main(argv: list[str] | None = None) -> int:
     v42_strata_full = _stratum_table(v42["prov"], v42["labels"], v42["probs_full"])
 
     # ── gates ───────────────────────────────────────────────────────────────
-    gates.extend([
-        {
-            "gate": "g2", "what": "sealed v4.4 holdout (75), full model",
-            "required": "BA>=0.93, sens>=0.95, spec>=0.90, Brier<=0.05",
-            "measured": {k: round(hold_full[k], 4) for k in ("ba", "sens", "spec", "brier")},
-            "pass": (hold_full["ba"] >= G2["ba"] and hold_full["sens"] >= G2["sens"]
-                     and hold_full["spec"] >= G2["spec"] and hold_full["brier"] <= G2["brier"]),
-        },
-        {
-            "gate": "g3", "what": "no-harm corridor on v42-276 (full model)",
-            "required": f"BA >= {PREV_BA} - max(0.02; CI95) = {g3_floor:.4f} "
-                        f"(CI95={ci95:.4f} from BA(prev) at n={PREV_N})",
-            "measured": {"ba": round(v42_full["ba"], 4)},
-            "pass": v42_full["ba"] >= g3_floor,
-        },
-        {
-            "gate": "g4", "what": "graph ablation on the holdout evidence stratum",
-            "required": f"BA(full) - BA(ablated) >= +{G4_MIN_DELTA}",
-            "measured": {"ba_full": round(ev_full["ba"], 4),
-                         "ba_ablated": round(ev_abl["ba"], 4),
-                         "delta_pp": round(g4_delta * 100, 2),
-                         "evidence_rows": ev_full["n"]},
-            "pass": g4_delta >= G4_MIN_DELTA,
-        },
-        {
-            "gate": "g6", "what": "anti-collapse: control spec vs evidence spec (full)",
-            "required": "spec(control) >= spec(evidence) - 5pp",
-            "measured": {"spec_control": None if ctrl_full is None else round(ctrl_full["spec"], 4),
-                         "spec_evidence": round(ev_full["spec"], 4),
-                         "control_rows": 0 if ctrl_full is None else ctrl_full["n"]},
-            "pass": ctrl_full is not None
-                    and ctrl_full["spec"] >= ev_full["spec"] - G6_MIN_MARGIN,
-        },
-    ])
+    gates.extend(
+        [
+            {
+                "gate": "g2",
+                "what": "sealed v4.4 holdout (75), full model",
+                "required": "BA>=0.93, sens>=0.95, spec>=0.90, Brier<=0.05",
+                "measured": {
+                    k: round(hold_full[k], 4) for k in ("ba", "sens", "spec", "brier")
+                },
+                "pass": (
+                    hold_full["ba"] >= G2["ba"]
+                    and hold_full["sens"] >= G2["sens"]
+                    and hold_full["spec"] >= G2["spec"]
+                    and hold_full["brier"] <= G2["brier"]
+                ),
+            },
+            {
+                "gate": "g3",
+                "what": "no-harm corridor on v42-276 (full model)",
+                "required": f"BA >= {PREV_BA} - max(0.02; CI95) = {g3_floor:.4f} "
+                f"(CI95={ci95:.4f} from BA(prev) at n={PREV_N})",
+                "measured": {"ba": round(v42_full["ba"], 4)},
+                "pass": v42_full["ba"] >= g3_floor,
+            },
+            {
+                "gate": "g4",
+                "what": "graph ablation on the holdout evidence stratum",
+                "required": f"BA(full) - BA(ablated) >= +{G4_MIN_DELTA}",
+                "measured": {
+                    "ba_full": round(ev_full["ba"], 4),
+                    "ba_ablated": round(ev_abl["ba"], 4),
+                    "delta_pp": round(g4_delta * 100, 2),
+                    "evidence_rows": ev_full["n"],
+                },
+                "pass": g4_delta >= G4_MIN_DELTA,
+            },
+            {
+                "gate": "g6",
+                "what": "anti-collapse: control spec vs evidence spec (full)",
+                "required": "spec(control) >= spec(evidence) - 5pp",
+                "measured": {
+                    "spec_control": None
+                    if ctrl_full is None
+                    else round(ctrl_full["spec"], 4),
+                    "spec_evidence": round(ev_full["spec"], 4),
+                    "control_rows": 0 if ctrl_full is None else ctrl_full["n"],
+                },
+                "pass": ctrl_full is not None
+                and ctrl_full["spec"] >= ev_full["spec"] - G6_MIN_MARGIN,
+            },
+        ]
+    )
 
     # ── determinism double-run (runA vs runB) on the same single read ──────
     full_b = OnnxScorer(run_b / "model-full.onnx")
@@ -399,10 +506,12 @@ def main(argv: list[str] | None = None) -> int:
     hold_f_b = full_b.predict(build_dataset(hold_rows, sc_hold, GATED_NAMES)[0])
     hold_a_b = abl_b.predict(build_dataset(hold_rows, sc_hold, ABLATED_NAMES)[0])
     determinism = {
-        "full_byte_identical": bool(np.array_equal(hold_f_b.view(np.uint8),
-                                                   hold["probs_full"].view(np.uint8))),
-        "ablated_byte_identical": bool(np.array_equal(hold_a_b.view(np.uint8),
-                                                      hold["probs_abl"].view(np.uint8))),
+        "full_byte_identical": bool(
+            np.array_equal(hold_f_b.view(np.uint8), hold["probs_full"].view(np.uint8))
+        ),
+        "ablated_byte_identical": bool(
+            np.array_equal(hold_a_b.view(np.uint8), hold["probs_abl"].view(np.uint8))
+        ),
         "booster_txt_identical": (
             (run_a / "model-full" / "booster.txt").read_bytes()
             == (run_b / "model-full" / "booster.txt").read_bytes()
@@ -415,7 +524,7 @@ def main(argv: list[str] | None = None) -> int:
     report = {
         "verdict": "ADOPT-candidate" if all(g["pass"] for g in gates) else "FAIL",
         "prereg": "docs/specs/b2-graph-prereg-v3.md (ACTIVATED 2026-10-22) "
-                  "+ ADDENDUM-1 (NA-amended; thresholds unchanged)",
+        "+ ADDENDUM-1 (NA-amended; thresholds unchanged)",
         "holdout_reads": (
             "2 — attempt 1 (16:28:41Z) crashed in the scorer harness "
             "(rank-2 batch feed vs the float32[K] single-pair export "
@@ -425,39 +534,54 @@ def main(argv: list[str] | None = None) -> int:
         ),
         "gates": gates,
         "holdout_v44": {
-            "full": hold_full, "ablated": hold_abl,
-            "per_stratum_full": strata_full, "per_stratum_ablated": strata_abl,
+            "full": hold_full,
+            "ablated": hold_abl,
+            "per_stratum_full": strata_full,
+            "per_stratum_ablated": strata_abl,
             "evidence_stratum": {"full": ev_full, "ablated": ev_abl},
             "control_stratum_full": ctrl_full,
             "evidence_definition": "pool rows with frozen-column evidence OR sidecar has_graph_evidence",
         },
         "v42_276": {
-            "full": v42_full, "ablated": v42_abl, "per_stratum_full": v42_strata_full,
-            "corridor_floor": round(g3_floor, 4), "ci95": round(ci95, 4),
+            "full": v42_full,
+            "ablated": v42_abl,
+            "per_stratum_full": v42_strata_full,
+            "corridor_floor": round(g3_floor, 4),
+            "ci95": round(ci95, 4),
         },
         "artifacts": {
-            "full": {"sha256": scorer_full.weights_sha256,
-                     "feature_set_sha256": None},
+            "full": {"sha256": scorer_full.weights_sha256, "feature_set_sha256": None},
             "ablated": {"sha256": scorer_abl.weights_sha256},
         },
-        "sidecars": {k: {"fingerprint": v["sidecar_fingerprint"],
-                         "evidence_pairs": v["pairs_with_graph_evidence"]}
-                     for k, v in sidecars.items()},
+        "sidecars": {
+            k: {
+                "fingerprint": v["sidecar_fingerprint"],
+                "evidence_pairs": v["pairs_with_graph_evidence"],
+            }
+            for k, v in sidecars.items()
+        },
         "determinism_double_run": determinism,
         "wall_s": round(time.monotonic() - t0, 1),
     }
     manifest_full = json.loads(full_onnx.with_suffix(".manifest.json").read_text())
     manifest_abl = json.loads(ablated_onnx.with_suffix(".manifest.json").read_text())
-    report["artifacts"]["full"]["feature_set_sha256"] = manifest_full["feature_set_sha256"]
-    report["artifacts"]["ablated"]["feature_set_sha256"] = manifest_abl["feature_set_sha256"]
+    report["artifacts"]["full"]["feature_set_sha256"] = manifest_full[
+        "feature_set_sha256"
+    ]
+    report["artifacts"]["ablated"]["feature_set_sha256"] = manifest_abl[
+        "feature_set_sha256"
+    ]
     report["artifacts"]["full"]["cv_config"] = manifest_full.get("cv_selected_config")
     report["artifacts"]["ablated"]["cv_config"] = manifest_abl.get("cv_selected_config")
 
     (gate_dir / "gate-report.json").write_text(
         json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    _log(gate_dir, "gate_done", {"verdict": report["verdict"],
-                                 "wall_s": report["wall_s"]})
+    _log(
+        gate_dir,
+        "gate_done",
+        {"verdict": report["verdict"], "wall_s": report["wall_s"]},
+    )
     print(json.dumps(report["gates"], indent=1, ensure_ascii=False))
     return 0 if all(g["pass"] for g in gates) else 1
 

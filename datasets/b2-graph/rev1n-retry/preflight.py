@@ -22,7 +22,9 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-REPO_ROOT = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/b2-graph-corpus")
+REPO_ROOT = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/b2-graph-corpus"
+)
 sys.path.insert(0, str(REPO_ROOT / "src"))
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
 
@@ -119,14 +121,20 @@ def main() -> int:
 
     # ── 4. §C census + §D probe bands (independent re-derivation) ────────
     sub = [
-        r for r in rows
+        r
+        for r in rows
         if r["similarity"] >= 0.95 and tag_jaccard(r["record"], r["candidate"]) == 1.0
     ]
     pos = [r for r in sub if r["label"] == "duplicate"]
     neg = [r for r in sub if r["label"] == "not-duplicate"]
     bin_of = lambda c: (  # noqa: E731
-        "<0.95" if c < 0.95 else "[0.95,0.97)" if c < 0.97
-        else "[0.97,0.985)" if c < 0.985 else "[0.985,1.0]"
+        "<0.95"
+        if c < 0.95
+        else "[0.95,0.97)"
+        if c < 0.97
+        else "[0.97,0.985)"
+        if c < 0.985
+        else "[0.985,1.0]"
     )
     bins = Counter(bin_of(r["similarity"]) for r in neg)
     c12 = [r for r in pos if r["stratum"] in ("P-identity", "P-cosmetic")]
@@ -135,7 +143,8 @@ def main() -> int:
     #   floor    = neg vs static census floor 854
     #   strict   = neg vs classes-1/2 subzone positives
     c12_new = [
-        r for r in new_rows
+        r
+        for r in new_rows
         if r["stratum"] in ("P-identity", "P-cosmetic")
         and r["similarity"] >= 0.95
         and tag_jaccard(r["record"], r["candidate"]) == 1.0
@@ -148,12 +157,15 @@ def main() -> int:
         "parity_dynamic": [len(neg), 854 + len(c12_new)],
         "parity_floor": [len(neg), 854],
         "parity_strict": [len(neg), len(c12)],
-        "bins": {b: bins.get(b, 0) for b in ("[0.95,0.97)", "[0.97,0.985)", "[0.985,1.0]")},
+        "bins": {
+            b: bins.get(b, 0) for b in ("[0.95,0.97)", "[0.97,0.985)", "[0.985,1.0]")
+        },
     }
     bands = {}
     for stratum, pc, ptj, check in PROBE_CLASSES:
         band = [
-            r for r in rows
+            r
+            for r in rows
             if r["stratum"] == stratum
             and abs(r["similarity"] - pc) <= PROBE_DELTA + 1e-12
             and abs(tag_jaccard(r["record"], r["candidate"]) - ptj) < 1e-9
@@ -168,13 +180,21 @@ def main() -> int:
             "k_ok": len(band) >= PROBE_K,
             "continuity_ok": max_gap <= PROBE_DELTA + 1e-9,
         }
-    out["census_c"] = {**census, "parity_ok": all(
-        neg_side >= pos_side
-        for neg_side, pos_side in (census["parity_dynamic"], census["parity_floor"],
-                                   census["parity_strict"])
-    ), "bins_ok": all(v >= 30 for v in census["bins"].values())}
-    out["probe_bands_d"] = {k: {**v, "ok": v["k_ok"] and v["continuity_ok"]}
-                            for k, v in bands.items()}
+    out["census_c"] = {
+        **census,
+        "parity_ok": all(
+            neg_side >= pos_side
+            for neg_side, pos_side in (
+                census["parity_dynamic"],
+                census["parity_floor"],
+                census["parity_strict"],
+            )
+        ),
+        "bins_ok": all(v >= 30 for v in census["bins"].values()),
+    }
+    out["probe_bands_d"] = {
+        k: {**v, "ok": v["k_ok"] and v["continuity_ok"]} for k, v in bands.items()
+    }
     print(json.dumps({"step": "census_c", **out["census_c"]}))
     for k, v in out["probe_bands_d"].items():
         print(json.dumps({"step": "band", "probe": k, **v}))
@@ -186,7 +206,8 @@ def main() -> int:
         out["corpus_identity"]["ok"]
         and out["containment"]["ok"]
         and out["sidecar_coverage"]["ok"]
-        and out["census_c"]["parity_ok"] and out["census_c"]["bins_ok"]
+        and out["census_c"]["parity_ok"]
+        and out["census_c"]["bins_ok"]
         and all(v["ok"] for v in out["probe_bands_d"].values())
     )
     print(json.dumps({"preflight_ok": ok_all}))

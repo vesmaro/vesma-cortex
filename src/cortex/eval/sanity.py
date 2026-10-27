@@ -473,9 +473,7 @@ def _contract_checks(
     return checks
 
 
-def _adversarial_checks_v1(
-    session, graph_gated: bool = False
-) -> list[SanityCheck]:
+def _adversarial_checks_v1(session, graph_gated: bool = False) -> list[SanityCheck]:
     """The HISTORICAL one-sided exam (v1, the pre-policy generation):
     the razor-band probe demanded a POSITIVE on the near-boundary twin —
     «any cos≈0.99 twin = dup». Superseded by the ratified policy v1.1

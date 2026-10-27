@@ -189,14 +189,16 @@ def build_dataset(
             similarity,
         )
         evidence, kind = row_evidence(row, sidecar)
-        if zero_cross_check and kind == EvidenceKind.ZERO and evidence.has_graph_evidence:
+        if (
+            zero_cross_check
+            and kind == EvidenceKind.ZERO
+            and evidence.has_graph_evidence
+        ):
             raise ValueError(
                 f"injection row {row['pair_id']!r} carries graph evidence "
                 "— violates the T0/T1 no-evidence-by-construction rule"
             )
-        vector = (
-            attach_graph_features(base, evidence) if gated else base
-        )
+        vector = attach_graph_features(base, evidence) if gated else base
         if vector.names != names:
             raise ValueError(
                 f"row {row.get('pair_id')!r}: built {len(vector.names)} names, "
@@ -261,9 +263,7 @@ def assert_corpus_identity(
         for row in rows
     )
     train_fp = corpus_fingerprint(manifest_bytes(entries))
-    labels_fp = labels_fingerprint(
-        {r["pair_id"]: str(r["label"]) for r in labels_rows}
-    )
+    labels_fp = labels_fingerprint({r["pair_id"]: str(r["label"]) for r in labels_rows})
     if train_fp != expected_train_fp:
         raise ValueError(
             f"train fingerprint mismatch: disk {train_fp} vs manifest {expected_train_fp}"
@@ -274,7 +274,9 @@ def assert_corpus_identity(
         )
     counts = manifest["counts"]
     dups = sum(1 for r in rows if str(r["label"]) == "duplicate")
-    if len(rows) != int(counts["train_rows"]) or dups != int(counts["train_labels"]["duplicate"]):
+    if len(rows) != int(counts["train_rows"]) or dups != int(
+        counts["train_labels"]["duplicate"]
+    ):
         raise ValueError("train counts diverge from the sealed manifest")
     return CorpusAsserts(
         rows=len(rows),

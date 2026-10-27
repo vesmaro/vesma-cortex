@@ -4,6 +4,7 @@
 Read-only: pool_candidates.jsonl (gitignored data/, fp-verified 87b3d4c2).
 No store access. No LLM. Output: aggregates only (+ <=1-line anonymized examples).
 """
+
 from __future__ import annotations
 
 import json
@@ -13,7 +14,9 @@ import unicodedata
 from collections import Counter, defaultdict
 from pathlib import Path
 
-POOL = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/b2-graph-corpus/data/b2-graph-corpus/pool_candidates.jsonl")
+POOL = Path(
+    "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/b2-graph-corpus/data/b2-graph-corpus/pool_candidates.jsonl"
+)
 
 EVIDENCE_STRATA = ("edge-direct", "edge-common", "mint-top")
 
@@ -69,7 +72,9 @@ def anon(body: str, n: int = 60) -> str:
     letters = [c for c in body if c.isalpha()]
     cyr = sum(1 for c in letters if "CYRILLIC" in unicodedata.name(c, ""))
     script = "cyr" if cyr > len(letters) / 2 else "lat"
-    digits = "".join("d" if ch.isdigit() else ("w" if ch.isalpha() else ".") for ch in body[:n])
+    digits = "".join(
+        "d" if ch.isdigit() else ("w" if ch.isalpha() else ".") for ch in body[:n]
+    )
     return f"<{script} len={len(body)} shape={digits}...>"
 
 
@@ -166,8 +171,10 @@ def main() -> None:
 
     ev = [r for r in rows if r["stratum"] in EVIDENCE_STRATA]
     ctrl = [r for r in rows if r["stratum"] == "control"]
-    print(f"evidence population on disk: {len(ev)} (edge-direct {strata['edge-direct']} / "
-          f"edge-common {strata['edge-common']} / mint-top {strata['mint-top']})")
+    print(
+        f"evidence population on disk: {len(ev)} (edge-direct {strata['edge-direct']} / "
+        f"edge-common {strata['edge-common']} / mint-top {strata['mint-top']})"
+    )
 
     # sanity: stratum vs edge field consistency
     mism = sum(1 for r in ev if bool(r.get("edge")) != (r["stratum"] == "edge-direct"))
@@ -183,9 +190,14 @@ def main() -> None:
     print("C1 control (context):", tally(ctrl_results))
 
     # quarantine + undetectable/mixed breakdown
-    print("quarantine crosslang:", sum(1 for x in results if x["cls"] == "quarantine"),
-          "undetectable:", sum(1 for x in results if x.get("undetectable")),
-          "mixed:", sum(1 for x in results if x.get("mixed_script")))
+    print(
+        "quarantine crosslang:",
+        sum(1 for x in results if x["cls"] == "quarantine"),
+        "undetectable:",
+        sum(1 for x in results if x.get("undetectable")),
+        "mixed:",
+        sum(1 for x in results if x.get("mixed_script")),
+    )
     print("sifter.crosslang flags:", sum(1 for x in results if x["sifter_crosslang"]))
     # cross-lang agreement with sifter flags
     myq = {x["pair_id"] for x in results if x["cls"] == "quarantine"}
@@ -199,12 +211,19 @@ def main() -> None:
         print(f"  {s}: {dict(per_stratum[s])}")
 
     # sensitivities
-    print("sens: body-only dup (norm1, any title/meta):",
-          sum(1 for x in results if x["sens_body_only"]))
+    print(
+        "sens: body-only dup (norm1, any title/meta):",
+        sum(1 for x in results if x["sens_body_only"]),
+    )
     print("sens: norm2 dup (punct-folded):", sum(1 for x in results if x["sens_norm2"]))
-    print("punct-cosmetic candidates (norm2 eq, norm1 neq):",
-          sum(1 for x in results if x["punct_cosmetic"]))
-    print("envelope-delta among body_eq1:", sum(1 for x in results if x["body_eq1"] and x["envelope_delta"]))
+    print(
+        "punct-cosmetic candidates (norm2 eq, norm1 neq):",
+        sum(1 for x in results if x["punct_cosmetic"]),
+    )
+    print(
+        "envelope-delta among body_eq1:",
+        sum(1 for x in results if x["body_eq1"] and x["envelope_delta"]),
+    )
 
     # C2: graph features on silver-dup + overall evidence
     dups = [x for x in results if x["cls"] == "silver-dup"]
@@ -212,8 +231,16 @@ def main() -> None:
     print("\nC2 silver-dup pairs:", len(dups))
     for x in dups[:10]:
         gf = graph_feats(row_by_id[x["pair_id"]])
-        print("  DUP", x["pair_id"][:13], x["stratum"], gf["edge_ab"], gf["common_neighbors"],
-              gf["neighbor_jaccard"], x["similarity"], anon(row_by_id[x["pair_id"]]["record"]["body"]))
+        print(
+            "  DUP",
+            x["pair_id"][:13],
+            x["stratum"],
+            gf["edge_ab"],
+            gf["common_neighbors"],
+            gf["neighbor_jaccard"],
+            x["similarity"],
+            anon(row_by_id[x["pair_id"]]["record"]["body"]),
+        )
 
     # graph activity over all evidence rows (context for C2/C4)
     act = {"D2_frozen_nonzero": 0, "D3_edge_only": 0}
@@ -224,12 +251,21 @@ def main() -> None:
         dist_cn[gf["common_neighbors"]] += 1
         if gf["neighbor_jaccard"] > 0:
             dist_nj_pos += 1
-        nonz = gf["edge_ab"] or gf["edge_kind_supersedes"] or gf["common_neighbors"] > 0 or gf["neighbor_jaccard"] > 0
+        nonz = (
+            gf["edge_ab"]
+            or gf["edge_kind_supersedes"]
+            or gf["common_neighbors"] > 0
+            or gf["neighbor_jaccard"] > 0
+        )
         if nonz:
             act["D2_frozen_nonzero"] += 1
         if gf["edge_ab"]:
             act["D3_edge_only"] += 1
-    print("\ngraph-activity over evidence strata:", act, "(cos_to_common_max: proven-0 for cn==0 rows)")
+    print(
+        "\ngraph-activity over evidence strata:",
+        act,
+        "(cos_to_common_max: proven-0 for cn==0 rows)",
+    )
     print("common_neighbors dist (top):", dist_cn.most_common(8))
     print("neighbor_jaccard>0 rows:", dist_nj_pos)
 
@@ -257,22 +293,37 @@ def main() -> None:
     # similarity ranges per stratum
     for s in EVIDENCE_STRATA:
         sims = sorted(r["similarity"] for r in ev if r["stratum"] == s)
-        print(f"  cos {s}: min={sims[0]} med={sims[len(sims)//2]} max={sims[-1]}")
+        print(f"  cos {s}: min={sims[0]} med={sims[len(sims) // 2]} max={sims[-1]}")
 
     # anonymized examples of disputed razor-numeric + T2 for the doc
     for cls in ("notdup-metadata-T2", "notdup-razor-numeric-T3"):
         ex = [x for x in results if x["cls"] == cls][:3]
-        print(f"\nexamples {cls}: {len([x for x in results if x['cls']==cls])} total")
+        print(f"\nexamples {cls}: {len([x for x in results if x['cls'] == cls])} total")
         for x in ex:
             r = row_by_id[x["pair_id"]]
-            print("   ", x["stratum"], x["similarity"],
-                  "tags_eq", x["tags_eq"], "type_eq", x["type_eq"], "lang_eq", x["lang_eq"],
-                  anon(r["record"]["body"]), "||", anon(r["candidate"]["body"]))
+            print(
+                "   ",
+                x["stratum"],
+                x["similarity"],
+                "tags_eq",
+                x["tags_eq"],
+                "type_eq",
+                x["type_eq"],
+                "lang_eq",
+                x["lang_eq"],
+                anon(r["record"]["body"]),
+                "||",
+                anon(r["candidate"]["body"]),
+            )
 
     # dump full per-pair census (numbers/flags only, no content) for the doc
     out = {
-        "population": {"pool_total": len(rows), "evidence": len(ev), "control": len(ctrl),
-                       "strata": dict(strata)},
+        "population": {
+            "pool_total": len(rows),
+            "evidence": len(ev),
+            "control": len(ctrl),
+            "strata": dict(strata),
+        },
         "c1_evidence": tally(results),
         "c1_control": tally(ctrl_results),
         "per_stratum": {s: dict(per_stratum[s]) for s in EVIDENCE_STRATA},

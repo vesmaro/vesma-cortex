@@ -62,7 +62,12 @@ PROBE_DELTA = 0.005
 PROBE_K = 30
 PARITY_FLOOR_POS = 854
 MINTED_CLASSES = (
-    "N-fact-edit", "N-far", "P-cosmetic", "P-identity", "P-lexsub", "P-para-light",
+    "N-fact-edit",
+    "N-far",
+    "P-cosmetic",
+    "P-identity",
+    "P-lexsub",
+    "P-para-light",
 )
 
 CHECKS: list[str] = []
@@ -72,7 +77,10 @@ FAILS: list[str] = []
 def ok(name: str, cond: bool, detail: str = "") -> None:
     CHECKS.append(name)
     mark = "PASS" if cond else "FAIL"
-    print(f"[verify-r2] {mark} {name}" + (f" — {detail}" if detail else ""), file=sys.stderr)
+    print(
+        f"[verify-r2] {mark} {name}" + (f" — {detail}" if detail else ""),
+        file=sys.stderr,
+    )
     if not cond:
         FAILS.append(f"{name}: {detail}")
 
@@ -91,13 +99,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--corpus-dir", required=True, help="v44 dir (holdout seal)")
     parser.add_argument("--sidecar", required=True)
     parser.add_argument(
-        "--holdout-surfaces", nargs="*", default=[],
+        "--holdout-surfaces",
+        nargs="*",
+        default=[],
         help="extra holdout jsonl paths for pair-level disjointness",
     )
     parser.add_argument(
-        "--no-seal", action="store_true",
+        "--no-seal",
+        action="store_true",
         help="TEST-ONLY shakeout mode: skip every holdout-reading check; "
-             "the gate always runs the FULL verifier (no flag)",
+        "the gate always runs the FULL verifier (no flag)",
     )
     args = parser.parse_args(argv)
     train_dir = Path(args.train_dir)
@@ -105,29 +116,43 @@ def main(argv: list[str] | None = None) -> int:
 
     manifest = json.loads((train_dir / "manifest.json").read_text(encoding="utf-8"))
     train = load_jsonl(train_dir / "train.jsonl")
-    lab_t = {r["pair_id"]: str(r["label"]) for r in load_jsonl(train_dir / "labels-train.jsonl")}
+    lab_t = {
+        r["pair_id"]: str(r["label"])
+        for r in load_jsonl(train_dir / "labels-train.jsonl")
+    }
 
     # ── 1. identity ───────────────────────────────────────────────────────
     entries = (
-        (r["pair_id"], pair_sha256({
-            "record": r["record"], "candidate": r["candidate"],
-            "similarity": r["similarity"],
-        }))
+        (
+            r["pair_id"],
+            pair_sha256(
+                {
+                    "record": r["record"],
+                    "candidate": r["candidate"],
+                    "similarity": r["similarity"],
+                }
+            ),
+        )
         for r in train
     )
     fp_train = corpus_fingerprint(manifest_bytes(entries))
     ok("r2_fp_train", fp_train == R2_TRAIN_FP, fp_train[:16])
     ok("r2_fp_labels", labels_fingerprint(lab_t) == R2_LABELS_FP)
     ok("r2_rows", len(train) == manifest["counts"]["train_rows"], str(len(train)))
-    ok("r2_labels_consistent", all(
-        str(r["label"]) == lab_t[str(r["pair_id"])] for r in train
-    ))
-    ok("r2_strata", Counter(
-        r["stratum"] for r in train
-    ) == Counter(manifest["counts"]["train_strata"]))
-    ok("r2_label_split", Counter(
-        r["label"] for r in train
-    ) == Counter(manifest["counts"]["train_labels"]))
+    ok(
+        "r2_labels_consistent",
+        all(str(r["label"]) == lab_t[str(r["pair_id"])] for r in train),
+    )
+    ok(
+        "r2_strata",
+        Counter(r["stratum"] for r in train)
+        == Counter(manifest["counts"]["train_strata"]),
+    )
+    ok(
+        "r2_label_split",
+        Counter(r["label"] for r in train)
+        == Counter(manifest["counts"]["train_labels"]),
+    )
 
     # ── 2. holdout seal ───────────────────────────────────────────────────
     hold: list[dict] = []
@@ -136,44 +161,66 @@ def main(argv: list[str] | None = None) -> int:
         ok("seal_skipped_test_only", True, "--no-seal shakeout: holdout unread")
     else:
         hold = load_jsonl(corpus_dir / "holdout.jsonl")
-        lab_h = {r["pair_id"]: str(r["label"])
-                 for r in load_jsonl(corpus_dir / "labels-holdout.jsonl")}
+        lab_h = {
+            r["pair_id"]: str(r["label"])
+            for r in load_jsonl(corpus_dir / "labels-holdout.jsonl")
+        }
         h_entries = (
-            (r["pair_id"], pair_sha256({
-                "record": r["record"], "candidate": r["candidate"],
-                "similarity": r["similarity"],
-            }))
+            (
+                r["pair_id"],
+                pair_sha256(
+                    {
+                        "record": r["record"],
+                        "candidate": r["candidate"],
+                        "similarity": r["similarity"],
+                    }
+                ),
+            )
             for r in hold
         )
         fp_hold = corpus_fingerprint(manifest_bytes(h_entries))
         ok("seal_fp_holdout", fp_hold == SEAL_HOLDOUT_FP, fp_hold[:16])
         # holdout_ids_sha256 = sha256(canonical_json(sorted(pair_ids))) — the
         # slice-2 seal scheme (scripts/b2_graph_corpus.py, fingerprints.py).
-        ids_sha = hashlib.sha256(canonical_json(
-            sorted(str(r["pair_id"]) for r in hold)
-        ).encode("utf-8")).hexdigest()
+        ids_sha = hashlib.sha256(
+            canonical_json(sorted(str(r["pair_id"]) for r in hold)).encode("utf-8")
+        ).hexdigest()
         ok("seal_ids_sha", ids_sha == SEAL_IDS_SHA, ids_sha[:16])
         ok("seal_rows", len(hold) == 75, str(len(hold)))
-        ok("seal_labels_consistent", all(
-            str(r["label"]) == lab_h[str(r["pair_id"])] for r in hold
-        ))
+        ok(
+            "seal_labels_consistent",
+            all(str(r["label"]) == lab_h[str(r["pair_id"])] for r in hold),
+        )
 
     # ── 3. containment + new-row generator audit ──────────────────────────
     old_ids = {r["pair_id"] for r in load_jsonl(corpus_dir / "train.jsonl")}
     r2_ids = {r["pair_id"] for r in train}
     new_rows = [r for r in train if r["pair_id"] not in old_ids]
-    ok("containment_old_subset_r2", old_ids <= r2_ids,
-       f"old={len(old_ids)} r2={len(r2_ids)}")
-    ok("new_rows_all_generator", all(
-        "generator" in r and str(r.get("source", "")).startswith("addendum1")
-        for r in new_rows
-    ), f"new={len(new_rows)}")
-    ok("new_rows_count", len(new_rows) == manifest["counts"]["new_rows"],
-       str(len(new_rows)))
+    ok(
+        "containment_old_subset_r2",
+        old_ids <= r2_ids,
+        f"old={len(old_ids)} r2={len(r2_ids)}",
+    )
+    ok(
+        "new_rows_all_generator",
+        all(
+            "generator" in r and str(r.get("source", "")).startswith("addendum1")
+            for r in new_rows
+        ),
+        f"new={len(new_rows)}",
+    )
+    ok(
+        "new_rows_count",
+        len(new_rows) == manifest["counts"]["new_rows"],
+        str(len(new_rows)),
+    )
 
     # ── 4. §C parity + bins ───────────────────────────────────────────────
-    sub = [r for r in train
-           if r["similarity"] >= 0.95 and tag_jaccard(r["record"], r["candidate"]) == 1.0]
+    sub = [
+        r
+        for r in train
+        if r["similarity"] >= 0.95 and tag_jaccard(r["record"], r["candidate"]) == 1.0
+    ]
     pos = [r for r in sub if r["label"] == "duplicate"]
     neg = [r for r in sub if r["label"] == "not-duplicate"]
     c12 = [r for r in pos if r["stratum"] in ("P-identity", "P-cosmetic")]
@@ -187,9 +234,13 @@ def main(argv: list[str] | None = None) -> int:
         if c < 0.985:
             return "[0.97,0.985)"
         return "[0.985,1.0]"
+
     bins = Counter(bin_of(r["similarity"]) for r in neg)
-    ok("c_parity_dynamic", len(neg) >= PARITY_FLOOR_POS + len(c12_new),
-       f"{len(neg)} vs {PARITY_FLOOR_POS + len(c12_new)}")
+    ok(
+        "c_parity_dynamic",
+        len(neg) >= PARITY_FLOOR_POS + len(c12_new),
+        f"{len(neg)} vs {PARITY_FLOOR_POS + len(c12_new)}",
+    )
     ok("c_parity_floor", len(neg) >= PARITY_FLOOR_POS, str(len(neg)))
     ok("c_parity_strict", len(neg) >= len(c12), f"{len(neg)} vs {len(c12)}")
     for b in ("[0.95,0.97)", "[0.97,0.985)", "[0.985,1.0]"):
@@ -197,26 +248,33 @@ def main(argv: list[str] | None = None) -> int:
 
     # ── 5. §D probe coverage ──────────────────────────────────────────────
     for stratum, pc, ptj, check in PROBE_CLASSES:
-        band = [r for r in train
-                if r["stratum"] == stratum
-                and abs(r["similarity"] - pc) <= PROBE_DELTA + 1e-12
-                and abs(tag_jaccard(r["record"], r["candidate"]) - ptj) < 1e-9]
+        band = [
+            r
+            for r in train
+            if r["stratum"] == stratum
+            and abs(r["similarity"] - pc) <= PROBE_DELTA + 1e-12
+            and abs(tag_jaccard(r["record"], r["candidate"]) - ptj) < 1e-9
+        ]
         cs = sorted(r["similarity"] for r in band)
         gaps = [round(b - a, 9) for a, b in zip(cs, cs[1:])]
         max_gap = max(gaps) if gaps else 0.0
         ok(f"d_band_{check}", len(band) >= PROBE_K, f"count={len(band)}")
-        ok(f"d_continuity_{check}", max_gap <= PROBE_DELTA + 1e-9,
-           f"max_gap={max_gap}")
+        ok(f"d_continuity_{check}", max_gap <= PROBE_DELTA + 1e-9, f"max_gap={max_gap}")
 
     # ── 6. scaffold anti-collapse (minted rows) ───────────────────────────
-    minted = [r for r in train
-              if "generator" in r and str(r.get("source", "")).startswith("addendum1")]
+    minted = [
+        r
+        for r in train
+        if "generator" in r and str(r.get("source", "")).startswith("addendum1")
+    ]
     for st in MINTED_CLASSES:
         sub_rows = [r for r in minted if r["stratum"] == st]
         sc = Counter(r["scaffold"] for r in sub_rows)
-        ok(f"scaffold_{st}",
-           len(sc) >= 20 and max(sc.values()) / len(sub_rows) <= 0.05,
-           f"scaffolds={len(sc)} max_share={round(max(sc.values()) / len(sub_rows), 4)}")
+        ok(
+            f"scaffold_{st}",
+            len(sc) >= 20 and max(sc.values()) / len(sub_rows) <= 0.05,
+            f"scaffolds={len(sc)} max_share={round(max(sc.values()) / len(sub_rows), 4)}",
+        )
 
     # ── 7. pair-level disjointness ────────────────────────────────────────
     surfaces: dict[str, list[dict]] = {}

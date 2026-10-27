@@ -61,7 +61,9 @@ CORPUS_FP = "45ab0ae642ccf57c73393a2e097036c2f0122a41bb3d92f4e84b06b89bd8928d"
 # only the train split was rebuilt → new train/labels fingerprints.
 TRAIN_FP = "bb1ca943d6beabf56a88450c977cd04f829bdee89d75b81dc1b5f394b1314106"
 LABELS_TRAIN_FP = "e11e329849cd0f5fdca13a242db471ad4106f517c5e09e0277cb89af621b2f16"
-EMBEDDER_PIN = "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba"
+EMBEDDER_PIN = (
+    "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba"
+)
 
 #: Frozen eval threshold of the line (prereg lineage; NOT a g2 gate here).
 DECISION_CUT = 0.5
@@ -155,7 +157,9 @@ def _per_stratum(provenance, probs, labels) -> dict:
         out[key] = {
             "n": len(idx),
             "dups": dups,
-            "ba": float(balanced_accuracy_score(truth, pred)) if 0 < dups < len(idx) else None,
+            "ba": float(balanced_accuracy_score(truth, pred))
+            if 0 < dups < len(idx)
+            else None,
             "pos_rate_pred": float(np.mean(pred)),
         }
     return out
@@ -191,10 +195,15 @@ def train_one(
         "feature_names": list(names),
         "feature_set_sha256": features_digest_of(names),
         "cv_selected": best,
-        "cv_protocol": {"folds": CV_FOLDS, "seeds": list(CV_SEEDS),
-                        "calibration": "platt-at-final-fit-only"},
+        "cv_protocol": {
+            "folds": CV_FOLDS,
+            "seeds": list(CV_SEEDS),
+            "calibration": "platt-at-final-fit-only",
+        },
         "final_fit_wall_s": fit_s,
-        "in_sample_ba": float(balanced_accuracy_score(labels, in_sample >= DECISION_CUT)),
+        "in_sample_ba": float(
+            balanced_accuracy_score(labels, in_sample >= DECISION_CUT)
+        ),
         "in_sample_brier": float(brier_score_loss(labels, in_sample)),
         "per_stratum_in_sample": _per_stratum(provenance, in_sample, labels),
         "platt": list(model._platt),  # noqa: SLF001 — run-log provenance
@@ -202,9 +211,16 @@ def train_one(
     (run_dir / f"characterization-{tag}.json").write_text(
         json.dumps(char, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    _log(run_dir, "characterization", {"model": tag, "in_sample_ba": char["in_sample_ba"],
-                                       "in_sample_brier": char["in_sample_brier"],
-                                       "cv_best": best["config"]})
+    _log(
+        run_dir,
+        "characterization",
+        {
+            "model": tag,
+            "in_sample_ba": char["in_sample_ba"],
+            "in_sample_brier": char["in_sample_brier"],
+            "cv_best": best["config"],
+        },
+    )
 
     model_dir = run_dir / f"model-{tag}"
     model.save(model_dir)
@@ -239,9 +255,16 @@ def train_one(
     }
     manifest_path = out_onnx.with_suffix(".manifest.json")
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    _log(run_dir, "artifact", {"model": tag, "sha256": weights_sha,
-                               "manifest": str(manifest_path),
-                               "feature_set_sha256": manifest["feature_set_sha256"]})
+    _log(
+        run_dir,
+        "artifact",
+        {
+            "model": tag,
+            "sha256": weights_sha,
+            "manifest": str(manifest_path),
+            "feature_set_sha256": manifest["feature_set_sha256"],
+        },
+    )
     return {
         "model": tag,
         "weights_sha256": weights_sha,
@@ -286,11 +309,17 @@ def main(argv: list[str] | None = None) -> int:
         TRAIN_FP,
         LABELS_TRAIN_FP,
     )
-    _log(run_dir, "corpus_identity", {
-        "rows": asserts.rows, "dups": asserts.dups, "not_dups": asserts.not_dups,
-        "train_fingerprint": asserts.train_fingerprint,
-        "corpus_fingerprint": CORPUS_FP,
-    })
+    _log(
+        run_dir,
+        "corpus_identity",
+        {
+            "rows": asserts.rows,
+            "dups": asserts.dups,
+            "not_dups": asserts.not_dups,
+            "train_fingerprint": asserts.train_fingerprint,
+            "corpus_fingerprint": CORPUS_FP,
+        },
+    )
 
     rows = load_jsonl(corpus_dir / "train.jsonl")
     from cortex.features.graph import GraphSidecar
@@ -306,18 +335,30 @@ def main(argv: list[str] | None = None) -> int:
         kinds = {}
         for p in provenance:
             kinds[p["evidence_kind"]] = kinds.get(p["evidence_kind"], 0) + 1
-        _log(run_dir, "matrix_built", {
-            "model": tag, "n": len(vectors), "width": len(names),
-            "feature_set_sha256": features_digest_of(names),
-            "evidence_kinds": kinds,
-            "maxrss_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1),
-        })
-        results[tag] = train_one(tag, names, vectors, labels, provenance, run_dir, CORPUS_FP)
+        _log(
+            run_dir,
+            "matrix_built",
+            {
+                "model": tag,
+                "n": len(vectors),
+                "width": len(names),
+                "feature_set_sha256": features_digest_of(names),
+                "evidence_kinds": kinds,
+                "maxrss_mb": round(
+                    resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1
+                ),
+            },
+        )
+        results[tag] = train_one(
+            tag, names, vectors, labels, provenance, run_dir, CORPUS_FP
+        )
 
     summary = {
         "models": results,
         "wall_s": round(time.monotonic() - t_start, 1),
-        "maxrss_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1),
+        "maxrss_mb": round(
+            resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1
+        ),
         "corpus_fingerprint": CORPUS_FP,
         "sidecar": args.sidecar,
         "python": sys.version.split()[0],

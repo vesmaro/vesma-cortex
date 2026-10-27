@@ -63,7 +63,9 @@ from cortex.select.cv import CV_FOLDS, CV_SEEDS, run_cv  # noqa: E402
 # against disk BEFORE any compute; mismatch = STOP.
 TRAIN_FP = "3bf7ed53e1dbf9092ec1e557c539b6fedd202ffd8fdbe9798643e2f6fc828a70"
 LABELS_TRAIN_FP = "cad44ab10797c507f090fa2998b6dfc5edfc63f30a892506eadc75e4e98fdaac"
-EMBEDDER_PIN = "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba"
+EMBEDDER_PIN = (
+    "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba"
+)
 REVISION = "1.n+1"
 
 #: Frozen eval threshold of the line (prereg lineage; NOT a g2 gate here).
@@ -158,7 +160,9 @@ def _per_stratum(provenance, probs, labels) -> dict:
         out[key] = {
             "n": len(idx),
             "dups": dups,
-            "ba": float(balanced_accuracy_score(truth, pred)) if 0 < dups < len(idx) else None,
+            "ba": float(balanced_accuracy_score(truth, pred))
+            if 0 < dups < len(idx)
+            else None,
             "pos_rate_pred": float(np.mean(pred)),
         }
     return out
@@ -194,10 +198,15 @@ def train_one(
         "feature_names": list(names),
         "feature_set_sha256": features_digest_of(names),
         "cv_selected": best,
-        "cv_protocol": {"folds": CV_FOLDS, "seeds": list(CV_SEEDS),
-                        "calibration": "platt-at-final-fit-only"},
+        "cv_protocol": {
+            "folds": CV_FOLDS,
+            "seeds": list(CV_SEEDS),
+            "calibration": "platt-at-final-fit-only",
+        },
         "final_fit_wall_s": fit_s,
-        "in_sample_ba": float(balanced_accuracy_score(labels, in_sample >= DECISION_CUT)),
+        "in_sample_ba": float(
+            balanced_accuracy_score(labels, in_sample >= DECISION_CUT)
+        ),
         "in_sample_brier": float(brier_score_loss(labels, in_sample)),
         "per_stratum_in_sample": _per_stratum(provenance, in_sample, labels),
         "platt": list(model._platt),  # noqa: SLF001 — run-log provenance
@@ -205,9 +214,16 @@ def train_one(
     (run_dir / f"characterization-{tag}.json").write_text(
         json.dumps(char, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    _log(run_dir, "characterization", {"model": tag, "in_sample_ba": char["in_sample_ba"],
-                                       "in_sample_brier": char["in_sample_brier"],
-                                       "cv_best": best["config"]})
+    _log(
+        run_dir,
+        "characterization",
+        {
+            "model": tag,
+            "in_sample_ba": char["in_sample_ba"],
+            "in_sample_brier": char["in_sample_brier"],
+            "cv_best": best["config"],
+        },
+    )
 
     model_dir = run_dir / f"model-{tag}"
     model.save(model_dir)
@@ -244,9 +260,16 @@ def train_one(
     }
     manifest_path = out_onnx.with_suffix(".manifest.json")
     manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
-    _log(run_dir, "artifact", {"model": tag, "sha256": weights_sha,
-                               "manifest": str(manifest_path),
-                               "feature_set_sha256": manifest["feature_set_sha256"]})
+    _log(
+        run_dir,
+        "artifact",
+        {
+            "model": tag,
+            "sha256": weights_sha,
+            "manifest": str(manifest_path),
+            "feature_set_sha256": manifest["feature_set_sha256"],
+        },
+    )
     return {
         "model": tag,
         "weights_sha256": weights_sha,
@@ -275,8 +298,11 @@ def main(argv: list[str] | None = None) -> int:
     t_start = time.monotonic()
     parser = argparse.ArgumentParser(prog="b2-train-rev1n1")
     parser.add_argument("--corpus-dir", default="data/b2-graph-corpus/v45")
-    parser.add_argument("--sidecar", required=True,
-                        help="merged train sidecar (v44-r2 base + v45 new material)")
+    parser.add_argument(
+        "--sidecar",
+        required=True,
+        help="merged train sidecar (v44-r2 base + v45 new material)",
+    )
     parser.add_argument("--run-dir", required=True)
     args = parser.parse_args(argv)
 
@@ -292,13 +318,19 @@ def main(argv: list[str] | None = None) -> int:
         TRAIN_FP,
         LABELS_TRAIN_FP,
     )
-    _log(run_dir, "corpus_identity", {
-        "rows": asserts.rows, "dups": asserts.dups, "not_dups": asserts.not_dups,
-        "train_fingerprint": asserts.train_fingerprint,
-        "labels_fingerprint": asserts.labels_fingerprint,
-        "corpus_fingerprint_pin": TRAIN_FP,
-        "revision": REVISION,
-    })
+    _log(
+        run_dir,
+        "corpus_identity",
+        {
+            "rows": asserts.rows,
+            "dups": asserts.dups,
+            "not_dups": asserts.not_dups,
+            "train_fingerprint": asserts.train_fingerprint,
+            "labels_fingerprint": asserts.labels_fingerprint,
+            "corpus_fingerprint_pin": TRAIN_FP,
+            "revision": REVISION,
+        },
+    )
 
     rows = load_jsonl(corpus_dir / "train.jsonl")
     from cortex.features.graph import GraphSidecar
@@ -314,18 +346,30 @@ def main(argv: list[str] | None = None) -> int:
         kinds = {}
         for p in provenance:
             kinds[p["evidence_kind"]] = kinds.get(p["evidence_kind"], 0) + 1
-        _log(run_dir, "matrix_built", {
-            "model": tag, "n": len(vectors), "width": len(names),
-            "feature_set_sha256": features_digest_of(names),
-            "evidence_kinds": kinds,
-            "maxrss_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1),
-        })
-        results[tag] = train_one(tag, names, vectors, labels, provenance, run_dir, TRAIN_FP)
+        _log(
+            run_dir,
+            "matrix_built",
+            {
+                "model": tag,
+                "n": len(vectors),
+                "width": len(names),
+                "feature_set_sha256": features_digest_of(names),
+                "evidence_kinds": kinds,
+                "maxrss_mb": round(
+                    resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1
+                ),
+            },
+        )
+        results[tag] = train_one(
+            tag, names, vectors, labels, provenance, run_dir, TRAIN_FP
+        )
 
     summary = {
         "models": results,
         "wall_s": round(time.monotonic() - t_start, 1),
-        "maxrss_mb": round(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1),
+        "maxrss_mb": round(
+            resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024, 1
+        ),
         "corpus_fingerprint": TRAIN_FP,
         "revision": REVISION,
         "sidecar": args.sidecar,

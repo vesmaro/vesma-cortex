@@ -99,12 +99,8 @@ def test_d_boost_trains_the_gated_composite() -> None:
 
 def test_attach_graph_features_zero_evidence_is_pure_append() -> None:
     base = features(
-        __import__(
-            "cortex.eval.sanity", fromlist=["PROBE_RECORD"]
-        ).PROBE_RECORD,
-        __import__(
-            "cortex.eval.sanity", fromlist=["PROBE_RECORD"]
-        ).PROBE_RECORD,
+        __import__("cortex.eval.sanity", fromlist=["PROBE_RECORD"]).PROBE_RECORD,
+        __import__("cortex.eval.sanity", fromlist=["PROBE_RECORD"]).PROBE_RECORD,
         1.0,
     )
     gated = attach_graph_features(base, GraphEvidence.zero())
@@ -159,9 +155,10 @@ def test_feature_contract_refuses_permutations_and_truncations() -> None:
             for c in _contract_checks(_manifest_of(names), _meta_of(names), "0" * 64)
         }
         assert not checks["feature_contract"].passed, names
-        assert "#480" in checks["feature_contract"].detail or "frozen" in checks[
-            "feature_contract"
-        ].detail
+        assert (
+            "#480" in checks["feature_contract"].detail
+            or "frozen" in checks["feature_contract"].detail
+        )
 
 
 def test_adversarial_checks_grade_the_gated_graph_on_probes() -> None:

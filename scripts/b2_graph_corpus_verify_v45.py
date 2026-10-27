@@ -47,7 +47,7 @@ def fail(msg: str) -> None:
 def rows_of(path: Path) -> list[dict]:
     if not path.is_file():
         fail(f"missing artifact: {path}")
-    return [json.loads(l) for l in path.open(encoding="utf-8") if l.strip()]
+    return [json.loads(ln) for ln in path.open(encoding="utf-8") if ln.strip()]
 
 
 def main() -> int:
@@ -64,26 +64,32 @@ def main() -> int:
     # 1. base untouched
     base = rows_of(V44R2_DIR / "train.jsonl")
     base_fp = corpus_fingerprint(
-        manifest_bytes([(r["pair_id"], r["pair_sha256"]) for r in base]))
+        manifest_bytes([(r["pair_id"], r["pair_sha256"]) for r in base])
+    )
     if base_fp != BASE_TRAIN_FP:
         fail("v4.4-r2 base fingerprint drifted")
 
     # 2. pair_sha256 integrity of every artifact row
     for name, rows in (("train", train), ("holdout", holdout)):
         for r in rows:
-            obj = {"record": r["record"], "candidate": r["candidate"],
-                   "similarity": r["similarity"]}
+            obj = {
+                "record": r["record"],
+                "candidate": r["candidate"],
+                "similarity": r["similarity"],
+            }
             dig = hashlib.sha256(canonical_json(obj).encode("utf-8")).hexdigest()
             if dig != r["pair_sha256"]:
                 fail(f"{name} row {r['pair_id']}: pair_sha256 mismatch")
 
     # 3. fingerprints
     train_fp = corpus_fingerprint(
-        manifest_bytes([(r["pair_id"], r["pair_sha256"]) for r in train]))
+        manifest_bytes([(r["pair_id"], r["pair_sha256"]) for r in train])
+    )
     if train_fp != manifest["fingerprints"]["train_v45"]:
         fail("train fingerprint differs from the manifest")
     hold_fp = corpus_fingerprint(
-        manifest_bytes([(r["pair_id"], r["pair_sha256"]) for r in holdout]))
+        manifest_bytes([(r["pair_id"], r["pair_sha256"]) for r in holdout])
+    )
     if hold_fp != manifest["fingerprints"]["holdout_v45_seal"]:
         fail("holdout fingerprint differs from the sealed manifest value")
     ids = sorted(r["pair_id"] for r in holdout)
@@ -109,26 +115,86 @@ def main() -> int:
     train_ids = {r["pair_id"] for r in train}
     if train_ids & set(ids):
         fail("train/holdout pair_id intersection")
-    train_keys = {tuple(sorted((
-        hashlib.sha256(json.dumps({k: r["record"].get(k) for k in
-                                   ("title", "body", "tags", "language",
-                                    "record_type")}, sort_keys=True,
-                                   ensure_ascii=False).encode()).hexdigest(),
-        hashlib.sha256(json.dumps({k: r["candidate"].get(k) for k in
-                                   ("title", "body", "tags", "language",
-                                    "record_type")}, sort_keys=True,
-                                   ensure_ascii=False).encode()).hexdigest())))
-        for r in train}
+    train_keys = {
+        tuple(
+            sorted(
+                (
+                    hashlib.sha256(
+                        json.dumps(
+                            {
+                                k: r["record"].get(k)
+                                for k in (
+                                    "title",
+                                    "body",
+                                    "tags",
+                                    "language",
+                                    "record_type",
+                                )
+                            },
+                            sort_keys=True,
+                            ensure_ascii=False,
+                        ).encode()
+                    ).hexdigest(),
+                    hashlib.sha256(
+                        json.dumps(
+                            {
+                                k: r["candidate"].get(k)
+                                for k in (
+                                    "title",
+                                    "body",
+                                    "tags",
+                                    "language",
+                                    "record_type",
+                                )
+                            },
+                            sort_keys=True,
+                            ensure_ascii=False,
+                        ).encode()
+                    ).hexdigest(),
+                )
+            )
+        )
+        for r in train
+    }
     for r in holdout:
-        hk = tuple(sorted((
-            hashlib.sha256(json.dumps({k: r["record"].get(k) for k in
-                                       ("title", "body", "tags", "language",
-                                        "record_type")}, sort_keys=True,
-                                       ensure_ascii=False).encode()).hexdigest(),
-            hashlib.sha256(json.dumps({k: r["candidate"].get(k) for k in
-                                       ("title", "body", "tags", "language",
-                                        "record_type")}, sort_keys=True,
-                                       ensure_ascii=False).encode()).hexdigest())))
+        hk = tuple(
+            sorted(
+                (
+                    hashlib.sha256(
+                        json.dumps(
+                            {
+                                k: r["record"].get(k)
+                                for k in (
+                                    "title",
+                                    "body",
+                                    "tags",
+                                    "language",
+                                    "record_type",
+                                )
+                            },
+                            sort_keys=True,
+                            ensure_ascii=False,
+                        ).encode()
+                    ).hexdigest(),
+                    hashlib.sha256(
+                        json.dumps(
+                            {
+                                k: r["candidate"].get(k)
+                                for k in (
+                                    "title",
+                                    "body",
+                                    "tags",
+                                    "language",
+                                    "record_type",
+                                )
+                            },
+                            sort_keys=True,
+                            ensure_ascii=False,
+                        ).encode()
+                    ).hexdigest(),
+                )
+            )
+        )
         if hk in train_keys:
             fail(f"holdout pair {r['pair_id']} collides with a train pair key")
 
@@ -149,28 +215,38 @@ def main() -> int:
     for r in train + holdout:
         if not str(r.get("pair_id", "")).startswith("V45-"):
             continue
-        for col in ("edge_ab", "common_neighbors", "neighbor_jaccard",
-                    "cos_to_common_max", "has_graph_evidence"):
+        for col in (
+            "edge_ab",
+            "common_neighbors",
+            "neighbor_jaccard",
+            "cos_to_common_max",
+            "has_graph_evidence",
+        ):
             if col not in r:
                 fail(f"row {r['pair_id']} missing frozen column {col}")
         ev = r["edge_ab"] == 1 or r["common_neighbors"] >= 1
         if bool(ev) != bool(r["has_graph_evidence"]):
-            fail(f"row {r['pair_id']} evidence flag disagrees with the frozen "
-                 "reading")
+            fail(f"row {r['pair_id']} evidence flag disagrees with the frozen reading")
         if r.get("id_a") and r["has_graph_evidence"]:
             fail(f"strata A row {r['pair_id']} carries a non-zero graph vector")
 
     # 8. N-near band report coherence (rows on disk vs manifest bands)
-    nnc = [r for r in train + holdout if r.get("stratum") == "N-near"
-           and r.get("generator", "").startswith("v45")]
+    nnc = [
+        r
+        for r in train + holdout
+        if r.get("stratum") == "N-near" and r.get("generator", "").startswith("v45")
+    ]
     import re as _re
+
     for r in nnc:
         if not _re.match(r"0\.\d{3}", str(r.get("band", ""))):
             fail(f"N-near row {r['pair_id']} without a parseable band field")
 
-    print(f"[verify-v45] OK train={len(train)} holdout={len(holdout)} "
-          f"train_fp={train_fp[:16]}... holdout_seal={hold_fp[:16]}... "
-          f"strata_A_train={a_train_pairs} holdout_clusters={len(a_hold)}")
+    print(
+        f"[verify-v45] OK train={len(train)} holdout={len(holdout)} "
+        f"train_fp={train_fp[:16]}... holdout_seal={hold_fp[:16]}... "
+        f"strata_A_train={a_train_pairs} holdout_clusters={len(a_hold)}"
+    )
     return 0
 
 

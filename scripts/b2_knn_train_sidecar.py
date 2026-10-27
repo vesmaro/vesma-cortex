@@ -101,8 +101,9 @@ def main(argv: list[str] | None = None) -> int:
 
     # ── corpus fingerprint assert (frozen input, ADDENDUM-4 §C) ───────────
     rows = load_jsonl(train_path)
-    fp = corpus_fingerprint(manifest_bytes(
-        (r["pair_id"], r["pair_sha256"]) for r in rows))
+    fp = corpus_fingerprint(
+        manifest_bytes((r["pair_id"], r["pair_sha256"]) for r in rows)
+    )
     if fp != TRAIN_FP_PIN:
         refuse(f"train corpus fingerprint {fp} != pinned {TRAIN_FP_PIN}")
 
@@ -120,13 +121,17 @@ def main(argv: list[str] | None = None) -> int:
             # dedup key so two texts differing only past 4096 chars are one
             # manifold point.
             tags = " ".join(side.get("tags") or [])
-            text = (f"{side.get('title') or ''}\n{side.get('body') or ''}\n{tags}")[:4096]
+            text = (f"{side.get('title') or ''}\n{side.get('body') or ''}\n{tags}")[
+                :4096
+            ]
             key = hashlib.sha256(text.encode("utf-8")).hexdigest()
             texts.setdefault(key, text)
 
     n = len(texts)
-    print(f"train rows={len(rows)} sides={sides_seen} unique_manifold_points={n}",
-          flush=True)
+    print(
+        f"train rows={len(rows)} sides={sides_seen} unique_manifold_points={n}",
+        flush=True,
+    )
 
     # ── one pass over the unique texts (deterministic key order) ─────────
     keys = sorted(texts)
@@ -141,13 +146,14 @@ def main(argv: list[str] | None = None) -> int:
             refuse(f"embedder returned dim {arr.shape}, expected {EMBEDDER_DIM}")
         vecs[i] = arr
         if (i + 1) % 500 == 0:
-            print(f"  embedded {i + 1}/{n} ({time.monotonic() - t0:.0f}s)",
-                  flush=True)
+            print(f"  embedded {i + 1}/{n} ({time.monotonic() - t0:.0f}s)", flush=True)
 
     norms = np.linalg.norm(vecs.astype(np.float64), axis=1)
     if not np.allclose(norms, 1.0, atol=1e-3):
-        refuse(f"embedder output not L2-normalized (norm range "
-               f"{norms.min():.6f}..{norms.max():.6f})")
+        refuse(
+            f"embedder output not L2-normalized (norm range "
+            f"{norms.min():.6f}..{norms.max():.6f})"
+        )
 
     meta = {
         "artifact": "knn-train-sidecar (ADDENDUM-4 §E characterization, non-gating)",
@@ -164,8 +170,8 @@ def main(argv: list[str] | None = None) -> int:
         "builder_script": "scripts/b2_knn_train_sidecar.py",
         "built_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "note": "frozen input of the attempt-4 gate cycle; sha256 pinned in "
-                "scripts/b2_gate_rev1n1.py prolog (fail-closed). Rebuilds are "
-                "NOT promised byte-identical (npz container timestamps).",
+        "scripts/b2_gate_rev1n1.py prolog (fail-closed). Rebuilds are "
+        "NOT promised byte-identical (npz container timestamps).",
     }
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)

@@ -185,7 +185,9 @@ def side_sha(s: dict) -> str:
 def pair_key(row_or_pair) -> tuple[str, str]:
     if isinstance(row_or_pair, dict) and "record" in row_or_pair:
         return tuple(
-            sorted((side_sha(row_or_pair["record"]), side_sha(row_or_pair["candidate"])))
+            sorted(
+                (side_sha(row_or_pair["record"]), side_sha(row_or_pair["candidate"]))
+            )
         )
     a, b = row_or_pair
     return tuple(sorted((side_sha(a), side_sha(b))))
@@ -256,7 +258,9 @@ def make_embedder():
 
 
 def ch_ngrams(side: dict, n: int) -> frozenset[str]:
-    text = " ".join(f"{side.get('title') or ''}\n{side.get('body') or ''}".split()).lower()
+    text = " ".join(
+        f"{side.get('title') or ''}\n{side.get('body') or ''}".split()
+    ).lower()
     return _ngrams(text, n)
 
 
@@ -286,9 +290,7 @@ _FACT_RE = re.compile(r"\d+(?:[:.\-_/]\d+)*")
 
 def fact_token_spans(body: str) -> list[tuple[int, int]]:
     return [
-        m.span()
-        for m in _FACT_RE.finditer(body)
-        if any(c.isdigit() for c in m.group())
+        m.span() for m in _FACT_RE.finditer(body) if any(c.isdigit() for c in m.group())
     ]
 
 
@@ -306,17 +308,54 @@ def cipher_span(body: str, span: tuple[int, int]) -> str:
 # (deterministic cyclic shift). Months/weekdays are §8 key facts (dates).
 WORD_FACTS: dict[str, dict[str, list[str]]] = {
     "ru": {
-        "months": ["января", "февраля", "марта", "апреля", "мая", "июня",
-                   "июля", "августа", "сентября", "октября", "ноября", "декабря"],
-        "weekdays": ["понедельник", "вторник", "среда", "четверг", "пятница",
-                     "суббота", "воскресенье"],
+        "months": [
+            "января",
+            "февраля",
+            "марта",
+            "апреля",
+            "мая",
+            "июня",
+            "июля",
+            "августа",
+            "сентября",
+            "октября",
+            "ноября",
+            "декабря",
+        ],
+        "weekdays": [
+            "понедельник",
+            "вторник",
+            "среда",
+            "четверг",
+            "пятница",
+            "суббота",
+            "воскресенье",
+        ],
     },
     "en": {
-        "months": ["January", "February", "March", "April", "May", "June",
-                   "July", "August", "September", "October", "November",
-                   "December"],
-        "weekdays": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday",
-                     "Saturday", "Sunday"],
+        "months": [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December",
+        ],
+        "weekdays": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Friday",
+            "Saturday",
+            "Sunday",
+        ],
     },
 }
 
@@ -327,7 +366,7 @@ def split_compound(text: str) -> str:
     idx = text.find(", ")
     if idx < 0:
         return text
-    return text[:idx] + ". " + text[idx + 2:]
+    return text[:idx] + ". " + text[idx + 2 :]
 
 
 def case_run(text: str, dose: float) -> str:
@@ -338,8 +377,7 @@ def case_run(text: str, dose: float) -> str:
     cosine is the only feature that moves.DOSE_LADDER matches v44r2."""
     n = len(text)
     length = int(n * dose)
-    return "".join((c.swapcase() if p < length else c)
-                   for p, c in enumerate(text))
+    return "".join((c.swapcase() if p < length else c) for p, c in enumerate(text))
 
 
 DOSE_LADDER = (0.15, 0.25, 0.35, 0.45, 0.60, 0.80, 1.0)
@@ -358,8 +396,9 @@ def word_fact_edits(body: str, lang: str) -> list[tuple[str, str]]:
                 if idx < 0:
                     break
                 end = idx + len(w)
-                boundary = ((idx == 0 or not (body[idx - 1].isalnum()))
-                            and (end == len(body) or not body[end].isalnum()))
+                boundary = (idx == 0 or not (body[idx - 1].isalnum())) and (
+                    end == len(body) or not body[end].isalnum()
+                )
                 if boundary:
                     new = body[:idx] + words[(i + 1) % len(words)] + body[end:]
                     out.append((new, w))
@@ -369,15 +408,68 @@ def word_fact_edits(body: str, lang: str) -> list[tuple[str, str]]:
 
 # ── number/date verbalization for the V subfamily (offline, frozen) ─────────
 
-_ONES = ("zero", "one", "two", "three", "four", "five", "six", "seven", "eight",
-         "nine", "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen",
-         "sixteen", "seventeen", "eighteen", "nineteen")
-_TENS = ("", "", "twenty", "thirty", "forty", "fifty", "sixty", "seventy",
-         "eighty", "ninety")
-_MONTHS_EN = ("January", "February", "March", "April", "May", "June", "July",
-              "August", "September", "October", "November", "December")
-_MONTHS_RU = ("января", "февраля", "марта", "апреля", "мая", "июня", "июля",
-              "августа", "сентября", "октября", "ноября", "декабря")
+_ONES = (
+    "zero",
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "thirteen",
+    "fourteen",
+    "fifteen",
+    "sixteen",
+    "seventeen",
+    "eighteen",
+    "nineteen",
+)
+_TENS = (
+    "",
+    "",
+    "twenty",
+    "thirty",
+    "forty",
+    "fifty",
+    "sixty",
+    "seventy",
+    "eighty",
+    "ninety",
+)
+_MONTHS_EN = (
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+)
+_MONTHS_RU = (
+    "января",
+    "февраля",
+    "марта",
+    "апреля",
+    "мая",
+    "июня",
+    "июля",
+    "августа",
+    "сентября",
+    "октября",
+    "ноября",
+    "декабря",
+)
 
 
 def num_words_en(n: int) -> str:
@@ -388,7 +480,11 @@ def num_words_en(n: int) -> str:
     if n < 100:
         return _TENS[n // 10] + ("-" + _ONES[n % 10] if n % 10 else "")
     if n < 1000:
-        return _ONES[n // 100] + " hundred" + (" " + num_words_en(n % 100) if n % 100 else "")
+        return (
+            _ONES[n // 100]
+            + " hundred"
+            + (" " + num_words_en(n % 100) if n % 100 else "")
+        )
     if n < 1_000_000:
         th = n // 1000
         th_txt = num_words_en(th) if th < 1000 else str(th)
@@ -435,31 +531,53 @@ def date_verbal_ru(iso: str) -> str:
 
 def N(tok: str, en_v: str | None = None) -> dict:
     """Integer slot: verbatim everywhere; en V-family verbalizes."""
-    return {"t": tok, "ru_t": tok, "en_t": tok, "ru_v": tok,
-            "en_v": en_v or num_words_en(int(tok))}
+    return {
+        "t": tok,
+        "ru_t": tok,
+        "en_t": tok,
+        "ru_v": tok,
+        "en_v": en_v or num_words_en(int(tok)),
+    }
 
 
 def D(iso: str) -> dict:
     """ISO date slot: T verbatim ISO; V verbal (ru words / en words)."""
-    return {"t": iso, "ru_t": iso, "en_t": iso,
-            "ru_v": date_verbal_ru(iso), "en_v": date_verbal_en(iso)}
+    return {
+        "t": iso,
+        "ru_t": iso,
+        "en_t": iso,
+        "ru_v": date_verbal_ru(iso),
+        "en_v": date_verbal_en(iso),
+    }
 
 
 def M(tok: str, ru_unit: str, en_unit: str, en_v: str) -> dict:
     """Money/amount slot with a currency unit."""
-    return {"t": tok, "ru_t": f"{tok} {ru_unit}", "en_t": f"{tok} {en_unit}",
-            "ru_v": f"{tok} {ru_unit}", "en_v": f"{en_v} {en_unit}"}
+    return {
+        "t": tok,
+        "ru_t": f"{tok} {ru_unit}",
+        "en_t": f"{tok} {en_unit}",
+        "ru_v": f"{tok} {ru_unit}",
+        "en_v": f"{en_v} {en_unit}",
+    }
 
 
 def X(token: str, en: str | None = None) -> dict:
     """Proper-noun/token slot: identical on both sides in both subfamilies."""
-    return {"t": token, "ru_t": token, "en_t": en or token,
-            "ru_v": token, "en_v": en or token}
+    return {
+        "t": token,
+        "ru_t": token,
+        "en_t": en or token,
+        "ru_v": token,
+        "en_v": en or token,
+    }
 
 
 SCAFFOLDS: list[dict] = [
     {
-        "id": "S01", "tags": ["tech", "storage"], "type": "note",
+        "id": "S01",
+        "tags": ["tech", "storage"],
+        "type": "note",
         "title": {"ru": "Чистка памяти планшета", "en": "Cleaning the tablet storage"},
         "dup": {
             "ru": "Залил {dev} под {pct} процентов, скинул архив в облако {iso} и освободил {gb} гигабайт. Кэш приложений чищу по расписанию.",
@@ -481,7 +599,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S02", "tags": ["tech", "hardware"], "type": "fact",
+        "id": "S02",
+        "tags": ["tech", "hardware"],
+        "type": "fact",
         "title": {"ru": "Батарея ноутбука", "en": "Laptop battery"},
         "dup": {
             "ru": "Поставил новую батарею в {dev}: автономность держится {hrs} часов, замена обошлась в {cost}. Нагрев ушёл.",
@@ -490,8 +610,10 @@ SCAFFOLDS: list[dict] = [
         "slots": {
             "dev": [X("ThinkPad"), X("MacBook")],
             "hrs": [N("8"), N("6")],
-            "cost": [M("4900", "рублей", "rubles", "four thousand nine hundred"),
-                     M("5300", "рублей", "rubles", "five thousand three hundred")],
+            "cost": [
+                M("4900", "рублей", "rubles", "four thousand nine hundred"),
+                M("5300", "рублей", "rubles", "five thousand three hundred"),
+            ],
         },
         "sib": {
             "ru": "Заказал батарею на {dev}, поставка через {days} дней, пока сижу на зарядке. Старая держит от силы {shrs} часа.",
@@ -504,7 +626,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S03", "tags": ["money", "subscription"], "type": "note",
+        "id": "S03",
+        "tags": ["money", "subscription"],
+        "type": "note",
         "title": {"ru": "Подписка на сервис", "en": "Service subscription"},
         "dup": {
             "ru": "Продлил подписку {srv} на год {iso}, списали {cost}. Напоминание поставил за неделю.",
@@ -513,8 +637,10 @@ SCAFFOLDS: list[dict] = [
         "slots": {
             "srv": [X("Figma"), X("Notion")],
             "iso": [D("2026-04-10"), D("2026-03-28")],
-            "cost": [M("5900", "рублей", "rubles", "five thousand nine hundred"),
-                     M("7200", "рублей", "rubles", "seven thousand two hundred")],
+            "cost": [
+                M("5900", "рублей", "rubles", "five thousand nine hundred"),
+                M("7200", "рублей", "rubles", "seven thousand two hundred"),
+            ],
         },
         "sib": {
             "ru": "Отменил подписку {srv} {siso}: пользуемся раз в месяц, {scost} в год не оправдывают. Данные выгрузил.",
@@ -522,13 +648,17 @@ SCAFFOLDS: list[dict] = [
             "slots": {
                 "srv": [X("Trello"), X("Linear")],
                 "siso": [D("2026-05-06"), D("2026-04-22")],
-                "scost": [M("8400", "рублей", "rubles", "eight thousand four hundred"),
-                          M("9600", "рублей", "rubles", "nine thousand six hundred")],
+                "scost": [
+                    M("8400", "рублей", "rubles", "eight thousand four hundred"),
+                    M("9600", "рублей", "rubles", "nine thousand six hundred"),
+                ],
             },
         },
     },
     {
-        "id": "S04", "tags": ["health", "dentist"], "type": "fact",
+        "id": "S04",
+        "tags": ["health", "dentist"],
+        "type": "fact",
         "title": {"ru": "Приём у стоматолога", "en": "Dentist appointment"},
         "dup": {
             "ru": "Был у стоматолога {iso}: вылечили {tooth} зуб, поставили пломбу за {cost}. Записался на контроль.",
@@ -537,21 +667,27 @@ SCAFFOLDS: list[dict] = [
         "slots": {
             "iso": [D("2026-04-14"), D("2026-03-30")],
             "tooth": [N("36"), N("19")],
-            "cost": [M("3800", "рублей", "rubles", "three thousand eight hundred"),
-                     M("4500", "рублей", "rubles", "four thousand five hundred")],
+            "cost": [
+                M("3800", "рублей", "rubles", "three thousand eight hundred"),
+                M("4500", "рублей", "rubles", "four thousand five hundred"),
+            ],
         },
         "sib": {
             "ru": "Стоматолог посоветовал профгигиену раз в полгода, записался на {siso}, чистка стоит {scost}. Пасту поменял.",
             "en": "The dentist recommended a professional cleaning every six months, booked {siso}, the cleaning costs {scost}. Switched toothpaste.",
             "slots": {
                 "siso": [D("2026-05-20"), D("2026-06-02")],
-                "scost": [M("3200", "рублей", "rubles", "three thousand two hundred"),
-                          M("3600", "рублей", "rubles", "three thousand six hundred")],
+                "scost": [
+                    M("3200", "рублей", "rubles", "three thousand two hundred"),
+                    M("3600", "рублей", "rubles", "three thousand six hundred"),
+                ],
             },
         },
     },
     {
-        "id": "S05", "tags": ["home", "plants"], "type": "note",
+        "id": "S05",
+        "tags": ["home", "plants"],
+        "type": "note",
         "title": {"ru": "Пересадка фикуса", "en": "Repotting the ficus"},
         "dup": {
             "ru": "Пересадил фикус {iso} в горшок на {lit} литра, добавил дренаж {cm} см. Выбросил два листа.",
@@ -572,7 +708,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S06", "tags": ["auto", "service"], "type": "fact",
+        "id": "S06",
+        "tags": ["auto", "service"],
+        "type": "fact",
         "title": {"ru": "ТО автомобиля", "en": "Car maintenance"},
         "dup": {
             "ru": "Прошёл ТО на {car} {iso}: пробег {km} км, замена масла и фильтров обошлась в {cost}.",
@@ -582,8 +720,10 @@ SCAFFOLDS: list[dict] = [
             "car": [X("Kia"), X("Skoda")],
             "iso": [D("2026-04-08"), D("2026-03-25")],
             "km": [N("62000"), N("58500")],
-            "cost": [M("12400", "рублей", "rubles", "twelve thousand four hundred"),
-                     M("13800", "рублей", "rubles", "thirteen thousand eight hundred")],
+            "cost": [
+                M("12400", "рублей", "rubles", "twelve thousand four hundred"),
+                M("13800", "рублей", "rubles", "thirteen thousand eight hundred"),
+            ],
         },
         "sib": {
             "ru": "На {scar} поменял тормозные колодки {siso}, ходят тихо, задние next season. Стоило {scost}.",
@@ -591,13 +731,17 @@ SCAFFOLDS: list[dict] = [
             "slots": {
                 "scar": [X("Hyundai"), X("Volkswagen")],
                 "siso": [D("2026-05-15"), D("2026-04-29")],
-                "scost": [M("6800", "рублей", "rubles", "six thousand eight hundred"),
-                          M("7400", "рублей", "rubles", "seven thousand four hundred")],
+                "scost": [
+                    M("6800", "рублей", "rubles", "six thousand eight hundred"),
+                    M("7400", "рублей", "rubles", "seven thousand four hundred"),
+                ],
             },
         },
     },
     {
-        "id": "S07", "tags": ["sport", "gym"], "type": "note",
+        "id": "S07",
+        "tags": ["sport", "gym"],
+        "type": "note",
         "title": {"ru": "Прогресс в зале", "en": "Gym progress"},
         "dup": {
             "ru": "Взял {w} кг в становой на {reps} повторов {iso}, спина в порядке. Пояс надел на последний подход.",
@@ -619,7 +763,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S08", "tags": ["money", "food"], "type": "note",
+        "id": "S08",
+        "tags": ["money", "food"],
+        "type": "note",
         "title": {"ru": "Бюджет на продукты", "en": "Grocery budget"},
         "dup": {
             "ru": "Сходил за продуктами {iso}, уложился в {sum}: мясо, овощи, крупы на неделю. Чек сохранил.",
@@ -627,21 +773,32 @@ SCAFFOLDS: list[dict] = [
         },
         "slots": {
             "iso": [D("2026-04-11"), D("2026-04-01")],
-            "sum": [M("5400", "рублей", "rubles", "five thousand four hundred"),
-                    M("6100", "рублей", "rubles", "six thousand one hundred")],
+            "sum": [
+                M("5400", "рублей", "rubles", "five thousand four hundred"),
+                M("6100", "рублей", "rubles", "six thousand one hundred"),
+            ],
         },
         "sib": {
             "ru": "Начал вести таблицу расходов {siso}: в среднем выходит {ssum} в месяц, доставка съедает лишнее.",
             "en": "Started an expense sheet on {siso}: it averages {ssum} a month, delivery eats the surplus.",
             "slots": {
                 "siso": [D("2026-04-19"), D("2026-03-08")],
-                "ssum": [M("21500", "рублей", "rubles", "twenty-one thousand five hundred"),
-                         M("23800", "рублей", "rubles", "twenty-three thousand eight hundred")],
+                "ssum": [
+                    M("21500", "рублей", "rubles", "twenty-one thousand five hundred"),
+                    M(
+                        "23800",
+                        "рублей",
+                        "rubles",
+                        "twenty-three thousand eight hundred",
+                    ),
+                ],
             },
         },
     },
     {
-        "id": "S09", "tags": ["home", "kitchen"], "type": "fact",
+        "id": "S09",
+        "tags": ["home", "kitchen"],
+        "type": "fact",
         "title": {"ru": "Чайник: накипь", "en": "Kettle: limescale"},
         "dup": {
             "ru": "Почистил чайник лимонной кислотой {iso}: {pack} пакетика на {min} минут, налёт ушёл полностью.",
@@ -662,7 +819,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S10", "tags": ["tech", "network"], "type": "note",
+        "id": "S10",
+        "tags": ["tech", "network"],
+        "type": "note",
         "title": {"ru": "Настройка роутера", "en": "Router setup"},
         "dup": {
             "ru": "Перенастроил роутер {iso}: канал {ch}, ширина {mhz} МГц, скорость поднялась до {mbps} Мбит/с.",
@@ -683,7 +842,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S11", "tags": ["hobby", "reading"], "type": "note",
+        "id": "S11",
+        "tags": ["hobby", "reading"],
+        "type": "note",
         "title": {"ru": "Книжный клуб", "en": "Book club"},
         "dup": {
             "ru": "Дочитал {book}: {pages} страниц за {days} дней, обсудили {iso}. Лягу спать позже.",
@@ -705,7 +866,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S12", "tags": ["travel", "rail"], "type": "fact",
+        "id": "S12",
+        "tags": ["travel", "rail"],
+        "type": "fact",
         "title": {"ru": "Билеты на поезд", "en": "Train tickets"},
         "dup": {
             "ru": "Взял билеты {iso}: вагон {car}, места {seat}, заплатил {cost}. Поезд вечерний.",
@@ -715,23 +878,31 @@ SCAFFOLDS: list[dict] = [
             "iso": [D("2026-05-16"), D("2026-06-03")],
             "car": [N("7"), N("12")],
             "seat": [N("22"), N("35")],
-            "cost": [M("4300", "рублей", "rubles", "four thousand three hundred"),
-                     M("5100", "рублей", "rubles", "five thousand one hundred")],
+            "cost": [
+                M("4300", "рублей", "rubles", "four thousand three hundred"),
+                M("5100", "рублей", "rubles", "five thousand one hundred"),
+            ],
         },
         "sib": {
             "ru": "Сдал один билет {siso} — поездка переносится, вернули {scost} из {sfull}. Возьму на другой день.",
             "en": "Returned one ticket on {siso} — the trip moves, got {scost} back out of {sfull}. Will book for another day.",
             "slots": {
                 "siso": [D("2026-05-08"), D("2026-05-21")],
-                "scost": [M("3300", "рублей", "rubles", "three thousand three hundred"),
-                          M("4000", "рублей", "rubles", "four thousand")],
-                "sfull": [M("5200", "рублей", "rubles", "five thousand two hundred"),
-                          M("6400", "рублей", "rubles", "six thousand four hundred")],
+                "scost": [
+                    M("3300", "рублей", "rubles", "three thousand three hundred"),
+                    M("4000", "рублей", "rubles", "four thousand"),
+                ],
+                "sfull": [
+                    M("5200", "рублей", "rubles", "five thousand two hundred"),
+                    M("6400", "рублей", "rubles", "six thousand four hundred"),
+                ],
             },
         },
     },
     {
-        "id": "S13", "tags": ["health", "labs"], "type": "fact",
+        "id": "S13",
+        "tags": ["health", "labs"],
+        "type": "fact",
         "title": {"ru": "Анализы", "en": "Blood work"},
         "dup": {
             "ru": "Сдал анализы {iso}: витамин D — {val} нг/мл, врач сказал норма. Пересдача через полгода.",
@@ -750,7 +921,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S14", "tags": ["tech", "backup"], "type": "note",
+        "id": "S14",
+        "tags": ["tech", "backup"],
+        "type": "note",
         "title": {"ru": "Бэкапы", "en": "Backups"},
         "dup": {
             "ru": "Прогнал полный бэкап {iso}: {gb} гигабайт за {min} минут, checksum сошёлся. Диск гудит ровно.",
@@ -771,7 +944,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S15", "tags": ["study", "language"], "type": "note",
+        "id": "S15",
+        "tags": ["study", "language"],
+        "type": "note",
         "title": {"ru": "Курс английского", "en": "English course"},
         "dup": {
             "ru": "Закрыл модуль {mod} на платформе {iso}: {words} новых слов, тест на {pct} процентов.",
@@ -793,7 +968,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S16", "tags": ["sport", "bike"], "type": "fact",
+        "id": "S16",
+        "tags": ["sport", "bike"],
+        "type": "fact",
         "title": {"ru": "Ремонт велосипеда", "en": "Bike repair"},
         "dup": {
             "ru": "Перебрал задний переключатель {iso}: тросик, рубашка, регулировка — {cost}. Передачи щёлкают чётко.",
@@ -801,8 +978,10 @@ SCAFFOLDS: list[dict] = [
         },
         "slots": {
             "iso": [D("2026-04-04"), D("2026-03-20")],
-            "cost": [M("1900", "рублей", "rubles", "one thousand nine hundred"),
-                     M("2400", "рублей", "rubles", "two thousand four hundred")],
+            "cost": [
+                M("1900", "рублей", "rubles", "one thousand nine hundred"),
+                M("2400", "рублей", "rubles", "two thousand four hundred"),
+            ],
         },
         "sib": {
             "ru": "Заказал новые покрышки {siso}, {sinch} дюйма, летний протектор. Старые донор.",
@@ -814,7 +993,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S17", "tags": ["home", "rent"], "type": "fact",
+        "id": "S17",
+        "tags": ["home", "rent"],
+        "type": "fact",
         "title": {"ru": "Аренда квартиры", "en": "Apartment rent"},
         "dup": {
             "ru": "Внёс аренду за {mon} месяцев {iso}: {sum}, коммуналка отдельно. Договор продлили.",
@@ -823,8 +1004,10 @@ SCAFFOLDS: list[dict] = [
         "slots": {
             "mon": [N("2"), N("1")],
             "iso": [D("2026-04-01"), D("2026-03-05")],
-            "sum": [M("92000", "рублей", "rubles", "ninety-two thousand"),
-                    M("46000", "рублей", "rubles", "forty-six thousand")],
+            "sum": [
+                M("92000", "рублей", "rubles", "ninety-two thousand"),
+                M("46000", "рублей", "rubles", "forty-six thousand"),
+            ],
         },
         "sib": {
             "ru": "Хозяин поднял аренду {siso} на {spct} процентов — договорились на компромисс. Ремонт за его счёт.",
@@ -836,7 +1019,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S18", "tags": ["food", "coffee"], "type": "note",
+        "id": "S18",
+        "tags": ["food", "coffee"],
+        "type": "note",
         "title": {"ru": "Кофе: зерно", "en": "Coffee beans"},
         "dup": {
             "ru": "Взял {grams} граммов зерна {iso}: обжарка {roast}, помол под воронку, {cost}. Аромат густой.",
@@ -846,8 +1031,10 @@ SCAFFOLDS: list[dict] = [
             "grams": [N("500"), N("250")],
             "iso": [D("2026-04-09"), D("2026-03-26")],
             "roast": [X("Ethiopia"), X("Colombia")],
-            "cost": [M("1650", "рублей", "rubles", "one thousand six hundred fifty"),
-                     M("1200", "рублей", "rubles", "one thousand two hundred")],
+            "cost": [
+                M("1650", "рублей", "rubles", "one thousand six hundred fifty"),
+                M("1200", "рублей", "rubles", "one thousand two hundred"),
+            ],
         },
         "sib": {
             "ru": "Поменял кофемолку {siso}: жернова, {sgrad} ступеней помола, шумит тише. Старую продал.",
@@ -859,7 +1046,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S19", "tags": ["docs", "government"], "type": "fact",
+        "id": "S19",
+        "tags": ["docs", "government"],
+        "type": "fact",
         "title": {"ru": "Замена паспорта", "en": "Passport renewal"},
         "dup": {
             "ru": "Подал на замену паспорта {iso}, готовность через {days} дней, пошлина {fee}. Заберу утром.",
@@ -868,8 +1057,10 @@ SCAFFOLDS: list[dict] = [
         "slots": {
             "iso": [D("2026-04-02"), D("2026-03-19")],
             "days": [N("10"), N("14")],
-            "fee": [M("1500", "рублей", "rubles", "one thousand five hundred"),
-                    M("3000", "рублей", "rubles", "three thousand")],
+            "fee": [
+                M("1500", "рублей", "rubles", "one thousand five hundred"),
+                M("3000", "рублей", "rubles", "three thousand"),
+            ],
         },
         "sib": {
             "ru": "Записался на оформление загранпаспорта {siso}, биометрия на месте, срок изготовления {sweeks} недели.",
@@ -881,7 +1072,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S20", "tags": ["hobby", "aquarium"], "type": "note",
+        "id": "S20",
+        "tags": ["hobby", "aquarium"],
+        "type": "note",
         "title": {"ru": "Аквариум", "en": "The aquarium"},
         "dup": {
             "ru": "Почистил аквариум {iso}: подмена {pct} процентов воды, фильтр промыл, рыбки активны.",
@@ -901,7 +1094,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S21", "tags": ["home", "heating"], "type": "fact",
+        "id": "S21",
+        "tags": ["home", "heating"],
+        "type": "fact",
         "title": {"ru": "Обслуживание котла", "en": "Boiler service"},
         "dup": {
             "ru": "Вызвал мастера по котлу {iso}: чистка теплообменника, {cost}, давление выставили {bar} бар.",
@@ -909,8 +1104,10 @@ SCAFFOLDS: list[dict] = [
         },
         "slots": {
             "iso": [D("2026-04-08"), D("2026-03-27")],
-            "cost": [M("5200", "рублей", "rubles", "five thousand two hundred"),
-                     M("4700", "рублей", "rubles", "four thousand seven hundred")],
+            "cost": [
+                M("5200", "рублей", "rubles", "five thousand two hundred"),
+                M("4700", "рублей", "rubles", "four thousand seven hundred"),
+            ],
             "bar": [X("1.5"), X("1.2")],
         },
         "sib": {
@@ -922,7 +1119,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S22", "tags": ["tech", "cloud"], "type": "note",
+        "id": "S22",
+        "tags": ["tech", "cloud"],
+        "type": "note",
         "title": {"ru": "Облачное хранилище", "en": "Cloud storage"},
         "dup": {
             "ru": "Расширил облако до {gb} гигабайт {iso}, тариф {cost} в месяц. Автозагрузку фото включил.",
@@ -931,8 +1130,10 @@ SCAFFOLDS: list[dict] = [
         "slots": {
             "gb": [N("200"), N("500")],
             "iso": [D("2026-04-06"), D("2026-03-23")],
-            "cost": [M("199", "рублей", "rubles", "one hundred ninety-nine"),
-                     M("349", "рублей", "rubles", "three hundred forty-nine")],
+            "cost": [
+                M("199", "рублей", "rubles", "one hundred ninety-nine"),
+                M("349", "рублей", "rubles", "three hundred forty-nine"),
+            ],
         },
         "sib": {
             "ru": "Перенёс архив на другой провайдер {siso}: {sgb} гигабайт, миграция заняла {shrs} часов.",
@@ -945,7 +1146,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S23", "tags": ["sport", "running"], "type": "note",
+        "id": "S23",
+        "tags": ["sport", "running"],
+        "type": "note",
         "title": {"ru": "Беговая тренировка", "en": "Running workout"},
         "dup": {
             "ru": "Пробежал {km} км {iso} за {min} минут, темп ровный, пульс до {hr}. Кроссовки отходили.",
@@ -967,7 +1170,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S24", "tags": ["home", "repair"], "type": "fact",
+        "id": "S24",
+        "tags": ["home", "repair"],
+        "type": "fact",
         "title": {"ru": "Электрик", "en": "Electrician visit"},
         "dup": {
             "ru": "Электрик приходил {iso}: заменил автомат на {amp} ампер, проверил щиток, {cost}. Розетки не греются.",
@@ -976,8 +1181,10 @@ SCAFFOLDS: list[dict] = [
         "slots": {
             "iso": [D("2026-04-07"), D("2026-03-25")],
             "amp": [N("16"), N("25")],
-            "cost": [M("2800", "рублей", "rubles", "two thousand eight hundred"),
-                     M("3400", "рублей", "rubles", "three thousand four hundred")],
+            "cost": [
+                M("2800", "рублей", "rubles", "two thousand eight hundred"),
+                M("3400", "рублей", "rubles", "three thousand four hundred"),
+            ],
         },
         "sib": {
             "ru": "Планирую перенос розеток на кухне {siso}: {spts} точек, штробить будут под столешницу.",
@@ -989,7 +1196,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S25", "tags": ["food", "baking"], "type": "note",
+        "id": "S25",
+        "tags": ["food", "baking"],
+        "type": "note",
         "title": {"ru": "Закваска", "en": "Sourdough starter"},
         "dup": {
             "ru": "Вывел закваску {iso}: мука {grams} граммов, вода 1:1, поднялась за {hrs} часов. Пахнет приятно.",
@@ -1011,7 +1220,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S26", "tags": ["family", "kindergarten"], "type": "fact",
+        "id": "S26",
+        "tags": ["family", "kindergarten"],
+        "type": "fact",
         "title": {"ru": "Садик: взносы", "en": "Kindergarten fees"},
         "dup": {
             "ru": "Оплатил садик {iso}: {sum} за месяц, квитанция в приложении. Собрание {sday}-го числа.",
@@ -1019,8 +1230,10 @@ SCAFFOLDS: list[dict] = [
         },
         "slots": {
             "iso": [D("2026-04-05"), D("2026-03-06")],
-            "sum": [M("3100", "рублей", "rubles", "three thousand one hundred"),
-                    M("3450", "рублей", "rubles", "three thousand four hundred fifty")],
+            "sum": [
+                M("3100", "рублей", "rubles", "three thousand one hundred"),
+                M("3450", "рублей", "rubles", "three thousand four hundred fifty"),
+            ],
             "sday": [N("15"), N("20")],
         },
         "sib": {
@@ -1033,7 +1246,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S27", "tags": ["tech", "mobile"], "type": "fact",
+        "id": "S27",
+        "tags": ["tech", "mobile"],
+        "type": "fact",
         "title": {"ru": "Тариф телефона", "en": "Phone plan"},
         "dup": {
             "ru": "Сменил тариф {iso}: {gb} гигабайт и минуты без лимита, {cost} в месяц. Скорость не режут.",
@@ -1042,8 +1257,10 @@ SCAFFOLDS: list[dict] = [
         "slots": {
             "iso": [D("2026-04-01"), D("2026-03-17")],
             "gb": [N("30"), N("50")],
-            "cost": [M("450", "рублей", "rubles", "four hundred fifty"),
-                     M("600", "рублей", "rubles", "six hundred")],
+            "cost": [
+                M("450", "рублей", "rubles", "four hundred fifty"),
+                M("600", "рублей", "rubles", "six hundred"),
+            ],
         },
         "sib": {
             "ru": "Заказал eSIM для поездки {siso}: {sgb} гигабайт на {sdays} дней, активация по QR-коду.",
@@ -1056,7 +1273,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S28", "tags": ["health", "optics"], "type": "fact",
+        "id": "S28",
+        "tags": ["health", "optics"],
+        "type": "fact",
         "title": {"ru": "Новые очки", "en": "New glasses"},
         "dup": {
             "ru": "Забрал очки {iso}: диоптрии {od}/{os}, линзы с покрытием, оправа и линзы — {cost}. Мир резкий.",
@@ -1066,8 +1285,10 @@ SCAFFOLDS: list[dict] = [
             "iso": [D("2026-04-10"), D("2026-03-30")],
             "od": [X("-2.5"), X("-3.0")],
             "os": [X("-2.25"), X("-2.75")],
-            "cost": [M("9800", "рублей", "rubles", "nine thousand eight hundred"),
-                     M("11400", "рублей", "rubles", "eleven thousand four hundred")],
+            "cost": [
+                M("9800", "рублей", "rubles", "nine thousand eight hundred"),
+                M("11400", "рублей", "rubles", "eleven thousand four hundred"),
+            ],
         },
         "sib": {
             "ru": "Записался на проверку зрения {siso}, подбор линз займёт {smin} минут, с собой старый рецепт.",
@@ -1079,7 +1300,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S29", "tags": ["home", "garden"], "type": "note",
+        "id": "S29",
+        "tags": ["home", "garden"],
+        "type": "note",
         "title": {"ru": "Дача: деревья", "en": "Dacha: the trees"},
         "dup": {
             "ru": "Обрезал яблони {iso}: {cnt} дерева, спил {cm} см в диаметре максимум. Замазал садовым варом.",
@@ -1101,7 +1324,9 @@ SCAFFOLDS: list[dict] = [
         },
     },
     {
-        "id": "S30", "tags": ["tech", "photos"], "type": "note",
+        "id": "S30",
+        "tags": ["tech", "photos"],
+        "type": "note",
         "title": {"ru": "Фотоархив", "en": "Photo archive"},
         "dup": {
             "ru": "Разобрал фотоархив {iso}: {cnt} снимков за год, {gb} гигабайт, дубли почистил. Папки по месяцам.",
@@ -1168,66 +1393,126 @@ TITLE_SIB: dict[str, dict[str, str]] = {
 # template geometry bottoms out near 0.81; the exam near-clone floor is
 # 0.801 with real-record phrasing, which SIB2 emulates).
 SIB2: dict[str, dict[str, str]] = {
-    "S01": {"ru": "Фотоархив с {siso} живёт на отдельной карте на {tgb} гигабайт — внутренняя память освобождена, съёмка не тормозит.",
-            "en": "Since {siso} the photo archive lives on a separate {tgb} gigabyte card — internal storage freed, shooting no longer lags."},
-    "S02": {"ru": "Батарея для {dev} ещё в пути, {days} дней доставки; старая выжимает {shrs} часа и гаснет на холоде.",
-            "en": "The battery for the {dev} is still shipping, {days} days out; the old one squeezes out {shrs} hours and dies in the cold."},
-    "S03": {"ru": "{srv} не продлеваю — решение от {siso}: за {scost} в год хватает бесплатного тарифа, всё выгружено заранее.",
-            "en": "Not renewing {srv} — decided on {siso}: the free tier covers it for {scost} a year, everything was exported early."},
-    "S04": {"ru": "Договорились о профилактике на приёме: чистка назначена на {siso}, {scost}, с полировкой и снимком.",
-            "en": "Prevention was agreed at the visit: the cleaning is booked for {siso}, {scost}, with polishing and an X-ray."},
-    "S05": {"ru": "После подкормки {siso} фикус выдал {sn} свежих листьев; землю не трогал, только свет добавил.",
-            "en": "After the feeding on {siso} the ficus put out {sn} fresh leaves; the soil was left alone, only more light added."},
-    "S06": {"ru": "Колодки на {scar} пришли вовремя, заменил {siso} — скрипа нет, {scost} с доставкой.",
-            "en": "The pads for the {scar} arrived on time, fitted on {siso} — no more squeal, {scost} with delivery."},
-    "S07": {"ru": "Жим перестроил {siso}: {sreps} подхода, рабочий вес {sw} кг, прибавка по субботам.",
-            "en": "Rebuilt the bench plan on {siso}: {sreps} sets, working weight {sw} kg, adding weight on Saturdays."},
-    "S08": {"ru": "Расходы веду в таблице с {siso}: выходит {ssum} за месяц, основная статья — доставка.",
-            "en": "Expenses tracked in a sheet since {siso}: it comes to {ssum} a month, delivery is the biggest line."},
-    "S09": {"ru": "Новый чайник с {siso} в деле: колба на {sl} л, фильтр держит накипь, на дачу старый уехал.",
-            "en": "The new kettle from {siso} is in service: a {sl} liter jug, the scale filter works, the old one left for the dacha."},
-    "S10": {"ru": "Покрытие расширилось после {siso}: меш-узел в коридоре добивает до балкона, гостевая сеть отдельно.",
-            "en": "Coverage widened after {siso}: the hallway mesh node reaches the balcony now, guest network stays separate."},
-    "S11": {"ru": "Клубная книга следующая выбрана {siso}: {spages} страниц, срок до июня, читаю с закладками.",
-            "en": "The next club book was picked on {siso}: {spages} pages, due in June, reading with sticky notes."},
-    "S12": {"ru": "Один билет сдан {siso}, поездка сдвинулась: вернули {scost} из {sfull}, новый куплю на другой день.",
-            "en": "One ticket returned on {siso}, the trip moved: {scost} of {sfull} came back, the new one bought for another day."},
-    "S13": {"ru": "На диспансеризацию записан {siso}: список расширенный, строго натощак, паспорт с собой.",
-            "en": "Signed up for the full check-up on {siso}: extended test list, strictly fasting, ID in hand."},
-    "S14": {"ru": "Старые снапшоты снесены {siso}: на бэкап-диске освободилось {sgb} гигабайт, ротация месячная.",
-            "en": "Old snapshots were purged on {siso}: {sgb} gigabytes freed on the backup disk, monthly rotation now."},
-    "S15": {"ru": "С {siso} хожу в разговорный клуб: среда, {smin} минут в Zoom, словарь перед сном.",
-            "en": "Since {siso} I attend the speaking club: Wednesdays, {smin} minutes on Zoom, vocabulary before bed."},
-    "S16": {"ru": "Покрышки {sinch} дюйма заказаны {siso}, летний протектор; старые оставлю как запаску.",
-            "en": "{sinch} inch tires ordered on {siso}, summer tread; the old ones stay as spares."},
-    "S17": {"ru": "Аренду подняли на {spct} процентов {siso}, сошлись на компромиссе: ремонт ляжет на хозяина.",
-            "en": "The rent went up {spct} percent on {siso}, we struck a compromise: repairs fall to the landlord."},
-    "S18": {"ru": "Кофемолка новая с {siso}: жернова, {sgrad} ступеней, работает тише прежней.",
-            "en": "New grinder since {siso}: burrs, {sgrad} settings, runs quieter than the old one."},
-    "S19": {"ru": "На загранпаспорт записан {siso}: биометрия на месте, изготовление {sweeks} недели.",
-            "en": "The international passport appointment is set for {siso}: biometrics on site, {sweeks} weeks to process."},
-    "S20": {"ru": "Фильтр заменил {siso}: {slph} л/ч, шум ниже, вода чище — рыбки подвижнее.",
-            "en": "Swapped the filter on {siso}: {slph} l/h, less noise, clearer water — the fish are livelier."},
-    "S21": {"ru": "Термостат заказан {siso}, недельный программатор; жду падения расхода газа после установки.",
-            "en": "The thermostat was ordered on {siso}, a weekly programmer; expecting the gas bill to drop after installation."},
-    "S22": {"ru": "Архив переехал к другому провайдеру {siso}: {sgb} гигабайт, дорога заняла {shrs} часов.",
-            "en": "The archive moved to another provider on {siso}: {sgb} gigabytes, the trip took {shrs} hours."},
-    "S23": {"ru": "Слот на полумарафон занял {siso}: старт в {sstart} утра, цены на слоты уже выросли.",
-            "en": "Took a half marathon slot on {siso}: the start is {sstart} am, slot prices have already climbed."},
-    "S24": {"ru": "Перенос розеток запланирован на {siso}: {spts} точек, штробление под столешницей.",
-            "en": "The outlet move is scheduled for {siso}: {spts} points, chasing the wall under the countertop."},
-    "S25": {"ru": "Первый каравай из закваски вышел {siso}: муки ушло {sgrams} граммов, пар держал {smin} минут.",
-            "en": "The first sourdough loaf came out on {siso}: {sgrams} grams of flour went in, steam held for {smin} minutes."},
-    "S26": {"ru": "Кружок логопедики в садике оформлен {siso}: {sless} занятия в месяц, оплата вперёд.",
-            "en": "The kindergarten speech club is signed up on {siso}: {sless} sessions a month, paid upfront."},
-    "S27": {"ru": "eSIM под поездку куплена {siso}: {sgb} гигабайт на {sdays} дней, активация по QR-коду.",
-            "en": "A travel eSIM was bought on {siso}: {sgb} gigabytes for {sdays} days, activation via QR code."},
-    "S28": {"ru": "Зрение проверю {siso}: подбор линз займёт {smin} минут, старый рецепт прихвачу.",
-            "en": "The vision test is on {siso}: lens fitting takes {smin} minutes, bringing the old prescription along."},
-    "S29": {"ru": "Саженцы в земле с {siso}: {scnt} штуки сорта {sort}, полив через день, колья стоят.",
-            "en": "The saplings are in the ground since {siso}: {scnt} of the {sort} variety, watering every other day, stakes up."},
-    "S30": {"ru": "Ночная синхронизация архива запущена {siso}: инкремент занимает {smin} минут, папки по месяцам.",
-            "en": "The nightly archive sync started on {siso}: an increment takes {smin} minutes, folders by month."},
+    "S01": {
+        "ru": "Фотоархив с {siso} живёт на отдельной карте на {tgb} гигабайт — внутренняя память освобождена, съёмка не тормозит.",
+        "en": "Since {siso} the photo archive lives on a separate {tgb} gigabyte card — internal storage freed, shooting no longer lags.",
+    },
+    "S02": {
+        "ru": "Батарея для {dev} ещё в пути, {days} дней доставки; старая выжимает {shrs} часа и гаснет на холоде.",
+        "en": "The battery for the {dev} is still shipping, {days} days out; the old one squeezes out {shrs} hours and dies in the cold.",
+    },
+    "S03": {
+        "ru": "{srv} не продлеваю — решение от {siso}: за {scost} в год хватает бесплатного тарифа, всё выгружено заранее.",
+        "en": "Not renewing {srv} — decided on {siso}: the free tier covers it for {scost} a year, everything was exported early.",
+    },
+    "S04": {
+        "ru": "Договорились о профилактике на приёме: чистка назначена на {siso}, {scost}, с полировкой и снимком.",
+        "en": "Prevention was agreed at the visit: the cleaning is booked for {siso}, {scost}, with polishing and an X-ray.",
+    },
+    "S05": {
+        "ru": "После подкормки {siso} фикус выдал {sn} свежих листьев; землю не трогал, только свет добавил.",
+        "en": "After the feeding on {siso} the ficus put out {sn} fresh leaves; the soil was left alone, only more light added.",
+    },
+    "S06": {
+        "ru": "Колодки на {scar} пришли вовремя, заменил {siso} — скрипа нет, {scost} с доставкой.",
+        "en": "The pads for the {scar} arrived on time, fitted on {siso} — no more squeal, {scost} with delivery.",
+    },
+    "S07": {
+        "ru": "Жим перестроил {siso}: {sreps} подхода, рабочий вес {sw} кг, прибавка по субботам.",
+        "en": "Rebuilt the bench plan on {siso}: {sreps} sets, working weight {sw} kg, adding weight on Saturdays.",
+    },
+    "S08": {
+        "ru": "Расходы веду в таблице с {siso}: выходит {ssum} за месяц, основная статья — доставка.",
+        "en": "Expenses tracked in a sheet since {siso}: it comes to {ssum} a month, delivery is the biggest line.",
+    },
+    "S09": {
+        "ru": "Новый чайник с {siso} в деле: колба на {sl} л, фильтр держит накипь, на дачу старый уехал.",
+        "en": "The new kettle from {siso} is in service: a {sl} liter jug, the scale filter works, the old one left for the dacha.",
+    },
+    "S10": {
+        "ru": "Покрытие расширилось после {siso}: меш-узел в коридоре добивает до балкона, гостевая сеть отдельно.",
+        "en": "Coverage widened after {siso}: the hallway mesh node reaches the balcony now, guest network stays separate.",
+    },
+    "S11": {
+        "ru": "Клубная книга следующая выбрана {siso}: {spages} страниц, срок до июня, читаю с закладками.",
+        "en": "The next club book was picked on {siso}: {spages} pages, due in June, reading with sticky notes.",
+    },
+    "S12": {
+        "ru": "Один билет сдан {siso}, поездка сдвинулась: вернули {scost} из {sfull}, новый куплю на другой день.",
+        "en": "One ticket returned on {siso}, the trip moved: {scost} of {sfull} came back, the new one bought for another day.",
+    },
+    "S13": {
+        "ru": "На диспансеризацию записан {siso}: список расширенный, строго натощак, паспорт с собой.",
+        "en": "Signed up for the full check-up on {siso}: extended test list, strictly fasting, ID in hand.",
+    },
+    "S14": {
+        "ru": "Старые снапшоты снесены {siso}: на бэкап-диске освободилось {sgb} гигабайт, ротация месячная.",
+        "en": "Old snapshots were purged on {siso}: {sgb} gigabytes freed on the backup disk, monthly rotation now.",
+    },
+    "S15": {
+        "ru": "С {siso} хожу в разговорный клуб: среда, {smin} минут в Zoom, словарь перед сном.",
+        "en": "Since {siso} I attend the speaking club: Wednesdays, {smin} minutes on Zoom, vocabulary before bed.",
+    },
+    "S16": {
+        "ru": "Покрышки {sinch} дюйма заказаны {siso}, летний протектор; старые оставлю как запаску.",
+        "en": "{sinch} inch tires ordered on {siso}, summer tread; the old ones stay as spares.",
+    },
+    "S17": {
+        "ru": "Аренду подняли на {spct} процентов {siso}, сошлись на компромиссе: ремонт ляжет на хозяина.",
+        "en": "The rent went up {spct} percent on {siso}, we struck a compromise: repairs fall to the landlord.",
+    },
+    "S18": {
+        "ru": "Кофемолка новая с {siso}: жернова, {sgrad} ступеней, работает тише прежней.",
+        "en": "New grinder since {siso}: burrs, {sgrad} settings, runs quieter than the old one.",
+    },
+    "S19": {
+        "ru": "На загранпаспорт записан {siso}: биометрия на месте, изготовление {sweeks} недели.",
+        "en": "The international passport appointment is set for {siso}: biometrics on site, {sweeks} weeks to process.",
+    },
+    "S20": {
+        "ru": "Фильтр заменил {siso}: {slph} л/ч, шум ниже, вода чище — рыбки подвижнее.",
+        "en": "Swapped the filter on {siso}: {slph} l/h, less noise, clearer water — the fish are livelier.",
+    },
+    "S21": {
+        "ru": "Термостат заказан {siso}, недельный программатор; жду падения расхода газа после установки.",
+        "en": "The thermostat was ordered on {siso}, a weekly programmer; expecting the gas bill to drop after installation.",
+    },
+    "S22": {
+        "ru": "Архив переехал к другому провайдеру {siso}: {sgb} гигабайт, дорога заняла {shrs} часов.",
+        "en": "The archive moved to another provider on {siso}: {sgb} gigabytes, the trip took {shrs} hours.",
+    },
+    "S23": {
+        "ru": "Слот на полумарафон занял {siso}: старт в {sstart} утра, цены на слоты уже выросли.",
+        "en": "Took a half marathon slot on {siso}: the start is {sstart} am, slot prices have already climbed.",
+    },
+    "S24": {
+        "ru": "Перенос розеток запланирован на {siso}: {spts} точек, штробление под столешницей.",
+        "en": "The outlet move is scheduled for {siso}: {spts} points, chasing the wall under the countertop.",
+    },
+    "S25": {
+        "ru": "Первый каравай из закваски вышел {siso}: муки ушло {sgrams} граммов, пар держал {smin} минут.",
+        "en": "The first sourdough loaf came out on {siso}: {sgrams} grams of flour went in, steam held for {smin} minutes.",
+    },
+    "S26": {
+        "ru": "Кружок логопедики в садике оформлен {siso}: {sless} занятия в месяц, оплата вперёд.",
+        "en": "The kindergarten speech club is signed up on {siso}: {sless} sessions a month, paid upfront.",
+    },
+    "S27": {
+        "ru": "eSIM под поездку куплена {siso}: {sgb} гигабайт на {sdays} дней, активация по QR-коду.",
+        "en": "A travel eSIM was bought on {siso}: {sgb} gigabytes for {sdays} days, activation via QR code.",
+    },
+    "S28": {
+        "ru": "Зрение проверю {siso}: подбор линз займёт {smin} минут, старый рецепт прихвачу.",
+        "en": "The vision test is on {siso}: lens fitting takes {smin} minutes, bringing the old prescription along.",
+    },
+    "S29": {
+        "ru": "Саженцы в земле с {siso}: {scnt} штуки сорта {sort}, полив через день, колья стоят.",
+        "en": "The saplings are in the ground since {siso}: {scnt} of the {sort} variety, watering every other day, stakes up.",
+    },
+    "S30": {
+        "ru": "Ночная синхронизация архива запущена {siso}: инкремент занимает {smin} минут, папки по месяцам.",
+        "en": "The nightly archive sync started on {siso}: an increment takes {smin} minutes, folders by month.",
+    },
 }
 
 
@@ -1315,8 +1600,15 @@ def slot_tokens(values: dict[str, dict]) -> list[str]:
 
 
 class Minter:
-    def __init__(self, runlog: list[dict], embed_side, pin: str, scanner: Any,
-                 occupied: set, prefix: str):
+    def __init__(
+        self,
+        runlog: list[dict],
+        embed_side,
+        pin: str,
+        scanner: Any,
+        occupied: set,
+        prefix: str,
+    ):
         self.runlog = runlog
         self.embed_side = embed_side
         self.pin = pin
@@ -1327,16 +1619,27 @@ class Minter:
         self.hygiene_hits = 0
 
     def hygiene(self, s: dict, where: str) -> None:
-        hits = self.scanner.scan(s.get("title") or "", s.get("body") or "",
-                                 s.get("tags") or [])
+        hits = self.scanner.scan(
+            s.get("title") or "", s.get("body") or "", s.get("tags") or []
+        )
         if hits:
             self.hygiene_hits += 1
             refuse(f"hygiene hit on minted side {where}: {hits}")
 
-    def mint(self, cls: str, label: str, stratum: str, generator: str, source: str,
-             rec: dict, cand: dict, scaffold: str | None = None,
-             extra: dict | None = None, check_occupied: bool = True,
-             allow_dup_key: bool = False) -> dict:
+    def mint(
+        self,
+        cls: str,
+        label: str,
+        stratum: str,
+        generator: str,
+        source: str,
+        rec: dict,
+        cand: dict,
+        scaffold: str | None = None,
+        extra: dict | None = None,
+        check_occupied: bool = True,
+        allow_dup_key: bool = False,
+    ) -> dict:
         self.counters[cls] += 1
         pid = f"{self.prefix}-{cls}-{self.counters[cls]:04d}"
         va = self.embed_side(rec)
@@ -1388,8 +1691,10 @@ def gen_tver_candidates(runlog, minter: Minter, embed_side) -> list[dict]:
         for values in ladder_combos(scaf["slots"], inst_cap):
             tokens = slot_tokens(values)
             slot_map_sha = hashlib.sha256(
-                canonical_json(dict(sorted((n, v["t"]) for n, v in values.items())))
-                .encode("utf-8")).hexdigest()[:16]
+                canonical_json(
+                    dict(sorted((n, v["t"]) for n, v in values.items()))
+                ).encode("utf-8")
+            ).hexdigest()[:16]
             for tail_id in ("none", "a", "b", "c", "d"):
                 for family in ("T", "V"):
                     # order-only levers (taxonomy class 5, dup-preserving):
@@ -1398,13 +1703,20 @@ def gen_tver_candidates(runlog, minter: Minter, embed_side) -> list[dict]:
                         sides = {}
                         ok = True
                         for lang in ("ru", "en"):
-                            body = render_template(scaf["dup"][lang], values, lang, family)
+                            body = render_template(
+                                scaf["dup"][lang], values, lang, family
+                            )
                             body += TAILS[tail_id][lang]
                             if re_side == lang:
                                 body = swap_sentences(body)
                             title = scaf["title"][lang]
-                            side = {"title": title, "body": body, "tags": list(scaf["tags"]),
-                                    "language": lang, "record_type": scaf["type"]}
+                            side = {
+                                "title": title,
+                                "body": body,
+                                "tags": list(scaf["tags"]),
+                                "language": lang,
+                                "record_type": scaf["type"],
+                            }
                             if family == "T":
                                 full = (title + "\n" + body).lower()
                                 for tok in tokens:
@@ -1421,15 +1733,23 @@ def gen_tver_candidates(runlog, minter: Minter, embed_side) -> list[dict]:
                         if not ok:
                             continue
                         rec, cand = sides["ru"], sides["en"]
-                        ch3c = ch_containment(rec, cand, 3)  # assert for T, monitor for V
+                        ch3c = ch_containment(
+                            rec, cand, 3
+                        )  # assert for T, monitor for V
                         va, vb = embed_side(rec), embed_side(cand)
                         sim = round(min(1.0, max(0.0, dot(va, vb))), 6)
                         bld = body_len_delta(rec, cand)
                         base = {
-                            "scaf": scaf["id"], "family": family, "tail": tail_id,
+                            "scaf": scaf["id"],
+                            "family": family,
+                            "tail": tail_id,
                             "reorder": re_side,
-                            "slot_map_sha": slot_map_sha, "sim": sim, "bld": bld,
-                            "ch3c": round(ch3c, 6), "rec": rec, "cand": cand,
+                            "slot_map_sha": slot_map_sha,
+                            "sim": sim,
+                            "bld": bld,
+                            "ch3c": round(ch3c, 6),
+                            "rec": rec,
+                            "cand": cand,
                         }
                         if family == "T":
                             if bld > BLD_T_MAX:
@@ -1440,15 +1760,20 @@ def gen_tver_candidates(runlog, minter: Minter, embed_side) -> list[dict]:
                             if bld > BLD_V_MAX:
                                 continue
                         raw.append(base)
-    log(runlog, "tver_candidates", total=len(raw),
+    log(
+        runlog,
+        "tver_candidates",
+        total=len(raw),
         t=sum(1 for c in raw if c["family"] == "T"),
         v=sum(1 for c in raw if c["family"] == "V"),
-        in_band=sum(1 for c in raw if 0.55 <= c["sim"] <= 0.86))
+        in_band=sum(1 for c in raw if 0.55 <= c["sim"] <= 0.86),
+    )
     return raw
 
 
-def select_tver_bins(runlog, cands: list[dict], sibling_bins: dict[str, int],
-                     minter: Minter, embed_side) -> tuple[list[dict], dict]:
+def select_tver_bins(
+    runlog, cands: list[dict], sibling_bins: dict[str, int], minter: Minter, embed_side
+) -> tuple[list[dict], dict]:
     """A2.2 selection (the runs-6/7 architecture that filled all three bins
     with continuity, minus its cap bug): per-bin greedy spacing selection over
     scaffolds, class-global scaffold cap of 3 PAIRS (6 rows = 4.1% <= 5%),
@@ -1456,14 +1781,16 @@ def select_tver_bins(runlog, cands: list[dict], sibling_bins: dict[str, int],
     case_run — normalization-invisible: ch3c/bld/tags/slot tokens invariant,
     only the measured cos moves; precedent: addendum-1 dose rows), then gap
     backfill. Both orientations minted per pair (v44r2 convention)."""
-    edges = ((0.55, 0.65, "[0.55,0.65)"), (0.65, 0.75, "[0.65,0.75)"),
-             (0.75, 0.8600001, "[0.75,0.86]"))
+    edges = (
+        (0.55, 0.65, "[0.55,0.65)"),
+        (0.65, 0.75, "[0.65,0.75)"),
+        (0.75, 0.8600001, "[0.75,0.86]"),
+    )
     sel_rows: list[dict] = []
     report = {}
     per_scaffold: Counter = Counter()
     # class-global scaffold cap in PAIRS: 6 rows <= 5% of the class quota
-    quota_total = sum(max(sibling_bins.get(n, 0), BIN_MIN_K)
-                      for _l, _h, n in edges)
+    quota_total = sum(max(sibling_bins.get(n, 0), BIN_MIN_K) for _l, _h, n in edges)
     scaf_cap_pairs = max(1, int(SCAFFOLD_MAX_SHARE * quota_total) // 2)
     used_scaf: Counter = Counter()  # pair counts, class-global
 
@@ -1476,8 +1803,10 @@ def select_tver_bins(runlog, cands: list[dict], sibling_bins: dict[str, int],
         sib = sibling_bins.get(name, 0)
         quota_rows = max(sib, BIN_MIN_K)
         target_pairs = quota_rows // 2
-        pool = sorted((c for c in cands if lo <= c["sim"] < hi),
-                      key=lambda c: (c["sim"], c["scaf"], c["family"], c["tail"]))
+        pool = sorted(
+            (c for c in cands if lo <= c["sim"] < hi),
+            key=lambda c: (c["sim"], c["scaf"], c["family"], c["tail"]),
+        )
         # greedy spacing selection across scaffolds
         spacing = min(0.003, (hi - lo) / max(target_pairs, 1))
         chosen: list[dict] = []
@@ -1501,16 +1830,26 @@ def select_tver_bins(runlog, cands: list[dict], sibling_bins: dict[str, int],
             nonlocal grid
             if grid is None:
                 reserve = sorted(
-                    (c for c in cands if hi <= c["sim"] <= hi + 0.07
-                     and id(c) not in {id(x) for x in chosen}),
-                    key=lambda c: (c["scaf"], c["sim"], c["family"], c["tail"]))
+                    (
+                        c
+                        for c in cands
+                        if hi <= c["sim"] <= hi + 0.07
+                        and id(c) not in {id(x) for x in chosen}
+                    ),
+                    key=lambda c: (c["scaf"], c["sim"], c["family"], c["tail"]),
+                )
                 built: list[tuple[float, float, dict]] = []
                 for c in reserve[:3000]:
                     for d in DOSE_LADDER:
                         da = dict(c["rec"])
                         da["body"] = case_run(c["rec"]["body"], d)
-                        sim = round(min(1.0, max(0.0, dot(
-                            embed_side(da), embed_side(c["cand"])))), 6)
+                        sim = round(
+                            min(
+                                1.0,
+                                max(0.0, dot(embed_side(da), embed_side(c["cand"]))),
+                            ),
+                            6,
+                        )
                         if lo <= sim < hi:
                             built.append((sim, d, c))
                 built.sort(key=lambda g: (g[0], g[2]["scaf"]))
@@ -1536,10 +1875,17 @@ def select_tver_bins(runlog, cands: list[dict], sibling_bins: dict[str, int],
             da = dict(c["rec"])
             da["body"] = case_run(c["rec"]["body"], d)
             return {
-                "scaf": c["scaf"], "family": c["family"], "tail": c["tail"],
+                "scaf": c["scaf"],
+                "family": c["family"],
+                "tail": c["tail"],
                 "reorder": c.get("reorder", False),
-                "slot_map_sha": c["slot_map_sha"], "sim": sim, "bld": c["bld"],
-                "ch3c": c["ch3c"], "rec": da, "cand": c["cand"], "dose": d,
+                "slot_map_sha": c["slot_map_sha"],
+                "sim": sim,
+                "bld": c["bld"],
+                "ch3c": c["ch3c"],
+                "rec": da,
+                "cand": c["cand"],
+                "dose": d,
             }
 
         guard = 0
@@ -1563,62 +1909,95 @@ def select_tver_bins(runlog, cands: list[dict], sibling_bins: dict[str, int],
             if placed is None and (gi, gj) != (lo, hi):
                 placed = dose_place(lo, hi)
             if placed is None:
-                refuse(f"tver bin {name}: dose fill cannot cover deficit/gap "
-                       f"{(round(gi, 4), round(gj, 4))}; STOP")
+                refuse(
+                    f"tver bin {name}: dose fill cannot cover deficit/gap "
+                    f"{(round(gi, 4), round(gj, 4))}; STOP"
+                )
             chosen.append(placed)
             dose_used_total += 1
         coses = sorted(c["sim"] for c in chosen)
         max_gap = max((b - a for a, b in zip(coses, coses[1:])), default=0.0)
         rows_n = len(chosen) * 2
         report[name] = {
-            "quota_rows": quota_rows, "pairs_selected": len(chosen),
-            "rows": rows_n, "max_gap": round(max_gap, 6),
-            "k_ok": rows_n >= BIN_MIN_K, "parity_ok": rows_n >= sib,
+            "quota_rows": quota_rows,
+            "pairs_selected": len(chosen),
+            "rows": rows_n,
+            "max_gap": round(max_gap, 6),
+            "k_ok": rows_n >= BIN_MIN_K,
+            "parity_ok": rows_n >= sib,
             "continuity_ok": max_gap <= CONTINUITY_DELTA + 1e-9,
-            "ok": (rows_n >= quota_rows and rows_n >= sib
-                   and rows_n >= BIN_MIN_K
-                   and max_gap <= CONTINUITY_DELTA + 1e-9),
+            "ok": (
+                rows_n >= quota_rows
+                and rows_n >= sib
+                and rows_n >= BIN_MIN_K
+                and max_gap <= CONTINUITY_DELTA + 1e-9
+            ),
         }
         if not report[name]["ok"]:
             refuse(f"tver bin {name} asserts failed: {report[name]}; STOP")
         for c in chosen:
             per_scaffold[c["scaf"]] += 2
             dose = c.get("dose")
-            gen = (f"v45-regenerate slot-bookkeeping ({c['family']}-family, "
-                   f"tail={c['tail']}, reorder={c.get('reorder', False)})")
+            gen = (
+                f"v45-regenerate slot-bookkeeping ({c['family']}-family, "
+                f"tail={c['tail']}, reorder={c.get('reorder', False)})"
+            )
             if dose is not None:
                 gen += f" + v44r2 case-dose placement (dose={dose})"
             first = True
             for rec, cand in ((c["rec"], c["cand"]), (c["cand"], c["rec"])):
-                extra = {"family": c["family"], "slot_map_sha": c["slot_map_sha"],
-                         "tail": c["tail"], "reorder": c.get("reorder", False)}
+                extra = {
+                    "family": c["family"],
+                    "slot_map_sha": c["slot_map_sha"],
+                    "tail": c["tail"],
+                    "reorder": c.get("reorder", False),
+                }
                 if dose is not None:
                     extra["dose"] = dose
                     extra["dose_placed"] = True
-                sel_rows.append(minter.mint(
-                    "TDUP" if c["family"] == "T" else "TDUPV",
-                    "duplicate", "translated-dup", gen,
-                    "addendum2-translated-dup", deepcopy(rec), deepcopy(cand),
-                    scaffold=c["scaf"], extra=extra,
-                    allow_dup_key=not first,
-                ))
+                sel_rows.append(
+                    minter.mint(
+                        "TDUP" if c["family"] == "T" else "TDUPV",
+                        "duplicate",
+                        "translated-dup",
+                        gen,
+                        "addendum2-translated-dup",
+                        deepcopy(rec),
+                        deepcopy(cand),
+                        scaffold=c["scaf"],
+                        extra=extra,
+                        allow_dup_key=not first,
+                    )
+                )
                 first = False
-    log(runlog, "tver_selection", bins=report,
-        dose_placed_pairs_total=dose_used_total)
+    log(runlog, "tver_selection", bins=report, dose_placed_pairs_total=dose_used_total)
     # class-level scaffold anti-collapse (A2.2)
     total = len(sel_rows)
     n_scaf = len(per_scaffold)
     max_share = max(per_scaffold.values()) / total if total else 0.0
-    log(runlog, "tver_scaffolds", scaffolds=n_scaf,
-        max_share=round(max_share, 4), min_required=SCAFFOLD_MIN,
-        max_allowed_share=SCAFFOLD_MAX_SHARE)
+    log(
+        runlog,
+        "tver_scaffolds",
+        scaffolds=n_scaf,
+        max_share=round(max_share, 4),
+        min_required=SCAFFOLD_MIN,
+        max_allowed_share=SCAFFOLD_MAX_SHARE,
+    )
     if n_scaf < SCAFFOLD_MIN:
-        refuse(f"tver scaffold anti-collapse: {n_scaf} scaffolds < {SCAFFOLD_MIN}; STOP")
+        refuse(
+            f"tver scaffold anti-collapse: {n_scaf} scaffolds < {SCAFFOLD_MIN}; STOP"
+        )
     if max_share > SCAFFOLD_MAX_SHARE:
-        refuse(f"tver scaffold anti-collapse: max share {max_share:.4f} > "
-               f"{SCAFFOLD_MAX_SHARE}; STOP")
-    return sel_rows, {"bins": report, "scaffolds": n_scaf,
-                      "max_scaffold_share": round(max_share, 4), "rows": total}
+        refuse(
+            f"tver scaffold anti-collapse: max share {max_share:.4f} > "
+            f"{SCAFFOLD_MAX_SHARE}; STOP"
+        )
+    return sel_rows, {
+        "bins": report,
+        "scaffolds": n_scaf,
+        "max_scaffold_share": round(max_share, 4),
+        "rows": total,
+    }
 
 
 # ── add-2: class-7 same-language (single-fact edit, short body) ──────────────
@@ -1629,16 +2008,23 @@ def collect_side_universes(runlog) -> tuple[dict[str, dict], dict[str, set]]:
     sides) under the v44r2 exclusion recipe (holdout/gate/burned sides), plus
     the flag sets used for the side-overlap slice at holdout carve."""
     hs: set = set()
-    for name in ("v43-holdout/holdout.jsonl", "dataset-v4-holdout/holdout.jsonl",
-                 "b2/holdout.jsonl"):
+    for name in (
+        "v43-holdout/holdout.jsonl",
+        "dataset-v4-holdout/holdout.jsonl",
+        "b2/holdout.jsonl",
+    ):
         for r in corpus_rows(BASE / name):
             for s in (r["record"], r["candidate"]):
                 hs.add(text_hash(s["title"] + "\n" + s["body"]))
                 hs.add(text_hash(s["body"]))
                 hs.add(text_hash(s["title"]))
     gate_sides: set = set()
-    R4 = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r4-corpus")
-    R5 = Path("/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus")
+    R4 = Path(
+        "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r4-corpus"
+    )
+    R5 = Path(
+        "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/embed-r5-corpus"
+    )
     for gp in (
         R4 / "data/embed-r4/r5_gate/gate_set.jsonl",
         R4 / "data/embed-r4/r5_gate/tatoeba_notes.jsonl",
@@ -1672,8 +2058,12 @@ def collect_side_universes(runlog) -> tuple[dict[str, dict], dict[str, set]]:
                         burned.add(text_hash(row[key]))
 
     sides: dict[str, dict] = {}
-    for src in (POOL_JSONL, BASE / "dataset-v4/train.jsonl",
-                BASE / "v43-localbuild/train.jsonl", V44R2_DIR / "train.jsonl"):
+    for src in (
+        POOL_JSONL,
+        BASE / "dataset-v4/train.jsonl",
+        BASE / "v43-localbuild/train.jsonl",
+        V44R2_DIR / "train.jsonl",
+    ):
         for r in corpus_rows(src):
             for s in (r["record"], r["candidate"]):
                 sides.setdefault(text_hash(s["title"] + "\n" + s["body"]), s)
@@ -1691,15 +2081,24 @@ def collect_side_universes(runlog) -> tuple[dict[str, dict], dict[str, set]]:
             skipped["holdout-side"] += 1
             continue
         clean[h] = s
-    log(runlog, "side_universe", distinct=len(sides), clean=len(clean),
-        skipped=dict(skipped))
-    flags = {"holdout_side_overlap": hs, "gate_side_overlap": gate_sides,
-             "burned_side_overlap": burned}
+    log(
+        runlog,
+        "side_universe",
+        distinct=len(sides),
+        clean=len(clean),
+        skipped=dict(skipped),
+    )
+    flags = {
+        "holdout_side_overlap": hs,
+        "gate_side_overlap": gate_sides,
+        "burned_side_overlap": burned,
+    }
     return clean, flags
 
 
-def gen_c7_candidates(runlog, minter: Minter, embed_side,
-                      clean: dict[str, dict]) -> list[dict]:
+def gen_c7_candidates(
+    runlog, minter: Minter, embed_side, clean: dict[str, dict]
+) -> list[dict]:
     """A2.3 class-7 same-language: one fact-token digit cipher on clean short
     real sides; language detected and DECLARED per row (the v4.4 silent lm=0
     drift is structurally impossible); cells keyed by ch5_jaccard."""
@@ -1707,7 +2106,7 @@ def gen_c7_candidates(runlog, minter: Minter, embed_side,
     skipped: Counter = Counter()
     for h, s in sorted(clean.items()):
         body = s.get("body") or ""
-        title = s.get("title") or ""
+        _title = s.get("title") or ""
         if not body or len(body) > C7_BODY_MAX:
             skipped["long-or-empty"] += 1
             continue
@@ -1729,18 +2128,23 @@ def gen_c7_candidates(runlog, minter: Minter, embed_side,
         #     the same clause = ONE date fact rewritten to another date (the
         #     v4.2 exam mechanism, e.g. "5 октября" -> "7 ноября").
         edits: list[tuple[str, str]] = [
-            (cipher_span(body, span), f"digit:{body[span[0]:span[1]]}")
+            (cipher_span(body, span), f"digit:{body[span[0] : span[1]]}")
             for span in spans
         ]
         edits += [(new, f"word:{w}") for new, w in word_fact_edits(body, lang)]
-        fact_words = [(w, body.find(w)) for _, words in WORD_FACTS[lang].items()
-                      for w in words if body.find(w) >= 0]
+        fact_words = [
+            (w, body.find(w))
+            for _, words in WORD_FACTS[lang].items()
+            for w in words
+            if body.find(w) >= 0
+        ]
         for span in spans:
             for w, wpos in fact_words:
                 if abs(wpos - span[0]) <= 40:
                     combined = cipher_span(body, span)
-                    words = next(tbl for _kind, tbl in WORD_FACTS[lang].items()
-                                 if w in tbl)
+                    words = next(
+                        tbl for _kind, tbl in WORD_FACTS[lang].items() if w in tbl
+                    )
                     i = words.index(w)
                     start = combined.find(w)
                     if start >= 0:
@@ -1748,8 +2152,14 @@ def gen_c7_candidates(runlog, minter: Minter, embed_side,
                         before_ok = start == 0 or not combined[start - 1].isalnum()
                         after_ok = end == len(combined) or not combined[end].isalnum()
                         if before_ok and after_ok:
-                            combined = combined[:start] + words[(i + 1) % len(words)] + combined[end:]
-                            edits.append((combined, f"date:{body[span[0]:span[1]]}+{w}"))
+                            combined = (
+                                combined[:start]
+                                + words[(i + 1) % len(words)]
+                                + combined[end:]
+                            )
+                            edits.append(
+                                (combined, f"date:{body[span[0] : span[1]]}+{w}")
+                            )
                     break
         for edited, kind in edits:
             cand = dict(rec)
@@ -1762,26 +2172,43 @@ def gen_c7_candidates(runlog, minter: Minter, embed_side,
             if sim < C7_COS_MIN:
                 skipped["cos-below-0.985"] += 1
                 continue
-            cands.append({
-                "sha": h, "rec": rec, "cand": cand, "sim": sim, "ch5j": j,
-                "lang_group": lang, "edit_kind": kind,
-            })
-    log(runlog, "c7_candidates", total=len(cands), skipped=dict(skipped),
-        cells={f"[{lo:.2f},{hi:.2f})": sum(1 for c in cands if lo <= c["ch5j"] < hi)
-               for lo, hi in C7_CH5J_CELLS})
+            cands.append(
+                {
+                    "sha": h,
+                    "rec": rec,
+                    "cand": cand,
+                    "sim": sim,
+                    "ch5j": j,
+                    "lang_group": lang,
+                    "edit_kind": kind,
+                }
+            )
+    log(
+        runlog,
+        "c7_candidates",
+        total=len(cands),
+        skipped=dict(skipped),
+        cells={
+            f"[{lo:.2f},{hi:.2f})": sum(1 for c in cands if lo <= c["ch5j"] < hi)
+            for lo, hi in C7_CH5J_CELLS
+        },
+    )
     return cands
 
 
-def select_c7_cells(runlog, cands: list[dict], cell_pos: dict[str, int],
-                    minter: Minter) -> tuple[list[dict], dict]:
+def select_c7_cells(
+    runlog, cands: list[dict], cell_pos: dict[str, int], minter: Minter
+) -> tuple[list[dict], dict]:
     sel_rows: list[dict] = []
     report = {}
     occupied_skipped = 0
     for lo, hi in C7_CH5J_CELLS:
         name = f"[{lo:.2f},{hi:.2f})"
         quota = max(BIN_MIN_K, cell_pos.get(name, 0))
-        pool = sorted((c for c in cands if lo <= c["ch5j"] < hi),
-                      key=lambda c: (abs(c["ch5j"] - (lo + hi) / 2), c["sha"]))
+        pool = sorted(
+            (c for c in cands if lo <= c["ch5j"] < hi),
+            key=lambda c: (abs(c["ch5j"] - (lo + hi) / 2), c["sha"]),
+        )
         # a cipher candidate on a base already T3-minted by v4.4-r2 can
         # reproduce the SAME pair (identical deterministic cipher) — skip it
         # instead of refusing the build
@@ -1818,8 +2245,11 @@ def select_c7_cells(runlog, cands: list[dict], cell_pos: dict[str, int],
                 picked += 1
         rows_n = len(chosen) * 2
         report[name] = {
-            "quota_rows": quota, "pairs_selected": len(chosen), "rows": rows_n,
-            "parity_ok": rows_n >= cell_pos.get(name, 0), "k_ok": rows_n >= BIN_MIN_K,
+            "quota_rows": quota,
+            "pairs_selected": len(chosen),
+            "rows": rows_n,
+            "parity_ok": rows_n >= cell_pos.get(name, 0),
+            "k_ok": rows_n >= BIN_MIN_K,
             "ok": rows_n >= quota,
         }
         if not report[name]["ok"]:
@@ -1827,26 +2257,39 @@ def select_c7_cells(runlog, cands: list[dict], cell_pos: dict[str, int],
         for c in chosen:
             first = True
             for rec, cand in ((c["rec"], c["cand"]), (c["cand"], c["rec"])):
-                sel_rows.append(minter.mint(
-                    "C7", "not-duplicate", "N-fact-edit",
-                    "v45-class7-same-lang (single-fact digit cipher, short body)",
-                    "addendum2-class7-same-lang", deepcopy(rec), deepcopy(cand),
-                    scaffold=c["sha"],
-                    extra={"lang_group": c["lang_group"],
-                           "ch5j_cell": round(c["ch5j"], 6)},
-                    allow_dup_key=not first,
-                ))
+                sel_rows.append(
+                    minter.mint(
+                        "C7",
+                        "not-duplicate",
+                        "N-fact-edit",
+                        "v45-class7-same-lang (single-fact digit cipher, short body)",
+                        "addendum2-class7-same-lang",
+                        deepcopy(rec),
+                        deepcopy(cand),
+                        scaffold=c["sha"],
+                        extra={
+                            "lang_group": c["lang_group"],
+                            "ch5j_cell": round(c["ch5j"], 6),
+                        },
+                        allow_dup_key=not first,
+                    )
+                )
                 first = False
     # audit assert: every new class-7 row declares its lang group
     bad = [r["pair_id"] for r in sel_rows if not r.get("lang_group")]
     if bad:
         refuse(f"c7 audit: {len(bad)} rows without lang_group; STOP")
-    bad_lm = [r["pair_id"] for r in sel_rows if lang_match(r["record"], r["candidate"]) != 1.0]
+    bad_lm = [
+        r["pair_id"] for r in sel_rows if lang_match(r["record"], r["candidate"]) != 1.0
+    ]
     if bad_lm:
         refuse(f"c7 audit: {len(bad_lm)} rows with lang_match != 1.0; STOP")
     log(runlog, "c7_selection", cells=report, occupied_skipped=occupied_skipped)
-    return sel_rows, {"cells": report, "rows": len(sel_rows),
-                      "occupied_skipped": occupied_skipped}
+    return sel_rows, {
+        "cells": report,
+        "rows": len(sel_rows),
+        "occupied_skipped": occupied_skipped,
+    }
 
 
 # ── add-3: N-near tag-clone (same-language near-topic, same scaffold) ────────
@@ -1864,15 +2307,18 @@ def gen_nnc_candidates(runlog, minter: Minter, embed_side) -> list[dict]:
         dup_tokens = {v["t"] for vals in scaf["slots"].values() for v in vals}
         sib_tokens = {v["t"] for vals in scaf["sib"]["slots"].values() for v in vals}
         if dup_tokens & sib_tokens:
-            refuse(f"scaffold {scaf['id']}: dup/sib slot tokens overlap "
-                   f"{sorted(dup_tokens & sib_tokens)}; STOP")
+            refuse(
+                f"scaffold {scaf['id']}: dup/sib slot tokens overlap "
+                f"{sorted(dup_tokens & sib_tokens)}; STOP"
+            )
         for dvals in dup_insts:
             for svals in sib_insts:
                 for lang in ("ru", "en"):
                     for tmpl_b, tail_id in (
-                            (t, tt)
-                            for t in (scaf["sib"][lang], SIB2[scaf["id"]][lang])
-                            for tt in ("none", "a", "b", "c", "d")):
+                        (t, tt)
+                        for t in (scaf["sib"][lang], SIB2[scaf["id"]][lang])
+                        for tt in ("none", "a", "b", "c", "d")
+                    ):
                         # structural variants: plain / sibling-side reorder /
                         # sibling-side split / record-side split / both split;
                         # asymmetric-tail variants (negatives only — labels
@@ -1880,13 +2326,29 @@ def gen_nnc_candidates(runlog, minter: Minter, embed_side) -> list[dict]:
                         # legitimate not-dup content; bld stays <= 60):
                         #   ta-a / ta-b: short tail appended on ONE side only
                         #   pre-a / pre-b: short tail prepended on ONE side
-                        for variant in ("plain", "reorder", "split", "split-a",
-                                        "split-both", "ta-a", "ta-b",
-                                        "pre-a", "pre-b", "da-a", "da-b",
-                                        "dc-a", "dc-b"):
-                            if variant.startswith(("ta-", "pre-")) and tail_id != "none":
+                        for variant in (
+                            "plain",
+                            "reorder",
+                            "split",
+                            "split-a",
+                            "split-both",
+                            "ta-a",
+                            "ta-b",
+                            "pre-a",
+                            "pre-b",
+                            "da-a",
+                            "da-b",
+                            "dc-a",
+                            "dc-b",
+                        ):
+                            if (
+                                variant.startswith(("ta-", "pre-"))
+                                and tail_id != "none"
+                            ):
                                 continue  # asymmetric variants pair with no tail
-                            body_a = render_template(scaf["dup"][lang], dvals, lang, "T")
+                            body_a = render_template(
+                                scaf["dup"][lang], dvals, lang, "T"
+                            )
                             body_a += TAILS[tail_id][lang]
                             body_b = render_template(tmpl_b, svals, lang, "T")
                             body_b += TAILS[tail_id][lang]
@@ -1929,14 +2391,20 @@ def gen_nnc_candidates(runlog, minter: Minter, embed_side) -> list[dict]:
                                 # disjointness above (A2.2 "ни одного общего
                                 # слот-токена"), which holds by construction.
                                 monitor_overlap["digit-run-overlap"] += 1
-                            rec = {"title": scaf["title"][lang],
-                                   "body": body_a,
-                                   "tags": list(scaf["tags"]), "language": lang,
-                                   "record_type": scaf["type"]}
-                            cand = {"title": TITLE_SIB[scaf["id"]][lang],
-                                    "body": body_b,
-                                    "tags": list(scaf["tags"]), "language": lang,
-                                    "record_type": scaf["type"]}
+                            rec = {
+                                "title": scaf["title"][lang],
+                                "body": body_a,
+                                "tags": list(scaf["tags"]),
+                                "language": lang,
+                                "record_type": scaf["type"],
+                            }
+                            cand = {
+                                "title": TITLE_SIB[scaf["id"]][lang],
+                                "body": body_b,
+                                "tags": list(scaf["tags"]),
+                                "language": lang,
+                                "record_type": scaf["type"],
+                            }
                             bld = body_len_delta(rec, cand)
                             if bld > NN_BLD_MAX:
                                 continue
@@ -1944,22 +2412,42 @@ def gen_nnc_candidates(runlog, minter: Minter, embed_side) -> list[dict]:
                             sim = round(min(1.0, max(0.0, dot(va, vb))), 6)
                             if not (NN_LOW <= sim <= NN_HIGH):
                                 continue
-                            cands.append({
-                                "scaf": scaf["id"], "lang": lang, "tail": tail_id,
-                                "variant": variant,
-                                "rec": rec, "cand": cand, "sim": sim, "bld": bld,
-                            })
-    log(runlog, "nnc_candidates", total=len(cands),
+                            cands.append(
+                                {
+                                    "scaf": scaf["id"],
+                                    "lang": lang,
+                                    "tail": tail_id,
+                                    "variant": variant,
+                                    "rec": rec,
+                                    "cand": cand,
+                                    "sim": sim,
+                                    "bld": bld,
+                                }
+                            )
+    log(
+        runlog,
+        "nnc_candidates",
+        total=len(cands),
         digit_run_overlap_skipped=monitor_overlap["digit-run-overlap"],
-        bands={f"{c:.3f}": sum(1 for x in cands if abs(x["sim"] - c) <= NN_BAND + 1e-12)
-               for c in [round(NN_LOW + NN_BAND + k * NN_BAND, 3)
-                         for k in range(int((NN_HIGH - NN_LOW) / NN_BAND))]})
+        bands={
+            f"{c:.3f}": sum(1 for x in cands if abs(x["sim"] - c) <= NN_BAND + 1e-12)
+            for c in [
+                round(NN_LOW + NN_BAND + k * NN_BAND, 3)
+                for k in range(int((NN_HIGH - NN_LOW) / NN_BAND))
+            ]
+        },
+    )
     return cands
 
 
-def select_nnc_bands(runlog, cands: list[dict], pos_total: int,
-                     pos_by_band: dict[str, int], minter: Minter,
-                     embed_side) -> tuple[list[dict], dict]:
+def select_nnc_bands(
+    runlog,
+    cands: list[dict],
+    pos_total: int,
+    pos_by_band: dict[str, int],
+    minter: Minter,
+    embed_side,
+) -> tuple[list[dict], dict]:
     """Global density selection: bands are ±0.005 and OVERLAP, so pairs are
     selected once (global spacing) and every band's K is verified against the
     FULL selected set (rows of the class in the band), never against a
@@ -1974,17 +2462,20 @@ def select_nnc_bands(runlog, cands: list[dict], pos_total: int,
     Candidates from the natural reserve are dose-placed into the thin bands
     [0.78, 0.81) via the deterministic ladder, and every dose is recorded on
     the row."""
-    centers = [round(NN_LOW + NN_BAND + k * NN_BAND, 3)
-               for k in range(int(round((NN_HIGH - NN_LOW) / NN_BAND)))]
+    centers = [
+        round(NN_LOW + NN_BAND + k * NN_BAND, 3)
+        for k in range(int(round((NN_HIGH - NN_LOW) / NN_BAND)))
+    ]
     # target density: >= 30 rows (= 15 pairs) inside EVERY 0.01 window
     # -> one pair per ~0.00066 of cos span
-    need_pairs_total = max(int((NN_HIGH - NN_LOW) / 0.00066) + 1,
-                           pos_total, BIN_MIN_K)
+    need_pairs_total = max(int((NN_HIGH - NN_LOW) / 0.00066) + 1, pos_total, BIN_MIN_K)
     spacing = (NN_HIGH - NN_LOW) / need_pairs_total
     pool = sorted(cands, key=lambda c: (c["sim"], c["scaf"], c["lang"], c["tail"]))
     if len(pool) < need_pairs_total:
-        refuse(f"nnc candidate pool {len(pool)} pairs < density need "
-               f"{need_pairs_total}; STOP")
+        refuse(
+            f"nnc candidate pool {len(pool)} pairs < density need "
+            f"{need_pairs_total}; STOP"
+        )
 
     # 0.810 included: its window [0.805,0.815] loses its natural mass to
     # the dose reserve below — covered by dose placement like the rest
@@ -2007,16 +2498,19 @@ def select_nnc_bands(runlog, cands: list[dict], pos_total: int,
         # reserve from naturals >= 0.84 ONLY: the natural walk needs the
         # 0.81-0.84 mass for its own bands; heavy doses from >= 0.84 reach the
         # whole thin region [0.775, 0.84) (dose-1.0 drop is ~0.064)
-        reserve = sorted((c for c in pool if 0.84 <= c["sim"] <= 0.90),
-                         key=lambda c: (c["sim"], c["scaf"]))
+        reserve = sorted(
+            (c for c in pool if 0.84 <= c["sim"] <= 0.90),
+            key=lambda c: (c["sim"], c["scaf"]),
+        )
         reserve = reserve[:4000]  # bounded deterministic subset
         grid: list[tuple[float, float, dict]] = []
         for c in reserve:
             for d in DOSE_LADDER:
                 da = dict(c["rec"])
                 da["body"] = case_run(c["rec"]["body"], d)
-                sim = round(min(1.0, max(0.0, dot(embed_side(da),
-                                                  embed_side(c["cand"])))), 6)
+                sim = round(
+                    min(1.0, max(0.0, dot(embed_side(da), embed_side(c["cand"])))), 6
+                )
                 if thin_lo <= sim < thin_hi:
                     grid.append((sim, d, c))
         grid.sort(key=lambda g: (g[0], g[2]["scaf"]))
@@ -2031,11 +2525,19 @@ def select_nnc_bands(runlog, cands: list[dict], pos_total: int,
             if not dose_placed or sim - last >= step:
                 da = dict(c["rec"])
                 da["body"] = case_run(c["rec"]["body"], d)
-                dose_placed.append({
-                    "scaf": c["scaf"], "lang": c["lang"], "tail": "none",
-                    "variant": c["variant"], "rec": da, "cand": c["cand"],
-                    "sim": sim, "bld": c["bld"], "dose": d,
-                })
+                dose_placed.append(
+                    {
+                        "scaf": c["scaf"],
+                        "lang": c["lang"],
+                        "tail": "none",
+                        "variant": c["variant"],
+                        "rec": da,
+                        "cand": c["cand"],
+                        "sim": sim,
+                        "bld": c["bld"],
+                        "dose": d,
+                    }
+                )
                 used_ids.add(id(c))
                 per_scaf_pairs[c["scaf"]] += 1
                 last = sim
@@ -2043,13 +2545,21 @@ def select_nnc_bands(runlog, cands: list[dict], pos_total: int,
             # target_n is the internal density heuristic; the BINDING asserts
             # are the per-band K >= 30 checks below (they refuse if a band is
             # short) — a near-target placement count proceeds to them
-            log(runlog, "nnc_dose_grid_soft_target",
-                placed=len(dose_placed), target=target_n,
-                note="below heuristic density; binding per-band K checks follow")
-    log(runlog, "nnc_dose_placement", pairs=len(dose_placed),
+            log(
+                runlog,
+                "nnc_dose_grid_soft_target",
+                placed=len(dose_placed),
+                target=target_n,
+                note="below heuristic density; binding per-band K checks follow",
+            )
+    log(
+        runlog,
+        "nnc_dose_placement",
+        pairs=len(dose_placed),
         thin_bands=[f"{c:.3f}" for c in thin_centers],
         lever="v44r2 case_run (normalization-invisible; ch5j/bld/tags/label "
-              "invariant; precedent: addendum-1 dose rows)")
+        "invariant; precedent: addendum-1 dose rows)",
+    )
 
     # the natural walk must cover [0.81, 0.92] at the SAME per-window density:
     # its budget and spacing are computed AFTER the dose placements took their
@@ -2057,8 +2567,7 @@ def select_nnc_bands(runlog, cands: list[dict], pos_total: int,
     naturals_target = int((NN_HIGH - 0.81) / 0.00066) + 1
     need_pairs_total = len(dose_placed) + naturals_target
     spacing = (NN_HIGH - 0.81) / naturals_target
-    natural_pool = [c for c in pool
-                    if c["sim"] > 0.81 + 1e-9 and id(c) not in used_ids]
+    natural_pool = [c for c in pool if c["sim"] > 0.81 + 1e-9 and id(c) not in used_ids]
     chosen: list[dict] = []
     last = -1.0
     for c in natural_pool:
@@ -2082,8 +2591,7 @@ def select_nnc_bands(runlog, cands: list[dict], pos_total: int,
         guard = 0
         while guard < 64:
             guard += 1
-            rows_n = sum(2 for c in chosen
-                         if abs(c["sim"] - c0) <= NN_BAND + 1e-12)
+            rows_n = sum(2 for c in chosen if abs(c["sim"] - c0) <= NN_BAND + 1e-12)
             if rows_n >= need_rows:
                 break
             lo_w, hi_w = c0 - NN_BAND, min(NN_HIGH, c0 + NN_BAND)
@@ -2145,7 +2653,8 @@ def select_nnc_bands(runlog, cands: list[dict], pos_total: int,
         in_band = [c for c in chosen if abs(c["sim"] - c0) <= NN_BAND + 1e-12]
         rows_n = len(in_band) * 2
         report[name] = {
-            "rows": rows_n, "k_ok": rows_n >= BIN_MIN_K,
+            "rows": rows_n,
+            "k_ok": rows_n >= BIN_MIN_K,
             "parity_ok": rows_n >= pos_by_band.get(name, 0),
             "ok": rows_n >= BIN_MIN_K and rows_n >= pos_by_band.get(name, 0),
         }
@@ -2159,7 +2668,9 @@ def select_nnc_bands(runlog, cands: list[dict], pos_total: int,
     total_pos = sum(pos_by_band.values())
     total_rows = len(chosen) * 2
     if total_rows < total_pos:
-        refuse(f"nnc total parity failed: {total_rows} rows < positives {total_pos}; STOP")
+        refuse(
+            f"nnc total parity failed: {total_rows} rows < positives {total_pos}; STOP"
+        )
     # mint with band attribution = nearest center
     for c in chosen:
         c0 = min(centers, key=lambda x: abs(x - c["sim"]))
@@ -2174,28 +2685,50 @@ def select_nnc_bands(runlog, cands: list[dict], pos_total: int,
             if dose is not None:
                 extra["dose"] = dose
                 extra["dose_placed"] = True
-            sel_rows.append(minter.mint(
-                "NNC", "not-duplicate", "N-near", gen,
-                "addendum2-nnear-tag-clone", deepcopy(rec), deepcopy(cand),
-                scaffold=c["scaf"] + "|nnc", extra=extra,
-                allow_dup_key=not first,
-            ))
+            sel_rows.append(
+                minter.mint(
+                    "NNC",
+                    "not-duplicate",
+                    "N-near",
+                    gen,
+                    "addendum2-nnear-tag-clone",
+                    deepcopy(rec),
+                    deepcopy(cand),
+                    scaffold=c["scaf"] + "|nnc",
+                    extra=extra,
+                    allow_dup_key=not first,
+                )
+            )
             first = False
     # scaffold anti-collapse on the minted class
     per_scaf: Counter = Counter(r.get("scaffold") or "?" for r in sel_rows)
     max_share = max(per_scaf.values()) / total_rows
     if len(per_scaf) < SCAFFOLD_MIN:
-        refuse(f"nnc scaffold anti-collapse: {len(per_scaf)} scaffolds < {SCAFFOLD_MIN}; STOP")
+        refuse(
+            f"nnc scaffold anti-collapse: {len(per_scaf)} scaffolds < {SCAFFOLD_MIN}; STOP"
+        )
     if max_share > SCAFFOLD_MAX_SHARE:
-        refuse(f"nnc scaffold anti-collapse: max share {max_share:.4f} > {SCAFFOLD_MAX_SHARE}; STOP")
-    log(runlog, "nnc_selection", bands=report, total_rows=total_rows,
-        total_parity_ok=total_rows >= total_pos, max_gap=round(max_gap, 6),
-        scaffolds=len(per_scaf), max_scaffold_share=round(max_share, 4),
-        density_target_pairs=need_pairs_total)
-    return sel_rows, {"bands": report, "rows": total_rows,
-                      "max_gap": round(max_gap, 6),
-                      "scaffolds": len(per_scaf),
-                      "max_scaffold_share": round(max_share, 4)}
+        refuse(
+            f"nnc scaffold anti-collapse: max share {max_share:.4f} > {SCAFFOLD_MAX_SHARE}; STOP"
+        )
+    log(
+        runlog,
+        "nnc_selection",
+        bands=report,
+        total_rows=total_rows,
+        total_parity_ok=total_rows >= total_pos,
+        max_gap=round(max_gap, 6),
+        scaffolds=len(per_scaf),
+        max_scaffold_share=round(max_share, 4),
+        density_target_pairs=need_pairs_total,
+    )
+    return sel_rows, {
+        "bands": report,
+        "rows": total_rows,
+        "max_gap": round(max_gap, 6),
+        "scaffolds": len(per_scaf),
+        "max_scaffold_share": round(max_share, 4),
+    }
 
 
 # ── add-4: strata A (real re-saves from the probe snapshot) ──────────────────
@@ -2210,21 +2743,32 @@ def load_strata_a(runlog, minter: Minter, snapshot_path: Path) -> dict:
     full clusters to holdout, the rest to train; assert cluster integrity,
     train mass, norm-equality, envelope, zero graph vector, corpus cos."""
     if not snapshot_path.is_file():
-        refuse(f"strata A snapshot missing: {snapshot_path} — run "
-               "scripts/b2_store_probe_v45.py first; STOP")
+        refuse(
+            f"strata A snapshot missing: {snapshot_path} — run "
+            "scripts/b2_store_probe_v45.py first; STOP"
+        )
     snap = corpus_rows(snapshot_path)
     probe = json.loads(
-        (snapshot_path.parent / "strata-a-probe.json").read_text(encoding="utf-8"))
+        (snapshot_path.parent / "strata-a-probe.json").read_text(encoding="utf-8")
+    )
     snap_fp = hashlib.blake2b(
-        "\n".join(f"{p['a_store_id']}--{p['b_store_id']} {p['store_cos']:.9f}"
-                  for p in snap).encode("utf-8") + b"\n",
-        digest_size=32).hexdigest()
+        "\n".join(
+            f"{p['a_store_id']}--{p['b_store_id']} {p['store_cos']:.9f}" for p in snap
+        ).encode("utf-8")
+        + b"\n",
+        digest_size=32,
+    ).hexdigest()
     if snap_fp != probe.get("snapshot_fingerprint"):
         refuse("strata A snapshot fingerprint mismatch vs probe numbers; STOP")
-    log(runlog, "strata_a_snapshot", fp=snap_fp, pairs=len(snap),
+    log(
+        runlog,
+        "strata_a_snapshot",
+        fp=snap_fp,
+        pairs=len(snap),
         census_pairs=probe.get("census_anchor", {}).get("pairs"),
         growth_pairs=probe.get("growth_vs_census_pairs"),
-        store_snapshot=probe.get("store_snapshot"))
+        store_snapshot=probe.get("store_snapshot"),
+    )
 
     clusters: dict[str, list[dict]] = {}
     for p in snap:
@@ -2246,21 +2790,31 @@ def load_strata_a(runlog, minter: Minter, snapshot_path: Path) -> dict:
                 refuse(f"strata A pair {p['a_store_id'][:8]} body not norm-equal; STOP")
             delta = p.get("created_delta_s")
             if delta is None or delta > CREATED_DELTA_MAX_S:
-                refuse(f"strata A pair {p['a_store_id'][:8]} created delta {delta}; STOP")
-            sides_ok = a.get("language") == b.get("language") and \
-                set(a.get("tags") or []) == set(b.get("tags") or []) and \
-                a.get("record_type") == b.get("record_type")
+                refuse(
+                    f"strata A pair {p['a_store_id'][:8]} created delta {delta}; STOP"
+                )
+            sides_ok = (
+                a.get("language") == b.get("language")
+                and set(a.get("tags") or []) == set(b.get("tags") or [])
+                and a.get("record_type") == b.get("record_type")
+            )
             if not sides_ok:
                 refuse(f"strata A pair {p['a_store_id'][:8]} envelope mismatch; STOP")
             extra = {
-                "id_a": p["a_store_id"], "id_b": p["b_store_id"],
-                "cluster_key": key, "store_cos": p["store_cos"],
+                "id_a": p["a_store_id"],
+                "id_b": p["b_store_id"],
+                "cluster_key": key,
+                "store_cos": p["store_cos"],
             }
             target = holdout_rows if key in holdout_keys else train_rows
             # orientation: record=older side, candidate=younger (created_at);
             # exported sides follow the base convention: created_at is NOT part
             # of a corpus side (it rides the snapshot and the ids metadata)
-            ra, rb = (a, b) if (a.get("created_at") or "") <= (b.get("created_at") or "") else (b, a)
+            ra, rb = (
+                (a, b)
+                if (a.get("created_at") or "") <= (b.get("created_at") or "")
+                else (b, a)
+            )
             ra = {k: v for k, v in ra.items() if k != "created_at"}
             rb = {k: v for k, v in rb.items() if k != "created_at"}
             # content dedup BEFORE minting: every member of a re-save cluster
@@ -2276,42 +2830,60 @@ def load_strata_a(runlog, minter: Minter, snapshot_path: Path) -> dict:
                 continue
             try:
                 row = minter.mint(
-                    "RA", "duplicate", "A-resave",
+                    "RA",
+                    "duplicate",
+                    "A-resave",
                     "store-probe-snapshot (real re-save, whitelist §8.1 envelope)",
-                    "addendum2-strata-A", deepcopy(ra), deepcopy(rb),
-                    scaffold="strata-a:" + key, extra=extra,
+                    "addendum2-strata-A",
+                    deepcopy(ra),
+                    deepcopy(rb),
+                    scaffold="strata-a:" + key,
+                    extra=extra,
                 )
             except GateRefusal as exc:
                 quarantine += 1
-                quarantine_log.append({
-                    "cluster": key[:16], "pair": f"{p['a_store_id'][:8]}--{p['b_store_id'][:8]}",
-                    "reason": str(exc)[:200],
-                })
+                quarantine_log.append(
+                    {
+                        "cluster": key[:16],
+                        "pair": f"{p['a_store_id'][:8]}--{p['b_store_id'][:8]}",
+                        "reason": str(exc)[:200],
+                    }
+                )
                 continue
             if row["similarity"] < 0.999:
-                refuse(f"strata A corpus cos {row['similarity']} < 0.999 on "
-                       f"{p['a_store_id'][:8]}; STOP")
+                refuse(
+                    f"strata A corpus cos {row['similarity']} < 0.999 on "
+                    f"{p['a_store_id'][:8]}; STOP"
+                )
             row["_pair_key"] = dup_key
             target.append(row)
     train_pairs = len(train_rows)
     hold_pairs = len(holdout_rows)
     hold_clusters = len({r["cluster_key"] for r in holdout_rows})
-    ok = (train_pairs >= STRA_A_TRAIN_MIN_PAIRS and 2 <= hold_clusters <= 3)
+    ok = train_pairs >= STRA_A_TRAIN_MIN_PAIRS and 2 <= hold_clusters <= 3
     for r in train_rows + holdout_rows:
         r.pop("_pair_key", None)
     report = {
-        "snapshot_pairs": len(snap), "clusters": len(clusters),
+        "snapshot_pairs": len(snap),
+        "clusters": len(clusters),
         "distinct_content_pairs": len(snap) - content_dedup,
         "content_dedup_collapsed": content_dedup,
-        "train_pairs": train_pairs, "holdout_pairs": hold_pairs,
-        "holdout_clusters": hold_clusters, "quarantine": quarantine,
+        "train_pairs": train_pairs,
+        "holdout_pairs": hold_pairs,
+        "holdout_clusters": hold_clusters,
+        "quarantine": quarantine,
         "k_ok": train_pairs >= STRA_A_TRAIN_MIN_PAIRS,
-        "clusters_ok": 2 <= hold_clusters <= 3, "ok": ok,
+        "clusters_ok": 2 <= hold_clusters <= 3,
+        "ok": ok,
     }
     log(runlog, "strata_a_split", **report)
     if quarantine:
-        log(runlog, "strata_a_quarantine", count=quarantine,
-            note="unresolvable sides counted, not silently dropped (A2.5.3)")
+        log(
+            runlog,
+            "strata_a_quarantine",
+            count=quarantine,
+            note="unresolvable sides counted, not silently dropped (A2.5.3)",
+        )
     if not ok:
         refuse(f"strata A split asserts failed: {report}; STOP")
     # cluster integrity: no cluster straddles train/holdout
@@ -2320,8 +2892,13 @@ def load_strata_a(runlog, minter: Minter, snapshot_path: Path) -> dict:
     if t_keys & h_keys:
         refuse("strata A cluster integrity violated; STOP")
     report["quarantine_log"] = quarantine_log
-    return {"train": train_rows, "holdout": holdout_rows, "probe": probe,
-            "snapshot_fp": snap_fp, "report": report}
+    return {
+        "train": train_rows,
+        "holdout": holdout_rows,
+        "probe": probe,
+        "snapshot_fp": snap_fp,
+        "report": report,
+    }
 
 
 def norm1eq(a: str, b: str) -> bool:
@@ -2331,8 +2908,12 @@ def norm1eq(a: str, b: str) -> bool:
 # ── evidence columns: frozen at build + fresh-sidecar agreement ──────────────
 
 
-def freeze_evidence_columns(runlog, rows: list[dict], out: Path,
-                            snapshot_adjacency_ok: dict[str, tuple[int, int]]) -> dict:
+def freeze_evidence_columns(
+    runlog,
+    rows: list[dict],
+    out: Path,
+    snapshot_adjacency_ok: dict[str, tuple[int, int]],
+) -> dict:
     """Run the frozen sidecar over the new material (read-only store), freeze
     the GRAPH_FEATURES columns onto every row, and assert agreement with the
     independent probe-snapshot adjacency for the store-native rows."""
@@ -2341,18 +2922,36 @@ def freeze_evidence_columns(runlog, rows: list[dict], out: Path,
     new_jsonl = out / "new-material-precarve.jsonl"
     write_jsonl(new_jsonl, rows)
     import subprocess
+
     py = sys.executable
     r1 = subprocess.run(
-        [py, str(REPO_ROOT / "scripts" / "b2_rev1n_sidecar_input.py"),
-         "--rows", str(new_jsonl), "--out-dir", str(cat)],
-        capture_output=True, text=True)
+        [
+            py,
+            str(REPO_ROOT / "scripts" / "b2_rev1n_sidecar_input.py"),
+            "--rows",
+            str(new_jsonl),
+            "--out-dir",
+            str(cat),
+        ],
+        capture_output=True,
+        text=True,
+    )
     if r1.returncode != 0:
         refuse(f"sidecar input converter failed: {r1.stderr[-400:]}")
     r2 = subprocess.run(
-        [py, str(REPO_ROOT / "scripts" / "b2_graph_sidecar.py"),
-         "--dataset-dir", str(cat), "--store-uri", STORE_URI,
-         "--out", str(side_out)],
-        capture_output=True, text=True)
+        [
+            py,
+            str(REPO_ROOT / "scripts" / "b2_graph_sidecar.py"),
+            "--dataset-dir",
+            str(cat),
+            "--store-uri",
+            STORE_URI,
+            "--out",
+            str(side_out),
+        ],
+        capture_output=True,
+        text=True,
+    )
     if r2.returncode != 0:
         refuse(f"sidecar run failed: {r2.stderr[-400:]}")
     side = {}
@@ -2371,12 +2970,18 @@ def freeze_evidence_columns(runlog, rows: list[dict], out: Path,
         row["common_neighbors"] = int(sr.get("common_neighbors") or 0)
         row["neighbor_jaccard"] = float(sr.get("neighbor_jaccard") or 0.0)
         c2c = sr.get("cos_to_common_max")
-        row["cos_to_common_max"] = float(c2c) if c2c is not None else (
-            0.0 if row["common_neighbors"] == 0 else None)
+        row["cos_to_common_max"] = (
+            float(c2c)
+            if c2c is not None
+            else (0.0 if row["common_neighbors"] == 0 else None)
+        )
         if row["cos_to_common_max"] is None:
-            refuse(f"cos_to_common_max unresolvable with cn>0 on {row['pair_id']}; STOP")
+            refuse(
+                f"cos_to_common_max unresolvable with cn>0 on {row['pair_id']}; STOP"
+            )
         row["has_graph_evidence"] = bool(
-            row["edge_ab"] == 1 or row["common_neighbors"] >= 1)
+            row["edge_ab"] == 1 or row["common_neighbors"] >= 1
+        )
         native = bool(row.get("id_a"))
         if native:
             a_id, b_id = row["id_a"], row["id_b"]
@@ -2387,26 +2992,41 @@ def freeze_evidence_columns(runlog, rows: list[dict], out: Path,
             # independent agreement: probe-snapshot adjacency
             deg_a, cn_ab = snapshot_adjacency_ok.get(a_id, (0, 0))
             if row["edge_ab"] != 0 or row["common_neighbors"] != 0:
-                refuse(f"strata A row {row['pair_id']} carries a non-zero graph "
-                       "vector at sidecar time; A2.4 violated; STOP")
+                refuse(
+                    f"strata A row {row['pair_id']} carries a non-zero graph "
+                    "vector at sidecar time; A2.4 violated; STOP"
+                )
             if row["has_graph_evidence"]:
                 refuse(f"strata A row {row['pair_id']} evidence flag true; STOP")
         else:
             if sr.get("a_store_id") or sr.get("b_store_id"):
-                refuse(f"synthetic row {row['pair_id']} unexpectedly resolved "
-                       "against the store; STOP")
+                refuse(
+                    f"synthetic row {row['pair_id']} unexpectedly resolved "
+                    "against the store; STOP"
+                )
             if row["has_graph_evidence"]:
-                refuse(f"synthetic row {row['pair_id']} unexpectedly has evidence; STOP")
+                refuse(
+                    f"synthetic row {row['pair_id']} unexpectedly has evidence; STOP"
+                )
             synthetic_empty += 1
     quarantine = unresolved_native
-    log(runlog, "evidence_columns_frozen", rows=len(rows),
-        sidecar_fp=(json.loads(r2.stdout or "{}").get("fingerprint")
-                    if r2.stdout else None),
-        unresolved_native=unresolved_native, quarantine=quarantine,
+    log(
+        runlog,
+        "evidence_columns_frozen",
+        rows=len(rows),
+        sidecar_fp=(
+            json.loads(r2.stdout or "{}").get("fingerprint") if r2.stdout else None
+        ),
+        unresolved_native=unresolved_native,
+        quarantine=quarantine,
         synthetic_legitimately_empty=synthetic_empty,
-        evidence_rows=sum(1 for r in rows if r["has_graph_evidence"]))
-    return {"quarantine": quarantine, "unresolved_native": unresolved_native,
-            "sidecar_rows": len(side)}
+        evidence_rows=sum(1 for r in rows if r["has_graph_evidence"]),
+    )
+    return {
+        "quarantine": quarantine,
+        "unresolved_native": unresolved_native,
+        "sidecar_rows": len(side),
+    }
 
 
 # ── stage 0: base integrity ──────────────────────────────────────────────────
@@ -2416,10 +3036,14 @@ STORE_URI: str = ""  # set by main(); used by the sidecar subprocess
 
 def stage0_base(runlog) -> dict:
     rows = corpus_rows(V44R2_DIR / "train.jsonl")
-    fp = corpus_fingerprint(manifest_bytes([(r["pair_id"], r["pair_sha256"]) for r in rows]))
+    fp = corpus_fingerprint(
+        manifest_bytes([(r["pair_id"], r["pair_sha256"]) for r in rows])
+    )
     if fp != BASE_TRAIN_FP:
-        refuse(f"base train fp {fp} != sealed {BASE_TRAIN_FP}; the v4.4-r2 base "
-               "is not intact; STOP")
+        refuse(
+            f"base train fp {fp} != sealed {BASE_TRAIN_FP}; the v4.4-r2 base "
+            "is not intact; STOP"
+        )
     labels = {}
     for r in corpus_rows(V44R2_DIR / "labels-train.jsonl"):
         labels[r["pair_id"]] = r["label"]
@@ -2434,7 +3058,11 @@ def stage0_base(runlog) -> dict:
     # structure pins vs the census anchors
     tsib = [r for r in rows if r.get("stratum") == "translated-sibling"]
     ptr = [r for r in rows if r.get("stratum") == "P-trans"]
-    razor = [r for r in rows if r.get("stratum") in ("N-fact-edit", "N-para-notdup", "P-cosmetic")]
+    razor = [
+        r
+        for r in rows
+        if r.get("stratum") in ("N-fact-edit", "N-para-notdup", "P-cosmetic")
+    ]
     bins = Counter()
     for r in tsib:
         c = r["similarity"]
@@ -2450,42 +3078,70 @@ def stage0_base(runlog) -> dict:
         refuse(f"sibling/P-trans structure drifted: {len(tsib)}/{len(ptr)}; STOP")
     # the sealed v4.4 holdout: fingerprint only (ids/assignment, no content use)
     disk_hold_fp = corpus_fingerprint(
-        manifest_bytes([(r["pair_id"], r["pair_sha256"]) for r in corpus_rows(V44_HOLDOUT)]))
+        manifest_bytes(
+            [(r["pair_id"], r["pair_sha256"]) for r in corpus_rows(V44_HOLDOUT)]
+        )
+    )
     if disk_hold_fp != V44_HOLDOUT_FP:
         refuse("sealed v4.4 holdout fingerprint changed; STOP")
-    log(runlog, "base_integrity", train_fp=fp, labels_fp=lab_fp, rows=len(rows),
-        sibling_bins=dict(bins), p_trans=len(ptr), razor_block=len(razor),
-        v44_holdout_fp=disk_hold_fp, untouched=True)
-    return {"rows": rows, "labels": labels, "sibling_bins": dict(bins),
-            "p_trans": ptr, "razor_block": razor}
+    log(
+        runlog,
+        "base_integrity",
+        train_fp=fp,
+        labels_fp=lab_fp,
+        rows=len(rows),
+        sibling_bins=dict(bins),
+        p_trans=len(ptr),
+        razor_block=len(razor),
+        v44_holdout_fp=disk_hold_fp,
+        untouched=True,
+    )
+    return {
+        "rows": rows,
+        "labels": labels,
+        "sibling_bins": dict(bins),
+        "p_trans": ptr,
+        "razor_block": razor,
+    }
 
 
 def historical_surfaces(runlog) -> dict:
     surfaces: dict[str, set] = {}
-    for name in ("v43-holdout/holdout.jsonl", "dataset-v4-holdout/holdout.jsonl",
-                 "b2/holdout.jsonl"):
+    for name in (
+        "v43-holdout/holdout.jsonl",
+        "dataset-v4-holdout/holdout.jsonl",
+        "b2/holdout.jsonl",
+    ):
         surfaces[name] = {pair_key(r) for r in corpus_rows(BASE / name)}
     surfaces["burned-translated"] = {
-        pair_key(r) for r in corpus_rows(BASE / "v43-localbuild/train.jsonl")
+        pair_key(r)
+        for r in corpus_rows(BASE / "v43-localbuild/train.jsonl")
         if str(r.get("part", "")).startswith("translated")
-        or str(r.get("pair_id", "")).startswith(("V43-TDUP", "V43-TSIB"))}
+        or str(r.get("pair_id", "")).startswith(("V43-TDUP", "V43-TSIB"))
+    }
     surfaces["pool-pairs"] = {pair_key(r) for r in corpus_rows(POOL_JSONL)}
     # v4.4 sealed holdout: pair identity only (pair_id, pair_sha256), no sides
-    v44_pairs = {(r["pair_id"], r["pair_sha256"])
-                 for r in corpus_rows(V44_HOLDOUT)}
-    log(runlog, "historical_surfaces", **{k: len(v) for k, v in surfaces.items()},
-        v44_holdout_pair_ids=len(v44_pairs))
+    v44_pairs = {(r["pair_id"], r["pair_sha256"]) for r in corpus_rows(V44_HOLDOUT)}
+    log(
+        runlog,
+        "historical_surfaces",
+        **{k: len(v) for k, v in surfaces.items()},
+        v44_holdout_pair_ids=len(v44_pairs),
+    )
     return {"pair_keys": surfaces, "v44_pairs": v44_pairs}
 
 
 # ── holdout v4.5 carve + seal ────────────────────────────────────────────────
 
 
-def carve_holdout_v45(runlog, synthetic: list[dict], strata_a: dict,
-                      flags: dict[str, set]) -> tuple[list[dict], list[dict], dict]:
+def carve_holdout_v45(
+    runlog, synthetic: list[dict], strata_a: dict, flags: dict[str, set]
+) -> tuple[list[dict], list[dict], dict]:
     cells: dict[tuple, list[dict]] = {}
     for r in synthetic:
-        cells.setdefault((r["label"], r["has_graph_evidence"], r["stratum"]), []).append(r)
+        cells.setdefault(
+            (r["label"], r["has_graph_evidence"], r["stratum"]), []
+        ).append(r)
     rng = random.Random(SEED)
     drawn_ids: set = set()
     draw_report: dict[str, dict] = {}
@@ -2506,8 +3162,9 @@ def carve_holdout_v45(runlog, synthetic: list[dict], strata_a: dict,
             n_h = 1  # representation floor for non-trivial cells
         # pairs to draw (round to groups; at least the floor)
         gids = sorted(groups)
-        n_h_groups = min(n_groups, max(1, round(HOLDOUT_SHARE * n_groups))) \
-            if n_groups else 0
+        n_h_groups = (
+            min(n_groups, max(1, round(HOLDOUT_SHARE * n_groups))) if n_groups else 0
+        )
         if n_h and n_h_groups == 0:
             n_h_groups = 1
         pick_groups = set(rng.sample(gids, n_h_groups)) if n_h_groups else set()
@@ -2517,14 +3174,18 @@ def carve_holdout_v45(runlog, synthetic: list[dict], strata_a: dict,
                 drawn_ids.add(r["pair_id"])
                 cell_drawn += 1
         draw_report[f"{cell[0]}|evidence={cell[1]}|{cell[2]}"] = {
-            "cell_n": n, "drawn": cell_drawn, "groups_drawn": len(pick_groups)}
+            "cell_n": n,
+            "drawn": cell_drawn,
+            "groups_drawn": len(pick_groups),
+        }
     # mint-top quotas: declared, empty in the new material (disclosed)
     mint_top_present = sum(1 for r in synthetic if r.get("stratum") == "mint-top")
-    draw_report["mint-top-evidence"] = {"cell_n": 0, "drawn": 0,
-                                        "note": "no mint-top rows exist in the "
-                                                "new v4.5 material (disclosed)"}
-    draw_report["mint-top-zero"] = {"cell_n": 0, "drawn": 0,
-                                    "note": "same disclosure"}
+    draw_report["mint-top-evidence"] = {
+        "cell_n": 0,
+        "drawn": 0,
+        "note": "no mint-top rows exist in the new v4.5 material (disclosed)",
+    }
+    draw_report["mint-top-zero"] = {"cell_n": 0, "drawn": 0, "note": "same disclosure"}
     holdout = [r for r in synthetic if r["pair_id"] in drawn_ids]
     holdout.extend(strata_a["holdout"])
     # side-overlap flags: slice at carve
@@ -2543,9 +3204,15 @@ def carve_holdout_v45(runlog, synthetic: list[dict], strata_a: dict,
             else:
                 r[flag] = False
     hold_flags = {f: sum(1 for r in holdout if r.get(f)) for f in flags}
-    log(runlog, "holdout_carve", draw=draw_report, flags_total=dict(flag_counts),
-        flags_in_holdout=hold_flags, mint_top_present=mint_top_present,
-        evidence_reading="edge_ab=1 OR common_neighbors>=1 (A2.5.3, frozen)")
+    log(
+        runlog,
+        "holdout_carve",
+        draw=draw_report,
+        flags_total=dict(flag_counts),
+        flags_in_holdout=hold_flags,
+        mint_top_present=mint_top_present,
+        evidence_reading="edge_ab=1 OR common_neighbors>=1 (A2.5.3, frozen)",
+    )
     # A2.5.4 asks for the flag SLICE at carve (reported, kept on the rows for
     # the gate runner), not a zero-refusal. TRUE holdout-surface overlap is a
     # leak and refuses; gate/burned overlaps are UNLABELED embed-corpus /
@@ -2553,14 +3220,23 @@ def carve_holdout_v45(runlog, synthetic: list[dict], strata_a: dict,
     # labels): store-native strata A rows legitimately carry them, disclosed.
     if hold_flags.get("holdout_side_overlap"):
         refuse(f"holdout rows overlap sealed holdout surfaces: {hold_flags}; STOP")
-    log(runlog, "side_overlap_disclosure",
+    log(
+        runlog,
+        "side_overlap_disclosure",
         gate_in_holdout=hold_flags.get("gate_side_overlap", 0),
         burned_in_holdout=hold_flags.get("burned_side_overlap", 0),
         note="unlabeled embed-corpus/gate text shared by store-native rows; "
-             "no label leakage; rows keep their flag columns for the gate runner")
-    return holdout, [r for r in synthetic if r["pair_id"] not in drawn_ids], {
-        "draw": draw_report, "flags_total": dict(flag_counts),
-        "flags_in_holdout": hold_flags}
+        "no label leakage; rows keep their flag columns for the gate runner",
+    )
+    return (
+        holdout,
+        [r for r in synthetic if r["pair_id"] not in drawn_ids],
+        {
+            "draw": draw_report,
+            "flags_total": dict(flag_counts),
+            "flags_in_holdout": hold_flags,
+        },
+    )
 
 
 # ── assembly + manifest ──────────────────────────────────────────────────────
@@ -2571,12 +3247,21 @@ def envelope_asserts(runlog, rows: list[dict], scope: str) -> None:
     for r in rows:
         if tag_jaccard(r["record"], r["candidate"]) != 1.0:
             refuse(f"{scope} {r['pair_id']}: tag_jaccard != 1.0; STOP")
-        if (r["record"].get("record_type") or "") != (r["candidate"].get("record_type") or ""):
+        if (r["record"].get("record_type") or "") != (
+            r["candidate"].get("record_type") or ""
+        ):
             refuse(f"{scope} {r['pair_id']}: record_type mismatch; STOP")
         if len(r["record"].get("tags") or []) != len(r["candidate"].get("tags") or []):
             refuse(f"{scope} {r['pair_id']}: tag_count_delta != 0; STOP")
-    log(runlog, "envelope_asserts", scope=scope, rows=len(rows),
-        tag_jaccard="1.0", type_match="1.0", tag_count_delta="0")
+    log(
+        runlog,
+        "envelope_asserts",
+        scope=scope,
+        rows=len(rows),
+        tag_jaccard="1.0",
+        type_match="1.0",
+        tag_count_delta="0",
+    )
 
 
 def disjointness_asserts(runlog, new_rows: list[dict], surfaces: dict) -> None:
@@ -2590,13 +3275,30 @@ def disjointness_asserts(runlog, new_rows: list[dict], surfaces: dict) -> None:
             violations["v44-holdout"] += 1
     if violations:
         refuse(f"pair-level disjointness violated: {dict(violations)}; STOP")
-    log(runlog, "disjointness_new_material", checked=len(new_rows), violations=0,
-        surfaces=list(surfaces["pair_keys"]) + ["v44-holdout(pairs)"])
+    log(
+        runlog,
+        "disjointness_new_material",
+        checked=len(new_rows),
+        violations=0,
+        surfaces=list(surfaces["pair_keys"]) + ["v44-holdout(pairs)"],
+    )
 
 
-def build_manifest(runlog, base_info, train, holdout, new_rows, strata_a,
-                   tver_report, c7_report, nnc_report, carve, evis, out: Path,
-                   args) -> dict:
+def build_manifest(
+    runlog,
+    base_info,
+    train,
+    holdout,
+    new_rows,
+    strata_a,
+    tver_report,
+    c7_report,
+    nnc_report,
+    carve,
+    evis,
+    out: Path,
+    args,
+) -> dict:
     entries = [(r["pair_id"], r["pair_sha256"]) for r in train]
     train_fp = corpus_fingerprint(manifest_bytes(entries))
     labels = {r["pair_id"]: r["label"] for r in train}
@@ -2619,36 +3321,52 @@ def build_manifest(runlog, base_info, train, holdout, new_rows, strata_a,
             "docs/specs/labeling-policy-b2.md §8 (policy v1.1)",
         ],
         "base": {
-            "corpus": "v4.4-r2 train", "rows": len(base_info["rows"]),
-            "fingerprint": BASE_TRAIN_FP, "integrity": "asserted pre-build",
+            "corpus": "v4.4-r2 train",
+            "rows": len(base_info["rows"]),
+            "fingerprint": BASE_TRAIN_FP,
+            "integrity": "asserted pre-build",
             "inherited_strata_rebuilt": False,
         },
         "p_trans_replacement": {
-            "removed_rows": 40, "stratum": "P-trans",
+            "removed_rows": 40,
+            "stratum": "P-trans",
             "reason": "defective P-trans families of rev 1.n replaced by "
-                      "regeneration (g3 generation conflict, g3-analysis §2a/§3; "
-                      "build directive 2026-10-22)",
+            "regeneration (g3 generation conflict, g3-analysis §2a/§3; "
+            "build directive 2026-10-22)",
         },
         "addendum2_additions": {
             "translated_dup_regenerate": {
-                "bins": tver_report, "scaffold_source": "SCAFFOLDS (frozen library, "
+                "bins": tver_report,
+                "scaffold_source": "SCAFFOLDS (frozen library, "
                 "30 authored templates; probes g1b drawn from the same library)",
             },
-            "class7_same_language": {"cells": c7_report,
-                "lang_group_declared_per_row": True},
-            "nnear_tag_clone": {"bands": nnc_report,
+            "class7_same_language": {
+                "cells": c7_report,
+                "lang_group_declared_per_row": True,
+            },
+            "nnear_tag_clone": {
+                "bands": nnc_report,
                 "source": "same-scaffold dup-family x sib-family, same-language; "
-                          "real x real pool yield measured 3 pairs (insufficient) "
-                          "— authored fallback per generation discipline"},
+                "real x real pool yield measured 3 pairs (insufficient) "
+                "— authored fallback per generation discipline",
+            },
             "strata_A": {
                 "snapshot_fingerprint": strata_a["snapshot_fp"],
-                "probe_numbers": {k: strata_a["probe"][k] for k in (
-                    "store_snapshot", "silver_dup_pairs", "clusters",
-                    "cluster_size_histogram", "growth_vs_census_pairs",
-                    "created_delta_s_max", "store_cos_range")},
+                "probe_numbers": {
+                    k: strata_a["probe"][k]
+                    for k in (
+                        "store_snapshot",
+                        "silver_dup_pairs",
+                        "clusters",
+                        "cluster_size_histogram",
+                        "growth_vs_census_pairs",
+                        "created_delta_s_max",
+                        "store_cos_range",
+                    )
+                },
                 "split": strata_a["report"],
                 "exclusion": "§D-б continuity NOT applied to strata A "
-                             "(single-point band cos≡1.0 — documented A2.4 exception)",
+                "(single-point band cos≡1.0 — documented A2.4 exception)",
             },
         },
         "holdout_v45": {
@@ -2656,14 +3374,14 @@ def build_manifest(runlog, base_info, train, holdout, new_rows, strata_a,
             "stratification": "label x evidence-flag x stratum (A2.5.1)",
             "draw": carve["draw"],
             "evidence_reading": "edge_ab=1 OR common_neighbors>=1 (A2.5.3, one "
-                                "reading, columns frozen at build)",
+            "reading, columns frozen at build)",
             "sidecar_agreement": evis,
             "quarantine": strata_a["report"]["quarantine"],
             "cos_to_common_max": "frozen in export columns (A2.5.5)",
             "side_overlap_flags": carve["flags_total"],
             "representation_assert": "§D extended where applicable; dup-with-"
-                                     "evidence material absent (census 0/3654) "
-                                     "— vacuous, disclosed (A2.5.6)",
+            "evidence material absent (census 0/3654) "
+            "— vacuous, disclosed (A2.5.6)",
         },
         "counts": {
             "train_rows": len(train),
@@ -2688,11 +3406,14 @@ def build_manifest(runlog, base_info, train, holdout, new_rows, strata_a,
             "holdout_v45_ids_sha256": ids_sha,
             "strata_a_snapshot": strata_a["snapshot_fp"],
         },
-        "hygiene": {"engine_detectors": True, "hits": 0,
-                    "minted_sides_scanned": len(new_rows) * 2},
+        "hygiene": {
+            "engine_detectors": True,
+            "hits": 0,
+            "minted_sides_scanned": len(new_rows) * 2,
+        },
         "determinism": "order-deterministic, seed 42, no wall-clock in content; "
-                       "strata A snapshot is a pinned fingerprinted input; "
-                       "double run byte-identical asserted",
+        "strata A snapshot is a pinned fingerprinted input; "
+        "double run byte-identical asserted",
         "disclosures": [
             "P-trans 40 rows removed and regenerated (mission directive; g3 conflict)",
             "strata A growth vs census 68: see addendum2_additions.strata_A.probe_numbers",
@@ -2712,11 +3433,15 @@ def build_manifest(runlog, base_info, train, holdout, new_rows, strata_a,
     }
     (out / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8")
+        encoding="utf-8",
+    )
     (out / "train-manifest.txt").write_bytes(manifest_bytes(entries))
     (out / "run-log.jsonl").write_text(
-        "".join(json.dumps(e, ensure_ascii=False, sort_keys=True) + "\n"
-                for e in runlog), encoding="utf-8")
+        "".join(
+            json.dumps(e, ensure_ascii=False, sort_keys=True) + "\n" for e in runlog
+        ),
+        encoding="utf-8",
+    )
     return manifest
 
 
@@ -2725,11 +3450,15 @@ def build_manifest(runlog, base_info, train, holdout, new_rows, strata_a,
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     p = argparse.ArgumentParser(prog="b2_graph_corpus_v45")
-    p.add_argument("--snapshot", required=True,
-                   help="strata A snapshot jsonl (probe output, pinned input)")
+    p.add_argument(
+        "--snapshot",
+        required=True,
+        help="strata A snapshot jsonl (probe output, pinned input)",
+    )
     p.add_argument("--out-dir", required=True)
-    p.add_argument("--store-uri", required=True,
-                   help="read-only vesma.db URI for the sidecar join")
+    p.add_argument(
+        "--store-uri", required=True, help="read-only vesma.db URI for the sidecar join"
+    )
     return p.parse_args(argv)
 
 
@@ -2744,6 +3473,7 @@ def main() -> int:
     runlog: list[dict] = []
 
     from cortex.data.store_export import make_scanner
+
     scanner = make_scanner(ENGINE_SRC)
     embed_side, embed_text, pin = make_embedder()
     log(runlog, "environment", embedder_pin=pin)
@@ -2762,40 +3492,56 @@ def main() -> int:
     dup_rows = [r for r in base_info["rows"] if r["label"] == "duplicate"]
     cell_pos: dict[str, int] = {}
     for r in dup_rows:
-        if r["similarity"] >= C7_COS_MIN and lang_match(r["record"], r["candidate"]) == 1.0:
+        if (
+            r["similarity"] >= C7_COS_MIN
+            and lang_match(r["record"], r["candidate"]) == 1.0
+        ):
             j = ch_jaccard(r["record"], r["candidate"], 5)
             for lo, hi in C7_CH5J_CELLS:
                 if lo <= j < hi:
-                    cell_pos[f"[{lo:.2f},{hi:.2f})"] = cell_pos.get(f"[{lo:.2f},{hi:.2f})", 0) + 1
+                    cell_pos[f"[{lo:.2f},{hi:.2f})"] = (
+                        cell_pos.get(f"[{lo:.2f},{hi:.2f})", 0) + 1
+                    )
     if cell_pos != CENSUS_C7_CELLS:
         refuse(f"c7 cell positive pins drifted: {cell_pos} != {CENSUS_C7_CELLS}; STOP")
-    centers = [round(NN_LOW + NN_BAND + k * NN_BAND, 3)
-               for k in range(int(round((NN_HIGH - NN_LOW) / NN_BAND)))]
+    centers = [
+        round(NN_LOW + NN_BAND + k * NN_BAND, 3)
+        for k in range(int(round((NN_HIGH - NN_LOW) / NN_BAND)))
+    ]
     pos_by_band = {f"{c:.3f}": 0 for c in centers}
     nnc_pos = 0
     for r in dup_rows:
-        if (NN_LOW <= r["similarity"] <= NN_HIGH
-                and lang_match(r["record"], r["candidate"]) == 1.0
-                and tag_jaccard(r["record"], r["candidate"]) == 1.0):
+        if (
+            NN_LOW <= r["similarity"] <= NN_HIGH
+            and lang_match(r["record"], r["candidate"]) == 1.0
+            and tag_jaccard(r["record"], r["candidate"]) == 1.0
+        ):
             nnc_pos += 1
             for c in centers:
                 if abs(r["similarity"] - c) <= NN_BAND + 1e-12:
                     pos_by_band[f"{c:.3f}"] += 1
     if nnc_pos != CENSUS_NNEAR_POS:
         refuse(f"nnc positive pins drifted: {nnc_pos} != {CENSUS_NNEAR_POS}; STOP")
-    log(runlog, "census_pins", c7_cells=cell_pos, nnc_positives=nnc_pos,
-        nnc_pos_by_band=pos_by_band)
+    log(
+        runlog,
+        "census_pins",
+        c7_cells=cell_pos,
+        nnc_positives=nnc_pos,
+        nnc_pos_by_band=pos_by_band,
+    )
 
     # additions
     tver_cands = gen_tver_candidates(runlog, minter, embed_side)
     tver_rows, tver_report = select_tver_bins(
-        runlog, tver_cands, base_info["sibling_bins"], minter, embed_side)
+        runlog, tver_cands, base_info["sibling_bins"], minter, embed_side
+    )
     envelope_asserts(runlog, tver_rows, "tver")
     c7_cands = gen_c7_candidates(runlog, minter, embed_side, clean)
     c7_rows, c7_report = select_c7_cells(runlog, c7_cands, cell_pos, minter)
     nnc_cands = gen_nnc_candidates(runlog, minter, embed_side)
     nnc_rows, nnc_report = select_nnc_bands(
-        runlog, nnc_cands, nnc_pos, pos_by_band, minter, embed_side)
+        runlog, nnc_cands, nnc_pos, pos_by_band, minter, embed_side
+    )
     strata_a = load_strata_a(runlog, minter, Path(args.snapshot))
 
     synthetic = tver_rows + c7_rows + nnc_rows
@@ -2804,12 +3550,17 @@ def main() -> int:
     disjointness_asserts(runlog, new_rows, surfaces)
 
     # probe-snapshot adjacency for the independent evidence agreement
-    adjacency: dict[str, set] = {}
+    _adjacency: dict[str, set] = {}
     snap = corpus_rows(Path(args.snapshot))
-    probe_edges = json.loads((Path(args.snapshot).parent / "strata-a-probe.json")
-                             .read_text(encoding="utf-8"))
-    log(runlog, "evidence_agreement_input", snapshot_pairs=len(snap),
-        probe_fp=probe_edges.get("snapshot_fingerprint"))
+    probe_edges = json.loads(
+        (Path(args.snapshot).parent / "strata-a-probe.json").read_text(encoding="utf-8")
+    )
+    log(
+        runlog,
+        "evidence_agreement_input",
+        snapshot_pairs=len(snap),
+        probe_fp=probe_edges.get("snapshot_fingerprint"),
+    )
     adj_ok: dict[str, tuple[int, int]] = {}
     for p in snap:
         adj_ok[p["a_store_id"]] = (0, 0)
@@ -2820,7 +3571,8 @@ def main() -> int:
         refuse(f"strata A rows unresolved at sidecar time: {evis['quarantine']}; STOP")
 
     holdout, synth_train_part, carve = carve_holdout_v45(
-        runlog, synthetic, strata_a, flags)
+        runlog, synthetic, strata_a, flags
+    )
 
     removed = {r["pair_id"] for r in base_info["p_trans"]}
     train = [r for r in base_info["rows"] if r["pair_id"] not in removed]
@@ -2829,7 +3581,9 @@ def main() -> int:
     holdout.sort(key=lambda r: r["pair_id"])
 
     # final seal asserts (BEFORE artifacts are written)
-    if len(train) != len(base_info["rows"]) - 40 + len(synth_train_part) + len(strata_a["train"]):
+    if len(train) != len(base_info["rows"]) - 40 + len(synth_train_part) + len(
+        strata_a["train"]
+    ):
         refuse("train assembly arithmetic mismatch; STOP")
     hold_ids = [r["pair_id"] for r in holdout]
     if len(set(hold_ids)) != len(hold_ids):
@@ -2837,30 +3591,66 @@ def main() -> int:
     train_ids = {r["pair_id"] for r in train}
     if any(r["pair_id"] in train_ids for r in holdout):
         refuse("train/holdout pair_id intersection; STOP")
-    log(runlog, "preseal_asserts", train_rows=len(train), holdout_rows=len(holdout),
-        all_ok=True)
+    log(
+        runlog,
+        "preseal_asserts",
+        train_rows=len(train),
+        holdout_rows=len(holdout),
+        all_ok=True,
+    )
 
-    manifest = build_manifest(runlog, base_info, train, holdout, new_rows,
-                              strata_a, tver_report, c7_report, nnc_report,
-                              carve, evis, out, args)
+    manifest = build_manifest(
+        runlog,
+        base_info,
+        train,
+        holdout,
+        new_rows,
+        strata_a,
+        tver_report,
+        c7_report,
+        nnc_report,
+        carve,
+        evis,
+        out,
+        args,
+    )
     write_jsonl(out / "train.jsonl", train)
-    write_jsonl(out / "labels-train.jsonl",
-                [{"label": v, "pair_id": k} for k, v in sorted(
-                    {r["pair_id"]: r["label"] for r in train}.items())])
+    write_jsonl(
+        out / "labels-train.jsonl",
+        [
+            {"label": v, "pair_id": k}
+            for k, v in sorted({r["pair_id"]: r["label"] for r in train}.items())
+        ],
+    )
     write_jsonl(out / "holdout.jsonl", holdout)
     (out / "holdout-ids.json").write_text(
-        json.dumps({"holdout_ids": hold_ids,
-                    "holdout_ids_sha256": manifest["fingerprints"]["holdout_v45_ids_sha256"],
-                    "holdout_fingerprint": manifest["fingerprints"]["holdout_v45_seal"]},
-                   ensure_ascii=False, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8")
+        json.dumps(
+            {
+                "holdout_ids": hold_ids,
+                "holdout_ids_sha256": manifest["fingerprints"][
+                    "holdout_v45_ids_sha256"
+                ],
+                "holdout_fingerprint": manifest["fingerprints"]["holdout_v45_seal"],
+            },
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
     # rewrite the run-log with the final events
     (out / "run-log.jsonl").write_text(
-        "".join(json.dumps(e, ensure_ascii=False, sort_keys=True) + "\n"
-                for e in runlog), encoding="utf-8")
-    print(f"[v45] DONE train={len(train)} holdout={len(holdout)} "
-          f"train_fp={manifest['fingerprints']['train_v45'][:16]}... "
-          f"holdout_seal={manifest['fingerprints']['holdout_v45_seal'][:16]}...")
+        "".join(
+            json.dumps(e, ensure_ascii=False, sort_keys=True) + "\n" for e in runlog
+        ),
+        encoding="utf-8",
+    )
+    print(
+        f"[v45] DONE train={len(train)} holdout={len(holdout)} "
+        f"train_fp={manifest['fingerprints']['train_v45'][:16]}... "
+        f"holdout_seal={manifest['fingerprints']['holdout_v45_seal'][:16]}..."
+    )
     return 0
 
 
