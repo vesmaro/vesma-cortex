@@ -1,0 +1,239 @@
+{
+  "model": "ablated",
+  "feature_names": [
+    "cos_target",
+    "char3_jaccard",
+    "char4_jaccard",
+    "char5_jaccard",
+    "char3_containment",
+    "char4_containment",
+    "char5_containment",
+    "tag_jaccard",
+    "title_len_delta",
+    "body_len_delta",
+    "tag_count_delta",
+    "type_match",
+    "lang_match"
+  ],
+  "feature_set_sha256": "dd86228f8c634f28d8a15b2d8279da1b99735d68e309be02d30f1c24698fa6af",
+  "cv_selected": {
+    "config": "d-l15-lr010",
+    "config_payload": {
+      "num_leaves": 15,
+      "learning_rate": 0.1,
+      "min_data_in_leaf": 10,
+      "seed": 1,
+      "feature_contract": [
+        "cos_target",
+        "char3_jaccard",
+        "char4_jaccard",
+        "char5_jaccard",
+        "char3_containment",
+        "char4_containment",
+        "char5_containment",
+        "tag_jaccard",
+        "title_len_delta",
+        "body_len_delta",
+        "tag_count_delta",
+        "type_match",
+        "lang_match"
+      ]
+    },
+    "ba_mean": 0.972247987128559,
+    "ba_std": 0.0015266758196863946,
+    "brier_mean": 0.024027751839110278,
+    "brier_std": 0.001211393199877892,
+    "wall_s": 5.7
+  },
+  "cv_protocol": {
+    "folds": 5,
+    "seeds": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+    ],
+    "calibration": "platt-at-final-fit-only"
+  },
+  "final_fit_wall_s": 0.3,
+  "in_sample_ba": 0.9882525697503671,
+  "in_sample_brier": 0.012563887321200855,
+  "per_stratum_in_sample": {
+    "N-fact-edit": {
+      "n": 346,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "N-far": {
+      "n": 194,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "N-metadata": {
+      "n": 205,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.23414634146341465
+    },
+    "N-near": {
+      "n": 265,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "N-para-notdup": {
+      "n": 132,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "P-cosmetic": {
+      "n": 302,
+      "dups": 302,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "P-envelope": {
+      "n": 57,
+      "dups": 57,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "P-identity": {
+      "n": 407,
+      "dups": 407,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "P-para-light": {
+      "n": 64,
+      "dups": 64,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "P-para-struct": {
+      "n": 23,
+      "dups": 23,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "P-para-sub": {
+      "n": 32,
+      "dups": 32,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "P-trans": {
+      "n": 40,
+      "dups": 40,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "R-watchlist-family": {
+      "n": 36,
+      "dups": 36,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "broken-field": {
+      "n": 31,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "control": {
+      "n": 54,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "cross-topic": {
+      "n": 16,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "edge-common": {
+      "n": 143,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "edge-direct": {
+      "n": 230,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "light": {
+      "n": 72,
+      "dups": 72,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "mint-top": {
+      "n": 143,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "near-topic": {
+      "n": 46,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "structural": {
+      "n": 37,
+      "dups": 37,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "substantial": {
+      "n": 75,
+      "dups": 75,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "template-twin": {
+      "n": 94,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    },
+    "translated-dup": {
+      "n": 144,
+      "dups": 144,
+      "ba": null,
+      "pos_rate_pred": 1.0
+    },
+    "translated-sibling": {
+      "n": 144,
+      "dups": 0,
+      "ba": null,
+      "pos_rate_pred": 0.0
+    }
+  },
+  "platt": [
+    0.7603454278937303,
+    0.32573060160257034
+  ]
+}

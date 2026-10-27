@@ -1,0 +1,31 @@
+{
+  "name": "vesma-cortex-v1",
+  "version": "1",
+  "sha256": "d90aeb54c53dc7f801c7be047c7c91a8c70d49ac99d851e3b80939761419da12",
+  "embedder_pin": "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba",
+  "corpus_fingerprint": "45ab0ae642ccf57c73393a2e097036c2f0122a41bb3d92f4e84b06b89bd8928d",
+  "trained_at": "2026-10-22T16:19:47Z",
+  "candidate": "d-boost",
+  "features": [
+    "cos_target",
+    "char3_jaccard",
+    "char4_jaccard",
+    "char5_jaccard",
+    "char3_containment",
+    "char4_containment",
+    "char5_containment",
+    "tag_jaccard",
+    "title_len_delta",
+    "body_len_delta",
+    "tag_count_delta",
+    "type_match",
+    "lang_match"
+  ],
+  "feature_set_sha256": "dd86228f8c634f28d8a15b2d8279da1b99735d68e309be02d30f1c24698fa6af",
+  "size_bytes": 216929,
+  "weights_path": "data/b2-graph-corpus/rev1n-retry/runA/model-ablated.onnx",
+  "sanity_exam": "2",
+  "revision": "1.n",
+  "variant": "ablated",
+  "cv_selected_config": "d-l15-lr010"
+}

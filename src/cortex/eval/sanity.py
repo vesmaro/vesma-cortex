@@ -65,6 +65,11 @@ from typing import Final
 import numpy as np
 
 from cortex.artifacts import CANDIDATE_D, features_digest, sha256_file
+from cortex.features.graph import (
+    GRAPH_FEATURES,
+    GraphEvidence,
+    attach_graph_features,
+)
 from cortex.features.pair import FEATURE_NAMES, FeatureVector, PairRecord, features
 
 __all__ = [
@@ -392,6 +397,20 @@ def _score_pair(session, vector: FeatureVector) -> float:
 # ── the suite ────────────────────────────────────────────────────────────────
 
 
+def _probe(session, vector: FeatureVector, graph_gated: bool) -> float:
+    """P(dup) for one probe vector.
+
+    Gated rev 1.n bundles (the composite contract) get the graph block of
+    the LEGITIMATE graph-empty evidence: the probes are synthetic and
+    store-external by construction, so production inference for such sides
+    carries zeros plus ``has_graph_evidence=false`` — the suite must grade
+    the same vector the provider would build for them.
+    """
+    if graph_gated:
+        vector = attach_graph_features(vector, GraphEvidence.zero())
+    return _score_pair(session, vector)
+
+
 def _contract_checks(
     manifest: dict, meta: dict[str, str], weights_sha: str
 ) -> list[SanityCheck]:
@@ -412,15 +431,28 @@ def _contract_checks(
     declared = tuple(manifest["features"])
     meta_features = tuple(meta.get("features", "").split("\n"))
     digest_ok = manifest.get("feature_set_sha256") == features_digest(declared)
-    order_ok = declared == FEATURE_NAMES
+    #: The frozen contract has TWO admitted orders since rev 1.n (ADR 0002,
+    #: the gated graph block): the bare 13-feature core and the gated
+    #: composite FEATURE_NAMES + GRAPH_FEATURES. Anything else — including
+    #: a permutation of either — is the #480 desync signature.
+    order_ok = declared == FEATURE_NAMES or declared == FEATURE_NAMES + GRAPH_FEATURES
+    contract_label = (
+        "frozen FEATURE_NAMES"
+        if declared == FEATURE_NAMES
+        else ("gated FEATURE_NAMES+GRAPH_FEATURES" if order_ok else "UNKNOWN ORDER")
+    )
     meta_ok = meta_features == declared
     checks.append(
         SanityCheck(
             name="feature_contract",
             passed=order_ok and meta_ok and digest_ok,
             detail=(
-                f"manifest order {'== frozen FEATURE_NAMES' if order_ok else '!= frozen FEATURE_NAMES (#480 desync signature)'}; "
-                f"ONNX metadata {'matches manifest' if meta_ok else 'differs from manifest'}; "
+                f"manifest order == {contract_label}"
+                if order_ok
+                else "manifest order != any frozen contract (#480 desync signature)"
+            )
+            + (
+                f"; ONNX metadata {'matches manifest' if meta_ok else 'differs from manifest'}; "
                 f"feature_set_sha256 {'ok' if digest_ok else 'MISMATCH'}"
             ),
         )
@@ -441,7 +473,7 @@ def _contract_checks(
     return checks
 
 
-def _adversarial_checks_v1(session) -> list[SanityCheck]:
+def _adversarial_checks_v1(session, graph_gated: bool = False) -> list[SanityCheck]:
     """The HISTORICAL one-sided exam (v1, the pre-policy generation):
     the razor-band probe demanded a POSITIVE on the near-boundary twin —
     «any cos≈0.99 twin = dup». Superseded by the ratified policy v1.1
@@ -451,7 +483,7 @@ def _adversarial_checks_v1(session) -> list[SanityCheck]:
     checks: list[SanityCheck] = []
     twin = _perturbed(PROBE_RECORD)
 
-    p_self = _score_pair(session, features(PROBE_RECORD, PROBE_RECORD, 1.0))
+    p_self = _probe(session, features(PROBE_RECORD, PROBE_RECORD, 1.0), graph_gated)
     checks.append(
         SanityCheck(
             name="self_pair",
@@ -463,7 +495,9 @@ def _adversarial_checks_v1(session) -> list[SanityCheck]:
         )
     )
 
-    p_near = _score_pair(session, features(PROBE_RECORD, twin, NEAR_BOUNDARY_COS))
+    p_near = _probe(
+        session, features(PROBE_RECORD, twin, NEAR_BOUNDARY_COS), graph_gated
+    )
     checks.append(
         SanityCheck(
             name="near_boundary",
@@ -476,8 +510,8 @@ def _adversarial_checks_v1(session) -> list[SanityCheck]:
         )
     )
 
-    p_unrelated = _score_pair(
-        session, features(PROBE_RECORD, UNRELATED_RECORD, UNRELATED_COS)
+    p_unrelated = _probe(
+        session, features(PROBE_RECORD, UNRELATED_RECORD, UNRELATED_COS), graph_gated
     )
     checks.append(
         SanityCheck(
@@ -490,7 +524,7 @@ def _adversarial_checks_v1(session) -> list[SanityCheck]:
         )
     )
 
-    ladder_ps = ladder_probabilities(session)
+    ladder_ps = ladder_probabilities(session, graph_gated=graph_gated)
     monotone = all(
         ladder_ps[i] >= ladder_ps[i + 1] - MONOTONICITY_TOLERANCE
         for i in range(len(COS_LADDER) - 1)
@@ -513,7 +547,7 @@ def _adversarial_checks_v1(session) -> list[SanityCheck]:
     return checks
 
 
-def _adversarial_checks(session) -> list[SanityCheck]:
+def _adversarial_checks(session, graph_gated: bool = False) -> list[SanityCheck]:
     """The policy-aware two-sided exam (v2, eval-methodology §10):
     the probe generation the ratified policy v1.1 entails — see the
     module docstring for the check list. Applied to bundles stamped
@@ -523,7 +557,7 @@ def _adversarial_checks(session) -> list[SanityCheck]:
     fact_twin = _fact_edited(PROBE_RECORD)
 
     # (a) self-pair — content-independent by construction (see module docstring).
-    p_self = _score_pair(session, features(PROBE_RECORD, PROBE_RECORD, 1.0))
+    p_self = _probe(session, features(PROBE_RECORD, PROBE_RECORD, 1.0), graph_gated)
     checks.append(
         SanityCheck(
             name="self_pair",
@@ -537,7 +571,9 @@ def _adversarial_checks(session) -> list[SanityCheck]:
 
     # (i) cosmetic twin (v2, ex near_boundary): the punctuation-titled twin
     # in the razor band must clear the cut (policy v1.1: cosmetic = dup).
-    p_cosmetic = _score_pair(session, features(PROBE_RECORD, twin, NEAR_BOUNDARY_COS))
+    p_cosmetic = _probe(
+        session, features(PROBE_RECORD, twin, NEAR_BOUNDARY_COS), graph_gated
+    )
     checks.append(
         SanityCheck(
             name="cosmetic_twin",
@@ -552,7 +588,9 @@ def _adversarial_checks(session) -> list[SanityCheck]:
 
     # (ii) fact-edit twin: a key-fact token replaced in the body must stay
     # BELOW the cut — the anti-dominance side of the two-valued razor zone.
-    p_fact = _score_pair(session, features(PROBE_RECORD, fact_twin, FACT_EDIT_COS))
+    p_fact = _probe(
+        session, features(PROBE_RECORD, fact_twin, FACT_EDIT_COS), graph_gated
+    )
     checks.append(
         SanityCheck(
             name="fact_edit_twin",
@@ -567,9 +605,10 @@ def _adversarial_checks(session) -> list[SanityCheck]:
 
     # (iii) envelope-variant: an envelope-only delta (feature-degenerate by
     # contract, see _envelope_variant) must grade dup.
-    p_env = _score_pair(
+    p_env = _probe(
         session,
         features(PROBE_RECORD, _envelope_variant(PROBE_RECORD), ENVELOPE_VARIANT_COS),
+        graph_gated,
     )
     checks.append(
         SanityCheck(
@@ -585,8 +624,8 @@ def _adversarial_checks(session) -> list[SanityCheck]:
     )
 
     # (c) unrelated: different topic at the #480 probe cosine must stay below.
-    p_unrelated = _score_pair(
-        session, features(PROBE_RECORD, UNRELATED_RECORD, UNRELATED_COS)
+    p_unrelated = _probe(
+        session, features(PROBE_RECORD, UNRELATED_RECORD, UNRELATED_COS), graph_gated
     )
     checks.append(
         SanityCheck(
@@ -604,7 +643,8 @@ def _adversarial_checks(session) -> list[SanityCheck]:
     # asserted; outside the zone P must be non-increasing (operationally
     # P(0.95) ≥ P(0.8) ≥ P(0.5)).
     ladder_ps = [
-        _score_pair(session, features(PROBE_RECORD, twin, cos)) for cos in COS_LADDER
+        _probe(session, features(PROBE_RECORD, twin, cos), graph_gated)
+        for cos in COS_LADDER
     ]
     monotone = True
     for i in range(len(COS_LADDER) - 1):
@@ -657,10 +697,11 @@ def run_sanity_suite(bundle: Path) -> SanityReport:
     meta = dict(session.get_modelmeta().custom_metadata_map)
 
     checks = _contract_checks(manifest, meta, weights_sha)
+    graph_gated = tuple(manifest["features"]) == FEATURE_NAMES + GRAPH_FEATURES
     checks.extend(
-        _adversarial_checks(session)
+        _adversarial_checks(session, graph_gated)
         if exam == EXAM_V2
-        else _adversarial_checks_v1(session)
+        else _adversarial_checks_v1(session, graph_gated)
     )
     return SanityReport(
         bundle=str(model_path),
@@ -687,10 +728,11 @@ def _exam_cohort(manifest: dict, manifest_path: Path) -> str:
     )
 
 
-def ladder_probabilities(session) -> Sequence[float]:
+def ladder_probabilities(session, graph_gated: bool = False) -> Sequence[float]:
     """Expose the monotonicity ladder's raw probabilities (used by tests and
     by the post-adopt diagnosis flow — the shape of the P(cos) response)."""
     twin = _perturbed(PROBE_RECORD)
     return [
-        _score_pair(session, features(PROBE_RECORD, twin, cos)) for cos in COS_LADDER
+        _probe(session, features(PROBE_RECORD, twin, cos), graph_gated)
+        for cos in COS_LADDER
     ]

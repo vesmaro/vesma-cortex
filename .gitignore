@@ -82,3 +82,10 @@ __pycache__/
 # embed-r7 generation venv (own venv, isolation rule — never another
 # product's env; mirrors /.venv-r4gen/)
 /.venv-r7gen/
+
+# b2-graph corpus (v4.4 candidate pool, slice-1): numbers-only artifacts —
+# README, coverage, run-log, quota proposal, silver sample metadata, pair
+# manifest (pair_id + sha256). Pool sides/texts stay gitignored under
+# data/b2-graph-corpus/ (store-derived content, same rule as embed waves).
+!/datasets/b2-graph/
+!/datasets/b2-graph/**

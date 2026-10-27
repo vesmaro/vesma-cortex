@@ -1,0 +1,23 @@
+{
+  "models": {
+    "full": {
+      "model": "full",
+      "weights_sha256": "84bcfb8c267caa5df4fbea1ed221217f004eba347deb8dc4dc9e842390e0e6a1",
+      "feature_set_sha256": "d4a89769036b7c17949c95a43f0785e9d79173b09d3a17637f93053003706550",
+      "cv_best": "d-l15-lr010",
+      "onnx": "data/b2-graph-corpus/rev1n-retry/runA/model-full.onnx"
+    },
+    "ablated": {
+      "model": "ablated",
+      "weights_sha256": "d90aeb54c53dc7f801c7be047c7c91a8c70d49ac99d851e3b80939761419da12",
+      "feature_set_sha256": "dd86228f8c634f28d8a15b2d8279da1b99735d68e309be02d30f1c24698fa6af",
+      "cv_best": "d-l15-lr010",
+      "onnx": "data/b2-graph-corpus/rev1n-retry/runA/model-ablated.onnx"
+    }
+  },
+  "wall_s": 50.3,
+  "maxrss_mb": 543.5,
+  "corpus_fingerprint": "45ab0ae642ccf57c73393a2e097036c2f0122a41bb3d92f4e84b06b89bd8928d",
+  "sidecar": "data/b2-graph-corpus/rev1n/graph-sidecar-train.jsonl",
+  "python": "3.12.13"
+}

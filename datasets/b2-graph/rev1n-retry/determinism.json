@@ -1,0 +1,24 @@
+{
+  "double_run_determinism": {
+    "full_booster_sha256_runA": "221fb13c96c98e5c2b8caa6c515336478e53d90a94d5d698ce472657668c5d07",
+    "full_booster_sha256_runB": "221fb13c96c98e5c2b8caa6c515336478e53d90a94d5d698ce472657668c5d07",
+    "ablated_booster_sha256_runA": "b745cfea513f5b5f69bef837c4d3c8eaf5361bdd4c5225a826bb28f2d2ef0397",
+    "ablated_booster_sha256_runB": "b745cfea513f5b5f69bef837c4d3c8eaf5361bdd4c5225a826bb28f2d2ef0397",
+    "booster_txt_byte_identical": true,
+    "holdout_predictions_byte_identical": true,
+    "run_logs_identical_modulo_wall_time": true,
+    "onnx_sha256_differs_only_in_trained_at_metadata": {
+      "full_runA": "84bcfb8c267caa5df4fbea1ed221217f004eba347deb8dc4dc9e842390e0e6a1",
+      "full_runB": "99637c3b8b1a4bb1d42795114887e3bdccbf49bd03bdf2d0bf89f990a68f95b1",
+      "ablated_runA": "d90aeb54c53dc7f801c7be047c7c91a8c70d49ac99d851e3b80939761419da12",
+      "ablated_runB": "af6080746dae5c1d277517c9923b4542f4fc7736fca0324f3e8aab6eec63c79a"
+    }
+  },
+  "wall_time": {
+    "runA_train_s": 50.3,
+    "runB_train_s": 50.3,
+    "gate_run_s": 5.3,
+    "maxrss_mb_runA": 543.5,
+    "maxrss_mb_runB": 543.2
+  }
+}

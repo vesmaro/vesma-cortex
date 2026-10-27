@@ -1,0 +1,31 @@
+{
+  "graph_evidence_rate": 0.0972,
+  "join_methods": {
+    "content-ambiguous": 33,
+    "content-exact": 2668,
+    "none": 3058,
+    "source_id": 905,
+    "source_id-unresolved": 235
+  },
+  "out": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/b2-graph-corpus/data/b2-graph-corpus/rev1n/graph-sidecar-train.jsonl",
+  "pairs_total": 3332,
+  "pairs_with_graph_evidence": 324,
+  "pairs_without_store_sides": 1933,
+  "seconds": 0.8,
+  "sidecar_fingerprint": "a03e75d438bc238a64729455af3cafdb3b9ba465dc7615bdb0bf9895c9c722e9",
+  "store": {
+    "bad_vectors": 0,
+    "content_drift": 0,
+    "edges_dangling": 0,
+    "edges_total": 1137,
+    "memories": 3885,
+    "neighbor_vectors_missing": 0,
+    "vectors": 3860
+  },
+  "strata_with_evidence": {
+    "edge-common": 107,
+    "edge-direct": 197,
+    "mint-top": 12,
+    "template-twin": 8
+  }
+}

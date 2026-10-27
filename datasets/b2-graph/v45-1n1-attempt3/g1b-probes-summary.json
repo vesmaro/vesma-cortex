@@ -1,0 +1,151 @@
+{
+  "probe_scaffolds": [
+    "S24"
+  ],
+  "train_used_scaffolds": [
+    "S01",
+    "S02",
+    "S03",
+    "S04",
+    "S05",
+    "S06",
+    "S07",
+    "S08",
+    "S09",
+    "S10",
+    "S11",
+    "S12",
+    "S13",
+    "S14",
+    "S15",
+    "S16",
+    "S17",
+    "S18",
+    "S19",
+    "S20",
+    "S21",
+    "S22",
+    "S23",
+    "S25",
+    "S26",
+    "S27",
+    "S28",
+    "S29",
+    "S30"
+  ],
+  "scaffold_disjointness": "asserted (probe scaffolds ∩ train-used = ∅)",
+  "scaffold_source": "SCAFFOLDS (frozen builder library), same generator recipe",
+  "embedder_pin": "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba",
+  "counts": {
+    "paradup": 32,
+    "factedit": 24,
+    "xlangdup": 16,
+    "xlangsib": 8
+  },
+  "total": 80,
+  "similarity_stats": {
+    "paradup": {
+      "n": 32,
+      "cos_min": 0.957597,
+      "cos_max": 0.990507,
+      "cos_mean": 0.975694
+    },
+    "factedit": {
+      "n": 24,
+      "cos_min": 0.992467,
+      "cos_max": 0.995209,
+      "cos_mean": 0.994111
+    },
+    "xlangdup": {
+      "n": 16,
+      "cos_min": 0.750042,
+      "cos_max": 0.768065,
+      "cos_mean": 0.753293
+    },
+    "xlangsib": {
+      "n": 8,
+      "cos_min": 0.751271,
+      "cos_max": 0.808527,
+      "cos_mean": 0.776871
+    }
+  },
+  "regime": "NA fix 2026-10-23: full A2.2 machinery on xlang legs (tails both sides / band-paired sib), §D shadow gates xlang legs",
+  "shadow_assert": {
+    "xlangdup": {
+      "stratum_n": 98,
+      "ranges": {
+        "ch3c": [
+          0.013761467889908258,
+          0.11801242236024845
+        ],
+        "bld": [
+          1.0,
+          74.0
+        ],
+        "tld": [
+          1.0,
+          9.0
+        ]
+      },
+      "n_probes": 16,
+      "status": "all in range (gating)"
+    },
+    "xlangsib": {
+      "stratum_n": 36,
+      "ranges": {
+        "ch3c": [
+          0.0,
+          0.0979020979020979
+        ],
+        "bld": [
+          8.0,
+          63.0
+        ],
+        "tld": [
+          0.0,
+          10.0
+        ]
+      },
+      "n_probes": 8,
+      "status": "all in range (gating)"
+    },
+    "paradup": {
+      "stratum_n": 1195,
+      "ranges": {
+        "ch3c": [
+          0.9032258064516129,
+          1.0
+        ],
+        "bld": [
+          0.0,
+          9.0
+        ],
+        "tld": [
+          0.0,
+          1.0
+        ]
+      },
+      "n_probes": 32,
+      "status": "8/32 in range (report-only)"
+    },
+    "factedit": {
+      "stratum_n": 928,
+      "ranges": {
+        "ch3c": [
+          0.9523809523809523,
+          1.0
+        ],
+        "bld": [
+          0.0,
+          2.0
+        ],
+        "tld": [
+          0.0,
+          0.0
+        ]
+      },
+      "n_probes": 24,
+      "status": "16/24 in range (report-only)"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "vesma-cortex-v1",
+  "version": "1",
+  "sha256": "25d4ebeafd405a19f1ad90d291c707729c1a92790ef3f5cd3fc537a700210870",
+  "embedder_pin": "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba",
+  "corpus_fingerprint": "3bf7ed53e1dbf9092ec1e557c539b6fedd202ffd8fdbe9798643e2f6fc828a70",
+  "train_fingerprint": "3bf7ed53e1dbf9092ec1e557c539b6fedd202ffd8fdbe9798643e2f6fc828a70",
+  "labels_fingerprint": "cad44ab10797c507f090fa2998b6dfc5edfc63f30a892506eadc75e4e98fdaac",
+  "trained_at": "2026-10-23T08:52:50Z",
+  "candidate": "d-boost",
+  "features": [
+    "cos_target",
+    "char3_jaccard",
+    "char4_jaccard",
+    "char5_jaccard",
+    "char3_containment",
+    "char4_containment",
+    "char5_containment",
+    "tag_jaccard",
+    "title_len_delta",
+    "body_len_delta",
+    "tag_count_delta",
+    "type_match",
+    "lang_match"
+  ],
+  "feature_set_sha256": "dd86228f8c634f28d8a15b2d8279da1b99735d68e309be02d30f1c24698fa6af",
+  "size_bytes": 216929,
+  "weights_path": "data/b2-graph-corpus/v45/run-rev1n1-a/model-ablated.onnx",
+  "sanity_exam": "2",
+  "revision": "1.n+1",
+  "variant": "ablated",
+  "cv_selected_config": "d-l15-lr010"
+}

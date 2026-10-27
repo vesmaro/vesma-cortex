@@ -1,0 +1,33 @@
+{
+  "attempt": 2,
+  "booster_txt": {
+    "full_a": "7e9cacb4d62fa6a4006b9ff0d60e03b71b7b3e095d414a417cd6877aba68a6a6",
+    "full_b": "7e9cacb4d62fa6a4006b9ff0d60e03b71b7b3e095d414a417cd6877aba68a6a6",
+    "ablated_a": "a7721923404be6c9476f499dffc4beb071ae1295d8ed726818c04efc0c5af6e3",
+    "ablated_b": "a7721923404be6c9476f499dffc4beb071ae1295d8ed726818c04efc0c5af6e3"
+  },
+  "byte_continuity_vs_attempt1": {
+    "full": true,
+    "ablated": true
+  },
+  "attempt1_booster_sha": {
+    "full": "7e9cacb4d62fa6a4006b9ff0d60e03b71b7b3e095d414a417cd6877aba68a6a6",
+    "ablated": "a7721923404be6c9476f499dffc4beb071ae1295d8ed726818c04efc0c5af6e3"
+  },
+  "onnx_sha": {
+    "full_a": "9d041a63ad6f2be42b83309901397c42983e02c8f9f7414512d645ceb596ca16",
+    "ablated_a": "a56dd601dc1e4c08c7b6bb9ac2dfbf0bf16a1b2e7dfdb0cecaf5d698bb7b9d1c",
+    "full_b": "f948352a76b02efa7138f14625baedd09b4661c60602e7f35e0f41abc81ddff9",
+    "ablated_b": "eadcc9d0aefc46760da28f9e1fe1b6f0f9b48e183a2d5483ddb59b15789e0534"
+  },
+  "onnx_note": "A != B only by the trained_at stamp (rev1n convention, attempt-1 lesson); the booster contract is byte-identical",
+  "g1b_probes_sha256_vs_attempt1": {
+    "identical": true,
+    "sha256": "ab15b4989bb581cf95ac6c00ec0148070cd46a61f56e79685d373065f6b32418"
+  },
+  "predictions_read": "not applicable \u2014 pre-gate abort; run-b models were not read this cycle",
+  "booster_txt_all_four_identical": {
+    "full": "7e9cacb4d62fa6a4006b9ff0d60e03b71b7b3e095d414a417cd6877aba68a6a6",
+    "ablated": "a7721923404be6c9476f499dffc4beb071ae1295d8ed726818c04efc0c5af6e3"
+  }
+}

@@ -1,0 +1,16 @@
+{
+  "verdict": "ABORT — pre-gate red: sealed artifacts not read",
+  "gates": [
+    {
+      "gate": "g1",
+      "what": "sanity suite v2, BOTH models",
+      "required": "9/9 on full AND ablated",
+      "measured": {
+        "model-full": "9/9",
+        "model-ablated": "8/9"
+      },
+      "pass": false
+    }
+  ],
+  "wall_s": 0.1
+}

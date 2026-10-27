@@ -1,0 +1,17 @@
+{"event": "sanity", "ts": "2026-10-22T16:28:26Z", "bundle": "model-full.onnx", "passed": true, "n_checks": 9, "failed": []}
+{"event": "sanity", "ts": "2026-10-22T16:28:26Z", "bundle": "model-ablated.onnx", "passed": true, "n_checks": 9, "failed": []}
+{"event": "corpus_verify", "ts": "2026-10-22T16:28:29Z", "exit": 0, "line": "", "exit_r2": 0, "line_r2": "[verify-r2] OK: 40 checks passed"}
+{"event": "disjointness", "ts": "2026-10-22T16:28:30Z", "holdout_v44_vs_train": true, "v42_276_vs_v44_train": true, "v42_276_vs_v44_holdout": true}
+{"event": "sidecar", "ts": "2026-10-22T16:28:30Z", "tag": "holdout-v44", "fingerprint": "feab259c43a89b1448b42b5e563d08ed7d444b76c4339910fc70c911a62e0b37", "evidence_pairs": 10}
+{"event": "sidecar", "ts": "2026-10-22T16:28:30Z", "tag": "v42-276", "fingerprint": "5fce766bd178610cfd6fe9008c97163711c6e8e7c5d6b2a7eae0d82383d4ea34", "evidence_pairs": 0}
+{"event": "infra_failure_holdout_read_1", "ts": "2026-10-22T16:28:41Z", "what": "phase5 crashed on OnnxScorer batch rank-2 feed vs float32[K] single-pair export contract; NO probabilities computed, NO gate numbers produced, holdout content read but zero eval signal emitted; fix: row-by-row scoring (sanity._score_pair path); retry disclosed as holdout_reads=2"}
+{"event": "sanity", "ts": "2026-10-22T16:30:24Z", "bundle": "model-full.onnx", "passed": true, "n_checks": 9, "failed": []}
+{"event": "sanity", "ts": "2026-10-22T16:30:24Z", "bundle": "model-ablated.onnx", "passed": true, "n_checks": 9, "failed": []}
+{"event": "corpus_verify", "ts": "2026-10-22T16:30:27Z", "exit": 0, "line": "", "exit_r2": 0, "line_r2": "[verify-r2] OK: 40 checks passed"}
+{"event": "disjointness", "ts": "2026-10-22T16:30:28Z", "holdout_v44_vs_train": true, "v42_276_vs_v44_train": true, "v42_276_vs_v44_holdout": true}
+{"event": "sidecar", "ts": "2026-10-22T16:30:28Z", "tag": "holdout-v44", "fingerprint": "feab259c43a89b1448b42b5e563d08ed7d444b76c4339910fc70c911a62e0b37", "evidence_pairs": 10}
+{"event": "sidecar", "ts": "2026-10-22T16:30:28Z", "tag": "v42-276", "fingerprint": "5fce766bd178610cfd6fe9008c97163711c6e8e7c5d6b2a7eae0d82383d4ea34", "evidence_pairs": 0}
+{"event": "holdout_read_once", "ts": "2026-10-22T16:30:29Z", "n": 75}
+{"event": "v42_read", "ts": "2026-10-22T16:30:29Z", "n": 276}
+{"event": "determinism", "ts": "2026-10-22T16:30:30Z", "full_byte_identical": true, "ablated_byte_identical": true, "booster_txt_identical": true}
+{"event": "gate_done", "ts": "2026-10-22T16:30:30Z", "verdict": "FAIL", "wall_s": 5.3}

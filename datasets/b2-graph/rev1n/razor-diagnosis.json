@@ -1,0 +1,66 @@
+{
+ "slice": "b2-graph rev 1.n — slice-3",
+ "date": "2026-10-22",
+ "prereg": "docs/specs/b2-graph-prereg-v3.md (ACTIVATED)",
+ "g1_result": {
+  "full": {
+   "checks": "7/9",
+   "failed": [
+    "fact_edit_twin",
+    "monotonicity"
+   ],
+   "fact_edit_twin": 0.7205,
+   "required": "< 0.5",
+   "ladder": [
+    0.9988,
+    0.9994,
+    0.9997,
+    0.9998,
+    0.9569
+   ]
+  },
+  "ablated": {
+   "checks": "7/9",
+   "failed": [
+    "fact_edit_twin",
+    "monotonicity"
+   ],
+   "fact_edit_twin": 0.7205
+  },
+  "holdout": "NOT READ (discipline: red suite = holdout untouched, b2p-v41 precedent)"
+ },
+ "diagnosis": {
+  "instrument_clean": "adopted B2-v42 bundle re-passes 9/9 under the same suite code (fact_edit 0.0784)",
+  "determinism_clean": "runA/runB: booster.txt byte-identical both models; run-logs identical sans ts",
+  "corpus_sealed": "train fp 0463413e…, holdout fp a9760d1f… re-verified = seal; corpus fp 45ab0ae6…",
+  "findings": [
+   "ALL 4 usable grid points on full v44 fail fact_edit_twin (0.59-0.85): config-independent",
+   "legacy v4.3 base only (2378 rows) also fails on 3/4 grid points (0.47-0.81): the failure is corpus-geometric, not injection- or graph-caused",
+   "removing graph strata WORSENS fact_edit (0.8892): the graph block helps, does not hurt",
+   "in-sample geometry is perfectly learned (N-fact-edit pred rate 0.0, P-identity 1.0, in-sample BA 0.9883): the razor PROBE (cos 0.99) sits BELOW the train N-fact-edit cosine range (0.9939-0.9964) — an interpolation point, and the boundary is non-monotonic there",
+   "razor sub-zone census (cos>=0.95, tag_jaccard=1.0): 854 positives vs 572 negatives — the near-identical-dup mass (P-identity 407 incl. legacy + T0 286) dominates the sub-zone; B2-v42 passed because it was trained on dataset-v4.2 train-824 (824 rows, d-l7-lr005) — a different, small razor geometry (models/vesma-cortex-v1 MODEL_CARD)"
+  ],
+  "n_fact_edit_cosine_range": [
+   0.985363,
+   1.0
+  ],
+  "probe_cosine": 0.99
+ },
+ "verdict": "REJECT per prereg v3 g1 (hard): revision 1.n is NOT released; g2-g6 NOT RUN",
+ "artifacts": {
+  "full_onnx_sha256": "91f17018ed28292ba3404f5a7e4f51728ad847266e19c0c630cc9272baaa8117",
+  "ablated_onnx_sha256": "f4968f8ed9814695c105a23bd309ea5415e7b3c4d08e53d3edd6661ec1532df1",
+  "feature_set_sha256_full": "d4a89769036b7c17949c95a43f0785e9d79173b09d3a17637f93053003706550",
+  "feature_set_sha256_ablated": "dd86228f8c634f28d8a15b2d8279da1b99735d68e309be02d30f1c24698fa6af",
+  "corpus_fingerprint": "45ab0ae642ccf57c73393a2e097036c2f0122a41bb3d92f4e84b06b89bd8928d",
+  "sidecar_train_fingerprint": "a03e75d438bc238a64729455af3cafdb3b9ba465dc7615bdb0bf9895c9c722e9",
+  "cv_selected": "d-l15-lr010 (both models, frozen CV 5x20, pre-calibration)",
+  "wall": {
+   "train_runA_s": 51.6,
+   "train_runB_s": 46.7,
+   "sidecar_train_s": 1.1,
+   "gate_s": 0.25,
+   "maxrss_mb": 443.9
+  }
+ }
+}

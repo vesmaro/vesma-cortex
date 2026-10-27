@@ -1,0 +1,33 @@
+{
+  "attempt": 3,
+  "booster_txt": {
+    "full_a": "7e9cacb4d62fa6a4006b9ff0d60e03b71b7b3e095d414a417cd6877aba68a6a6",
+    "full_b": "7e9cacb4d62fa6a4006b9ff0d60e03b71b7b3e095d414a417cd6877aba68a6a6",
+    "ablated_a": "a7721923404be6c9476f499dffc4beb071ae1295d8ed726818c04efc0c5af6e3",
+    "ablated_b": "a7721923404be6c9476f499dffc4beb071ae1295d8ed726818c04efc0c5af6e3"
+  },
+  "byte_continuity_vs_attempt1": {
+    "full": true,
+    "ablated": true
+  },
+  "attempt1_booster_sha": {
+    "full": "7e9cacb4d62fa6a4006b9ff0d60e03b71b7b3e095d414a417cd6877aba68a6a6",
+    "ablated": "a7721923404be6c9476f499dffc4beb071ae1295d8ed726818c04efc0c5af6e3"
+  },
+  "onnx_sha": {
+    "full_a": "4fa3dd93f03040d9df77cb185a1626485e0642db47edeaea5f0686600ac88a9b",
+    "ablated_a": "772c6ba1bed2e212a3925477c63a119c5ebc0993a6a2d4df0655abf443520ac7",
+    "full_b": "41f6b4d65b2489eb4059b24d8ba20bf6830b05a6aa5998178ed77932b17497e5",
+    "ablated_b": "9390c29da3566a3ca7129ddd3299954413e664ceb6a87d0e987ba77b3550e313"
+  },
+  "onnx_note": "A != B only by the trained_at stamp (rev1n convention); booster contract byte-identical",
+  "g1b_probes_attempt3": {
+    "sha256": "82dbff7b91519862cdafa1a39a2cd2fae7bb6ee37ae4cda853fe2daf1d5e381f",
+    "note": "NEW probe set (NA fix, commit 9a72655): 80 probes, S24, 32/24/16/8; xlang legs §D-gated all-in-range; byte-identical to the /tmp pre-run test"
+  },
+  "predictions_read": "not applicable — pre-gate abort at g1b; run-b models were not read this cycle",
+  "booster_txt_all_four_identical": {
+    "full": "7e9cacb4d62fa6a4006b9ff0d60e03b71b7b3e095d414a417cd6877aba68a6a6",
+    "ablated": "a7721923404be6c9476f499dffc4beb071ae1295d8ed726818c04efc0c5af6e3"
+  }
+}

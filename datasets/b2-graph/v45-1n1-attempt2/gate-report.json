@@ -1,0 +1,68 @@
+{
+  "verdict": "ABORT — pre-gate red: sealed artifacts not read",
+  "gates": [
+    {
+      "gate": "g1",
+      "what": "sanity suite v2, BOTH models (A3.1 plateau rule)",
+      "required": "9/9 on full AND ablated under ADDENDUM-3 A3.1 (raw ladders + per-step tolerances in sanity-*.json)",
+      "measured": {
+        "model-full": {
+          "checks_production_suite": "9/9",
+          "under_a3_1": "9/9",
+          "raw_ladder": {
+            "1.0": 0.9996991157531738,
+            "0.99": 0.9987173080444336,
+            "0.95": 0.9996956586837769,
+            "0.8": 0.9996558427810669,
+            "0.5": 0.9654698371887207
+          },
+          "step_tolerances": {
+            "1.0->0.99": "uncontrolled",
+            "0.99->0.95": "uncontrolled",
+            "0.95->0.8": 0.0001,
+            "0.8->0.5": 1e-06
+          }
+        },
+        "model-ablated": {
+          "checks_production_suite": "8/9",
+          "under_a3_1": "9/9",
+          "raw_ladder": {
+            "1.0": 0.9996964931488037,
+            "0.99": 0.9994359016418457,
+            "0.95": 0.999817430973053,
+            "0.8": 0.9998288750648499,
+            "0.5": 0.983472466468811
+          },
+          "step_tolerances": {
+            "1.0->0.99": "uncontrolled",
+            "0.99->0.95": "uncontrolled",
+            "0.95->0.8": 0.0001,
+            "0.8->0.5": 1e-06
+          }
+        }
+      },
+      "pass": true
+    },
+    {
+      "gate": "g1b",
+      "what": "flora of unseen scaffolds (A2.6), both models",
+      "required": "paradup: P(dup) >= 0.95; factedit: P(dup) < 0.5; xlangdup: P(dup) >= 0.5; xlangsib: P(dup) < 0.5",
+      "measured": {
+        "full": {
+          "paradup": 0.977632,
+          "factedit": 0.019464,
+          "xlangdup": 0.026049,
+          "xlangsib": 0.957695
+        },
+        "ablated": {
+          "paradup": 0.980299,
+          "factedit": 0.024989,
+          "xlangdup": 0.024613,
+          "xlangsib": 0.924428
+        }
+      },
+      "pass": false
+    }
+  ],
+  "wall_s": 0.1
+}

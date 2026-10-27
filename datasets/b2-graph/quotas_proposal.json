@@ -1,0 +1,127 @@
+{
+  "empirical_finding": "graph stratum contains 0 mechanical dup-silver pairs (sifter self-test: negative-confirmation strong, dup verdicts low-precision) — all-negative stratum; 46/54 needs positive injection pinned by pre-gate v3",
+  "negative_split": {
+    "control": 0.1,
+    "edge-common": 0.25,
+    "edge-direct": 0.4,
+    "mint-top": 0.25
+  },
+  "note": "pool-level quota pinning belongs to pre-gate v3 (owner ratification); these are feasibility-checked proposals, not a sealed corpus",
+  "population_available": {
+    "control": 5000,
+    "edge-common": 801,
+    "edge-direct": 1139,
+    "mint-top": 1714
+  },
+  "seed": 42,
+  "variants": {
+    "graph-stratum-400": {
+      "allocation": {
+        "control": 40,
+        "edge-common": 100,
+        "edge-direct": 160,
+        "mint-top": 100
+      },
+      "components_covered": 24,
+      "components_total": 48,
+      "feasible": true,
+      "label_mix": {
+        "duplicate": 0,
+        "not-duplicate": 400
+      },
+      "per_component_cap": 60,
+      "pool_level_class_consequence": {
+        "dup_share_after": 0.3588,
+        "dups_needed_for_4654": 357,
+        "positive_injection_source": "pre-gate v3 decision (T0/T1 synthesis per policy §4 or LLM §8 pass over mint-top)",
+        "universe_after": {
+          "duplicate": 1267,
+          "total": 3531
+        },
+        "universe_before": {
+          "duplicate": 1267,
+          "total": 3131
+        }
+      },
+      "stratum_label_semantics": {
+        "control": "not-duplicate (no graph evidence)",
+        "edge-common": "not-duplicate (silver §8, 30-pair double-check)",
+        "edge-direct": "not-duplicate (HARD NEG, silver: edge provenance auto-dedupe)",
+        "mint-top": "not-duplicate razor-zone T3-class (silver §8 mechanical; 0 dup-silver found)"
+      },
+      "total": 400
+    },
+    "graph-stratum-600": {
+      "allocation": {
+        "control": 60,
+        "edge-common": 150,
+        "edge-direct": 240,
+        "mint-top": 150
+      },
+      "components_covered": 28,
+      "components_total": 48,
+      "feasible": true,
+      "label_mix": {
+        "duplicate": 0,
+        "not-duplicate": 600
+      },
+      "per_component_cap": 90,
+      "pool_level_class_consequence": {
+        "dup_share_after": 0.3396,
+        "dups_needed_for_4654": 449,
+        "positive_injection_source": "pre-gate v3 decision (T0/T1 synthesis per policy §4 or LLM §8 pass over mint-top)",
+        "universe_after": {
+          "duplicate": 1267,
+          "total": 3731
+        },
+        "universe_before": {
+          "duplicate": 1267,
+          "total": 3131
+        }
+      },
+      "stratum_label_semantics": {
+        "control": "not-duplicate (no graph evidence)",
+        "edge-common": "not-duplicate (silver §8, 30-pair double-check)",
+        "edge-direct": "not-duplicate (HARD NEG, silver: edge provenance auto-dedupe)",
+        "mint-top": "not-duplicate razor-zone T3-class (silver §8 mechanical; 0 dup-silver found)"
+      },
+      "total": 600
+    },
+    "graph-stratum-800": {
+      "allocation": {
+        "control": 80,
+        "edge-common": 200,
+        "edge-direct": 320,
+        "mint-top": 200
+      },
+      "components_covered": 30,
+      "components_total": 48,
+      "feasible": true,
+      "label_mix": {
+        "duplicate": 0,
+        "not-duplicate": 800
+      },
+      "per_component_cap": 120,
+      "pool_level_class_consequence": {
+        "dup_share_after": 0.3223,
+        "dups_needed_for_4654": 541,
+        "positive_injection_source": "pre-gate v3 decision (T0/T1 synthesis per policy §4 or LLM §8 pass over mint-top)",
+        "universe_after": {
+          "duplicate": 1267,
+          "total": 3931
+        },
+        "universe_before": {
+          "duplicate": 1267,
+          "total": 3131
+        }
+      },
+      "stratum_label_semantics": {
+        "control": "not-duplicate (no graph evidence)",
+        "edge-common": "not-duplicate (silver §8, 30-pair double-check)",
+        "edge-direct": "not-duplicate (HARD NEG, silver: edge provenance auto-dedupe)",
+        "mint-top": "not-duplicate razor-zone T3-class (silver §8 mechanical; 0 dup-silver found)"
+      },
+      "total": 800
+    }
+  }
+}

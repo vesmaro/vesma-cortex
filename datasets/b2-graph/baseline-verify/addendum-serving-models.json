@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "what": "TL addendum to baseline-verify — the serving-model layer (owner question 25.10: 'is the base honest?')",
+  "method": "same instrument as the main verification (build_dataset + OnnxScorer + _metrics, attempt-4 g3 path), same exam (holdout-276), same sidecar; scored personally by TL (D503 escape after 3 failed dispatches), CSVs recomputed independently",
+  "csv_recompute_confirmation": {
+    "prod_ba": 0.966225,
+    "cand_full_ba": 0.90625,
+    "cand_ablated_ba": 0.90625,
+    "note": "recomputed from per-pair CSVs independently — matches verification-report.json exactly"
+  },
+  "all_generations_on_holdout276_today": {
+    "original_0ba71960_0930": {"ba": 0.5508, "sens": 0.7986, "spec": 0.303, "brier": 0.4303, "fn": 29, "fp": 92},
+    "a5_bundle_281bd0fd_1001": {"ba": 0.5647, "sens": 0.8264, "spec": 0.303, "brier": 0.3873, "fn": 25, "fp": 92},
+    "b1_SERVING_beb0a65d_1001": {"ba": 0.5473, "sens": 0.7917, "spec": 0.303, "brier": 0.4409, "fn": 30, "fp": 92},
+    "v42_adopted_00fc6b71_1005": {"ba": 0.9662, "sens": 0.9931, "spec": 0.9394, "brier": 0.0329, "fn": 1, "fp": 8},
+    "cand_rejected_4fa3dd93_1023": {"ba": 0.9062, "sens": 0.8958, "spec": 0.9167, "brier": 0.0851, "fn": 15, "fp": 11}
+  },
+  "serving_verification": {
+    "engine_main": "vesma/src/vesma/models/vesma-cortex-v1/model.onnx sha256=beb0a65d… (= B1)",
+    "worktrees": "lm-adr, b0-seam, vit-g0-gates — same beb0a65d",
+    "conclusion": "the engine ships B1; status.md 'прод остаётся B1, выкат после B0-вердикта (16.10)' confirmed at artifact level",
+    "context_recorded": "calibration-b2p criterion 6: B1 like-for-like (release-v2) = 0.7079 — different protocol from raw holdout-276"
+  },
+  "regression_mechanism": {
+    "v4_trans_dups_in_exam": 15,
+    "v42_missed": "0/15",
+    "candidate_missed": "12/15 (P(dup)≈0.0003 vs v42 P(dup)≈0.995)",
+    "cand_full_vs_ablated": "BA identical 0.90625, 4 pred flips — graph features contribute 0 on this surface (zero-evidence rows)",
+    "conclusion": "the candidate's regression is entirely the translated-duplicate axis (v4.5 train taught P≈0 NOT-dup on TRANS pairs); matches the known 22.10 rev-1.n 'conflict of generations translated families' defect class"
+  },
+  "verdicts": {
+    "baseline_honest": true,
+    "instrument_fair_same_for_both": true,
+    "reject_of_candidate_stands": true,
+    "deployment_lineage_stalled": "v42 (0.9662) adopted 05.10, deploy condition 'after B0 verdict' fired 19.10, never deployed; prod serves B1 (0.55 on this exam); even the rejected candidate (0.91) >> serving B1"
+  },
+  "identity_resolutions": {
+    "true_v42": "wt/b2-graph-corpus/models/vesma-cortex-v1/model.onnx sha=00fc6b71… (matches the recorded pin exactly; trained_at 2026-10-05T16:28:27Z, 1 min before the 16:29:44Z single-shot)",
+    "artifact_b2_is_not_v42": "71f0572d = RECALLED 2026-10-03 candidate (self-pair inversion) — the directory name misleads",
+    "artifact_ds1000_is_a5": "281bd0fd = engine-side bundle A5 (superseded by B1), trained 10-01T03:20 — prereg v3 §0 wording «prod-бандл A5» refers to this, not to v42 weights"
+  }
+}

@@ -1,0 +1,52 @@
+{
+ "population": {
+  "pool_total": 8654,
+  "evidence": 3654,
+  "control": 5000,
+  "strata": {
+   "control": 5000,
+   "mint-top": 1714,
+   "edge-direct": 1139,
+   "edge-common": 801
+  }
+ },
+ "c1_evidence": {
+  "disputed": 3648,
+  "quarantine": 6
+ },
+ "c1_control": {
+  "disputed": 4636,
+  "quarantine": 364
+ },
+ "per_stratum": {
+  "edge-direct": {
+   "disputed": 1137,
+   "quarantine": 2
+  },
+  "edge-common": {
+   "disputed": 797,
+   "quarantine": 4
+  },
+  "mint-top": {
+   "disputed": 1714
+  }
+ },
+ "sens_body_only_dup": 0,
+ "sens_norm2_dup": 0,
+ "punct_cosmetic": 0,
+ "quarantine": 6,
+ "graph_activity": {
+  "D2_frozen_nonzero": 2136,
+  "D3_edge_only": 1139
+ },
+ "common_neighbors_dist": {
+  "0": 1959,
+  "1": 1243,
+  "2": 330,
+  "3": 90,
+  "4": 23,
+  "5": 6,
+  "6": 3
+ },
+ "neighbor_jaccard_pos": 1695
+}

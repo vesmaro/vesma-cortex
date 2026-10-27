@@ -1,0 +1,52 @@
+{
+  "bundle": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/b2-graph-corpus/data/b2-graph-corpus/rev1n/runA/model-full.onnx",
+  "weights_sha256": "91f17018ed28292ba3404f5a7e4f51728ad847266e19c0c630cc9272baaa8117",
+  "passed": false,
+  "checks": [
+    {
+      "name": "bundle_integrity",
+      "passed": true,
+      "detail": "sha256(model.onnx)=91f17018ed28… vs manifest=91f17018ed28… match"
+    },
+    {
+      "name": "feature_contract",
+      "passed": true,
+      "detail": "manifest order == gated FEATURE_NAMES+GRAPH_FEATURES; ONNX metadata matches manifest; feature_set_sha256 ok"
+    },
+    {
+      "name": "candidate_supported",
+      "passed": true,
+      "detail": "d-boost"
+    },
+    {
+      "name": "self_pair",
+      "passed": true,
+      "detail": "P(dup | probe vs itself, cos=1.0) = 0.9943 (required ≥ 0.9)"
+    },
+    {
+      "name": "cosmetic_twin",
+      "passed": true,
+      "detail": "P(dup | probe vs cosmetic twin, cos=0.99) = 0.9994 (required ≥ 0.5; policy v1.1 §8.2: title punctuation is the cosmetic/T1 class)"
+    },
+    {
+      "name": "fact_edit_twin",
+      "passed": false,
+      "detail": "P(dup | probe vs fact-edit twin, cos=0.99) = 0.7205 (required < 0.5; policy v1.1 §8.2: a key-fact edit is razor/T3 = NOT dup)"
+    },
+    {
+      "name": "envelope_variant",
+      "passed": true,
+      "detail": "P(dup | probe vs envelope-variant, cos=1.0) = 0.9943 (required ≥ 0.5; policy v1.1 §8.1 whitelist; feature-degenerate to the self-pair by OQ-2 — degeneracy pinned by test)"
+    },
+    {
+      "name": "unrelated",
+      "passed": true,
+      "detail": "P(dup | probe vs unrelated, cos=0.578) = 0.0001 (required < 0.5)"
+    },
+    {
+      "name": "monotonicity",
+      "passed": false,
+      "detail": "INCREASE outside the razor zone over the fixed pair [cos=1.00:0.9988, cos=0.99:0.9994, cos=0.95:0.9997, cos=0.80:0.9998, cos=0.50:0.9569] (zoned v2: steps above cos=0.95 unchecked — two-valued zone; tolerance 1e-06)"
+    }
+  ]
+}

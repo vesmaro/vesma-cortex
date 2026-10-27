@@ -1,0 +1,101 @@
+{
+  "bundle": "data/b2-graph-corpus/v45/attempt-2/run-rev1n1-a/model-ablated.onnx",
+  "weights_sha256": "a56dd601dc1e4c08c7b6bb9ac2dfbf0bf16a1b2e7dfdb0cecaf5d698bb7b9d1c",
+  "passed": false,
+  "checks": [
+    {
+      "name": "bundle_integrity",
+      "passed": true,
+      "detail": "sha256(model.onnx)=a56dd601dc1e… vs manifest=a56dd601dc1e… match"
+    },
+    {
+      "name": "feature_contract",
+      "passed": true,
+      "detail": "manifest order == frozen FEATURE_NAMES; ONNX metadata matches manifest; feature_set_sha256 ok"
+    },
+    {
+      "name": "candidate_supported",
+      "passed": true,
+      "detail": "d-boost"
+    },
+    {
+      "name": "self_pair",
+      "passed": true,
+      "detail": "P(dup | probe vs itself, cos=1.0) = 0.9955 (required ≥ 0.9)"
+    },
+    {
+      "name": "cosmetic_twin",
+      "passed": true,
+      "detail": "P(dup | probe vs cosmetic twin, cos=0.99) = 0.9994 (required ≥ 0.5; policy v1.1 §8.2: title punctuation is the cosmetic/T1 class)"
+    },
+    {
+      "name": "fact_edit_twin",
+      "passed": true,
+      "detail": "P(dup | probe vs fact-edit twin, cos=0.99) = 0.1077 (required < 0.5; policy v1.1 §8.2: a key-fact edit is razor/T3 = NOT dup)"
+    },
+    {
+      "name": "envelope_variant",
+      "passed": true,
+      "detail": "P(dup | probe vs envelope-variant, cos=1.0) = 0.9955 (required ≥ 0.5; policy v1.1 §8.1 whitelist; feature-degenerate to the self-pair by OQ-2 — degeneracy pinned by test)"
+    },
+    {
+      "name": "unrelated",
+      "passed": true,
+      "detail": "P(dup | probe vs unrelated, cos=0.578) = 0.0000 (required < 0.5)"
+    },
+    {
+      "name": "monotonicity",
+      "passed": false,
+      "detail": "INCREASE outside the razor zone over the fixed pair [cos=1.00:0.9997, cos=0.99:0.9994, cos=0.95:0.9998, cos=0.80:0.9998, cos=0.50:0.9835] (zoned v2: steps above cos=0.95 unchecked — two-valued zone; tolerance 1e-06)"
+    }
+  ],
+  "a3_1": {
+    "rule": "ADDENDUM-3 A3.1 (ACTIVATED 23.10): controlled step tol = 1e-4 iff BOTH points >= 0.99, else 1e-6; steps starting strictly above cos=0.95 uncontrolled (zoned v2); implemented RUNNER-SIDE — sanity.py untouched",
+    "production_suite_passed": false,
+    "raw_ladder": {
+      "1.0": 0.9996964931488037,
+      "0.99": 0.9994359016418457,
+      "0.95": 0.999817430973053,
+      "0.8": 0.9998288750648499,
+      "0.5": 0.983472466468811
+    },
+    "steps": [
+      {
+        "from_cos": 1.0,
+        "to_cos": 0.99,
+        "controlled": false,
+        "tol": null,
+        "pass": null
+      },
+      {
+        "from_cos": 0.99,
+        "to_cos": 0.95,
+        "controlled": false,
+        "tol": null,
+        "pass": null
+      },
+      {
+        "from_cos": 0.95,
+        "to_cos": 0.8,
+        "controlled": true,
+        "p_from": 0.999817430973053,
+        "p_to": 0.9998288750648499,
+        "delta_p_to_minus_p_from": 1.1444091796875e-05,
+        "tol": 0.0001,
+        "pass": true
+      },
+      {
+        "from_cos": 0.8,
+        "to_cos": 0.5,
+        "controlled": true,
+        "p_from": 0.9998288750648499,
+        "p_to": 0.983472466468811,
+        "delta_p_to_minus_p_from": -0.01635640859603882,
+        "tol": 1e-06,
+        "pass": true
+      }
+    ],
+    "pass_under_a3_1": true,
+    "model_pass_under_a3_1": true
+  }
+}

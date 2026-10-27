@@ -1,0 +1,98 @@
+
+--- stderr ---
+[verify] PASS train_rows — 3332
+[verify] PASS holdout_rows — 75
+[verify] PASS labels_match_rows
+[verify] PASS label_counters
+[verify] PASS stratum_counters
+[verify] PASS pair_ids_unique
+[verify] PASS fp_train
+[verify] PASS fp_holdout
+[verify] PASS fp_corpus
+[verify] PASS fp_labels
+[verify] PASS base_rows_2378 — 2378
+[verify] PASS base_rows_byte_equal_to_source_minus_21
+[verify] PASS removed_ids_absent
+[verify] PASS removed_21_pairkey_and_label_equal_to_holdout_copies
+[verify] PASS graph_quotas — {'control': 60, 'mint-top': 150, 'edge-direct': 240, 'edge-common': 150}
+[verify] PASS graph_rows_untouched_vs_pool
+[verify] PASS graph_component_cap_90 — max=90
+[verify] PASS graph_labels
+[verify] PASS injection_rows_429 — 429
+[verify] PASS injection_split_2to1 — {'V44-INJ-T0C': 143, 'V44-INJ-T0S': 143, 'V44-INJ-T1C': 143}
+[verify] PASS T0S_is_self_pair
+[verify] PASS T0S_T0C_share_units
+[verify] PASS T0C_clone_of_unit_base
+[verify] PASS T1C_body_swapcase
+[verify] PASS T0_vectors_identical
+[verify] PASS injection_similarity_remeasured
+[verify] PASS injection_pair_sha256
+[verify] PASS injection_labels_by_construction
+[verify] PASS hygiene_rescan_injection_0_hits — []
+[verify] PASS injection_pairkey_0_vs_pool
+[verify] PASS injection_pairkey_0_vs_universe_ds3
+[verify] PASS injection_sides_0_vs_holdouts_gates — 0
+[verify] PASS holdout_new_material_only
+[verify] PASS holdout_rows_flag_free — []
+[verify] PASS holdout_pairkey_0_vs_train
+[verify] PASS holdout_pairkey_0_vs_all_surfaces
+[verify] PASS holdout_sides_0_vs_eval_surfaces — 0
+[verify] PASS seal_ids_match
+[verify] PASS T0_units_atomic
+[verify] PASS cell_duplicate/P-cosmetic_ceil10pct — 15/143
+[verify] PASS cell_duplicate/P-identity_ceil10pct — 15/143
+[verify] PASS cell_not-duplicate/control_ceil10pct — 6/60
+[verify] PASS cell_not-duplicate/edge-common_ceil10pct — 7/61
+[verify] PASS cell_not-duplicate/edge-direct_ceil10pct — 10/91
+[verify] PASS cell_not-duplicate/mint-top_ceil10pct — 7/66
+[verify] PASS holdout_rows_match_per_cell_sum — 75 vs 75
+[verify] PASS holdout_share_of_eligible — 75/707
+
+[verify] 47/47 checks passed
+
+
+===== r2 verifier =====
+[verify-r2] OK: 40 checks passed
+
+--- stderr ---
+[verify-r2] PASS r2_fp_train — bb1ca943d6beabf5
+[verify-r2] PASS r2_fp_labels
+[verify-r2] PASS r2_rows — 4097
+[verify-r2] PASS r2_labels_consistent
+[verify-r2] PASS r2_strata
+[verify-r2] PASS r2_label_split
+[verify-r2] PASS seal_fp_holdout — a9760d1f06ecdd40
+[verify-r2] PASS seal_ids_sha — 42d690578723fed3
+[verify-r2] PASS seal_rows — 75
+[verify-r2] PASS seal_labels_consistent
+[verify-r2] PASS containment_old_subset_r2 — old=3332 r2=4097
+[verify-r2] PASS new_rows_all_generator — new=765
+[verify-r2] PASS new_rows_count — 765
+[verify-r2] PASS c_parity_dynamic — 1000 vs 1000
+[verify-r2] PASS c_parity_floor — 1000
+[verify-r2] PASS c_parity_strict — 1000 vs 652
+[verify-r2] PASS c_bin[0.95,0.97) — 53
+[verify-r2] PASS c_bin[0.97,0.985) — 121
+[verify-r2] PASS c_bin[0.985,1.0] — 826
+[verify-r2] PASS d_band_self_pair — count=542
+[verify-r2] PASS d_continuity_self_pair — max_gap=1e-06
+[verify-r2] PASS d_band_envelope_variant — count=57
+[verify-r2] PASS d_continuity_envelope_variant — max_gap=3e-06
+[verify-r2] PASS d_band_cosmetic_twin — count=40
+[verify-r2] PASS d_continuity_cosmetic_twin — max_gap=0.001753
+[verify-r2] PASS d_band_fact_edit_twin — count=76
+[verify-r2] PASS d_continuity_fact_edit_twin — max_gap=0.002356
+[verify-r2] PASS d_band_unrelated — count=30
+[verify-r2] PASS d_continuity_unrelated — max_gap=0.002775
+[verify-r2] PASS scaffold_N-fact-edit — scaffolds=187 max_share=0.0093
+[verify-r2] PASS scaffold_N-far — scaffolds=27 max_share=0.037
+[verify-r2] PASS scaffold_P-cosmetic — scaffolds=67 max_share=0.0149
+[verify-r2] PASS scaffold_P-identity — scaffolds=68 max_share=0.0148
+[verify-r2] PASS scaffold_P-lexsub — scaffolds=53 max_share=0.0189
+[verify-r2] PASS scaffold_P-para-light — scaffolds=55 max_share=0.0182
+[verify-r2] PASS disjoint_train_r2_vs_holdout_v44 — 0
+[verify-r2] PASS disjoint_train_r2_vs_dataset-v4-holdout — 0
+[verify-r2] PASS disjoint_train_r2_vs_v43-holdout — 0
+[verify-r2] PASS disjoint_train_r2_vs_b2 — 0
+[verify-r2] PASS sidecar_coverage — uncovered=0
+[verify-r2] 40 checks, 0 failed
