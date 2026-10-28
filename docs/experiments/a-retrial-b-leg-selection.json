@@ -1,0 +1,59 @@
+{
+ "configs": {
+  "fusion": {
+   "A": {
+    "val_auc": 1.0,
+    "params": {
+     "learning_rate": 0.05,
+     "num_leaves": 31,
+     "num_boost_round": 300
+    },
+    "train_seconds": 0.0
+   },
+   "B": {
+    "val_auc": 1.0,
+    "params": {
+     "learning_rate": 0.1,
+     "num_leaves": 15,
+     "num_boost_round": 150
+    },
+    "train_seconds": 0.0
+   },
+   "chosen": "A"
+  },
+  "ablated": {
+   "A": {
+    "val_auc": 0.948405612244898,
+    "params": {
+     "learning_rate": 0.05,
+     "num_leaves": 31,
+     "num_boost_round": 300
+    },
+    "train_seconds": 0.3
+   },
+   "B": {
+    "val_auc": 0.9548469387755102,
+    "params": {
+     "learning_rate": 0.1,
+     "num_leaves": 15,
+     "num_boost_round": 150
+    },
+    "train_seconds": 0.1
+   },
+   "chosen": "B"
+  }
+ },
+ "baseline_cosine_val_auc": 0.7487882653061224,
+ "train_auc": {
+  "fusion": 1.0,
+  "ablated": 0.9828702426467716
+ },
+ "val_auc_final": {
+  "fusion": 1.0,
+  "ablated": 0.9548469387755102
+ },
+ "seeds": {
+  "lightgbm": 20261101,
+  "note": "all B-leg seeds in build_report"
+ }
+}

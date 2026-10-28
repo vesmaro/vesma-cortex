@@ -1,0 +1,148 @@
+{
+ "kind": "a-retrial-b-leg-spotcheck",
+ "n": 20,
+ "seed": 20261105,
+ "note": "ids+scores+class only, no texts (owner spot-check, monitored)",
+ "rows": [
+  {
+   "pair_id": "13bf5858-4d13-44db-9c3c-b895d119a7e4--72a3e087-4bc2-4794-9454-05879c3ab2eb",
+   "stratum": "FR-N-hard",
+   "label": 0,
+   "p_fusion_onnx": 4.137e-05,
+   "p_ablated": 0.00221173
+  },
+  {
+   "pair_id": "1de127a5-2063-4b59-84fd-e90549eebc10--7c7025ca-bef8-4812-9078-d67074aee6a4",
+   "stratum": "FR-N-hard",
+   "label": 0,
+   "p_fusion_onnx": 4.137e-05,
+   "p_ablated": 0.02054549
+  },
+  {
+   "pair_id": "1ee95740-98d1-49a2-9d88-7b61a6297533--58c4a837-0d1b-4e8c-a431-5eb3ca8fec47",
+   "stratum": "FR-N-far",
+   "label": 0,
+   "p_fusion_onnx": 4.137e-05,
+   "p_ablated": 0.00012638
+  },
+  {
+   "pair_id": "25ffca34-306d-4281-9722-6f0a1ac1e581--49a35f16-6810-4d29-af37-8668151bd30a",
+   "stratum": "FR-N-far",
+   "label": 0,
+   "p_fusion_onnx": 4.137e-05,
+   "p_ablated": 7.026e-05
+  },
+  {
+   "pair_id": "2c7b5fae-f1f0-44c5-aaa1-91936a511acb--aeebc3b6-2f69-45b7-8e8b-69ef982ed323",
+   "stratum": "FR-N-far",
+   "label": 0,
+   "p_fusion_onnx": 4.137e-05,
+   "p_ablated": 0.00066469
+  },
+  {
+   "pair_id": "369123cd-3b66-4a2f-a497-6cf18cc3f8d2--6c1a6c82-f6f7-4e24-9607-8d28598e1a71",
+   "stratum": "FR-N-far",
+   "label": 0,
+   "p_fusion_onnx": 4.137e-05,
+   "p_ablated": 7.026e-05
+  },
+  {
+   "pair_id": "3bf03491-c48b-4951-b11a-33e3375d0b56--fffe87b5-fafa-463b-9bd3-80a6dda7eb9c",
+   "stratum": "FR-N-hard",
+   "label": 0,
+   "p_fusion_onnx": 4.137e-05,
+   "p_ablated": 0.14356304
+  },
+  {
+   "pair_id": "3c2dae77-8cac-4bf2-8c74-2e4247fa2514--f4a748ef-75f1-491d-84e2-52a5da9ed0b1",
+   "stratum": "FR-N-hard",
+   "label": 0,
+   "p_fusion_onnx": 4.137e-05,
+   "p_ablated": 0.00142199
+  },
+  {
+   "pair_id": "40be08cf-3f72-4069-b2a7-26e96ea67ec1--cba6711b-b588-4540-a949-0740f7600093",
+   "stratum": "FR-N-hard",
+   "label": 0,
+   "p_fusion_onnx": 4.137e-05,
+   "p_ablated": 0.00448745
+  },
+  {
+   "pair_id": "48dea362-0510-463f-b052-baf08eac7a3e--7e4a30d7-6137-4d02-8de9-e20c1157433b",
+   "stratum": "TR-POS",
+   "label": 1,
+   "p_fusion_onnx": 0.99983501,
+   "p_ablated": 0.92063915
+  },
+  {
+   "pair_id": "4f29fc6e-65d5-48ea-af2c-a012fbbbcc79--f698ef13-7045-41df-b771-394d04374e16",
+   "stratum": "TR-POS",
+   "label": 1,
+   "p_fusion_onnx": 0.99983501,
+   "p_ablated": 0.98490502
+  },
+  {
+   "pair_id": "78c254ba-6964-4c69-9207-6c97739bb8ed--fa74e4a9-dd11-4e1f-95c4-aa68dcdef20f",
+   "stratum": "TR-POS",
+   "label": 1,
+   "p_fusion_onnx": 0.99983501,
+   "p_ablated": 0.90535163
+  },
+  {
+   "pair_id": "803cbdad-efd7-47ef-bb03-73c74dd6a22f--825d1c5e-85b5-45fd-9897-a8cf9980645b",
+   "stratum": "FR-N-hard",
+   "label": 0,
+   "p_fusion_onnx": 4.137e-05,
+   "p_ablated": 0.00349098
+  },
+  {
+   "pair_id": "81b5904d-8344-4b83-aa53-ad1c2d073710--d76936df-cb3d-4a85-856b-d3274cfa94e4",
+   "stratum": "TR-POS",
+   "label": 1,
+   "p_fusion_onnx": 0.99983501,
+   "p_ablated": 0.98182566
+  },
+  {
+   "pair_id": "8b96db27-3c9a-411e-943c-08c9a83324ee--c53e95de-e34a-4cc9-80fc-08f0184eeb0b",
+   "stratum": "FR-N-hard",
+   "label": 0,
+   "p_fusion_onnx": 4.137e-05,
+   "p_ablated": 0.12873158
+  },
+  {
+   "pair_id": "9f7f023a-2026-4437-bffb-b361bc4f8f7e--c7045481-457f-4f3e-a242-e226c41a0226",
+   "stratum": "FR-N-hard",
+   "label": 0,
+   "p_fusion_onnx": 4.137e-05,
+   "p_ablated": 0.01038769
+  },
+  {
+   "pair_id": "b090fbea-f76a-4e41-bbb7-41064545988b--ff6a9385-73b7-484f-a7e8-d9a9d17a2492",
+   "stratum": "TR-POS",
+   "label": 1,
+   "p_fusion_onnx": 0.99983501,
+   "p_ablated": 0.99963331
+  },
+  {
+   "pair_id": "b9f806d2-be7b-4b94-bbec-6713ad4e8962--f46baa32-27bb-4795-951b-165bf91e0ae4",
+   "stratum": "TR-POS",
+   "label": 1,
+   "p_fusion_onnx": 0.99983501,
+   "p_ablated": 0.86428058
+  },
+  {
+   "pair_id": "bb797dce-bffd-41c7-a115-846ef8e88e9d--eabe85a4-dad2-45ca-a74e-7d0c36b97b90",
+   "stratum": "TR-POS",
+   "label": 1,
+   "p_fusion_onnx": 0.99983501,
+   "p_ablated": 0.99182806
+  },
+  {
+   "pair_id": "c49a986c-c877-4184-9713-5b146f7c2908--e6a9b005-f0be-43a4-9aca-bce033cb02c6",
+   "stratum": "TR-POS",
+   "label": 1,
+   "p_fusion_onnx": 0.99983501,
+   "p_ablated": 0.99944353
+  }
+ ]
+}

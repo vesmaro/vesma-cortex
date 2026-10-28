@@ -1,0 +1,76 @@
+{
+ "stage": "b-leg-surfaces",
+ "date": "2026-10-29",
+ "fps_verified": [
+  "edges_post_hygiene_jsonl",
+  "hygiene_records_jsonl",
+  "hygiene_vectors_npy",
+  "knockon_pairs_json",
+  "masked_pairs_json",
+  "replay_probe_jsonl",
+  "sidecar_G_jsonl",
+  "snapshot_vectors_db",
+  "snapshot_vesma_db",
+  "train_pairs_jsonl",
+  "val_pairs_jsonl"
+ ],
+ "pin_assert": {
+  "ok": 4942,
+  "total": 4942
+ },
+ "gprime_edges": 975,
+ "train_pos_band_hist": {
+  "[0.97,1.0]": 51,
+  "[0.92,0.94)": 166,
+  "[0.94,0.96)": 508,
+  "[0.96,0.97)": 191,
+  "[0.0,0.92)": 3
+ },
+ "funnel": {
+  "K": 100,
+  "engine_limit_declared": 50,
+  "assert_K_ge_2x_limit": true,
+  "queries": 247,
+  "pairs": 330,
+  "pool_size_min": 100,
+  "pool_size_max": 103,
+  "candidate_universe": 4942,
+  "extraction": {
+   "pairs_total": 330,
+   "pairs_extractable": 330,
+   "stop_minimum": 215
+  }
+ },
+ "gspec": {
+  "positives": 330,
+  "hard": 712,
+  "base_rate": 0.31669865642994244,
+  "hard_per_query": 3
+ },
+ "seeds": {
+  "train_neg": 20261101,
+  "val_neg": 20261102,
+  "gspec": 20261104,
+  "bootstrap": 20261101,
+  "B": 10000
+ },
+ "features": {
+  "fusion": [
+   "cos_ab",
+   "edge_ab",
+   "edge_kind_supersedes",
+   "common_neighbors",
+   "neighbor_jaccard",
+   "cos_to_common_max",
+   "tag_jaccard",
+   "same_record_type",
+   "same_language"
+  ],
+  "ablated": [
+   "cos_ab",
+   "tag_jaccard",
+   "same_record_type",
+   "same_language"
+  ]
+ }
+}

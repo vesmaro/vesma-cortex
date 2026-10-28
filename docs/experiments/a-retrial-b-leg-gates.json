@@ -1,0 +1,129 @@
+{
+ "kind": "a-retrial-b-leg-gates",
+ "gate_start_utc": "2026-10-28T23:32:29Z",
+ "prolog": {
+  "gate_start_utc": "2026-10-28T23:32:29Z",
+  "single_shot": true,
+  "swap_check": {
+   "swapon": "NAME                       TYPE       SIZE  USED PRIO\n/dev/zram0                 partition 30,8G 18,8G  100\n/var/home/swapvol/swapfile file         8G  3,1G   10\n/var/mnt/usb-conv/swapfile file        64G  388K   10",
+   "free_mem_line": "Mem:            30Gi        18Gi       8,4Gi       1,4Gi       7,3Gi        12Gi"
+  },
+  "env_pins": {
+   "lightgbm": "4.7.0",
+   "onnxruntime": "1.30.0",
+   "onnxmltools": "1.16.0",
+   "scikit-learn": "1.9.1",
+   "numpy": "2.5.3"
+  },
+  "frozen_inputs": "fp 11/11 re-verified",
+  "artifact": {
+   "model_onnx_sha256": "45b16fb61ca8215acb74fd9fc8c1642350255a7ac3e56be5814e5e4379fc4414",
+   "feature_set_sha256": "2882c4bd9021d208a8d16c7fd230448ed7c8bf5b1e68448b287bde1c196e5f76"
+  },
+  "tolerances": {
+   "tol_mrr": 0.3781954887218045,
+   "tol_nharm": 0.37072751322751324,
+   "tol_spec": 0.23339731285988485,
+   "thr_abl": 0.07017543859649122,
+   "delta_re": 0.02
+  }
+ },
+ "single_shot": true,
+ "re_rolls": "forbidden (ML-STD-0003 \u041f8)",
+ "absolutes": {
+  "cosine_recall5": 0.3203103913630229,
+  "cosine_mrr10": 0.2415365336417968,
+  "fusion_recall5": 0.2717273954116059,
+  "fusion_mrr10": 0.16010217852323114,
+  "ablated_recall5": 0.15553306342780027,
+  "ablated_mrr10": 0.10625923783818521,
+  "competitor_visible_edge_share": 0.01704361873990307,
+  "nharm_stratum": 60,
+  "queries": 247,
+  "pairs": 330
+ },
+ "gates": {
+  "g_re": {
+   "delta_recall5": -0.048582995951417005,
+   "ci95": [
+    -0.07557354925775979,
+    -0.024291497975708502
+   ],
+   "halfwidth": 0.025641025641025644,
+   "threshold": 0.05128205128205129,
+   "wins": 0,
+   "losses": 14,
+   "n_queries": 247,
+   "pass": false,
+   "formula": "delta >= max(2xCI95halfwidth, delta_re=0.02)"
+  },
+  "g_mrr": {
+   "delta_mrr10": -0.08143435511856564,
+   "ci95": [
+    -0.10617746288798922,
+    -0.058008804061435645
+   ],
+   "tol_mrr": 0.3781954887218045,
+   "delta_mrr ratified": 0.01,
+   "k7_vacuum": true,
+   "k7_note": "tol 2xfloor exceeds meaningful band (declared pre-run)",
+   "would_pass_at_tol": false
+  },
+  "g_abl": {
+   "delta_recall5_fusion_minus_ablated": 0.11619433198380566,
+   "ci95": [
+    0.05647773279352227,
+    0.1772604588394062
+   ],
+   "threshold": 0.07017543859649122,
+   "delta_abl_ratified": 0.01,
+   "pass": true,
+   "formula": "delta >= max(delta_abl=0.01, 2xfloor)"
+  },
+  "g_nharm": {
+   "stratum_queries": 60,
+   "delta_mrr10": 0.0,
+   "tol_nharm": 0.37072751322751324,
+   "k7_vacuum": true,
+   "would_pass_at_tol": true,
+   "formula": "delta_mrr10 >= -tol_nharm"
+  },
+  "g_spec": {
+   "precision_at5_fusion": 0.0,
+   "precision_at5_cosine_reference": 1.0,
+   "precision_at5_ablated_reference": 0.6,
+   "base_rate": 0.31669865642994244,
+   "threshold": 0.7666026871401151,
+   "tol_spec": 0.23339731285988485,
+   "pass": false,
+   "pairs": {
+    "positives": 330,
+    "total": 1042
+   }
+  },
+  "g_lat_context": {
+   "offline_latency": {
+    "batch_rows": 100,
+    "n_features": 9,
+    "cold_ms_session_plus_run": 1.089,
+    "warm_p50_ms": 0.134,
+    "warm_p95_ms": 0.154,
+    "intra_op_threads": 1
+   },
+   "g6a_class_ceiling_ms": 45
+  }
+ },
+ "k7_frame": {
+  "legs": [
+   "g_mrr",
+   "g_nharm"
+  ],
+  "note": "vacuum tolerances from characterization floors; numbers published; ratification question to TL/MLC"
+ },
+ "verdict": "REJECT",
+ "verdict_detail": {
+  "runnable_green": false,
+  "adopt_possible": false,
+  "reason": "K7 frame legs (pre-declared) + numeric outcomes on runnable legs"
+ }
+}

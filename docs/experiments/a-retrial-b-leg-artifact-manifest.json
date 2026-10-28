@@ -1,0 +1,86 @@
+{
+ "kind": "fusion-ranker-b-v1",
+ "date": "2026-10-29",
+ "line": "embed-graph fusion, option B (framing spec @ 9911cdb \u00a73(B)/\u00a76.3)",
+ "corpus": "a-retrial Phase-1 @ e0b9e5b (D0 2026-10-28T20:39:47Z)",
+ "feature_set_sha256": "2882c4bd9021d208a8d16c7fd230448ed7c8bf5b1e68448b287bde1c196e5f76",
+ "embedder_pin_inherited": "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba",
+ "model_onnx_sha256": "45b16fb61ca8215acb74fd9fc8c1642350255a7ac3e56be5814e5e4379fc4414",
+ "booster_fusion_txt_sha256": "69af083ca7be084a92ad0eb39b85e2252dc3bf5aa168934eb3c54696d2d99883",
+ "booster_ablated_txt_sha256": "cfc352d3ffed217e280956280b2329f01125eecc4f02f4125c74779429b22e09",
+ "features": [
+  "cos_ab",
+  "edge_ab",
+  "edge_kind_supersedes",
+  "common_neighbors",
+  "neighbor_jaccard",
+  "cos_to_common_max",
+  "tag_jaccard",
+  "same_record_type",
+  "same_language"
+ ],
+ "ablated_features": [
+  "cos_ab",
+  "tag_jaccard",
+  "same_record_type",
+  "same_language"
+ ],
+ "lgbm_config_chosen": {
+  "fusion": {
+   "learning_rate": 0.05,
+   "num_leaves": 31,
+   "num_boost_round": 300
+  },
+  "ablated": {
+   "learning_rate": 0.1,
+   "num_leaves": 15,
+   "num_boost_round": 150
+  }
+ },
+ "lgbm_base_params": {
+  "objective": "binary",
+  "verbosity": -1,
+  "seed": 20261101,
+  "deterministic": true,
+  "force_row_wise": true,
+  "num_threads": 4,
+  "min_data_in_leaf": 20,
+  "feature_fraction": 1.0,
+  "bagging_fraction": 1.0,
+  "bagging_freq": 0,
+  "lambda_l2": 1.0
+ },
+ "seeds": {
+  "lightgbm": 20261101
+ },
+ "train_rows": 4595,
+ "train_positives": 919,
+ "val_rows": 336,
+ "val_positives": 56,
+ "selection": "TR-VAL AUC only (336 rows); masked untouched",
+ "val_auc": {
+  "fusion": 1.0,
+  "ablated": 0.9548469387755102
+ },
+ "baseline_cosine_val_auc": 0.7487882653061224,
+ "train_auc_report_only": {
+  "fusion": 1.0,
+  "ablated": 0.9828702426467716
+ },
+ "onnx_target_opset": 15,
+ "onnx_input_variant": "float32",
+ "fidelity_probe": "same-input (native receives float32-cast features as float64); probe reads the probabilities output (zipmap=False emits [label int64, probabilities float[N,2]]). Assert map (pre-gate): PRIMARY rank-invariance margins 8e-4 and 4x(max|dp|) = 0 inversions; SECONDARY per-class max|dp| <= 4e-4, std <= 1e-5. B2 d_boost smoke precedent: single row atol 1e-5.",
+ "ort_runtime": "1.30.0",
+ "fidelity_max_abs_dp": 2.5778438309242155e-08,
+ "fidelity_frozen_slice_rows": 4595,
+ "latency_offline": {
+  "batch_rows": 100,
+  "n_features": 9,
+  "cold_ms_session_plus_run": 1.089,
+  "warm_p50_ms": 0.134,
+  "warm_p95_ms": 0.154,
+  "intra_op_threads": 1
+ },
+ "determinism": "double-run predictions + model dump byte-identical: PASS",
+ "privacy": "ids/numbers only; raw texts in gitignored data/"
+}
