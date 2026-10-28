@@ -282,7 +282,8 @@
    "id": "DEV-1",
    "fact": "store daytime mutation 28.10: sub-0.92 edge mass 289 (10:20 census, c3b_numbers_fresh.json) -> 4 at D0 (20:39); ~285 old edges deleted, ~398 minted; provenance 100% auto-dedupe; no agent session claims writes (awareness pre-flight); attributed to the live service's own auto-dedupe duty",
    "impact": "the §3 informative-signal arithmetic (K2 population ~240 post-hygiene) no longer holds at D0: 1 sub-0.92 post-hygiene edge; DE boundary 189 -> 200 endpoints; TL/MLC decision required before characterization K2 interpretation",
-   "action": "reported unchanged; corpus builds on the frozen D0 snapshot (snapshot-relative formulas, ratified)"
+   "action": "reported unchanged; corpus builds on the frozen D0 snapshot (snapshot-relative formulas, ratified)",
+   "correction": "silver probe of the morning-2810 snapshot (sha-verified 1fa0a798/ba137d8c), direct recount: sub-0.92 = 4 edges all along (cos_min 0.917046); D0 carries the same 4, duty_diff removed=0 / added=109 - the daytime deletion of ~285 sub-0.92 edges never happened; '289' was an arithmetic artifact of the §3 design (1844 - 1555, where 1555 = census/pool stratum edges per the probe report, NOT a band histogram of all edges); the ratified '~240 post-hygiene' premise was a recount artifact from the start - no sub-0.92 population ever existed in the current mint-policy era; A-leg closure verdict (data invalidation / test inexecutable) stands, now more fundamental: the pre-registered P6 premise was a recount artifact, not live-store drift; B-leg unaffected (AUC 0.715, direct vectors)"
   },
   {
    "id": "DEV-2",

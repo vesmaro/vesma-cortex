@@ -1,0 +1,228 @@
+{
+ "seed": 20261031,
+ "sha_verified": {
+  "morning": [
+   "1fa0a7983675aade803ff1206d1cdfe847b8ea4b38068b6869c35c37bca30736",
+   "ba137d8cae88df4c13c39592d0dbd4feeda25f913202ccb98509c028f25ce389"
+  ],
+  "d0": [
+   "252b9d5a78b9c9b0b444509048c696b687ee14981824c57ce8ce5957068403bf",
+   "0e97cc096f198caaa5ed19c9266c7e8b3e40b060dd5b18caca36e47df3d18278"
+  ]
+ },
+ "morning": {
+  "memories": 4829,
+  "vectors": {
+   "pin_ok": 4797,
+   "pin_bad": 0,
+   "total": 4797
+  },
+  "edges": 1844,
+  "cos_min": 0.917046,
+  "cos_mean": 0.952758,
+  "cos_max": 0.987086,
+  "band_hist": {
+   "[0.94,0.96)": 904,
+   "[0.97,1.0]": 161,
+   "[0.92,0.94)": 345,
+   "[0.96,0.97)": 430,
+   "<0.92": 4
+  },
+  "sub092_edges": 4,
+  "sub092_detail": [
+   0.917046,
+   0.917716,
+   0.919039,
+   0.919732
+  ]
+ },
+ "d0": {
+  "memories": 4974,
+  "vectors": {
+   "pin_ok": 4942,
+   "pin_bad": 0,
+   "total": 4942
+  },
+  "edges": 1953,
+  "band_hist": {
+   "[0.94,0.96)": 971,
+   "[0.97,1.0]": 171,
+   "[0.92,0.94)": 353,
+   "[0.96,0.97)": 454,
+   "<0.92": 4
+  },
+  "sub092_edges": 4,
+  "sub092_same_as_morning": true
+ },
+ "duty_diff": {
+  "removed_edges": 0,
+  "removed_band_hist": {},
+  "removed_sub092": 0,
+  "removed_min_cos": null,
+  "removed_max_cos": null,
+  "removed_endpoint_records_gone": 0,
+  "added_edges": 109,
+  "added_band_hist": {
+   "[0.92,0.94)": 8,
+   "[0.94,0.96)": 67,
+   "[0.96,0.97)": 24,
+   "[0.97,1.0]": 10
+  },
+  "added_sub092": 0,
+  "survived_edges": 1844
+ },
+ "sample": {
+  "path_gitignored": "data/a-retrial/snapshot-morning-2810/silver_sample.jsonl",
+  "n_total": 24,
+  "n_sub092": 4,
+  "n_boundary": 10,
+  "n_control": 10,
+  "boundary_pool_size": 55,
+  "pairs_short": [
+   {
+    "g": "sub092",
+    "cos": 0.917716,
+    "a": "96e79384",
+    "b": "02c95fdc"
+   },
+   {
+    "g": "sub092",
+    "cos": 0.919732,
+    "a": "b1c80820",
+    "b": "288e228b"
+   },
+   {
+    "g": "sub092",
+    "cos": 0.917046,
+    "a": "cecaf58f",
+    "b": "10ec7047"
+   },
+   {
+    "g": "sub092",
+    "cos": 0.919039,
+    "a": "da544f1a",
+    "b": "c5d83b69"
+   },
+   {
+    "g": "boundary",
+    "cos": 0.921928,
+    "a": "876b9b5e",
+    "b": "1c00440e"
+   },
+   {
+    "g": "boundary",
+    "cos": 0.924458,
+    "a": "abd2420d",
+    "b": "0d50dab2"
+   },
+   {
+    "g": "boundary",
+    "cos": 0.923327,
+    "a": "94c78cde",
+    "b": "8f53bf01"
+   },
+   {
+    "g": "boundary",
+    "cos": 0.923834,
+    "a": "5c695d5e",
+    "b": "3abf3bfb"
+   },
+   {
+    "g": "boundary",
+    "cos": 0.922923,
+    "a": "7d6ab5bf",
+    "b": "8279d63d"
+   },
+   {
+    "g": "boundary",
+    "cos": 0.92355,
+    "a": "03b3ddea",
+    "b": "f8c39b27"
+   },
+   {
+    "g": "boundary",
+    "cos": 0.921525,
+    "a": "5960f942",
+    "b": "da544f1a"
+   },
+   {
+    "g": "boundary",
+    "cos": 0.921921,
+    "a": "cd972cdb",
+    "b": "1c2f68a4"
+   },
+   {
+    "g": "boundary",
+    "cos": 0.920777,
+    "a": "96e79384",
+    "b": "b0c2fb5d"
+   },
+   {
+    "g": "boundary",
+    "cos": 0.922894,
+    "a": "9ce2be80",
+    "b": "36eab6b9"
+   },
+   {
+    "g": "control",
+    "cos": 0.945289,
+    "a": "99bfdd98",
+    "b": "ac192141"
+   },
+   {
+    "g": "control",
+    "cos": 0.948083,
+    "a": "c4610b92",
+    "b": "3219ae65"
+   },
+   {
+    "g": "control",
+    "cos": 0.95867,
+    "a": "6baebcb8",
+    "b": "2ab26f49"
+   },
+   {
+    "g": "control",
+    "cos": 0.948985,
+    "a": "ff6a9385",
+    "b": "20dd10dc"
+   },
+   {
+    "g": "control",
+    "cos": 0.946044,
+    "a": "7c3adbf8",
+    "b": "ffeafe45"
+   },
+   {
+    "g": "control",
+    "cos": 0.961192,
+    "a": "2ed520c2",
+    "b": "4f29fc6e"
+   },
+   {
+    "g": "control",
+    "cos": 0.947713,
+    "a": "2c699e35",
+    "b": "589ad499"
+   },
+   {
+    "g": "control",
+    "cos": 0.963956,
+    "a": "6776b8f2",
+    "b": "34818ed3"
+   },
+   {
+    "g": "control",
+    "cos": 0.968278,
+    "a": "68fd7ee6",
+    "b": "0aeaf0f1"
+   },
+   {
+    "g": "control",
+    "cos": 0.963494,
+    "a": "f0035545",
+    "b": "fa74e4a9"
+   }
+  ]
+ }
+}
