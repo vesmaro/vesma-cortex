@@ -25,6 +25,7 @@
 | prev_adopt-коридор | BA(release) ≥ BA(prev ADOPT) − max(0.02; CI95) | runner | A (release), B | TL |
 | delta-rate | доля решений, где вердикт модели ≠ вердикту базлайна | B0-коллектор (`telemetry/metrics-2h.jsonl`) | B0 | SRE |
 | no-harm в cos-полосе | доля расхождений модели с базлайном при cos ≥ 0.95 | B0-коллектор | B0 | SRE |
+| record-quality (препрег-метрика 6; ранее NO-DATA-плейсхолдер 1.0) | детерминированный Score поверх `canon_validate`: 1.0 без нарушений, минус штраф класса `CANON-E-*` за каждое нарушение; вне канон-области — NO-DATA, не 1.0. Формула и веса — [record-quality-phase1](record-quality-phase1.md) (фаза 1, код; ML-фаза 2 условна) | `cortex.quality` | B0 | TL |
 
 Пороги всех коридорных/инвариантных метрик фиксируются не в этом тексте,
 а в `gate_contract.json` (§6) — источник значения для CI.
