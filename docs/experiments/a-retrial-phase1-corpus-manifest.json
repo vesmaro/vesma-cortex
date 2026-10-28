@@ -1,0 +1,341 @@
+{
+ "kind": "a-retrial-phase1-corpus-manifest",
+ "spec": "docs/specs/embed-graph-A-retrial-DRAFT.md @ feat/embed-graph-fusion-framing 19e66c5 (ACTIVATED 28.10)",
+ "builder": "gcw-dataset-engineer",
+ "frozen_order": [
+  "snapshot(D0)",
+  "hygiene",
+  "classes",
+  "mask(cut-closure)",
+  "freeze-sealed(alpha/beta pieces)",
+  "train-roles-on-remainder",
+  "manifest"
+ ],
+ "D0": {
+  "utc": "2026-10-28T20:39:47Z",
+  "dbs": {
+   "vesma.db": {
+    "bytes": 62005248,
+    "sha256": "252b9d5a78b9c9b0b444509048c696b687ee14981824c57ce8ce5957068403bf"
+   },
+   "vectors.db": {
+    "bytes": 10670080,
+    "sha256": "0e97cc096f198caaa5ed19c9266c7e8b3e40b060dd5b18caca36e47df3d18278"
+   }
+  },
+  "counters": {
+   "memories": 4974,
+   "memories_published": 4942,
+   "edges": 1953,
+   "edge_kinds": {
+    "relates_to": 1953
+   },
+   "vectors": 4942
+  }
+ },
+ "D1": "2026-10-28T21:06:14Z",
+ "seeds_declared": {
+  "mask": 20261028,
+  "sources": 20261028,
+  "distractor_pool": 20261030,
+  "val": 20261029,
+  "frx_sample": 20261031,
+  "zone_replay": 20261032,
+  "note": "prereg left build seeds to the build; fixed here BEFORE cutting, snapshot-relative"
+ },
+ "asserts_ledger": {
+  "pin_100_percent": {
+   "fact": {
+    "with_prod_pin": 4942,
+    "total": 4942
+   },
+   "verdict": "PASS"
+  },
+  "mask_cut_closure_per_pair": {
+   "per_pair_recompute_equals_sidecar": true,
+   "per_pair_masked_zero_features": true,
+   "masked_count": 330,
+   "masked_knockon_disjoint": true,
+   "sidecar_rows_contract_validated": 1648
+  },
+  "pair_key_unique": "PASS (sorted a--b keys, dict-keyed surfaces)",
+  "snapshot_relative": "PASS (all formulas computed from the D0 snapshot only)",
+  "negative_universe": {
+   "FR_X_in_universe": 0,
+   "FR_Q_in_universe": 0,
+   "masked_pairs_in_universe": 0,
+   "dup_partner_pairs_in_universe": 0
+  },
+  "anchor_disjointness": {
+   "anchor_x_alpha_beta_records": 0,
+   "anchor_x_train": 0,
+   "anchor_x_val": 0
+  },
+  "distractor_pool": {
+   "no_FR_X_texts": true,
+   "no_dup_territory": true,
+   "no_masked_endpoints": true,
+   "no_FR_Q_members": true,
+   "no_pair_ge_0_97": true,
+   "hash_outside_ban_registry": true,
+   "disjoint_from_frozen_sources": true
+  },
+  "replay": {
+   "unique_ge_15000": true,
+   "zone_weight_ge_030": true
+  },
+  "hygiene_chain": "PASS (probe_c3 census chain verbatim, engine scanner provenance=engine, r7-train worktree)"
+ },
+ "STOP_table": [
+  {
+   "row": "Masked-leg (одна общая декларированная популяция, извлекаемые)",
+   "normative": ">=215",
+   "fact": {
+    "masked_pairs_frozen": 330,
+    "band_hist": {
+     "[0.94,0.96)": 156,
+     "[0.97,1.0]": 31,
+     "[0.92,0.94)": 66,
+     "[0.96,0.97)": 77
+    },
+    "common_population": "same list in alpha and beta (MLC 28.10 в.4)"
+   },
+   "verdict": "PASS (pool frozen 330 >= 215; extraction filter 215-330 applied at gate-runner per П6; no silent rho change)"
+  },
+  {
+   "row": "PA-Q1 llm (per set)",
+   "normative": ">=60",
+   "fact": {
+    "clean_pool": 122305,
+    "sources_frozen": 240,
+    "directions": {
+     "ru->en": 124,
+     "en->ru": 116
+    }
+   },
+   "verdict": "PASS availability (K1: PASS); pair generation pending (teacher recipe, seeds declared)"
+  },
+  {
+   "row": "PA-Q1 real (per set)",
+   "normative": ">=60",
+   "fact": {
+    "agent-service": 306,
+    "pre-ceiling": 3136
+   },
+   "verdict": "K1 FAIL — clean pool 0 at D0: every post-ceiling hygiene-passing record (306) is agent-session-tagged; agent:user absent. Honest STOP per stratum, no softening; source-class change requires MLC re-ratification"
+  },
+  {
+   "row": "PA-Q1 twin (per set)",
+   "normative": ">=60",
+   "fact": {
+    "twin_jobs_frozen": 30,
+    "twin_per_job": 6,
+    "capacity": 180
+   },
+   "verdict": "PASS availability (K1: generation-dependent); generation pending"
+  },
+  {
+   "row": "FR-N-hard distractor pool",
+   "normative": ">=100",
+   "fact": {
+    "pool": 240,
+    "languages": {
+     "ru": 114,
+     "en": 126
+    },
+    "pairwise_max_cos": 0.968634
+   },
+   "verdict": "PASS (240 frozen, shared by sets; FR-X/dup/masked/cn>=1 excluded; unbeatable-distractor guard <0.97)"
+  },
+  {
+   "row": "Набор >=395 запросов (PA-Q1 >=180 + masked >=215)",
+   "normative": ">=395 + pool >=100",
+   "fact": {
+    "masked_leg": 330,
+    "PA-Q1": "blocked by real-stratum K1 FAIL"
+   },
+   "verdict": "BLOCKED (per stratum K1 real); set assembly cannot be certified until TL/MLC resolves the real-stratum source class; masked-leg + pool + llm/twin sources stay frozen with fp"
+  }
+ ],
+ "role_counters": {
+  "TR-POS": {
+   "pairs": 919,
+   "band_hist": {
+    "[0.97,1.0]": 51,
+    "[0.92,0.94)": 166,
+    "[0.94,0.96)": 508,
+    "[0.96,0.97)": 191,
+    "<0.92": 3
+   },
+   "endpoints": 789
+  },
+  "TR-VAL": {
+   "pairs": 56,
+   "band_hist": {
+    "[0.94,0.96)": 28,
+    "[0.97,1.0]": 9,
+    "[0.92,0.94)": 15,
+    "[0.96,0.97)": 4
+   },
+   "endpoints": 100,
+   "note": "N5 pair-level reading (§5.1 verbatim); val endpoints excluded from replay only (conservative, declared)"
+  },
+  "TR-NEG": {
+   "universe_pairs": 296315,
+   "band_hist": {
+    "[0.92,0.94)": 151041,
+    "[0.94,0.96)": 120837,
+    "[0.96,0.97)": 24437
+   },
+   "quotas_frozen": {
+    "FR-N-hard": "<=3-4x positives",
+    "FR-N-far": "1-2x",
+    "FR-X": 0,
+    "FR-Q": 0
+   }
+  },
+  "TR-ANCHOR": {
+   "anchor68_pairs": 68,
+   "anchor68_members": 130,
+   "frx_sample_pairs": 256
+  },
+  "TR-REPLAY": {
+   "store_unique_texts": 1773,
+   "heritage_unique_texts": 15400,
+   "unique_total": 17173,
+   "zone_repeat_declared": 5,
+   "replay_entries_total": 24265,
+   "zone_share_effective": 0.3653,
+   "frx_partner_coverage": "full (minus val/pool/masked-banned)",
+   "dup_territory_texts": 130,
+   "heritage_fp": "e64fdbea65f0e6a4f2830a42ea6bd0d74a2974854d381427c4d5ba2ea4901c62",
+   "kd_probe_entries": 2500,
+   "asserts": {
+    "unique_ge_15000": true,
+    "zone_weight_ge_030": true
+   }
+  },
+  "KD_probe_entries": 2500
+ },
+ "ratification_table_B4": {
+  "FR_P_after_hygiene": {
+   "ratified_estimate": "~1520 (at 1844 edges)",
+   "fact": 1648,
+   "at_edges": 1953
+  },
+  "masked_pool": {
+   "ratified_estimate": "~305 post-hygiene (215-305 extractable)",
+   "fact": 330
+  },
+  "sub_092_stratum": {
+   "ratified_estimate": "~289 edges / ~240 post-hygiene (16%)",
+   "fact": {
+    "edges_below_092_raw": 4,
+    "post_hygiene": 1,
+    "see_deviations": true
+   }
+  },
+  "quarantine_reason_histogram_edge_endpoints": {
+   "sql-gate:memory_type": 188,
+   "sql-gate:length<80": 12
+  },
+  "positive_band_hist": {
+   "[0.94,0.96)": 825,
+   "[0.97,1.0]": 145,
+   "[0.92,0.94)": 301,
+   "[0.96,0.97)": 373
+  },
+  "positive_lang_pairs": {
+   "mixed--mixed": 750,
+   "en--en": 260,
+   "mixed--ru": 358,
+   "ru--ru": 223,
+   "en--mixed": 51,
+   "en--ru": 2
+  },
+  "zone_census": {
+   "no_edge_ge_092": 989191,
+   "ge_097_no_edge": 44100,
+   "FR-N-hard": 917993,
+   "FR-X": 43960,
+   "FR-Q_cn": 3693,
+   "FR-Q_cross_lang": 23545
+  },
+  "silver_dup": {
+   "pairs": 68,
+   "texts": 130,
+   "matches_ratified": "68/130 exact"
+  }
+ },
+ "closure_costs": {
+  "steps": [
+   {
+    "step": 1,
+    "quarantined": 343
+   }
+  ],
+  "knockon_total": 343,
+  "fixed_point": true
+ },
+ "deviations_register": [
+  {
+   "id": "DEV-1",
+   "fact": "store daytime mutation 28.10: sub-0.92 edge mass 289 (10:20 census, c3b_numbers_fresh.json) -> 4 at D0 (20:39); ~285 old edges deleted, ~398 minted; provenance 100% auto-dedupe; no agent session claims writes (awareness pre-flight); attributed to the live service's own auto-dedupe duty",
+   "impact": "the §3 informative-signal arithmetic (K2 population ~240 post-hygiene) no longer holds at D0: 1 sub-0.92 post-hygiene edge; DE boundary 189 -> 200 endpoints; TL/MLC decision required before characterization K2 interpretation",
+   "action": "reported unchanged; corpus builds on the frozen D0 snapshot (snapshot-relative formulas, ratified)"
+  },
+  {
+   "id": "DEV-2",
+   "fact": "knock-on cut-closure cost 343 edges in one closure step (21% of unmasked)",
+   "impact": "TR-POS 919 vs DE arithmetic ~1050 (DE arithmetic predates the cut-closure mask mechanics)",
+   "action": "declared; quotas scale from the frozen fact"
+  },
+  {
+   "id": "DEV-3",
+   "fact": "TR-VAL = 56 pairs: ratified predicate ¬record alpha/beta excludes pairs touching masked-leg hub records (139 of 195 val_raw)",
+   "impact": "selection power of the lambda-grid surface is thin; K6-adjacent concern for Phase 3",
+   "action": "declared; predicate applied verbatim, no reinterpretation"
+  },
+  {
+   "id": "DEV-4",
+   "fact": "replay composition: zone territory is a concentrated clique (1773 free texts); unique-15k and zone-30% cannot both hold by unique composition",
+   "impact": "implemented via the ratified word WEIGHT (В5): zone entries repeated x5, effective zone mass 36.5%, unique total 17173 >= 15000",
+   "action": "declared; repeat factor frozen in manifest"
+  },
+  {
+   "id": "DEV-5",
+   "fact": "real-stratum starvation is structural: store inflow since the 07.10 ceiling is 100% agent-session records",
+   "impact": "PA-Q1 real cannot reach >=60/set at any near-term D1 under the ratified source class",
+   "action": "K1 FAIL reported; MLC owns the source-class question"
+  }
+ ],
+ "pending_pieces": {
+  "pa_q1_generation": "recipe = datasets/embed-r5/gen_gate_v2_material.py stages verbatim, adapted to data/a-retrial/gate/{sources,gen}; teacher Qwen3-1.7B-Instruct Q8_0 (gguf sha in retranslate_llm_r7); interpreter wt/embed-r5-corpus/.venv-r7gen (read-only run, PYTHONDONTWRITEBYTECODE=1); seed base 20261028 + pass*1_000_000 + job_idx; passes 1..3; quality gates digit-preservation/target-lang/anti-copy/len-40..4000 unchanged",
+  "gate_set_assembly": "blocked by real-stratum K1 FAIL (PA-Q1 formula requires llm/real/twin); selection seeds to be declared at assembly (alpha/beta different seeds, PA-Q1 strata independent; masked-leg common population = frozen masked_pairs.json)",
+  "n_gram_proofs": "zero-tolerance 8-13 of generated PA-Q1 material vs ban registry (built here, fp in census_sources.json); v4.5/g4-spec-v1 NOT in the registry (never read)",
+  "extraction_filter": "masked pool -> extractable subset evaluated at gate-runner funnel construction (П6 range 215-330)"
+ },
+ "fingerprints": {
+  "snapshot_vesma_db": "252b9d5a78b9c9b0b444509048c696b687ee14981824c57ce8ce5957068403bf",
+  "snapshot_vectors_db": "0e97cc096f198caaa5ed19c9266c7e8b3e40b060dd5b18caca36e47df3d18278",
+  "hygiene_records_jsonl": "07c8e0b3c4033389891d4cc3aae52e56a287867fc375742d1b25cc240d9c8b8e",
+  "hygiene_vectors_npy": "53336e0cf7f56ca6c2c2a423b2a54ce69799e44a78eb9c6cac8e41ccd0eb8bdf",
+  "edges_post_hygiene_jsonl": "2ddcebd94e6933ccdb3d86c19ad588dd029941378b864cd9529419eb6d4254a5",
+  "zone_pairs_npz": "4c7acf2f4872ab87869eccbc2e3ba6b0833adb35189e470f18c3c87aa9804461",
+  "masked_pairs_json": "c55b838599b00e631e5a14575ac8372622985751b436d365c1bf66fd9a89917a",
+  "knockon_pairs_json": "22e650ee4f9aae4e4f89baf8ec24e8b3ea4883d2d0493b6de04a458ca2190a69",
+  "sidecar_G_jsonl": "d36f3f53d63dab603b6ec69281ea15859a66779f3ce643c6b258466d11f94636",
+  "sources_jsonl": "1a9387f6f788dc48e77914d3055f5edb4f7e3aa7d114c4e12a66bf0b53e1b170",
+  "distractor_pool_jsonl": "e6d6d89bd87f1e16415725c012dab66dc970c73405cae309cdef04567460461e",
+  "train_pairs_jsonl": "31ccb149c959a3c367832cb6d12e2d0a9e8000a07cb8f2e7ce325ec2aa16b8ac",
+  "val_pairs_jsonl": "4fb84406709c7370cd43a93044bfe8c42baa7d36c18ef8511614dbb4d4a75f78",
+  "anchor_dup_json": "3c1cdfeb3a6f71e316f195062f240998fb40f9e6e3ebfe433a14a95c9143377e",
+  "anchor_frx_json": "27087fe5c850bf32733d946eda1fd15753d2c836fff4619a4cc63610e0e8f4dc",
+  "neg_universe_npz": "fec71950c0a6a76c65837cc02a684efbcd28793494a322b275d3be532c253aed",
+  "replay_entries_jsonl": "45dca525eb1c43fce90b4548d728df0e4eb36afa0e1e3874a9ebc44cfe5d3d0b",
+  "replay_probe_jsonl": "ccd6555833db33fffae4192346b38ed3b783e2519e83275ab1ce5403901e9663",
+  "replay_heritage_texts": "cff390d623e6c969c5bf708a193c209e024690a594ea408f47e6ef197888a592",
+  "heritage_r5_corpus_fp": "e64fdbea65f0e6a4f2830a42ea6bd0d74a2974854d381427c4d5ba2ea4901c62"
+ },
+ "privacy": "raw store texts and generated texts live only in gitignored data/a-retrial/; repo carries counters/hashes/histograms only; holdout v4.5 and g4-spec-v1 never read"
+}
