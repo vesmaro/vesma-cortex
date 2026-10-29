@@ -1191,6 +1191,17 @@ def cmd_gate(args: argparse.Namespace) -> int:
     log("cost_declaration", expected_prolog_s=2, expected_cycle_s=90,
         expected_peak_ram_gb=1.0, lane="light (draft §9)")
     pro = prologue(expected_artifact=artifact)
+    # noharm surface pin: fixed BEFORE gate_start (committed doc section
+    # noharm_surface); divergence = STOP class instrument, no sealed read
+    doc_pre = json.loads(COMMITTED_DOC.read_text(encoding="utf-8"))
+    surf_sec = doc_pre.get("noharm_surface")
+    if not surf_sec or surf_sec.get("sha256") != sha256_file(noharm):
+        raise InstrumentAbort(
+            "noharm surface missing or its sha256 diverges from the "
+            "committed noharm_surface pin — the gate never runs on an "
+            "unpinned surface")
+    log("noharm_surface_pin", path=str(noharm),
+        sha256=surf_sec["sha256"], counts=surf_sec.get("counts"), ok=True)
     model, tau_hi, tau_m = load_frozen(artifact)
 
     # П1: gate_start BEFORE any eval computation (sanity suite, fixtures,

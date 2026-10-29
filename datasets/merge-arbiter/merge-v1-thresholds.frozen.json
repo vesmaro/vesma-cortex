@@ -235,5 +235,86 @@
   "measured_at": "2026-10-29T17:43:47.377+00:00",
   "remeasure_after_single_shot": "FORBIDDEN"
  },
- "committed_doc_sha256": "df51698f11bd53ef6ed7126e2436f4e68fa1cc22d3d428ca83ef3ef06e2f6a8f"
+ "noharm_surface": {
+  "path": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/merge-arbiter-draft/data/merge-arbiter/artifacts/merge-v1/noharm-surface-v1.jsonl",
+  "sha256": "146a8ae42bb6f1e5fb957d44903d218c82df2c456e9b584cf177d6f3b89e8fd4",
+  "counts": {
+   "notdup": 27,
+   "sibling": 144,
+   "total": 171
+  },
+  "count_note": "verdictor's 39+39/105 came from wc -l (both sibling files lack the trailing newline: actual 40+40 specs); both-orientation sibling recipe gives 160 V43-TSIB pairs, minus 16 v4.3-holdout-slice ids = 144",
+  "sources": {
+   "datasets/corpus-v4/batch-notdup.jsonl": "ece065de5a74ccba1ca96401e298a9dd445ba3fef7d6702463cef83efc859d55",
+   "datasets/corpus-v4/batch-base-ru.jsonl": "404d43f28d384d0d78e834aed02d59e4bd00fc0d134236a867d20c4d89ba1482",
+   "datasets/corpus-v4/batch-base-en.jsonl": "526522bf4e749baf96bdd501e7f46a7a5d5f406aaac3d2c17ef793798ab4c293",
+   "datasets/corpus-v43/batch-translated-sibling-ru.jsonl": "6ab5b5faf7aa207cb3ce321a50ea42f89932f6901af014a437788e3c2377da54",
+   "datasets/corpus-v43/batch-translated-sibling-en.jsonl": "36ced21dc2c63480bca8482aba9fbdd1c641394e32a5dc9dc8471741c1ca9f0f"
+  },
+  "split_pins": {
+   "v42_holdout_excluded_ids": [
+    "V4-PND-0001",
+    "V4-PND-0002",
+    "V4-PND-0003",
+    "V4-PND-0004",
+    "V4-PND-0005",
+    "V4-PND-0006",
+    "V4-PND-0007",
+    "V4-PND-0008",
+    "V4-PND-0009"
+   ],
+   "v42_train_ids": [
+    "V4-PND-0010",
+    "V4-PND-0011",
+    "V4-PND-0012",
+    "V4-PND-0013",
+    "V4-PND-0014",
+    "V4-PND-0015",
+    "V4-PND-0016",
+    "V4-PND-0017",
+    "V4-PND-0018",
+    "V4-PND-0019",
+    "V4-PND-0020",
+    "V4-PND-0021",
+    "V4-PND-0022",
+    "V4-PND-0023",
+    "V4-PND-0024",
+    "V4-PND-0025",
+    "V4-PND-0026",
+    "V4-PND-0027",
+    "V4-PND-0028",
+    "V4-PND-0029",
+    "V4-PND-0030",
+    "V4-PND-0031",
+    "V4-PND-0032",
+    "V4-PND-0033",
+    "V4-PND-0034",
+    "V4-PND-0035",
+    "V4-PND-0036"
+   ],
+   "v43_holdout_slice_excluded_ids": [
+    "V43-TSIB-0001",
+    "V43-TSIB-0002",
+    "V43-TSIB-0003",
+    "V43-TSIB-0004",
+    "V43-TSIB-0005",
+    "V43-TSIB-0006",
+    "V43-TSIB-0007",
+    "V43-TSIB-0008",
+    "V43-TSIB-0009",
+    "V43-TSIB-0010",
+    "V43-TSIB-0011",
+    "V43-TSIB-0012",
+    "V43-TSIB-0013",
+    "V43-TSIB-0014",
+    "V43-TSIB-0015",
+    "V43-TSIB-0016"
+   ],
+   "v43_train_ids_count": 144
+  },
+  "trap_note": "the 9 v4.2-holdout and 16 v4.3-holdout-slice rows are sealed material: filtered by the replayed frozen split id lists, emitted set asserted disjoint (exact 0); texts never emitted, ids pinned here for the TL check",
+  "tl_machine_leg": "surface-vs-sheet and surface-vs-MA-holdout text-hash disjointness stays with the TL after this commit",
+  "created_at": "2026-10-29T17:57:20.218+00:00"
+ },
+ "committed_doc_sha256": "b08e258e1a561c2ad6e2c87dd8db774254b226ce819265664258019fef6550c4"
 }
