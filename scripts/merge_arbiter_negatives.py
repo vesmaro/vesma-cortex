@@ -107,6 +107,8 @@ SEED_CROSS_LANG = 9001
 SEED_TEMPLATE_TWIN = 9002
 SEED_NEAR_TOPIC = 9003
 SEED_LIST = [SEED_CROSS_LANG, SEED_TEMPLATE_TWIN, SEED_NEAR_TOPIC]
+#: iteration-2 regeneration seeds (fresh; pinned before re-emission)
+SEED_LIST_ITER2 = [9101, 9102, 9103]
 
 #: Per-substratum quotas (pairs; clusters = pairs x 2 orientations).
 QUOTA_PAIRS = {"cross-lang-sibling": 40, "template-twin": 30, "near-topic": 30}
@@ -172,6 +174,30 @@ _VALUE_SETS_LONG = [("30", "45"), ("20", "50"), ("15", "40"), ("60", "90")]
 _VALUE_SETS_SHORT = [("30", "45"), ("20", "50"), ("15", "40")]
 
 
+#: Iteration-2 diversification (ADDENDUM-3 iter-guard, 2 of 2): the
+#: cross-lang siblings get their OWN titles in the sibling language
+#: (wording and length differ from the record title — the diagnosis of
+#: iteration 1: identical scaffold titles narrowed the training band,
+#: title_len_delta 0 in train vs 6.75 on the surface, and near-zero
+#: n-gram-overlap pairs were outside it). Body frames now span the
+#: overlap spectrum: digit-free sides and digit-bearing sides, near-equal
+#: and asymmetric lengths.
+_SIB_TITLES = {
+    "ru-migration": "Переезд на новый рантайм: статус и окно",
+    "ru-retention": "Как теперь живут черновики и их архив",
+    "ru-review-cfg": "Порядок согласования изменений конфигов",
+    "ru-flags": "Судьба фиче-флагов в legacy-модуле",
+    "ru-replicas": "План включения реплик после обслуживания",
+    "ru-incident-labels": "Метки инцидентов: что решили с ретроспективой",
+    "en-oncall": "Смена передачи дежурства: договорились",
+    "en-cache": "Инвалидация кэша: выбранный подход",
+    "en-backups": "Расписание восстановлений и учений",
+    "en-deprecation": "Отключение старых эндпоинтов: правила",
+    "en-quotas": "Пересмотр лимитов для внутренних потребителей",
+    "en-docs": "Куда поехала документация и что осталось",
+}
+
+
 def _cross_lang_specs() -> list[dict]:
     specs = []
     for ti, topic in enumerate(CROSS_LANG_TOPICS):
@@ -179,18 +205,25 @@ def _cross_lang_specs() -> list[dict]:
         for vi, (va, vb) in enumerate(sets):
             a_lang = "ru" if topic["sid"].startswith("ru") else "en"
             b_lang = "en" if a_lang == "ru" else "ru"
+            a_title = lib.scaffold_title(topic["sid"])
+            b_title = _SIB_TITLES[topic["sid"]]
+            # the sibling title rides in the SIBLING language; when the
+            # record is en, the authored sibling title is ru — swap the
+            # length/wording asymmetry per variant instead of per topic
+            if vi % 2 == 1:
+                a_title = f"{a_title} (черновик)" if a_lang == "ru" else f"{a_title} (draft)"
             specs.append({
                 "key": f"xn-{topic['sid']}-{vi}",
                 "record": {
                     "lang": a_lang,
-                    "title": lib.scaffold_title(topic["sid"]),
+                    "title": a_title,
                     "body": topic["a"].format(v=va),
                     "tags": ["platform", "notes"],
                     "record_type": "note",
                 },
                 "sibling": {
                     "lang": b_lang,
-                    "title": lib.scaffold_title(topic["sid"]),
+                    "title": b_title,
                     "body": topic["b"].format(v=vb),
                     "tags": ["platform", "notes"],
                     "record_type": "note",
@@ -528,6 +561,8 @@ def preflight_fixtures() -> None:
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("cmd", choices=["build"])
+    ap.add_argument("--iter2", action="store_true",
+                    help="ratified iter-guard re-emission (iteration 2 of 2)")
     ap.parse_args(argv)
 
     mt._SLICE = SLICE
@@ -596,7 +631,12 @@ def main(argv: list[str] | None = None) -> int:
                                  "has no ratified recipe")
 
     # seeds pinned BEFORE generation
-    mt.log("seeds_pinned", seeds=SEED_LIST,
+    iter2 = "--iter2" in sys.argv
+    active_seeds = SEED_LIST_ITER2 if iter2 else SEED_LIST
+    global SEED_CROSS_LANG, SEED_TEMPLATE_TWIN, SEED_NEAR_TOPIC
+    if iter2:
+        SEED_CROSS_LANG, SEED_TEMPLATE_TWIN, SEED_NEAR_TOPIC = active_seeds
+    mt.log("seeds_pinned", seeds=active_seeds,
            per_substratum={"cross-lang-sibling": SEED_CROSS_LANG,
                            "template-twin": SEED_TEMPLATE_TWIN,
                            "near-topic": SEED_NEAR_TOPIC},
@@ -629,8 +669,11 @@ def main(argv: list[str] | None = None) -> int:
             raise mt.InstrumentAbort(f"A-symmetry RED: {scen} mirrored rows "
                                      "carry different bodies")
 
-    train = mt.load_train()
-    train_hashes = _body_hashes(train)
+    # disjointness base = the ORIGINAL v1 train.jsonl bodies (the previous
+    # negatives iteration is the artifact being REPLACED, not train)
+    train_v1 = [mt._cluster_from_row(json.loads(line))
+                for line in open(mt.TRAIN_JSONL, encoding="utf-8")]
+    train_hashes = _body_hashes(train_v1)
     surface_rows = [json.loads(line) for line in
                     open(NOHARM_SURFACE, encoding="utf-8") if line.strip()]
     surface_hashes = {mt.sha256_text(r[k]) for r in surface_rows
@@ -642,9 +685,17 @@ def main(argv: list[str] | None = None) -> int:
                         holdout_ids, sheet_ids)
 
     # emission (durable, gitignored; train.jsonl untouched)
-    if NEG_PATH.exists():
-        raise mt.InstrumentAbort("train-negatives.jsonl already exists — "
-                                 "re-emission forbidden")
+    iter2 = "--iter2" in sys.argv
+    if NEG_PATH.exists() and not iter2:
+        raise mt.InstrumentAbort("train-negatives.jsonl exists — re-emission "
+                                 "forbidden without the ratified iter-guard "
+                                 "flag (--iter2, ADDENDUM-3: max 2 iterations)")
+    if iter2:
+        mt.log("iter2_reemission", reason="noharm QA iteration-1 RED 24/171: "
+               "cross-lang training band too narrow (identical titles, "
+               "no zero-overlap coverage); diversified per diagnosis",
+               note="iteration 2 of max 2 (Iter-guard); next red => MLC "
+                    "design review")
     with open(NEG_PATH, "w", encoding="utf-8") as fh:
         for c in clusters:
             fh.write(json.dumps({

@@ -379,7 +379,11 @@ def frozen_inputs(manifest: dict) -> list["lib.Cluster"]:
         counts[(c.stratum, len(c.members))] = counts.get((c.stratum, len(c.members)), 0) + 1
     count_mism = {f"{s}/k{k}": {"got": v, "want": EXPECTED_TRAIN_COUNTS[(s, k)]}
                   for (s, k), v in counts.items()
-                  if EXPECTED_TRAIN_COUNTS.get((s, k)) != v}
+                  if (s, k) in EXPECTED_TRAIN_COUNTS
+                  and EXPECTED_TRAIN_COUNTS[(s, k)] != v}
+    extra = [f"{s}/k{k}" for (s, k) in counts
+             if s not in {st for st, _k in EXPECTED_TRAIN_COUNTS}
+             and s != "theme-near"]
     missing = [f"{s}/k{k}" for (s, k) in EXPECTED_TRAIN_COUNTS if (s, k) not in counts]
     # v1.1 extension counts (ADDENDUM-3): negatives ride the sidecar manifest
     neg_counts: dict[str, int] = {}
@@ -407,8 +411,9 @@ def frozen_inputs(manifest: dict) -> list["lib.Cluster"]:
         mismatch=count_mism, missing=missing,
         sealed_inputs=["NONE — MA-holdout-choice, holdout v4.5, g4-spec-v1, "
                        "spot-sheet are NOT in the train input list"])
-    if count_mism or missing:
-        raise InstrumentAbort(f"frozen_inputs count mismatch: {count_mism} missing={missing}")
+    if count_mism or missing or extra:
+        raise InstrumentAbort(f"frozen_inputs count mismatch: {count_mism} "
+                              f"missing={missing} extra={extra}")
     return clusters
 
 
@@ -909,7 +914,7 @@ def cmd_floor_seed(args: argparse.Namespace) -> int:
              "(ADDENDUM-1 §2 pre-check precedent); no content kept")
 
     rows = []
-    for seed in FLOOR_SEEDS:
+    for seed in seeds:
         used = set(train_scen)  # holdout-style exclusion (fresh set per draw)
         fam = mb.gen_family(seed, _FLOOR_QUOTA_FULL, used,
                             f"ma-fs-{seed}", f"ma-fseed{seed}")

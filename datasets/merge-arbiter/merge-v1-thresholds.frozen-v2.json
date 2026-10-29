@@ -1,0 +1,415 @@
+{
+ "artifact": "vesma-cortex-merge-v1 (corpus v1.1, ADDENDUM-3)",
+ "frozen_at": "2026-10-29T18:48:36.025+00:00",
+ "thresholds": {
+  "tau_hi": 0.9,
+  "tau_m": 0.5,
+  "rule": "keep=argmax e_i iff e1>=tau_hi and e1-e2>=tau_m; else ABSTAIN (draft §2.2)",
+  "fit": "train-only 5-fold CV by clusters, pairwise-disjoint folds, seed 42; NO sealed surface used for any choice (N2)"
+ },
+ "cv_ch3_oof": {
+  "acc": 1.0,
+  "abstain_rate": 0.0,
+  "score": 1.0,
+  "ch3_n": 252
+ },
+ "cv_neg_abstain": {
+  "cross-lang-sibling": 1.0,
+  "near-topic": 1.0,
+  "template-twin": 1.0
+ },
+ "cv_noregress": {
+  "per_fold": {
+   "0": 1.0,
+   "1": 1.0,
+   "2": 1.0,
+   "3": 1.0,
+   "4": 1.0
+  },
+  "reference": 1.0,
+  "tol": 0.02
+ },
+ "cv_grid_top10": [
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.5,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.4,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.3,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.2,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.15,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.1,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.05,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.0,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.85,
+   "tau_m": 0.5,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.85,
+   "tau_m": 0.4,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  }
+ ],
+ "baselines_per_stratum_train": {
+  "CH-3/insert": {
+   "keep-oldest": 0.3917,
+   "longest-body": 1.0,
+   "first": 0.5
+  },
+  "CH-3/replace": {
+   "keep-oldest": 0.475,
+   "longest-body": 0.0,
+   "first": 0.5
+  },
+  "CH-3/chain": {
+   "keep-oldest": 0.25,
+   "longest-body": 1.0,
+   "first": 0.6667
+  },
+  "CH-0": {
+   "keep-oldest": 1.0,
+   "longest-body": 1.0,
+   "first": 1.0
+  },
+  "CH-2": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  },
+  "CH-4": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  },
+  "CH-5": {
+   "keep-oldest": 1.0,
+   "longest-body": 1.0,
+   "first": 1.0
+  },
+  "theme-near/cross-lang-sibling": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  },
+  "theme-near/template-twin": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  },
+  "theme-near/near-topic": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  }
+ },
+ "n_features": 25,
+ "feature_names_sha256": "bb75a4677f825ff21dcf76db2b7a3186b3903a45b49dfb1d7ce0b942428cd9f2",
+ "durable_artifact": {
+  "path": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/merge-arbiter-draft/data/merge-arbiter/artifacts/merge-v1/merge_arbiter_v1-1.json",
+  "sha256": "b86b5dbf606a011a7352a8bef37bb04cb6a84de6bf9553ffa75bd54f5b2ad9d1"
+ },
+ "train_jsonl_sha256": "e60bc7d05bd0348d8811d094b890c0931c9495b9ae03169951232bf547b93cd6",
+ "manifest_sha256": "abb29158c73e98b8e91b9194160e560311d5a9b9d911362cb14d7cfc4788b7f5",
+ "merge_arbiter_lib_sha256": "b921d8c1b77f23dbb321ddf10173dd1b02eeab193de02ab3d1a7754c4aba7658",
+ "cortex_features_pair_sha256": "1d8b2fa891178f59e695032cecea8f02ab46784fc9adabe15ceaaffc6c505c81",
+ "feature_names_pin_sha256": "7b347a0a7e4e77fc1245e903cf95894b00cc74dfbeb60d542005a4540d63db07",
+ "embedder_pin": "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba",
+ "env": {
+  "python": "3.12.13",
+  "lightgbm": "4.7.0",
+  "numpy": "2.5.3",
+  "venv_suffix": "vesma-cortex/.venv/bin/python"
+ },
+ "seed": 42,
+ "boundary_v1": "cos_target enters as the declared constant 1.0 (no measured vector leg in corpus v1); the vector leg joins the Choice contract in a later engine wave",
+ "corpus_v1_1": {
+  "recipe": "corpus v1.1 = v1 (600, byte-identical) + theme-near negative block (200, ADDENDUM-3)",
+  "negatives_sha256": "f5246f4be05993508365479b6b38722f13fc735e79b27ed9d723c26ec8e5e340",
+  "corpus_fp_v1_1": "c68890c6a50fb949744590319fcb37392f193997bb857e92f2fd34bb3024580a",
+  "seeds": [
+   9001,
+   9002,
+   9003
+  ],
+  "addendum": "ADDENDUM-3 (MLC 29.10, option б), commit e953eec"
+ },
+ "noharm_surface": {
+  "path": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/merge-arbiter-draft/data/merge-arbiter/artifacts/merge-v1/noharm-surface-v1.jsonl",
+  "sha256": "146a8ae42bb6f1e5fb957d44903d218c82df2c456e9b584cf177d6f3b89e8fd4",
+  "counts": {
+   "notdup": 27,
+   "sibling": 144,
+   "total": 171
+  },
+  "count_note": "verdictor's 39+39/105 came from wc -l (both sibling files lack the trailing newline: actual 40+40 specs); both-orientation sibling recipe gives 160 V43-TSIB pairs, minus 16 v4.3-holdout-slice ids = 144",
+  "sources": {
+   "datasets/corpus-v4/batch-notdup.jsonl": "ece065de5a74ccba1ca96401e298a9dd445ba3fef7d6702463cef83efc859d55",
+   "datasets/corpus-v4/batch-base-ru.jsonl": "404d43f28d384d0d78e834aed02d59e4bd00fc0d134236a867d20c4d89ba1482",
+   "datasets/corpus-v4/batch-base-en.jsonl": "526522bf4e749baf96bdd501e7f46a7a5d5f406aaac3d2c17ef793798ab4c293",
+   "datasets/corpus-v43/batch-translated-sibling-ru.jsonl": "6ab5b5faf7aa207cb3ce321a50ea42f89932f6901af014a437788e3c2377da54",
+   "datasets/corpus-v43/batch-translated-sibling-en.jsonl": "36ced21dc2c63480bca8482aba9fbdd1c641394e32a5dc9dc8471741c1ca9f0f"
+  },
+  "split_pins": {
+   "v42_holdout_excluded_ids": [
+    "V4-PND-0001",
+    "V4-PND-0002",
+    "V4-PND-0003",
+    "V4-PND-0004",
+    "V4-PND-0005",
+    "V4-PND-0006",
+    "V4-PND-0007",
+    "V4-PND-0008",
+    "V4-PND-0009"
+   ],
+   "v42_train_ids": [
+    "V4-PND-0010",
+    "V4-PND-0011",
+    "V4-PND-0012",
+    "V4-PND-0013",
+    "V4-PND-0014",
+    "V4-PND-0015",
+    "V4-PND-0016",
+    "V4-PND-0017",
+    "V4-PND-0018",
+    "V4-PND-0019",
+    "V4-PND-0020",
+    "V4-PND-0021",
+    "V4-PND-0022",
+    "V4-PND-0023",
+    "V4-PND-0024",
+    "V4-PND-0025",
+    "V4-PND-0026",
+    "V4-PND-0027",
+    "V4-PND-0028",
+    "V4-PND-0029",
+    "V4-PND-0030",
+    "V4-PND-0031",
+    "V4-PND-0032",
+    "V4-PND-0033",
+    "V4-PND-0034",
+    "V4-PND-0035",
+    "V4-PND-0036"
+   ],
+   "v43_holdout_slice_excluded_ids": [
+    "V43-TSIB-0001",
+    "V43-TSIB-0002",
+    "V43-TSIB-0003",
+    "V43-TSIB-0004",
+    "V43-TSIB-0005",
+    "V43-TSIB-0006",
+    "V43-TSIB-0007",
+    "V43-TSIB-0008",
+    "V43-TSIB-0009",
+    "V43-TSIB-0010",
+    "V43-TSIB-0011",
+    "V43-TSIB-0012",
+    "V43-TSIB-0013",
+    "V43-TSIB-0014",
+    "V43-TSIB-0015",
+    "V43-TSIB-0016"
+   ],
+   "v43_train_ids_count": 144
+  },
+  "trap_note": "the 9 v4.2-holdout and 16 v4.3-holdout-slice rows are sealed material: filtered by the replayed frozen split id lists, emitted set asserted disjoint (exact 0); texts never emitted, ids pinned here for the TL check",
+  "tl_machine_leg": "surface-vs-sheet and surface-vs-MA-holdout text-hash disjointness stays with the TL after this commit",
+  "created_at": "2026-10-29T17:57:20.218+00:00"
+ },
+ "delta_acc_measure": {
+  "ratification": "MLC 29.10, option (a), unanimous, chairman-consolidated",
+  "granularity": "floor_seed for delta_acc is measured at the granularity of the gating statistic (CH-3 aggregate, gate-leg composition 22 k2 + 3 chain); the per-stratum table in the build manifest is a characterization artifact and does NOT enter the formula",
+  "seeds": [
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   50,
+   51,
+   52
+  ],
+  "per_seed": [
+   {
+    "seed": 43,
+    "n_clusters": 25,
+    "acc_model": 0.88,
+    "acc_baseline_max": 0.52,
+    "delta": 0.36
+   },
+   {
+    "seed": 44,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.52,
+    "delta": 0.48
+   },
+   {
+    "seed": 45,
+    "n_clusters": 25,
+    "acc_model": 0.96,
+    "acc_baseline_max": 0.52,
+    "delta": 0.44
+   },
+   {
+    "seed": 46,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.6,
+    "delta": 0.4
+   },
+   {
+    "seed": 47,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.56,
+    "delta": 0.44
+   },
+   {
+    "seed": 48,
+    "n_clusters": 25,
+    "acc_model": 0.96,
+    "acc_baseline_max": 0.52,
+    "delta": 0.44
+   },
+   {
+    "seed": 49,
+    "n_clusters": 25,
+    "acc_model": 0.96,
+    "acc_baseline_max": 0.52,
+    "delta": 0.44
+   },
+   {
+    "seed": 50,
+    "n_clusters": 25,
+    "acc_model": 0.92,
+    "acc_baseline_max": 0.52,
+    "delta": 0.4
+   },
+   {
+    "seed": 51,
+    "n_clusters": 25,
+    "acc_model": 0.88,
+    "acc_baseline_max": 0.64,
+    "delta": 0.24
+   },
+   {
+    "seed": 52,
+    "n_clusters": 25,
+    "acc_model": 0.96,
+    "acc_baseline_max": 0.52,
+    "delta": 0.44
+   }
+  ],
+  "floor_seed_aggregate": 0.24,
+  "delta_acc": 0.48,
+  "model_sha256": "b86b5dbf606a011a7352a8bef37bb04cb6a84de6bf9553ffa75bd54f5b2ad9d1",
+  "measured_at": "2026-10-29T18:50:22.169+00:00",
+  "remeasure_after_single_shot": "FORBIDDEN"
+ },
+ "floors_v2": {
+  "artifact_sha256": "b86b5dbf606a011a7352a8bef37bb04cb6a84de6bf9553ffa75bd54f5b2ad9d1",
+  "floor_q": {
+   "seeds": [
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72
+   ],
+   "rates": [
+    0.08,
+    0.04,
+    0.08,
+    0.08,
+    0.04,
+    0.0,
+    0.04,
+    0.0,
+    0.04,
+    0.0
+   ],
+   "p90_char": 0.08,
+   "floor": 0.08
+  },
+  "q": 0.24,
+  "floor_inv": {
+   "draws": "73-75",
+   "disagreement_rates": [
+    0.0,
+    0.0125,
+    0.0
+   ],
+   "floor": 0.0125
+  },
+  "delta_inv": 0.025,
+  "floor_perm": {
+   "perms": "76-78",
+   "delta_rates": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "floor": 0.0
+  },
+  "measured_at": "2026-10-29T18:50:59.612+00:00",
+  "remeasure_after_single_shot": "FORBIDDEN"
+ },
+ "committed_doc_sha256": "a6c61607300fb5b669fdd57f8d8585fba83c825e3774c1f23d3cd05234494875"
+}
