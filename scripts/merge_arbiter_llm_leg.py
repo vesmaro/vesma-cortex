@@ -53,13 +53,14 @@ def main() -> int:
         prompt = PROMPT_TEMPLATE.format(row=row_id, body=row_body.strip())
         payload = json.dumps({
             "model": MODEL_PIN, "prompt": prompt, "stream": False,
-            "format": "json", "options": {"temperature": 0},
+            "format": "json",
+            "options": {"temperature": 0, "num_ctx": 2048},
         }).encode()
         choice, basis, note = "NOT SCORED", "", ""
         try:
             with urllib.request.urlopen(urllib.request.Request(
                     ENDPOINT, data=payload, headers={"Content-Type": "application/json"}),
-                    timeout=300) as resp:
+                    timeout=600) as resp:
                 answer = json.loads(resp.read())["response"]
             parsed = json.loads(answer)
             choice = str(parsed.get("choice", "NOT SCORED")).strip().upper()
