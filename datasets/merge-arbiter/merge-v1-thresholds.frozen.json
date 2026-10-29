@@ -1,0 +1,146 @@
+{
+ "artifact": "vesma-cortex-merge-v1",
+ "frozen_at": "2026-10-29T17:10:11.542+00:00",
+ "thresholds": {
+  "tau_hi": 0.9,
+  "tau_m": 0.05,
+  "rule": "keep=argmax e_i iff e1>=tau_hi and e1-e2>=tau_m; else ABSTAIN (draft §2.2)",
+  "fit": "train-only 5-fold CV by clusters, pairwise-disjoint folds, seed 42; NO sealed surface used for any choice (N2)"
+ },
+ "cv_ch3_oof": {
+  "acc": 1.0,
+  "abstain_rate": 0.0,
+  "score": 1.0,
+  "ch3_n": 252
+ },
+ "cv_grid_top10": [
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.05,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.0,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.85,
+   "tau_m": 0.05,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.85,
+   "tau_m": 0.0,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.8,
+   "tau_m": 0.05,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.8,
+   "tau_m": 0.0,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.75,
+   "tau_m": 0.05,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.75,
+   "tau_m": 0.0,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.7,
+   "tau_m": 0.05,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.7,
+   "tau_m": 0.0,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  }
+ ],
+ "baselines_per_stratum_train": {
+  "CH-3/insert": {
+   "keep-oldest": 0.3917,
+   "longest-body": 1.0,
+   "first": 0.5
+  },
+  "CH-3/replace": {
+   "keep-oldest": 0.475,
+   "longest-body": 0.0,
+   "first": 0.5
+  },
+  "CH-3/chain": {
+   "keep-oldest": 0.25,
+   "longest-body": 1.0,
+   "first": 0.6667
+  },
+  "CH-0": {
+   "keep-oldest": 1.0,
+   "longest-body": 1.0,
+   "first": 1.0
+  },
+  "CH-2": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  },
+  "CH-4": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  },
+  "CH-5": {
+   "keep-oldest": 1.0,
+   "longest-body": 1.0,
+   "first": 1.0
+  }
+ },
+ "n_features": 25,
+ "feature_names_sha256": "bb75a4677f825ff21dcf76db2b7a3186b3903a45b49dfb1d7ce0b942428cd9f2",
+ "durable_artifact": {
+  "path": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/merge-arbiter-draft/data/merge-arbiter/artifacts/merge-v1/merge_arbiter_v1.json",
+  "sha256": "85fa92769971353053a5d3703c42e8c9f0bf4bb49d55e275cc9ca8f21826ddd8"
+ },
+ "train_jsonl_sha256": "e60bc7d05bd0348d8811d094b890c0931c9495b9ae03169951232bf547b93cd6",
+ "manifest_sha256": "abb29158c73e98b8e91b9194160e560311d5a9b9d911362cb14d7cfc4788b7f5",
+ "merge_arbiter_lib_sha256": "b921d8c1b77f23dbb321ddf10173dd1b02eeab193de02ab3d1a7754c4aba7658",
+ "cortex_features_pair_sha256": "1d8b2fa891178f59e695032cecea8f02ab46784fc9adabe15ceaaffc6c505c81",
+ "feature_names_pin_sha256": "7b347a0a7e4e77fc1245e903cf95894b00cc74dfbeb60d542005a4540d63db07",
+ "embedder_pin": "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba",
+ "env": {
+  "python": "3.12.13",
+  "lightgbm": "4.7.0",
+  "numpy": "2.5.3",
+  "venv_suffix": "vesma-cortex/.venv/bin/python"
+ },
+ "seed": 42,
+ "boundary_v1": "cos_target enters as the declared constant 1.0 (no measured vector leg in corpus v1); the vector leg joins the Choice contract in a later engine wave",
+ "committed_doc_sha256": "ea40d47ec619ce6a98f7c0762634c08df6262bc1dea5cba823381af13abd214c"
+}
