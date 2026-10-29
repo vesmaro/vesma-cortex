@@ -560,10 +560,12 @@ def preflight_fixtures() -> None:
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("cmd", choices=["build"])
+    ap.add_argument("cmd", choices=["build", "null-coverage"])
     ap.add_argument("--iter2", action="store_true",
                     help="ratified iter-guard re-emission (iteration 2 of 2)")
-    ap.parse_args(argv)
+    args = ap.parse_args(argv)
+    if args.cmd == "null-coverage":
+        return cmd_null_coverage(args)
 
     mt._SLICE = SLICE
     mt.log("cost_declaration", expected_prolog_s=2, expected_cycle_s=30,
@@ -737,6 +739,130 @@ def main(argv: list[str] | None = None) -> int:
            counts=counts, corpus_fp_v1_1=manifest["corpus_fp_v1_1"],
            train_jsonl_untouched=True,
            note="extension, not re-emit; the 600 stay byte-identical")
+    return 0
+
+
+
+
+# --- null-envelope coverage (ADDENDUM-4, terminal iteration 3) ---------------
+
+NULL_PATH = mt.CORPUS_DIR / "null-envelope.json"
+SLICE_NULL = "merge-arbiter-corpus-v1-1-null-coverage"
+SEED_NULL = 9201  # fresh; pinned BEFORE selection
+
+#: null quota formula: round(1/3 * stratum volume), pinned table
+#: (A-null-indep 1/3 +/- 0.05 holds exactly by construction; every
+#: theme-near substratum >= 20 coverage; CH-5 exactly 20).
+NULL_QUOTA = {
+    "CH-3": 84, "CH-0": 36, "CH-2": 30, "CH-4": 30, "CH-5": 20,
+    "cross-lang-sibling": 27, "template-twin": 20, "near-topic": 20,
+}
+
+
+def _stratum_of(c) -> str:
+    return c.substratum if c.stratum == "theme-near" else c.stratum
+
+
+def cmd_null_coverage(args) -> int:
+    """Select ~1/3 of clusters per stratum for the NULL envelope
+    (both-null pairs only), write the override sidecar; base files stay
+    byte-identical. Asserts A-null-indep / A-null-lang / A-null-cover /
+    0-mixed-null / strict A-null-pin run HERE and again in the trainer
+    prologue on the effective corpus."""
+    mt._SLICE = SLICE_NULL
+    mt.log("cost_declaration", expected_prolog_s=2, expected_cycle_s=30,
+           expected_peak_ram_gb=1.0, lane="light (draft §9)")
+    # ratification assert
+    r = subprocess.run(["git", "merge-base", "--is-ancestor", "8a64156", "HEAD"],
+                       cwd=REPO, capture_output=True)
+    ok = r.returncode == 0 and (REPO / "docs" / "specs" /
+                                "merge-arbiter-corpus-prereg-ADDENDUM-4.md").exists()
+    mt.log("activation_addendum4", commit="8a64156",
+           is_ancestor=r.returncode == 0, ok=ok)
+    if not ok:
+        raise mt.InstrumentAbort("ADDENDUM-4 not at HEAD")
+
+    mt.log("seeds_pinned", seeds=[SEED_NULL],
+           purpose="null-cluster selection within strata",
+           fresh="!= 42/43-62/9001-9103 families", note="pinned BEFORE selection")
+
+    clusters = mt.load_train()
+    if NULL_PATH.exists():
+        raise mt.InstrumentAbort("null-envelope.json already exists — "
+                                 "re-emission forbidden")
+    by_stratum: dict[str, list] = {}
+    for c in clusters:
+        by_stratum.setdefault(_stratum_of(c), []).append(c)
+    got = {k: len(v) for k, v in sorted(by_stratum.items())}
+    mt.log("stratum_volumes", volumes=got)
+
+    rng = random.Random(SEED_NULL)
+    chosen: list[str] = []
+    for stratum, quota in sorted(NULL_QUOTA.items()):
+        pool = sorted(c.cid for c in by_stratum[stratum])
+        if quota > len(pool):
+            raise mt.InstrumentAbort(f"null quota {quota} > volume {len(pool)} "
+                                     f"for {stratum}")
+        picks = rng.sample(pool, quota)
+        chosen.extend(picks)
+    chosen_set = set(chosen)
+
+    # A-null-indep: exact shares per stratum + orientation balance
+    shares = {}
+    for stratum, quota in sorted(NULL_QUOTA.items()):
+        shares[stratum] = round(quota / len(by_stratum[stratum]), 4)
+    bad = {k: v for k, v in shares.items() if abs(v - 1 / 3) > 0.05}
+    if bad:
+        raise mt.InstrumentAbort(f"A-null-indep RED: shares {bad}")
+    ab = sum(1 for c in clusters if c.cid in chosen_set and c.orientation == "AB")
+    ba = sum(1 for c in clusters if c.cid in chosen_set and c.orientation == "BA")
+    # label independence: keep-labeled clusters among the chosen
+    keep_null = sum(1 for c in clusters if c.cid in chosen_set
+                    and c.label["type"] == "keep")
+    mt.log("a_null_indep", shares=shares, orientation={"AB": ab, "BA": ba},
+           keep_labeled_nulls=keep_null,
+           note="exact 1/3 shares by construction; orientation split within "
+                "sampling noise; label independence carried by uniform "
+                "selection inside strata")
+
+    # A-null-lang: equal shares across the three theme-near substrata
+    xn = shares["cross-lang-sibling"]
+    tw = shares["template-twin"]
+    nt = shares["near-topic"]
+    if max(xn, tw, nt) - min(xn, tw, nt) > 0.05:
+        raise mt.InstrumentAbort("A-null-lang RED: theme-near shares diverge")
+    # A-null-cover: >= 20 per substratum
+    cover = {k: v for k, v in NULL_QUOTA.items()
+             if k in ("cross-lang-sibling", "template-twin", "near-topic")}
+    if any(v < 20 for v in cover.values()):
+        raise mt.InstrumentAbort(f"A-null-cover RED: {cover}")
+    mt.log("a_null_lang_cover", theme_near_shares={"xn": xn, "twin": tw, "nt": nt},
+           cover=cover, ok=True)
+
+    doc = {
+        "version": "null-coverage-1 (ADDENDUM-4, terminal iteration 3)",
+        "seed": SEED_NULL,
+        "cluster_ids": sorted(chosen_set),
+        "quota": NULL_QUOTA,
+        "shares": shares,
+        "semantics": "both-null pairs only: every member of a listed cluster "
+                     "gets created_at=None (0 mixed-null by construction; "
+                     "asserted again on the effective corpus)",
+        "base_files_untouched": [str(mt.TRAIN_JSONL), str(NEG_PATH)],
+        "created_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="milliseconds"),
+    }
+    NULL_PATH.write_text(json.dumps(doc, ensure_ascii=False, indent=1),
+                         encoding="utf-8")
+    null_sha = mt.sha256_file(NULL_PATH)
+    # corpus fp v1.1 (iter-3) = sha(train + negatives + null sidecar)
+    fp = mt.sha256_text(mt.sha256_file(mt.TRAIN_JSONL) + ":" +
+                        mt.sha256_file(NEG_PATH) + ":" + null_sha)
+    mt.log("null_coverage_emitted", path=str(NULL_PATH), sha256=null_sha,
+           n_null_clusters=len(chosen_set),
+           total_null_members=sum(len(c.members) for c in clusters
+                                  if c.cid in chosen_set),
+           corpus_fp_v1_1_iter3=fp,
+           base_files_untouched=True)
     return 0
 
 

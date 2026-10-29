@@ -117,6 +117,7 @@ TRAIN_JSONL = CORPUS_DIR / "train.jsonl"
 MANIFEST = CORPUS_DIR / "manifest.json"
 HOLDOUT_JSONL = CORPUS_DIR / "holdout.jsonl"  # SEALED — never opened in this phase
 NEG_PATH = CORPUS_DIR / "train-negatives.jsonl"  # v1.1 extension (ADDENDUM-3)
+NULL_PATH = CORPUS_DIR / "null-envelope.json"  # null coverage (ADDENDUM-4)
 SEAL_DIR = REPO / "data" / "merge-arbiter" / "seals"  # never opened in this phase
 ART_DIR = REPO / "data" / "merge-arbiter" / "artifacts" / "merge-v1"
 COMMITTED_DIR = REPO / "datasets" / "merge-arbiter"
@@ -399,6 +400,46 @@ def frozen_inputs(manifest: dict) -> list["lib.Cluster"]:
                 neg_counts[c.substratum] = neg_counts.get(c.substratum, 0) + 1
         if neg_counts != EXPECTED_NEG_COUNTS:
             count_mism["theme-near"] = {"got": neg_counts, "want": EXPECTED_NEG_COUNTS}
+    # ADDENDUM-4 null-coverage asserts on the EFFECTIVE corpus
+    null_info = None
+    if NULL_PATH.exists():
+        null_doc = json.loads(NULL_PATH.read_text(encoding="utf-8"))
+        null_ids = set(null_doc["cluster_ids"])
+        per_stratum: dict[str, int] = {}
+        per_key: dict[str, int] = {}
+        mixed = []
+        for c in clusters:
+            nulls = [m.created_at is None for m in c.members]
+            if any(nulls) and not all(nulls):
+                mixed.append(c.cid)
+            if c.cid in null_ids:
+                if not all(nulls):
+                    mixed.append(c.cid + ":pin")
+                base = _stratum_of(c)
+                per_stratum[base] = per_stratum.get(base, 0) + 1
+                per_key[stratum_key(c)] = per_key.get(stratum_key(c), 0) + 1
+        want_nulls = dict(null_doc["quota"])
+        got_nulls = dict(per_stratum)
+        null_mism = {k: {"got": got_nulls.get(k), "want": v}
+                     for k, v in want_nulls.items() if got_nulls.get(k) != v}
+        extra_nulls = {k: v for k, v in per_stratum.items() if k not in want_nulls}
+        if mixed:
+            raise InstrumentAbort(f"0-mixed-null RED: {sorted(mixed)[:5]}")
+        if null_mism or extra_nulls:
+            raise InstrumentAbort(f"null quota mismatch: {null_mism} "
+                                  f"extra={extra_nulls}")
+        shares = {k: round(v / sum(1 for c in clusters
+                                   if _stratum_of(c) == k), 4)
+                  for k, v in per_stratum.items()}
+        bad_share = {k: v for k, v in shares.items() if abs(v - 1 / 3) > 0.05}
+        if bad_share:
+            raise InstrumentAbort(f"A-null-indep RED: {bad_share}")
+        null_info = {"sidecar_sha256": sha256_file(NULL_PATH),
+                     "n_clusters": len(null_ids), "per_stratum": per_stratum,
+                     "per_stratum_key": per_key,
+                     "shares": shares, "mixed_null": 0,
+                     "pin": "null -> epoch 0 + flag 1 + delta 0 (A-null-pin strict)"}
+        log("null_coverage_asserts", **null_info, ok=True)
     log("frozen_inputs",
         train_jsonl_sha256=sha256_file(TRAIN_JSONL),
         manifest_sha256=sha256_file(MANIFEST),
@@ -454,7 +495,18 @@ def load_train() -> list["lib.Cluster"]:
         with open(NEG_PATH, encoding="utf-8") as fh:
             for line in fh:
                 clusters.append(_cluster_from_row(json.loads(line)))
+    if NULL_PATH.exists():
+        null_ids = set(json.loads(NULL_PATH.read_text(encoding="utf-8"))
+                       .get("cluster_ids", []))
+        for c in clusters:
+            if c.cid in null_ids:
+                for m in c.members:
+                    m.created_at = None  # both-null pair semantics (ADDENDUM-4)
     return clusters
+
+
+def _stratum_of(c: lib.Cluster) -> str:
+    return c.substratum if c.stratum == "theme-near" else c.stratum
 
 
 def stratum_key(c: lib.Cluster) -> str:
@@ -789,14 +841,31 @@ def oof_decided_member(scores: dict[str, float], created: dict[str, float],
 
 # --- baselines (draft §5; compare vs manifest characterization) ---------------
 
-def baselines_per_stratum(clusters: list[lib.Cluster]) -> dict:
+NULL_EPOCH_SENTINEL = "1970-01-01T00:00:00Z"  # A-null-pin: null -> epoch 0
+
+
+def _sentinel_members(c: lib.Cluster) -> list[lib.Member]:
+    """Members with null created_at mapped to the A-null-pin epoch-0
+    sentinel so the FROZEN baseline functions stay usable; on both-null
+    clusters keep-oldest is tie-ambiguous (all epoch-0) — the formal
+    argmin E(r) is degenerate there, disclosed in the artifact."""
+    return [lib.Member(m.mid, m.title, m.body, m.tags, m.record_type,
+                       m.language,
+                       NULL_EPOCH_SENTINEL if m.created_at is None
+                       else m.created_at)
+            for m in c.members]
+
+
+def baselines_per_stratum(clusters: list[lib.Cluster],
+                          sentinel: bool = False) -> dict:
     table: dict[str, dict[str, list[int]]] = {}
     for c in clusters:
         key = stratum_key(c)
         row = table.setdefault(key, {b: [0, 0] for b in lib.BASELINES})
+        members = _sentinel_members(c) if sentinel else c.members
         for bname, bfn in lib.BASELINES.items():
             row[bname][1] += 1
-            row[bname][0] += int(lib.correct_set_ok(c, bfn(c.members)))
+            row[bname][0] += int(lib.correct_set_ok(c, bfn(members)))
     return {key: {b: round(n[0] / n[1], 4) if n[1] else None for b, n in row.items()}
             for key, row in table.items()}
 
@@ -1215,9 +1284,16 @@ def cmd_train(args: argparse.Namespace) -> int:
 
     assert_permutation_invariance(clusters)
 
-    # train-side baselines + exact reproduction of the build characterization
-    baselines = baselines_per_stratum(clusters)
-    check_baselines_vs_manifest(pro["manifest"], baselines)
+    # train-side baselines: the manifest check runs on the ORIGINAL 600
+    # (train.jsonl only — the characterization was computed exactly there;
+    # no negatives, no null overrides) for exact reproduction; the recorded
+    # table runs on the EFFECTIVE corpus (with the ADDENDUM-4 null
+    # coverage, sentinel-wrapped)
+    v1_clusters = [_cluster_from_row(json.loads(line))
+                   for line in open(TRAIN_JSONL, encoding="utf-8")]
+    check_baselines_vs_manifest(pro["manifest"],
+                                baselines_per_stratum(v1_clusters))
+    baselines = baselines_per_stratum(clusters, sentinel=True)
 
     cv = cv_thresholds(clusters)
     tau_hi, tau_m = cv["best"]["tau_hi"], cv["best"]["tau_m"]
@@ -1403,6 +1479,25 @@ def cmd_prelaunch(args: argparse.Namespace) -> int:
     if in_inputs:
         raise InstrumentAbort("committee-scored-v1.json found in the input list")
 
+    # П6 pre-registration, VERBATIM per ADDENDUM-4 §4 — written to the
+    # run-log BEFORE any gate_start of the upcoming single-shot cycle
+    PREREG = ("ратифицированная процедура на материал-чувствительной модели "
+              "даёт δ_acc = 0.48; свежие дельты 0.24–0.48 (медиана 0.44). "
+              "Если g_acc красный: интерпретация — \"модель v1 не "
+              "сертифицируемо превосходит базлайны под собственной "
+              "ратифицированной процедурой допуска\"; вердикт цикла DECLINE "
+              "окончателен, повтор с теми же числами запрещён, возврат "
+              "только через новый fresh-seal цикл с канон-вопросом о "
+              "семантике пола в ArchCom. Послемёрная аналитика (легальна): "
+              "дельта holdout сравнивается с распределением 10 розыгрышей — "
+              "внутри диапазона → \"нестабильность на свежем материале\" "
+              "(дефект покрытия/рецепта), ниже хвоста → \"реальная слабость "
+              "на holdout\"; оба исхода = DECLINE, порог не пересматривается")
+    log("prereg_delta_acc", prereg=PREREG, verbatim="ADDENDUM-4 §4",
+         delta_acc=doc.get("delta_acc_measure", {}).get("delta_acc"),
+         note="written BEFORE gate_start; the gate asserts this event exists "
+              "in the run-log prior to gate_start (П6 order)")
+
     # sanity 7/7 on the NEW model (probes 3/4 = CH-3 quality guards)
     run_model_sanity_suite(model, tau_hi, tau_m)
 
@@ -1440,6 +1535,7 @@ def cmd_prelaunch(args: argparse.Namespace) -> int:
     if missing:
         raise InstrumentAbort(f"sheet pre-check RED: {len(missing)} member_ids "
                               "outside synthetic_train")
+
 
     absent = [k for k in ("delta_acc_measure", "floors_v2") if k not in doc]
     log("prelaunch_done", artifact=args.artifact,
@@ -1564,6 +1660,23 @@ def cmd_gate(args: argparse.Namespace) -> int:
     log("noharm_surface_pin", path=str(noharm),
         sha256=surf_sec["sha256"], counts=surf_sec.get("counts"), ok=True)
     model, tau_hi, tau_m = load_frozen(artifact)
+
+    # П1+П6: the ADDENDUM-4 prereg event must exist BEFORE gate_start
+    prereg_seen = False
+    if RUNLOG.exists():
+        for line in open(RUNLOG, encoding="utf-8"):
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if row.get("event") == "prereg_delta_acc":
+                prereg_seen = True
+                break
+    if not prereg_seen:
+        raise InstrumentAbort("prereg_delta_acc event not found in the "
+                              "run-log — ADDENDUM-4 §4 pre-registration is "
+                              "a precondition of gate_start (П6)")
+    log("prereg_order_assert", prereg_seen=True, ok=True)
 
     # П1: gate_start BEFORE any eval computation (sanity suite, fixtures,
     # no-harm, sealed reads are all eval reads — they start only now).
