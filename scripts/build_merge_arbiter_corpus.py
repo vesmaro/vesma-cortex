@@ -59,6 +59,33 @@ CH2_MODES = ["tags", "type", "language"]
 
 REAL_EXPECT = {"pairs": 68, "records": 130, "clusters": 64}
 
+#: A-disjoint leg-3 pin (MLC ratification 092946ab, 2026-10-29): the 3/68
+#: overlap of the real 68 pairs with holdout-v45 pair members is ratified
+#: AS A SET — the exact pair ids and record ids below, not a count. Any
+#: difference between the measured overlap set and this pin is red
+#: (fail-closed). Mirrored verbatim into the emitted manifest under
+#: "a_disjoint_pin" (which is gitignored; this constant is the tracked copy).
+A_DISJOINT_SURFACE_PIN: dict[str, dict[str, list[str]]] = {
+    "graph-sidecar-fresh-holdout-v45.jsonl": {
+        "pair_ids": sorted([
+            "16b9de0f-e3b0-4a74-ae28-2612f30cd4f8--293daaef-5c36-4fdc-8145-4b0f0f60829b",
+            "381aa311-d357-4165-a9e3-fbe0eb45e31f--387dd891-2ac1-4700-80cd-71e47b7a27e8",
+            "3979ae5c-9953-44de-b09e-228cb593ed17--acc63ee7-552d-4eaf-9d19-e902c8160172",
+        ]),
+        "record_ids": sorted([
+            "16b9de0f-e3b0-4a74-ae28-2612f30cd4f8",
+            "293daaef-5c36-4fdc-8145-4b0f0f60829b",
+            "381aa311-d357-4165-a9e3-fbe0eb45e31f",
+            "387dd891-2ac1-4700-80cd-71e47b7a27e8",
+            "3979ae5c-9953-44de-b09e-228cb593ed17",
+            "acc63ee7-552d-4eaf-9d19-e902c8160172",
+        ]),
+    },
+    "graph-sidecar-fresh-v42-276.jsonl": {"pair_ids": [], "record_ids": []},
+    "graph-sidecar-fresh-g4-spec-v1.jsonl": {"pair_ids": [], "record_ids": []},
+    "pool_manifest.txt": {"pair_ids": [], "record_ids": []},
+}
+
 
 class BuildStop(Exception):
     """Fail-closed abort: nothing downstream may run (no seals, no sheet)."""
@@ -496,18 +523,13 @@ def assert_ledger(train: list[lib.Cluster], holdout: list[lib.Cluster],
         f"import cortex.features ok; embedder pin {pins['embedder_pin'][:24]}…; "
         "wrong provider refuses loudly (scoring-time)")
 
-    # A-disjoint: four legs (spec §6, amended 2026-10-29 after build findings)
+    # A-disjoint: four legs (spec §6, amended 2026-10-29 after build findings;
+    # leg-3 pin strengthened numeric -> SET per MLC ratification 092946ab)
     real_ids = [m["id"] for cl in real["clusters"] for m in cl]
     syn_bodies = {lib.sha256_text(m.body) for c in train for m in c.members}
     hold_bodies = {lib.sha256_text(m.body) for c in holdout for m in c.members}
 
-    declared_surface_overlap = {
-        "graph-sidecar-fresh-holdout-v45.jsonl": 3,   # 3 of 68 pairs pre-labeled in v4.5 positives
-        "graph-sidecar-fresh-v42-276.jsonl": 0,
-        "graph-sidecar-fresh-g4-spec-v1.jsonl": 0,
-        "pool_manifest.txt": 0,
-    }
-    observed_surface_overlap: dict[str, int] = {}
+    observed_surface_pin: dict[str, dict[str, list[str]]] = {}
     surface_hits: list[str] = []
     hash_hits: list[str] = []
     ds_files = [p for p in (REPO / "datasets").rglob("*") if p.is_file()
@@ -525,9 +547,12 @@ def assert_ledger(train: list[lib.Cluster], holdout: list[lib.Cluster],
             text = p.read_text(encoding="utf-8", errors="ignore")
         except OSError:
             continue
-        # leg 3: pair-level overlap of the real 68 vs committed pair surfaces
-        if p.name in declared_surface_overlap and p.suffix == ".jsonl":
-            cnt = 0
+        # leg 3: pair-level overlap of the real 68 vs committed pair surfaces —
+        # measured as SETS (pair ids + record ids), compared exactly against
+        # A_DISJOINT_SURFACE_PIN (MLC 092946ab: membership, not counts)
+        if p.name in A_DISJOINT_SURFACE_PIN and p.suffix == ".jsonl":
+            hit_pairs: set[str] = set()
+            hit_recs: set[str] = set()
             for line in text.splitlines():
                 try:
                     row = json.loads(line)
@@ -535,21 +560,25 @@ def assert_ledger(train: list[lib.Cluster], holdout: list[lib.Cluster],
                     continue
                 a, b = row.get("a_store_id"), row.get("b_store_id")
                 if a and b and frozenset((a, b)) in my_pair_keys:
-                    cnt += 1
-            observed_surface_overlap[p.name] = cnt
+                    hit_pairs.add("--".join(sorted((a, b))))
+                    hit_recs.update((a, b))
+            observed_surface_pin[p.name] = {"pair_ids": sorted(hit_pairs),
+                                            "record_ids": sorted(hit_recs)}
         if p.name == "pool_manifest.txt":
-            cnt = 0
+            hit_pairs, hit_recs = set(), set()
             for line in text.splitlines():
                 k = line.split()[0]
                 if "--" in k:
                     a, b = k.split("--", 1)
                     if frozenset((a, b)) in my_pair_keys:
-                        cnt += 1
-            observed_surface_overlap["pool_manifest.txt"] = cnt
+                        hit_pairs.add("--".join(sorted((a, b))))
+                        hit_recs.update((a, b))
+            observed_surface_pin["pool_manifest.txt"] = {"pair_ids": sorted(hit_pairs),
+                                                         "record_ids": sorted(hit_recs)}
         # leg 1 (record-level presence, measured + reported; the pair-level
         # leg above is the binding one)
         for rid in real_ids:
-            if rid and len(rid) >= 6 and rid in text and p.name not in declared_surface_overlap:
+            if rid and len(rid) >= 6 and rid in text and p.name not in A_DISJOINT_SURFACE_PIN:
                 surface_hits.append(f"{p.name}:{rid[:8]}")
         if p.suffix == ".jsonl":
             for line in text.splitlines():
@@ -578,16 +607,35 @@ def assert_ledger(train: list[lib.Cluster], holdout: list[lib.Cluster],
     overlap_train_hold_scen = ({c.scenario for c in train if c.stratum in ("CH-3", "CH-4")}
                                & {c.scenario for c in holdout if c.stratum in ("CH-3", "CH-4")})
     overlap_train_hold_hash = syn_bodies & hold_bodies
+    # leg 3 verdict: exact SET equality per surface — ANY difference between
+    # the measured overlap set and the pin (extra pair, missing pair, extra or
+    # missing record, absent surface file) is red (MLC 092946ab binding rule);
+    # count equality alone is NOT sufficient
+    pin_diff: dict[str, dict[str, list[str]]] = {}
+    for name in sorted(set(observed_surface_pin) | set(A_DISJOINT_SURFACE_PIN)):
+        want = A_DISJOINT_SURFACE_PIN.get(name, {"pair_ids": [], "record_ids": []})
+        got = observed_surface_pin.get(name, {"pair_ids": [], "record_ids": []})
+        for kind in ("pair_ids", "record_ids"):
+            unexpected = sorted(set(got[kind]) - set(want[kind]))
+            missing = sorted(set(want[kind]) - set(got[kind]))
+            if unexpected or missing:
+                pin_diff[f"{name}/{kind}"] = {"unexpected": unexpected, "missing": missing}
     legs_ok = (
         not overlap_train_hold_scen and not overlap_train_hold_hash
         and not hash_hits
-        and observed_surface_overlap == declared_surface_overlap
+        and not pin_diff
     )
+    v45_got = observed_surface_pin.get("graph-sidecar-fresh-holdout-v45.jsonl",
+                                       {"pair_ids": [], "record_ids": []})
+    v45_want = A_DISJOINT_SURFACE_PIN["graph-sidecar-fresh-holdout-v45.jsonl"]
     put("A-disjoint", legs_ok,
         f"leg1 train↔holdout: scen {len(overlap_train_hold_scen)}/hash {len(overlap_train_hold_hash)}; "
         f"leg2 synthetic-vs-committed hash: {len(hash_hits)} {hash_hits[:2]}; "
-        f"leg3 real pairs vs surfaces (pinned): {observed_surface_overlap} "
-        f"(3 pre-labeled in holdout-v45 positives — DECLARED, gate-only strata, "
+        f"leg3 real pairs vs surfaces (SET-pinned, MLC 092946ab): holdout-v45 measured "
+        f"pairs {len(v45_got['pair_ids'])}/records {len(v45_got['record_ids'])} vs pin "
+        f"pairs {len(v45_want['pair_ids'])}/records {len(v45_want['record_ids'])}; "
+        f"set-diff vs pin: {pin_diff if pin_diff else 'exact'} "
+        "(3 pre-labeled in holdout-v45 positives — DECLARED as a set, gate-only strata, "
         "no choice-signal in byte-twins, §8 other-label-surface precedent); "
         f"record-presence elsewhere: {len(surface_hits)}; "
         "seals v4.5/g4-spec-v1 label files NOT opened")
@@ -955,6 +1003,16 @@ def main() -> int:
                             "pairs": real["pairs"], "anchor68_pairs": len(real["anchor"]),
                             "expected": REAL_EXPECT, "drift": False,
                             "manifest": str(CORPUS_DIR / "real-strata.json")},
+            "a_disjoint_pin": {
+                "source": "MLC ratification 092946ab (2026-10-29): overlap 3/68 with "
+                "holdout-v45 pair members accepted as-is; binding condition — the pin is "
+                "the SET below, not the count (tracked copy: A_DISJOINT_SURFACE_PIN in "
+                "scripts/build_merge_arbiter_corpus.py)",
+                "surfaces": A_DISJOINT_SURFACE_PIN,
+                "assert": "exact set equality between the measured overlap and this pin "
+                "(pair_ids AND record_ids per surface, sorted lists); ANY difference in "
+                "the overlap set is red (fail-closed), not only a count difference",
+            },
             "synthetic_train": {"seed": SEED_TRAIN, "n": len(train),
                                 "quota": QUOTA_TRAIN,
                                 "interpretation": "strata rows are k=2 quotas; the k=3 row is "
