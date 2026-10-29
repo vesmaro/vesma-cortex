@@ -116,6 +116,7 @@ CORPUS_DIR = REPO / "data" / "merge-arbiter" / "corpus-v1"
 TRAIN_JSONL = CORPUS_DIR / "train.jsonl"
 MANIFEST = CORPUS_DIR / "manifest.json"
 HOLDOUT_JSONL = CORPUS_DIR / "holdout.jsonl"  # SEALED — never opened in this phase
+NEG_PATH = CORPUS_DIR / "train-negatives.jsonl"  # v1.1 extension (ADDENDUM-3)
 SEAL_DIR = REPO / "data" / "merge-arbiter" / "seals"  # never opened in this phase
 ART_DIR = REPO / "data" / "merge-arbiter" / "artifacts" / "merge-v1"
 COMMITTED_DIR = REPO / "datasets" / "merge-arbiter"
@@ -169,13 +170,26 @@ TAU_HI_GRID = [round(0.50 + 0.05 * i, 2) for i in range(9)]   # 0.50..0.90
 TAU_M_GRID = [0.0, 0.05, 0.10, 0.15, 0.20, 0.30, 0.40, 0.50]
 
 #: Train strata counts vs the ratified quota table (P4/П5 count assert).
+#: v1.1 (ADDENDUM-3): the theme-near negative block (200) rides in
+#: train-negatives.jsonl — the extension, not a re-emit; the 600 stay
+#: byte-identical (the v1 train pin still enforced by the tripwire).
 EXPECTED_TRAIN_COUNTS = {
     ("CH-3", 2): 240, ("CH-3", 3): 12,
     ("CH-0", 2): 90, ("CH-0", 3): 18,
     ("CH-2", 2): 90, ("CH-4", 2): 90, ("CH-5", 2): 60,
 }
+EXPECTED_NEG_COUNTS = {"cross-lang-sibling": 80, "template-twin": 60,
+                       "near-topic": 60}
 #: Manifest assert-ledger holdout strata (gate-time count assert, П5).
 EXPECTED_HOLDOUT_STRATA = {"CH-3": 25, "CH-0": 11, "CH-2": 9, "CH-4": 9, "CH-5": 6}
+
+#: CV-noregress tolerance — FIXED BEFORE RETRAIN (ADDENDUM-3 §2).
+#: 0.02 = one acc quantum of a ~50-cluster CH-3 fold; the reference is
+#: the v1 artifact's OOF CH-3 acc (aggregate 1.0 over cluster quanta ⇒
+#: every fold 1.0). New-model per-fold OOF CH-3 acc must stay >= 0.98.
+NOREGRESS_TOL = 0.02
+#: CV-neg-abstain floor (ADDENDUM-3 §2): per-substratum OOF abstain rate.
+NEG_ABSTAIN_MIN = 0.9
 
 # --- delta_acc floor measurement (MLC 29.10 ratification, option (a)) --------
 #
@@ -240,6 +254,23 @@ def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def find_doc_for(artifact_sha: str) -> dict:
+    """Resolve the committed frozen doc whose durable artifact pin matches
+    the artifact bytes (v1 doc or a v1.1-class successor)."""
+    candidates = sorted(COMMITTED_DIR.glob("merge-v1-thresholds.frozen*.json"))
+    for path in candidates:
+        try:
+            doc = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            continue
+        if doc.get("durable_artifact", {}).get("sha256") == artifact_sha:
+            doc["_doc_path"] = str(path)
+            return doc
+    raise InstrumentAbort(
+        f"no committed frozen doc pins an artifact with sha {artifact_sha[:12]}… "
+        f"(searched {candidates}) — the artifact has no ratified pin")
+
+
 # --- prologue (ML-STD-0003 П1-П6, П9) ----------------------------------------
 
 def prologue(expected_artifact: Path | None = None) -> dict:
@@ -302,13 +333,11 @@ def prologue(expected_artifact: Path | None = None) -> dict:
     }
     if expected_artifact is not None:
         # artifact tripwire: bytes vs the committed frozen doc, and the doc's
-        # corpus pin vs the manifest (artifact <-> corpus binding chain)
-        if not COMMITTED_DOC.exists():
-            raise InstrumentAbort(
-                f"committed frozen doc missing: {COMMITTED_DOC} — artifact "
-                "has no ratified pin to tripwire against")
-        doc = json.loads(COMMITTED_DOC.read_text(encoding="utf-8"))
+        # corpus pin vs the manifest (artifact <-> corpus binding chain).
+        # Doc resolution: the doc whose durable_artifact.sha256 matches the
+        # artifact bytes (v1 or a v1.1-class successor doc).
         pins["artifact_sha256"] = sha256_file(expected_artifact)
+        doc = find_doc_for(pins["artifact_sha256"])
         want["artifact_sha256"] = doc["durable_artifact"]["sha256"]
         if doc["train_jsonl_sha256"] != manifest["synthetic_train"]["sha256"]:
             raise InstrumentAbort(
@@ -352,11 +381,29 @@ def frozen_inputs(manifest: dict) -> list["lib.Cluster"]:
                   for (s, k), v in counts.items()
                   if EXPECTED_TRAIN_COUNTS.get((s, k)) != v}
     missing = [f"{s}/k{k}" for (s, k) in EXPECTED_TRAIN_COUNTS if (s, k) not in counts]
+    # v1.1 extension counts (ADDENDUM-3): negatives ride the sidecar manifest
+    neg_counts: dict[str, int] = {}
+    if NEG_PATH.exists():
+        neg_manifest = json.loads((CORPUS_DIR / "train-negatives.manifest.json")
+                                  .read_text(encoding="utf-8"))
+        neg_sha = sha256_file(NEG_PATH)
+        if neg_sha != neg_manifest.get("negatives_sha256"):
+            raise InstrumentAbort("train-negatives.jsonl diverges from its "
+                                  "sidecar manifest pin")
+        for c in clusters:
+            if c.stratum == "theme-near":
+                neg_counts[c.substratum] = neg_counts.get(c.substratum, 0) + 1
+        if neg_counts != EXPECTED_NEG_COUNTS:
+            count_mism["theme-near"] = {"got": neg_counts, "want": EXPECTED_NEG_COUNTS}
     log("frozen_inputs",
         train_jsonl_sha256=sha256_file(TRAIN_JSONL),
         manifest_sha256=sha256_file(MANIFEST),
+        negatives_sha256=sha256_file(NEG_PATH) if NEG_PATH.exists() else None,
+        corpus_fp_v1_1=(neg_manifest.get("corpus_fp_v1_1")
+                        if NEG_PATH.exists() else None),
         n_clusters=len(clusters),
         counts={f"{s}/k{k}": n for (s, k), n in sorted(counts.items())},
+        theme_near_counts=neg_counts or None,
         mismatch=count_mism, missing=missing,
         sealed_inputs=["NONE — MA-holdout-choice, holdout v4.5, g4-spec-v1, "
                        "spot-sheet are NOT in the train input list"])
@@ -385,7 +432,10 @@ def _cluster_from_row(row: dict) -> "lib.Cluster":
 
 
 def load_train() -> list["lib.Cluster"]:
-    """Reconstruct frozen lib.Cluster objects from the emitted train.jsonl.
+    """Reconstruct frozen lib.Cluster objects from the emitted train.jsonl
+    PLUS the v1.1 theme-near extension (train-negatives.jsonl, ADDENDUM-3)
+    when present — the extension, never a re-emit: train.jsonl stays
+    byte-identical (its sealed pin is enforced by the byte tripwire).
 
     Loading through the lib types keeps every downstream predicate
     (classify / silver / baselines / correct_set_ok) on the pinned code
@@ -395,12 +445,18 @@ def load_train() -> list["lib.Cluster"]:
     with open(TRAIN_JSONL, encoding="utf-8") as fh:
         for line in fh:
             clusters.append(_cluster_from_row(json.loads(line)))
+    if NEG_PATH.exists():
+        with open(NEG_PATH, encoding="utf-8") as fh:
+            for line in fh:
+                clusters.append(_cluster_from_row(json.loads(line)))
     return clusters
 
 
 def stratum_key(c: lib.Cluster) -> str:
     if c.stratum == "CH-3":
         return "CH-3/chain" if len(c.members) == 3 else "CH-3/" + c.substratum
+    if c.stratum == "theme-near":
+        return "theme-near/" + c.substratum
     return c.stratum
 
 
@@ -671,9 +727,59 @@ def cv_thresholds(clusters: list[lib.Cluster]) -> dict:
         grid_points=len(grid), ch3_n=len(ch3_ids),
         note="train-only; the ratified q = max(0.20; p90+2*floor_q) gate "
              "constant is NOT used for any choice here")
+    tau_hi, tau_m = best["tau_hi"], best["tau_m"]
+
+    # CV-neg-abstain (ADDENDUM-3 §2): per-substratum OOF abstain >= 0.9
+    neg_by_sub: dict[str, list[int]] = {}
+    for cid, c in by_cid.items():
+        if c.stratum == "theme-near":
+            neg_by_sub.setdefault(c.substratum, []).append(cid)
+    neg_rates = {}
+    for sub, ids in sorted(neg_by_sub.items()):
+        abst = sum(1 for cid in ids
+                   if decide(oof[cid], created_by_cid[cid], tau_hi, tau_m)
+                   ["verdict"] == "abstain") / len(ids)
+        neg_rates[sub] = round(abst, 4)
+    red = {s: r for s, r in neg_rates.items() if r < NEG_ABSTAIN_MIN}
+    log("cv_neg_abstain", per_substratum=neg_rates, floor=NEG_ABSTAIN_MIN, red=red)
+    if red:
+        raise InstrumentAbort(f"CV-neg-abstain RED (< {NEG_ABSTAIN_MIN}): {red}")
+
+    # CV-noregress (ADDENDUM-3 §2): per-fold OOF CH-3 acc >= 1.0 - tol
+    # (reference: the v1 artifact's OOF CH-3 acc — aggregate 1.0 over
+    # cluster quanta ⇒ every fold 1.0). Tolerance pinned NOREGRESS_TOL.
+    per_fold_acc = {}
+    for f, fold in enumerate(folds):
+        fold_ch3 = sorted(cid for cid in fold if cid in by_cid
+                          and by_cid[cid].stratum == "CH-3")
+        if not fold_ch3:
+            continue
+        ok = 0
+        for cid in fold_ch3:
+            d = decide(oof[cid], created_by_cid[cid], tau_hi, tau_m)
+            if d["verdict"] == "keep" and d.get("member") == by_cid[cid].label["member"]:
+                ok += 1
+        per_fold_acc[f] = round(ok / len(fold_ch3), 4)
+    noreg_red = {f: a for f, a in per_fold_acc.items() if a < 1.0 - NOREGRESS_TOL}
+    log("cv_noregress", per_fold_ch3_acc=per_fold_acc, reference=1.0,
+        tolerance=NOREGRESS_TOL, floor=round(1.0 - NOREGRESS_TOL, 4), red=noreg_red)
+    if noreg_red:
+        raise InstrumentAbort(f"CV-noregress RED: fold accs {noreg_red} below "
+                              f"{1.0 - NOREGRESS_TOL}")
+
     return {"best": best, "grid_top": grid[:10],
             "ch3_n": len(ch3_ids),
+            "neg_abstain": neg_rates,
+            "noregress": {"per_fold": per_fold_acc, "reference": 1.0,
+                          "tol": NOREGRESS_TOL},
             "folds": [{"fold": f, "n": len(fold)} for f, fold in enumerate(folds)]}
+
+
+def oof_decided_member(scores: dict[str, float], created: dict[str, float],
+                       tau_hi: float, tau_m: float) -> str | None:
+    """The keep member of the decision rule, or None on abstain."""
+    d = decide(scores, created, tau_hi, tau_m)
+    return d.get("member") if d["verdict"] == "keep" else None
 
 
 # --- baselines (draft §5; compare vs manifest characterization) ---------------
@@ -748,6 +854,14 @@ def _pooled_acc(clusters: list[lib.Cluster], scorer) -> float:
     return hits / len(clusters) if clusters else 0.0
 
 
+def _parse_seeds(spec: str) -> list[int]:
+    spec = spec.strip()
+    if "-" in spec:
+        lo, hi = spec.split("-", 1)
+        return list(range(int(lo), int(hi) + 1))
+    return [int(x) for x in spec.split(",") if x.strip()]
+
+
 def cmd_floor_seed(args: argparse.Namespace) -> int:
     """Ratified delta_acc floor measurement (train-side, no sealed content).
 
@@ -769,9 +883,12 @@ def cmd_floor_seed(args: argparse.Namespace) -> int:
     pro = prologue(expected_artifact=Path(args.artifact))
     model, tau_hi, tau_m = load_frozen(Path(args.artifact))
     model_sha = pro["pins"]["artifact_sha256"]
+    seeds = _parse_seeds(args.seeds)
+    doc_path = Path(args.doc_out)
+    doc = json.loads(doc_path.read_text(encoding="utf-8"))
 
     log("floor_seed_measure_start",
-        seeds=FLOOR_SEEDS, n_draws=len(FLOOR_SEEDS),
+        seeds=seeds, n_draws=len(seeds),
         gate_leg_quota=FLOOR_LEG_QUOTA,
         recipe="mb.gen_family (frozen build recipe, same code path)",
         model_sha256=model_sha,
@@ -836,18 +953,18 @@ def cmd_floor_seed(args: argparse.Namespace) -> int:
     log("floor_seed_measure_end",
         per_seed=rows, floor_seed_aggregate=round(floor, 4),
         delta_acc=round(delta_acc, 4),
-        pairs_compared=len(FLOOR_SEEDS) * (len(FLOOR_SEEDS) - 1) // 2,
+        pairs_compared=len(seeds) * (len(seeds) - 1) // 2,
         model_sha256=model_sha, artifact=args.artifact,
         wall_s=round((dt.datetime.now(dt.timezone.utc) - started).total_seconds(), 1),
         remeasure_after_single_shot="FORBIDDEN")
 
     # committed doc: append the delta_acc_measure section ONLY (thresholds,
     # cv, baselines and the durable artifact stay byte-untouched)
-    doc = json.loads(COMMITTED_DOC.read_text(encoding="utf-8"))
     if "delta_acc_measure" in doc:
-        raise InstrumentAbort("delta_acc_measure already present in the committed "
-                              "doc — re-measuring is forbidden (fixed BEFORE "
-                              "gate_start; rewrite would be threshold-fitting)")
+        raise InstrumentAbort("delta_acc_measure already present in "
+                              f"{doc_path} — re-measuring is forbidden (fixed "
+                              "BEFORE gate_start; rewrite would be "
+                              "threshold-fitting)")
     doc["delta_acc_measure"] = {
         "ratification": "MLC 29.10, option (a), unanimous, chairman-consolidated",
         "granularity": "floor_seed for delta_acc is measured at the granularity "
@@ -866,9 +983,9 @@ def cmd_floor_seed(args: argparse.Namespace) -> int:
     doc.pop("committed_doc_sha256", None)
     doc["committed_doc_sha256"] = sha256_text(
         json.dumps(doc, ensure_ascii=False, sort_keys=True))
-    COMMITTED_DOC.write_text(json.dumps(doc, ensure_ascii=False, indent=1),
-                             encoding="utf-8")
-    log("committed_doc_updated", path=str(COMMITTED_DOC),
+    doc_path.write_text(json.dumps(doc, ensure_ascii=False, indent=1),
+                         encoding="utf-8")
+    log("committed_doc_updated", path=str(doc_path),
         committed_doc_sha256=doc["committed_doc_sha256"],
         payload_artifact_untouched=True,
         thresholds_untouched=True)
@@ -957,17 +1074,28 @@ def run_model_sanity_suite(booster: lgb.Booster, tau_hi: float, tau_m: float,
 
 # --- artifact freeze ----------------------------------------------------------
 
+#: Active output naming for the train subcommand (v1 defaults preserved;
+#: the v1.1 refreeze passes explicit values).
+ART_NAME = "merge_arbiter_v1.json"
+DOC_OUT = COMMITTED_DOC
+
+
 def artifact_paths() -> tuple[Path, Path]:
     ART_DIR.mkdir(parents=True, exist_ok=True)
     COMMITTED_DIR.mkdir(parents=True, exist_ok=True)
-    return ART_DIR / "merge_arbiter_v1.json", COMMITTED_DOC
+    return ART_DIR / ART_NAME, DOC_OUT
 
 
 def freeze_artifact(booster: lgb.Booster, tau_hi: float, tau_m: float,
                     cv: dict, baselines: dict, pins: dict) -> tuple[Path, Path, str]:
     durable, committed = artifact_paths()
+    neg_manifest = None
+    if NEG_PATH.exists():
+        neg_manifest = json.loads((CORPUS_DIR / "train-negatives.manifest.json")
+                                  .read_text(encoding="utf-8"))
     art = {
-        "artifact": "vesma-cortex-merge-v1",
+        "artifact": ("vesma-cortex-merge-v1" if neg_manifest is None
+                     else "vesma-cortex-merge-v1 (corpus v1.1, ADDENDUM-3)"),
         "frozen_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="milliseconds"),
         "thresholds": {"tau_hi": tau_hi, "tau_m": tau_m,
                        "rule": "keep=argmax e_i iff e1>=tau_hi and e1-e2>=tau_m; "
@@ -980,8 +1108,18 @@ def freeze_artifact(booster: lgb.Booster, tau_hi: float, tau_m: float,
         "lgb_params": dict(LGB_PARAMS),
         "booster_model_string": booster.model_to_string(),
         "cv": {"best": cv["best"], "top10": cv["grid_top"],
-               "ch3_n": cv["ch3_n"], "folds": cv["folds"]},
+               "ch3_n": cv["ch3_n"], "folds": cv["folds"],
+               "neg_abstain": cv.get("neg_abstain"),
+               "noregress": cv.get("noregress")},
         "baselines_per_stratum_train": baselines,
+        "corpus": (None if neg_manifest is None else {
+            "recipe": "corpus v1.1 = v1 (600, byte-identical) + theme-near "
+                      "negative block (200, ADDENDUM-3)",
+            "train_jsonl_sha256": pins["train_jsonl_sha256"],
+            "negatives_sha256": neg_manifest["negatives_sha256"],
+            "corpus_fp_v1_1": neg_manifest["corpus_fp_v1_1"],
+            "seeds": neg_manifest["seeds"],
+        }),
         "pins": dict(pins),
     }
     durable.write_text(json.dumps(art, ensure_ascii=False, indent=1),
@@ -989,13 +1127,15 @@ def freeze_artifact(booster: lgb.Booster, tau_hi: float, tau_m: float,
     art_sha = sha256_file(durable)
 
     committed_doc = {
-        "artifact": "vesma-cortex-merge-v1",
+        "artifact": art["artifact"],
         "frozen_at": art["frozen_at"],
         "thresholds": art["thresholds"],
         "cv_ch3_oof": {"acc": cv["best"]["acc_ch3"],
                        "abstain_rate": cv["best"]["abstain_rate_ch3"],
                        "score": cv["best"]["score"],
                        "ch3_n": cv["ch3_n"]},
+        "cv_neg_abstain": cv.get("neg_abstain"),
+        "cv_noregress": cv.get("noregress"),
         "cv_grid_top10": cv["grid_top"],
         "baselines_per_stratum_train": baselines,
         "n_features": len(MEMBER_FEATURE_NAMES),
@@ -1017,6 +1157,20 @@ def freeze_artifact(booster: lgb.Booster, tau_hi: float, tau_m: float,
                        "corpus v1); the vector leg joins the Choice contract "
                        "in a later engine wave",
     }
+    if neg_manifest is not None:
+        committed_doc["corpus_v1_1"] = {
+            "recipe": art["corpus"]["recipe"],
+            "negatives_sha256": neg_manifest["negatives_sha256"],
+            "corpus_fp_v1_1": neg_manifest["corpus_fp_v1_1"],
+            "seeds": neg_manifest["seeds"],
+            "addendum": "ADDENDUM-3 (MLC 29.10, option б), commit e953eec",
+        }
+        # the noharm surface is UNCHANGED (§4) — carry its frozen section
+        # from the v1 doc so the gate keeps a single doc contract
+        if DOC_OUT != COMMITTED_DOC and COMMITTED_DOC.exists():
+            v1 = json.loads(COMMITTED_DOC.read_text(encoding="utf-8"))
+            if "noharm_surface" in v1:
+                committed_doc["noharm_surface"] = v1["noharm_surface"]
     committed_doc["committed_doc_sha256"] = sha256_text(
         json.dumps(committed_doc, ensure_ascii=False, sort_keys=True))
     committed.write_text(json.dumps(committed_doc, ensure_ascii=False, indent=1),
@@ -1036,8 +1190,17 @@ def load_frozen(path: Path) -> tuple[lgb.Booster, float, float]:
 # --- subcommand: train --------------------------------------------------------
 
 def cmd_train(args: argparse.Namespace) -> int:
-    global _SLICE
+    global _SLICE, ART_NAME, DOC_OUT
     _SLICE = SLICE_TRAIN
+    ART_NAME = args.artifact_name
+    DOC_OUT = Path(args.doc_out)
+    if DOC_OUT.exists():
+        raise InstrumentAbort(f"committed doc already exists: {DOC_OUT} — "
+                              "re-freeze over an existing doc is forbidden")
+    durable_path = ART_DIR / ART_NAME
+    if durable_path.exists():
+        raise InstrumentAbort(f"durable artifact already exists: {durable_path} "
+                              "— refreeze over frozen bytes is forbidden")
     started = dt.datetime.now(dt.timezone.utc)
     log("cost_declaration", expected_prolog_s=2, expected_cycle_s=180,
         expected_peak_ram_gb=1.5, run_tag=args.run_tag,
@@ -1090,6 +1253,199 @@ def cmd_train(args: argparse.Namespace) -> int:
         tau_hi=f_hi, tau_m=f_m, artifact_sha256=art_sha, cv_best=cv["best"],
         note="thresholds FROZEN before any sealed read (N2); the single-shot "
              "gate run stays unexecuted in this phase")
+    return 0
+
+
+# --- subcommands: floors-composition, prelaunch -------------------------------
+
+def _gate_leg_draw(seed: int) -> list[lib.Cluster]:
+    """CH-3 gate-leg composition (22 k2 + 3 chain), frozen build recipe."""
+    return mb.gen_family(seed, dict(_FLOOR_QUOTA_FULL), set(),
+                         f"ma-fl-{seed}", f"ma-flseed{seed}")
+
+
+def cmd_floors_composition(args: argparse.Namespace) -> int:
+    """Re-derive ALL composition-dependent floors for the NEW artifact
+    (ADDENDUM-3 §3.3): floor_q (10 composition draws, CH-3 abstain rate,
+    q = max(0.20; p90_char + 2*floor)), floor_inv (3 cosmetic-variation
+    draws, max disagreement), floor_perm (3 permutations — structurally 0
+    by the bit-identical feature construction). Writes floors_v2 into the
+    doc; fixed BEFORE gate_start."""
+    global _SLICE
+    _SLICE = SLICE_FLOOR
+    log("cost_declaration", expected_prolog_s=2, expected_cycle_s=120,
+        expected_peak_ram_gb=1.0, lane="light (draft §9)")
+    pro = prologue(expected_artifact=Path(args.artifact))
+    model, tau_hi, tau_m = load_frozen(Path(args.artifact))
+    doc_path = Path(args.doc_out)
+    doc = json.loads(doc_path.read_text(encoding="utf-8"))
+    if "floors_v2" in doc:
+        raise InstrumentAbort("floors_v2 already present — re-derivation "
+                              "forbidden (fixed BEFORE gate_start)")
+
+    q_seeds = _parse_seeds(args.q_seeds)
+    q_rates = []
+    for seed in q_seeds:
+        fam = _gate_leg_draw(seed)
+        abst = sum(1 for c in fam
+                   if arbitrate_production(c, model, tau_hi, tau_m)
+                   ["verdict"] == "abstain") / len(fam)
+        q_rates.append(round(abst, 4))
+    floor_q = max(abs(a - b) for i, a in enumerate(q_rates)
+                  for b in q_rates[i + 1:]) if len(q_rates) > 1 else 0.0
+    p90_char = sorted(q_rates)[int(round(0.9 * (len(q_rates) - 1)))] if q_rates else 0.0
+    q = max(0.20, p90_char + 2 * floor_q)
+    log("floor_q_measure", seeds=q_seeds, rates=q_rates, p90_char=p90_char,
+        floor_q=round(floor_q, 4), q=round(q, 4),
+        formula="q := max(0.20; p90_char + 2*floor_q)")
+
+    # floor_inv: cosmetic variation on train fold-eligible clusters, 3 draws
+    eligible = [c for c in load_train() if c.stratum in ("CH-3", "CH-5")]
+    inv_disagreements = []
+    for draw_seed in _parse_seeds(args.inv_seeds):
+        rng = random.Random(draw_seed)
+        sample = rng.sample(eligible, min(80, len(eligible)))
+        dis = 0
+        for c in sample:
+            base = arbitrate_production(c, model, tau_hi, tau_m)
+            pert = lib.Cluster(
+                cid=c.cid, stratum=c.stratum, substratum=c.substratum,
+                members=[lib.Member(m.mid, m.title,
+                                    lib.cosmetic_variant(m.body, rng),
+                                    m.tags, m.record_type, m.language,
+                                    m.created_at)
+                         for m in c.members],
+                label=c.label, declaration=c.declaration)
+            alt = arbitrate_production(pert, model, tau_hi, tau_m)
+            dis += int(base["verdict"] != alt["verdict"]
+                       or base.get("member") != alt.get("member"))
+        inv_disagreements.append(round(dis / len(sample), 4))
+    floor_inv = max(inv_disagreements) if inv_disagreements else 0.0
+    log("floor_inv_measure", draws=args.inv_seeds,
+        disagreement_rates=inv_disagreements, floor_inv=floor_inv,
+        delta_inv_formula="delta_inv := 2*floor_inv")
+
+    # floor_perm: order permutation on a train sample, 3 permutations
+    pairs = [c for c in eligible if len(c.members) == 2]
+    sample = random.Random(78).sample(pairs, min(80, len(pairs)))
+    perm_deltas = []
+    for perm_seed in _parse_seeds(args.perm_seeds):
+        delta = 0
+        for c in sample:
+            base = arbitrate_production(c, model, tau_hi, tau_m)
+            rev = lib.Cluster(cid=c.cid, stratum=c.stratum,
+                              substratum=c.substratum,
+                              members=list(reversed(c.members)),
+                              label=c.label, declaration=c.declaration)
+            alt = arbitrate_production(rev, model, tau_hi, tau_m)
+            delta += int(base["verdict"] != alt["verdict"]
+                         or base.get("member") != alt.get("member"))
+        perm_deltas.append(round(delta / len(sample), 4))
+    floor_perm = max(perm_deltas) if perm_deltas else 0.0
+    log("floor_perm_measure", perms=args.perm_seeds, delta_rates=perm_deltas,
+        floor_perm=floor_perm,
+        note="structurally 0: member features are bit-identical under "
+             "presentation permutation (machine-asserted)")
+
+    doc["floors_v2"] = {
+        "artifact_sha256": pro["pins"]["artifact_sha256"],
+        "floor_q": {"seeds": q_seeds, "rates": q_rates,
+                    "p90_char": p90_char, "floor": round(floor_q, 4)},
+        "q": round(q, 4),
+        "floor_inv": {"draws": args.inv_seeds,
+                      "disagreement_rates": inv_disagreements,
+                      "floor": floor_inv},
+        "delta_inv": round(2 * floor_inv, 4),
+        "floor_perm": {"perms": args.perm_seeds, "delta_rates": perm_deltas,
+                       "floor": floor_perm},
+        "measured_at": dt.datetime.now(dt.timezone.utc).isoformat(
+            timespec="milliseconds"),
+        "remeasure_after_single_shot": "FORBIDDEN",
+    }
+    doc.pop("committed_doc_sha256", None)
+    doc["committed_doc_sha256"] = sha256_text(
+        json.dumps(doc, ensure_ascii=False, sort_keys=True))
+    doc_path.write_text(json.dumps(doc, ensure_ascii=False, indent=1),
+                        encoding="utf-8")
+    log("committed_doc_updated", path=str(doc_path),
+        floors=["floor_q", "floor_inv", "floor_perm"])
+    return 0
+
+
+def cmd_prelaunch(args: argparse.Namespace) -> int:
+    """ADDENDUM-3 §3.6 pre-launch checklist on the new sha (train-side; NO
+    sealed read): committee-scored ∉ inputs, sanity 7/7, noharm QA
+    (expect 0/171 + 0/27), sheet pre-check (member_ids ⊆ synthetic_train,
+    id level), floors completeness."""
+    global _SLICE
+    _SLICE = SLICE_FLOOR
+    log("cost_declaration", expected_prolog_s=2, expected_cycle_s=120,
+        expected_peak_ram_gb=1.0, lane="light (draft §9)")
+    pro = prologue(expected_artifact=Path(args.artifact))
+    model, tau_hi, tau_m = load_frozen(Path(args.artifact))
+    doc = find_doc_for(pro["pins"]["artifact_sha256"])
+
+    # committee-scored-v1.json NOT in the inputs (machine assert)
+    forbidden = "committee-scored-v1.json"
+    input_list = ["corpus manifest", "train.jsonl", "train-negatives.jsonl",
+                  "negatives sidecar manifest", "frozen artifact + committed doc",
+                  "sheet-selection.json (prelaunch id check only)"]
+    in_inputs = any(forbidden in p for p in input_list)
+    log("committee_scored_not_in_inputs", forbidden=forbidden,
+        input_list=input_list, in_inputs=in_inputs, ok=not in_inputs,
+        note="existence of the file on disk is NOT an input; the assert is "
+             "on the declared input list")
+    if in_inputs:
+        raise InstrumentAbort("committee-scored-v1.json found in the input list")
+
+    # sanity 7/7 on the NEW model (probes 3/4 = CH-3 quality guards)
+    run_model_sanity_suite(model, tau_hi, tau_m)
+
+    # noharm QA: expect 0/171 + 0/27 (surface untouched, §4)
+    surface = Path(doc["noharm_surface"]["path"])
+    rows_total, proposals_total = _noharm_proposals(surface, model, tau_hi, tau_m)
+    notdup_rows = [json.loads(line) for line in open(surface, encoding="utf-8")
+                   if json.loads(line)["pair_id"].startswith("V4-PND")]
+    tmp = ART_DIR / "_qa_notdup.jsonl"
+    with open(tmp, "w", encoding="utf-8") as fh:
+        for r in notdup_rows:
+            fh.write(json.dumps(r, ensure_ascii=False, sort_keys=True) + "\n")
+    n_notdup, p_notdup = _noharm_proposals(tmp, model, tau_hi, tau_m)
+    tmp.unlink()
+    qa_ok = proposals_total == 0 and p_notdup == 0
+    log("noharm_qa", rows=rows_total, proposals=proposals_total,
+        notdup_rows=n_notdup, notdup_proposals=p_notdup,
+        expectation="0/171 + 0/27", ok=qa_ok,
+        note="red => разбор рецепта; поверхность не трогается (§3.5)")
+    if not qa_ok:
+        raise InstrumentAbort(f"noharm QA RED: {proposals_total}/{rows_total} "
+                              f"(notdup {p_notdup}/{n_notdup})")
+
+    # sheet pre-check: member_ids ⊆ synthetic_train (id level only)
+    sheet_doc = json.loads((REPO / "data" / "merge-arbiter" / "spot-sheet" /
+                            "sheet-selection.json").read_text(encoding="utf-8"))
+    sheet_ids = set()
+    for row in sheet_doc.get("synthetic", []):
+        sheet_ids.update(row.get("member_ids", []))
+    train_ids = {m.mid for c in load_train() for m in c.members}
+    missing = sorted(sheet_ids - train_ids)
+    log("sheet_precheck", sheet_member_ids=len(sheet_ids),
+        missing_from_train=missing[:5], ok=not missing,
+        note="id-level read only; the sheet fp e45e72a4… is not touched")
+    if missing:
+        raise InstrumentAbort(f"sheet pre-check RED: {len(missing)} member_ids "
+                              "outside synthetic_train")
+
+    absent = [k for k in ("delta_acc_measure", "floors_v2") if k not in doc]
+    log("prelaunch_done", artifact=args.artifact,
+        doc=doc.get("_doc_path", "n/a"), missing_sections=absent,
+        status="GREEN" if not absent else "INCOMPLETE",
+        note="single-shot stays unexecuted; return to it on a separate "
+             "command after MLC scoring validation")
+    if absent:
+        print(f"PRELAUNCH INCOMPLETE — missing doc sections: {absent}",
+              file=sys.stderr)
+        return 1
     return 0
 
 
@@ -1191,10 +1547,10 @@ def cmd_gate(args: argparse.Namespace) -> int:
     log("cost_declaration", expected_prolog_s=2, expected_cycle_s=90,
         expected_peak_ram_gb=1.0, lane="light (draft §9)")
     pro = prologue(expected_artifact=artifact)
+    doc = find_doc_for(sha256_file(artifact))
     # noharm surface pin: fixed BEFORE gate_start (committed doc section
     # noharm_surface); divergence = STOP class instrument, no sealed read
-    doc_pre = json.loads(COMMITTED_DOC.read_text(encoding="utf-8"))
-    surf_sec = doc_pre.get("noharm_surface")
+    surf_sec = doc.get("noharm_surface")
     if not surf_sec or surf_sec.get("sha256") != sha256_file(noharm):
         raise InstrumentAbort(
             "noharm surface missing or its sha256 diverges from the "
@@ -1233,7 +1589,6 @@ def cmd_gate(args: argparse.Namespace) -> int:
     # ============ SEALED READ — SINGLE-SHOT (not executed in this phase) =====
     holdout = _read_holdout_sealed()          # the single legal read
     log("sealed_read_once", n_clusters=holdout["n"], sha256=holdout["sha256"])
-    doc = json.loads(COMMITTED_DOC.read_text(encoding="utf-8"))
     gates = _eval_gates_on_holdout(model, tau_hi, tau_m, holdout, pro["manifest"], doc)
     for name, g in gates.items():
         log("gate_result", gate=name, **g)
@@ -1360,7 +1715,21 @@ def main(argv: list[str] | None = None) -> int:
 
     p_train = sub.add_parser("train", help="train-only CV, freeze artifact, sanity")
     p_train.add_argument("--run-tag", default="attempt1")
+    p_train.add_argument("--artifact-name", default="merge_arbiter_v1.json")
+    p_train.add_argument("--doc-out", default=str(COMMITTED_DOC))
     p_train.set_defaults(fn=cmd_train)
+    p_floors = sub.add_parser("floors-composition",
+                              help="floor_q / floor_inv / floor_perm (§3.3)")
+    p_floors.add_argument("--artifact", required=True)
+    p_floors.add_argument("--doc-out", required=True)
+    p_floors.add_argument("--q-seeds", default="63-72")
+    p_floors.add_argument("--inv-seeds", default="73-75")
+    p_floors.add_argument("--perm-seeds", default="76-78")
+    p_floors.set_defaults(fn=cmd_floors_composition)
+    p_pre = sub.add_parser("prelaunch",
+                           help="ADDENDUM-3 §3.6 checklist (no sealed read)")
+    p_pre.add_argument("--artifact", required=True)
+    p_pre.set_defaults(fn=cmd_prelaunch)
 
     p_san = sub.add_parser("sanity", help="7-probe suite on the frozen artifact")
     p_san.add_argument("--artifact", required=True)
@@ -1371,6 +1740,9 @@ def main(argv: list[str] | None = None) -> int:
         help="ratified delta_acc floor measurement (MLC 29.10, option a)")
     p_floor.add_argument("--artifact", required=True,
                          help="frozen merge-v1 artifact (model NOT retrained)")
+    p_floor.add_argument("--seeds", default="43-52",
+                         help="inclusive range or comma list, e.g. 53-62")
+    p_floor.add_argument("--doc-out", default=str(COMMITTED_DOC))
     p_floor.set_defaults(fn=cmd_floor_seed)
 
     p_gate = sub.add_parser("gate", help="single-shot gate cycle (sealed read)")
