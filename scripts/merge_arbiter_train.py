@@ -103,6 +103,7 @@ sys.path.insert(0, str(REPO / "src"))
 sys.path.insert(0, str(REPO / "scripts"))
 
 import merge_arbiter_lib as lib  # noqa: E402  (frozen build lib, sha-pinned)
+import build_merge_arbiter_corpus as mb  # noqa: E402  (frozen recipe: gen_family)
 
 import lightgbm as lgb  # noqa: E402
 import numpy as np  # noqa: E402
@@ -124,6 +125,7 @@ SPEC = REPO / "docs" / "specs" / "merge-arbiter-corpus-prereg-DRAFT.md"
 
 SLICE_TRAIN = "merge-arbiter-merge-v1-train"
 SLICE_GATE = "merge-arbiter-merge-v1-gate"
+SLICE_FLOOR = "merge-arbiter-merge-v1-floor-seed"
 
 #: Activation commits (P6): the corpus prereg v2 ACTIVATED commit and the
 #: ADDENDUM-1 commit must both be ancestors of HEAD before any run.
@@ -174,6 +176,29 @@ EXPECTED_TRAIN_COUNTS = {
 }
 #: Manifest assert-ledger holdout strata (gate-time count assert, П5).
 EXPECTED_HOLDOUT_STRATA = {"CH-3": 25, "CH-0": 11, "CH-2": 9, "CH-4": 9, "CH-5": 6}
+
+# --- delta_acc floor measurement (MLC 29.10 ratification, option (a)) --------
+#
+# Ratified procedure (TL dispatch 29.10, three unanimous positions, chairman-
+# consolidated): floor_seed for delta_acc is measured at the GRANULARITY OF
+# THE GATING STATISTIC (the CH-3 aggregate over the gate-leg composition:
+# 22 k2 + 3 chain = the §3.2 CH-3 holdout quotas); the per-stratum
+# floor_seed table in the build manifest is a characterization artifact and
+# does NOT enter the formula. 10 composition draws, seeds 43..52, frozen
+# recipe (the build generator, same code path), the FROZEN merge-v1 model
+# (no retraining), delta_d = acc_choice(model, draw d) - max(baseline on d);
+# floor_seed_aggregate := max pairwise |delta_d - delta_e| (max_abs_delta
+# semantics); delta_acc := max(2 * floor_seed_aggregate; 0.10). Fixed BEFORE
+# gate_start; re-measuring after the single-shot is FORBIDDEN.
+
+FLOOR_SEEDS = list(range(43, 53))  # [43..52], pinned in run-log at measure start
+#: The gate leg CH-3 composition (holdout §3.2 CH-3 quotas).
+FLOOR_LEG_QUOTA = {"CH-3-k2": 22, "CH-3-chain": 3}
+#: Zero-filled to the full build quota shape (gen_family reads every key).
+_FLOOR_QUOTA_FULL = {
+    "CH-3-k2": 22, "CH-3-chain": 3,
+    "CH-0-k2": 0, "CH-0-triple": 0, "CH-2": 0, "CH-4": 0, "CH-5": 0,
+}
 
 _ISO_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
@@ -679,6 +704,177 @@ def check_baselines_vs_manifest(manifest: dict, mine: dict) -> None:
         raise InstrumentAbort(f"baseline table diverges from the build manifest: {diff}")
 
 
+# --- delta_acc floor measurement (ratified MLC 29.10, see constants block) ----
+
+def _train_scenario_keys() -> set[str]:
+    """CH-3/CH-4 scenario keys of train.jsonl — the exclusion set for the
+    draws (holdout-style independence: the draws share train's exclusion
+    set, exactly as the build shared it with the holdout emission)."""
+    keys: set[str] = set()
+    with open(TRAIN_JSONL, encoding="utf-8") as fh:
+        for line in fh:
+            row = json.loads(line)
+            if row["stratum"] not in ("CH-3", "CH-4"):
+                continue
+            scenario = row["scenario"]
+            if row["k"] == 3:
+                scenario = scenario.rsplit("+", 1)[0]  # strip the +v2 tail
+            keys.add(scenario)
+    return keys
+
+
+def _holdout_id_manifest() -> set[str]:
+    """ID-ONLY read of the sealed holdout (ratified disjointness leg).
+
+    Precedent ADDENDUM-1 §2 pre-check leg 3: the intersection of draw ids
+    with the MA-holdout-choice id-manifest is checked machine-internally
+    WITHOUT reading content — this loader extracts ONLY cluster_id and
+    member ids and immediately discards every other field (no text, no
+    label, no envelope value is kept or logged). The FACT of the id-manifest
+    read is logged in run-log. The single-shot content read stays sealed
+    behind gate_start.
+    """
+    ids: set[str] = set()
+    with open(HOLDOUT_JSONL, encoding="utf-8") as fh:
+        for line in fh:
+            row = json.loads(line)
+            ids.add(row["cluster_id"])
+            ids.update(m["id"] for m in row["members"])
+    return ids
+
+
+def _pooled_acc(clusters: list[lib.Cluster], scorer) -> float:
+    hits = sum(int(scorer(c)) for c in clusters)
+    return hits / len(clusters) if clusters else 0.0
+
+
+def cmd_floor_seed(args: argparse.Namespace) -> int:
+    """Ratified delta_acc floor measurement (train-side, no sealed content).
+
+    Executes the MLC 29.10 procedure verbatim: 10 composition draws
+    (seeds 43..52, frozen build recipe via mb.gen_family), the FROZEN
+    merge-v1 model (tripwired against the committed doc), CH-3 aggregate
+    of the gate-leg composition (22 k2 + 3 chain), max-pairwise-abs-delta
+    floor semantics, delta_acc = max(2*floor; 0.10). Disjointness asserts:
+    draw ids vs train ids = 0, draw ids vs the holdout ID-manifest = 0
+    (id-only read), draw CH-3 scenarios vs train CH-3/CH-4 scenarios = 0.
+    Updates ONLY the delta_acc_measure section of the committed doc; the
+    frozen thresholds and the durable payload artifact are NOT rewritten.
+    """
+    global _SLICE
+    _SLICE = SLICE_FLOOR
+    started = dt.datetime.now(dt.timezone.utc)
+    log("cost_declaration", expected_prolog_s=2, expected_cycle_s=60,
+        expected_peak_ram_gb=1.0, lane="light (draft §9)")
+    pro = prologue(expected_artifact=Path(args.artifact))
+    model, tau_hi, tau_m = load_frozen(Path(args.artifact))
+    model_sha = pro["pins"]["artifact_sha256"]
+
+    log("floor_seed_measure_start",
+        seeds=FLOOR_SEEDS, n_draws=len(FLOOR_SEEDS),
+        gate_leg_quota=FLOOR_LEG_QUOTA,
+        recipe="mb.gen_family (frozen build recipe, same code path)",
+        model_sha256=model_sha,
+        statistic="acc_choice (hits/total, abstain=miss) - max pooled baseline",
+        floor_semantics="max pairwise |delta_d - delta_e| over all draw pairs",
+        delta_acc_formula="max(2 * floor_seed_aggregate; 0.10)",
+        ratification="MLC 29.10, option (a), unanimous; chairman-consolidated",
+        note="model is NOT retrained; fixed BEFORE gate_start")
+
+    train_clusters = load_train()
+    train_ids = {m.mid for c in train_clusters for m in c.members}
+    train_ids |= {c.cid for c in train_clusters}
+    train_scen = _train_scenario_keys()
+    holdout_ids = _holdout_id_manifest()
+    log("holdout_id_manifest_read", n_ids=len(holdout_ids),
+        content_read=False,
+        note="id-only read for the ratified disjointness leg "
+             "(ADDENDUM-1 §2 pre-check precedent); no content kept")
+
+    rows = []
+    for seed in FLOOR_SEEDS:
+        used = set(train_scen)  # holdout-style exclusion (fresh set per draw)
+        fam = mb.gen_family(seed, _FLOOR_QUOTA_FULL, used,
+                            f"ma-fs-{seed}", f"ma-fseed{seed}")
+        # count assert: the draw is exactly the gate-leg composition
+        got: dict[tuple[str, int], int] = {}
+        for c in fam:
+            got[(c.stratum, len(c.members))] = got.get((c.stratum, len(c.members)), 0) + 1
+        if got != {("CH-3", 2): 22, ("CH-3", 3): 3} or len(fam) != 25:
+            raise InstrumentAbort(f"draw seed={seed} composition mismatch: {got}")
+        # disjointness asserts (fail-closed, id + scenario level)
+        draw_ids = {m.mid for c in fam for m in c.members} | {c.cid for c in fam}
+        id_train_hits = draw_ids & train_ids
+        id_holdout_hits = draw_ids & holdout_ids
+        draw_scen = {c.scenario for c in fam}
+        scen_hits = draw_scen & train_scen
+        log("floor_seed_draw_disjointness", seed=seed,
+            ids_train=sorted(id_train_hits), ids_holdout=sorted(id_holdout_hits),
+            scenarios_train=sorted(scen_hits))
+        if id_train_hits or id_holdout_hits or scen_hits:
+            raise InstrumentAbort(
+                f"draw seed={seed} intersects existing material: "
+                f"train_ids={sorted(id_train_hits)} holdout_ids={sorted(id_holdout_hits)} "
+                f"train_scenarios={sorted(scen_hits)}")
+
+        acc_model = _pooled_acc(fam, lambda c: (
+            (d := arbitrate_production(c, model, tau_hi, tau_m))["verdict"] == "keep"
+            and d.get("member") == c.label["member"]))
+        acc_base = max(
+            _pooled_acc(fam, lambda c, b=bfn: lib.correct_set_ok(c, b(c.members)))
+            for bfn in lib.BASELINES.values())
+        delta = acc_model - acc_base
+        rows.append({"seed": seed, "n_clusters": len(fam),
+                     "acc_model": round(acc_model, 4),
+                     "acc_baseline_max": round(acc_base, 4),
+                     "delta": round(delta, 4)})
+        log("floor_seed_draw", **rows[-1])
+
+    deltas = [r["delta"] for r in rows]
+    floor = max(abs(a - b) for i, a in enumerate(deltas) for b in deltas[i + 1:])
+    delta_acc = max(2 * floor, 0.10)
+    log("floor_seed_measure_end",
+        per_seed=rows, floor_seed_aggregate=round(floor, 4),
+        delta_acc=round(delta_acc, 4),
+        pairs_compared=len(FLOOR_SEEDS) * (len(FLOOR_SEEDS) - 1) // 2,
+        model_sha256=model_sha, artifact=args.artifact,
+        wall_s=round((dt.datetime.now(dt.timezone.utc) - started).total_seconds(), 1),
+        remeasure_after_single_shot="FORBIDDEN")
+
+    # committed doc: append the delta_acc_measure section ONLY (thresholds,
+    # cv, baselines and the durable artifact stay byte-untouched)
+    doc = json.loads(COMMITTED_DOC.read_text(encoding="utf-8"))
+    if "delta_acc_measure" in doc:
+        raise InstrumentAbort("delta_acc_measure already present in the committed "
+                              "doc — re-measuring is forbidden (fixed BEFORE "
+                              "gate_start; rewrite would be threshold-fitting)")
+    doc["delta_acc_measure"] = {
+        "ratification": "MLC 29.10, option (a), unanimous, chairman-consolidated",
+        "granularity": "floor_seed for delta_acc is measured at the granularity "
+                       "of the gating statistic (CH-3 aggregate, gate-leg "
+                       "composition 22 k2 + 3 chain); the per-stratum table in "
+                       "the build manifest is a characterization artifact and "
+                       "does NOT enter the formula",
+        "seeds": FLOOR_SEEDS,
+        "per_seed": rows,
+        "floor_seed_aggregate": round(floor, 4),
+        "delta_acc": round(delta_acc, 4),
+        "model_sha256": model_sha,
+        "measured_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="milliseconds"),
+        "remeasure_after_single_shot": "FORBIDDEN",
+    }
+    doc.pop("committed_doc_sha256", None)
+    doc["committed_doc_sha256"] = sha256_text(
+        json.dumps(doc, ensure_ascii=False, sort_keys=True))
+    COMMITTED_DOC.write_text(json.dumps(doc, ensure_ascii=False, indent=1),
+                             encoding="utf-8")
+    log("committed_doc_updated", path=str(COMMITTED_DOC),
+        committed_doc_sha256=doc["committed_doc_sha256"],
+        payload_artifact_untouched=True,
+        thresholds_untouched=True)
+    return 0
+
+
 # --- production contour §5.1 (code legs + model leg) --------------------------
 
 def arbitrate_production(cluster: lib.Cluster, booster: lgb.Booster,
@@ -935,7 +1131,21 @@ def _noharm_proposals(noharm: Path, model: lgb.Booster,
                       tau_hi: float, tau_m: float) -> tuple[int, int]:
     """g_noharm_v42: frozen NOT-dup surface (committed v42/v4.3 train
     strata; holdouts and seals are NOT read). A keep verdict on any row =
-    a fold proposal. Expected: exact 0."""
+    a fold proposal. Expected: exact 0.
+
+    SURFACE CONTRACT (ratified TL dispatch 29.10; surface accepted with
+    27 train-side rows, pins ece065de / 404d43f2 / 526522bf / 36ced21d /
+    6ab5b5fa): the surface is built from TRAIN-side material ONLY.
+    THE TRAP: the source pool the surface is drawn from also contains
+    9 rows of holdout origin — a naive builder that sweeps the source
+    file wholesale pulls those 9 rows in and BURNS g_noharm on sealed
+    material (a holdout read outside the single-shot: run-log shows
+    eval content reads before sealed_read_once, surface fp carries
+    holdout bytes). The builder must filter to the 27 train rows by the
+    pinned id list and ASSERT row count == 27 and 0 id overlap with the
+    holdout id-manifest before emission. The gate runner additionally
+    checks the surface sha against the ratified pins at load time.
+    """
     proposals = rows = 0
     with open(noharm, encoding="utf-8") as fh:
         for line in fh:
@@ -1012,7 +1222,8 @@ def cmd_gate(args: argparse.Namespace) -> int:
     # ============ SEALED READ — SINGLE-SHOT (not executed in this phase) =====
     holdout = _read_holdout_sealed()          # the single legal read
     log("sealed_read_once", n_clusters=holdout["n"], sha256=holdout["sha256"])
-    gates = _eval_gates_on_holdout(model, tau_hi, tau_m, holdout, pro["manifest"])
+    doc = json.loads(COMMITTED_DOC.read_text(encoding="utf-8"))
+    gates = _eval_gates_on_holdout(model, tau_hi, tau_m, holdout, pro["manifest"], doc)
     for name, g in gates.items():
         log("gate_result", gate=name, **g)
     verdict = "ADOPT" if all(g["ok"] for g in gates.values()) else "DECLINE"
@@ -1049,20 +1260,24 @@ def _read_holdout_sealed() -> dict:
 
 
 def _eval_gates_on_holdout(model: lgb.Booster, tau_hi: float, tau_m: float,
-                           holdout: dict, manifest: dict) -> dict:
+                           holdout: dict, manifest: dict, doc: dict) -> dict:
     """Gate formulas §5 — thresholds are FROZEN constants, never revisited.
 
-    SPEC FLAG (disclosed, nearest-to-letter reading, NOT silently resolved):
-    δ_acc := max(2·floor_seed; 0.10) — the build's floor_seed table
-    (characterization.floor_seed_max_abs_delta) is per-stratum over
-    BASELINES; the largest CH-3 leg is 0.25 (CH-3/chain/keep-oldest), so
-    the letter of the formula gives δ_acc = 0.50 on the CH-3 aggregate.
-    A 0.50 delta is at/above the ceiling of what any model can show
-    (1 − baseline); the §5 line also cites the '+10пп' precedent. The
-    runner implements the LETTER (max over the CH-3 floor rows) and
-    carries the flag in the gate payload — MLC/TL must confirm the
-    floor_seed interpretation BEFORE the single-shot burns the holdout.
+    δ_acc comes from the RATIFIED measurement (MLC 29.10, option (a)):
+    doc["delta_acc_measure"] — floor_seed at the granularity of the gating
+    statistic (CH-3 aggregate over the gate-leg composition), frozen in
+    the committed doc BEFORE gate_start; missing section = instrument
+    abort (the gate never runs with an unfixed δ_acc). The per-stratum
+    floor table of the build manifest does NOT enter the formula.
     """
+    measure = doc.get("delta_acc_measure")
+    if not measure or "delta_acc" not in measure or "floor_seed_aggregate" not in measure:
+        raise InstrumentAbort(
+            "committed doc has no ratified delta_acc_measure — δ_acc is "
+            "unfixed; run the floor-seed measurement BEFORE the gate cycle")
+    delta_acc = float(measure["delta_acc"])
+    floor_seed_aggregate = float(measure["floor_seed_aggregate"])
+
     clusters: list[lib.Cluster] = holdout["clusters"]
     ch3 = [c for c in clusters if c.stratum == "CH-3"]
     ch24 = [c for c in clusters if c.stratum in ("CH-2", "CH-4")]
@@ -1081,13 +1296,6 @@ def _eval_gates_on_holdout(model: lgb.Booster, tau_hi: float, tau_m: float,
             / len(ch3) if ch3 else 0.0
 
     acc_baseline = max(pooled_acc(bfn) for bfn in lib.BASELINES.values())
-
-    # δ_acc by the letter: 2 × max floor_seed over the CH-3 legs, floored 0.10
-    floor_rows = {k: v for k, v in
-                  manifest["characterization"]["floor_seed_max_abs_delta"].items()
-                  if k.startswith("CH-3")}
-    floor_seed_ch3 = max(floor_rows.values())
-    delta_acc = max(2 * floor_seed_ch3, 0.10)
 
     # g_abstain_sens: q := max(0.20; p90_char + 2·floor_q); the model-side
     # p90_char/floor_q draws are a gate-time mechanism (N2/N4); v1 carries
@@ -1120,10 +1328,9 @@ def _eval_gates_on_holdout(model: lgb.Booster, tau_hi: float, tau_m: float,
                   "acc_best_baseline": round(acc_baseline, 4),
                   "delta": round(acc_model - acc_baseline, 4),
                   "delta_acc": round(delta_acc, 4),
-                  "floor_seed_ch3": floor_seed_ch3,
-                  "spec_flag": "δ_acc=2×0.25=0.50 by the letter of §5; exceeds "
-                               "the achievable ceiling if baseline >= 0.5 — "
-                               "needs MLC confirmation BEFORE the single-shot"},
+                  "floor_seed_aggregate": floor_seed_aggregate,
+                  "source": "ratified delta_acc_measure (MLC 29.10, option a), "
+                            "fixed before gate_start"},
         "g_fold_exact": {"ok": prop24 == 0, "proposals": prop24,
                          "threshold": "exact 0"},
         "g_abstain_sens": {"ok": bool(abst_rate3 <= q),
@@ -1147,6 +1354,13 @@ def main(argv: list[str] | None = None) -> int:
     p_san = sub.add_parser("sanity", help="7-probe suite on the frozen artifact")
     p_san.add_argument("--artifact", required=True)
     p_san.set_defaults(fn=cmd_sanity)
+
+    p_floor = sub.add_parser(
+        "floor-seed",
+        help="ratified delta_acc floor measurement (MLC 29.10, option a)")
+    p_floor.add_argument("--artifact", required=True,
+                         help="frozen merge-v1 artifact (model NOT retrained)")
+    p_floor.set_defaults(fn=cmd_floor_seed)
 
     p_gate = sub.add_parser("gate", help="single-shot gate cycle (sealed read)")
     p_gate.add_argument("--artifact", required=True)

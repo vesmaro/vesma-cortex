@@ -142,5 +142,98 @@
  },
  "seed": 42,
  "boundary_v1": "cos_target enters as the declared constant 1.0 (no measured vector leg in corpus v1); the vector leg joins the Choice contract in a later engine wave",
- "committed_doc_sha256": "ea40d47ec619ce6a98f7c0762634c08df6262bc1dea5cba823381af13abd214c"
+ "delta_acc_measure": {
+  "ratification": "MLC 29.10, option (a), unanimous, chairman-consolidated",
+  "granularity": "floor_seed for delta_acc is measured at the granularity of the gating statistic (CH-3 aggregate, gate-leg composition 22 k2 + 3 chain); the per-stratum table in the build manifest is a characterization artifact and does NOT enter the formula",
+  "seeds": [
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   50,
+   51,
+   52
+  ],
+  "per_seed": [
+   {
+    "seed": 43,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.52,
+    "delta": 0.48
+   },
+   {
+    "seed": 44,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.52,
+    "delta": 0.48
+   },
+   {
+    "seed": 45,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.52,
+    "delta": 0.48
+   },
+   {
+    "seed": 46,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.6,
+    "delta": 0.4
+   },
+   {
+    "seed": 47,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.56,
+    "delta": 0.44
+   },
+   {
+    "seed": 48,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.52,
+    "delta": 0.48
+   },
+   {
+    "seed": 49,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.52,
+    "delta": 0.48
+   },
+   {
+    "seed": 50,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.52,
+    "delta": 0.48
+   },
+   {
+    "seed": 51,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.64,
+    "delta": 0.36
+   },
+   {
+    "seed": 52,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.52,
+    "delta": 0.48
+   }
+  ],
+  "floor_seed_aggregate": 0.12,
+  "delta_acc": 0.24,
+  "model_sha256": "85fa92769971353053a5d3703c42e8c9f0bf4bb49d55e275cc9ca8f21826ddd8",
+  "measured_at": "2026-10-29T17:43:47.377+00:00",
+  "remeasure_after_single_shot": "FORBIDDEN"
+ },
+ "committed_doc_sha256": "df51698f11bd53ef6ed7126e2436f4e68fa1cc22d3d428ca83ef3ef06e2f6a8f"
 }
