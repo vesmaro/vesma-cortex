@@ -343,7 +343,7 @@ def cmd_consolidate() -> int:
             safes = [name for name, v in verdicts.items() if v["choice"] == "NO-SAFE"]
             rec["no_safe_members"] = len(safes)
             rec["consensus"] = "NO-SAFE" if len(safes) >= 2 else "FOLD-ELIGIBLE"
-            if t["class"] in ("CH-2", "CH-4"):
+            if t["class"] == "abstain":
                 rec["raw_unanimous_vs_truth"] = len(safes) == 3
             else:
                 rec["raw_unanimous_vs_truth"] = len(safes) == 0
