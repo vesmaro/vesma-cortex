@@ -590,8 +590,6 @@ def frozen_inputs(manifest: dict) -> list["lib.Cluster"]:
         negatives_v2_sha256=(sha256_file(NEG2_PATH) if NEG2_PATH.exists() else None),
         corpus_fp_v1_1=(neg_manifest.get("corpus_fp_v1_1")
                         if NEG_PATH.exists() else None),
-        corpus_fp_v2=(neg2_manifest.get("negatives_v2_sha256")
-                      if neg2_manifest is not None else None),
         n_clusters=len(clusters),
         counts={f"{s}/k{k}": n for (s, k), n in sorted(counts.items())},
         theme_near_counts=neg_counts or None,
