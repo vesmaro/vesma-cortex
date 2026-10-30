@@ -89,3 +89,9 @@ __pycache__/
 # data/b2-graph-corpus/ (store-derived content, same rule as embed waves).
 !/datasets/b2-graph/
 !/datasets/b2-graph/**
+
+# merge-arbiter corpus v1: numbers-only README (counters, hashes, floors,
+# STOP table) — same class as datasets/b2-graph; corpus content, snapshot,
+# seals and the owner spot sheet stay gitignored under data/merge-arbiter/.
+!/datasets/merge-arbiter/
+!/datasets/merge-arbiter/**

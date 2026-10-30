@@ -1,0 +1,544 @@
+{
+ "artifact": "vesma-cortex-merge-v2 (Choice v2, ADDENDUM-6)",
+ "frozen_at": "2026-10-30T00:45:19.396+00:00",
+ "thresholds": {
+  "tau_hi": 0.9,
+  "tau_m": 0.5,
+  "rule": "keep=argmax e_i iff e1>=tau_hi and e1-e2>=tau_m; else ABSTAIN (draft §2.2); the zone-v1 leg precedes the model leg and refuses only",
+  "fit": "train-only 5-fold CV by clusters, pairwise-disjoint folds, seed 42; NO sealed surface used for any choice (N2); CV readers measure the MODEL leg only (the zone does not make the riders green)"
+ },
+ "zone_v1": {
+  "constants": {
+   "version": "zone-v1",
+   "rule": "(cos <= 0.85 AND char5 <= 0.05) OR (zeps >= 3 AND char5 <= 0.20)",
+   "tau_cos": 0.85,
+   "tau_lex": 0.05,
+   "tau_lex2": 0.2,
+   "zeps_min": 3,
+   "eps": 0.01,
+   "position": "leg 3.5 of §5.1: between the CH-2 refusal and the model leg",
+   "pairness": "evaluates the PAIR cos of the candidate (nano, norm1); any unordered pair of the cluster inside the zone fires"
+  },
+  "provenance": "ADDENDUM-6 §2 pos 1 (MLC 30.10 round 6, 3/3; commit f2b51bd): constants derived from the structural train-support voids train-only before seal and fixed by ratification (owner directive 30.10: constants already fixed — not re-derived); §1 legality: structural + one-sided (refusal-only) + indivisible package with the train extension + zone-off probe",
+  "residual_risk": "max char5 of the refused class 0.04947 -> margin to tau_lex 0.05 is 0.0005 with zeps=1 (the OR-leg does not insure it); accepted in frozen-doc zone-v1",
+  "known_uncovered": [
+   "cos < 0.60 entirely (below the corpus coverage floor — no train support)",
+   "char5 > 0.20 AND cos <= 0.85 AND zeps < 3 (residual band above the OR-leg)",
+   "monolingual near-boundary pairs outside the TT/NT forms"
+  ],
+  "pairness": "evaluates the PAIR cos of the candidate (nano + norm1, the SAME convention as e_cos); any unordered pair of the cluster inside the zone fires",
+  "build_asserts": {
+   "A-zone-coverage": "GREEN at generation (edge_gap 0.0018, max_gap 0.0196, 132 points; sidecar manifest coverage_after_generation)",
+   "A-zone-ch3-zero": "0/276 at generation (DE) and re-asserted on the effective corpus at train time"
+  }
+ },
+ "convention": {
+  "embedder_pin": "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba",
+  "embed_text": "n1(title)\\nn1(body)\\nn1(space-joined tags), [:4096]; n1 = lower + whitespace-collapse (release/6.6.0, 458fffc; shim vesmaro->vesma unconditional — empty namespace husk)",
+  "char5": "frozen cortex.features.pair (its n-gram text is norm1; the similarity input feeds cos_target only)",
+  "zeps": "7 eps-flags (eps=0.01, framing §2.4), generator-oracle cross-checked on every pair (fail-closed)",
+  "dir": "construction-only parameter of the digit-lookalike strata (ADDENDUM-6 pos 4); NOT an inference feature"
+ },
+ "ratification": "ADDENDUM-6 (MLC 30.10 round 6, commit f2b51bd) + ML-STD-0004 (declared floor); owner sanction 30.10 «фич-работа v2»; one cycle §3 ADDENDUM-3, no cuts",
+ "cv_ch3_oof": {
+  "acc": 1.0,
+  "abstain_rate": 0.0,
+  "score": 1.0,
+  "ch3_n": 252
+ },
+ "cv_neg_abstain": {
+  "cos-bins": 1.0,
+  "cross-lang-sibling": 1.0,
+  "digit-lookalike": 0.9667,
+  "near-topic": 1.0,
+  "sibling-residue": 1.0,
+  "template-twin": 1.0,
+  "zone-boundary": 1.0
+ },
+ "cv_noregress": {
+  "per_fold": {
+   "0": 1.0,
+   "1": 1.0,
+   "2": 1.0,
+   "3": 1.0,
+   "4": 1.0
+  },
+  "reference": 1.0,
+  "tol": 0.02
+ },
+ "cv_grid_top10": [
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.5,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.4,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.3,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.2,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.15,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.1,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.05,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.9,
+   "tau_m": 0.0,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.85,
+   "tau_m": 0.5,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  },
+  {
+   "tau_hi": 0.85,
+   "tau_m": 0.4,
+   "acc_ch3": 1.0,
+   "abstain_rate_ch3": 0.0,
+   "score": 1.0
+  }
+ ],
+ "baselines_per_stratum_train": {
+  "CH-3/insert": {
+   "keep-oldest": 0.4833,
+   "longest-body": 1.0,
+   "first": 0.5
+  },
+  "CH-3/replace": {
+   "keep-oldest": 0.5083,
+   "longest-body": 0.0,
+   "first": 0.5
+  },
+  "CH-3/chain": {
+   "keep-oldest": 0.3333,
+   "longest-body": 1.0,
+   "first": 0.6667
+  },
+  "CH-0": {
+   "keep-oldest": 1.0,
+   "longest-body": 1.0,
+   "first": 1.0
+  },
+  "CH-2": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  },
+  "CH-4": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  },
+  "CH-5": {
+   "keep-oldest": 1.0,
+   "longest-body": 1.0,
+   "first": 1.0
+  },
+  "theme-near/cross-lang-sibling": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  },
+  "theme-near/template-twin": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  },
+  "theme-near/near-topic": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  },
+  "theme-near/zone-boundary": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  },
+  "theme-near/cos-bins": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  },
+  "theme-near/sibling-residue": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  },
+  "theme-near/digit-lookalike": {
+   "keep-oldest": 0.0,
+   "longest-body": 0.0,
+   "first": 0.0
+  }
+ },
+ "n_features": 34,
+ "feature_names": [
+  "cos_target",
+  "char3_jaccard",
+  "char4_jaccard",
+  "char5_jaccard",
+  "char3_containment",
+  "char4_containment",
+  "char5_containment",
+  "tag_jaccard",
+  "title_len_delta",
+  "body_len_delta",
+  "tag_count_delta",
+  "type_match",
+  "lang_match",
+  "d_other_in_mine",
+  "d_mine_in_other",
+  "d_rel_len",
+  "e_n_clusters",
+  "e_chars_mine",
+  "e_chars_other",
+  "e_rel_chars",
+  "e_digit_mine",
+  "e_digit_other",
+  "v_created_epoch",
+  "v_created_null",
+  "v_created_delta_mean",
+  "e_cos",
+  "zeps_tok_body",
+  "zeps_char5",
+  "zeps_tok_title",
+  "zeps_tags",
+  "zeps_digits",
+  "zeps_lang",
+  "zeps_type",
+  "zeps_sum"
+ ],
+ "feature_names_sha256": "2c67b3ec6393125da1f25ad00c8c072dfda27ed0e4c90e6fcc7f936d232f79f1",
+ "durable_artifact": {
+  "path": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/merge-arbiter-draft/data/merge-arbiter/artifacts/merge-v1/merge_arbiter_v2.json",
+  "sha256": "60d1fe733937accf936776327f8f259fc2116aa6ffd011e81cd448a283bceefd"
+ },
+ "train_jsonl_sha256": "e60bc7d05bd0348d8811d094b890c0931c9495b9ae03169951232bf547b93cd6",
+ "manifest_sha256": "abb29158c73e98b8e91b9194160e560311d5a9b9d911362cb14d7cfc4788b7f5",
+ "merge_arbiter_lib_sha256": "b921d8c1b77f23dbb321ddf10173dd1b02eeab193de02ab3d1a7754c4aba7658",
+ "cortex_features_pair_sha256": "1d8b2fa891178f59e695032cecea8f02ab46784fc9adabe15ceaaffc6c505c81",
+ "feature_names_pin_sha256": "7b347a0a7e4e77fc1245e903cf95894b00cc74dfbeb60d542005a4540d63db07",
+ "embedder_pin": "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba",
+ "negatives_v2_sha256": "e601071a1542c4f4ae68542aed4315376534e371c61d1b9f6565355f117cf791",
+ "null_envelope_v2_sha256": "729582c6db56f6e84f23416b5fb9094ec66b03098f182bf6f36c507ce287b923",
+ "corpus_fp_v2": "c44c5491b5a49113c68e13e74b3ef1f335f9b68e94c89beda0b5175f4c3eacf9",
+ "env": {
+  "python": "3.12.13",
+  "lightgbm": "4.7.0",
+  "numpy": "2.5.3",
+  "venv_suffix": "vesma-cortex/.venv/bin/python"
+ },
+ "seed": 42,
+ "boundary_v2": "e_cos is MEASURED (pinned nano on norm1; the v1 declared-constant boundary is retired for v2); the zone-v1 leg precedes the model leg and refuses only",
+ "noharm_surface": {
+  "path": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma-cortex/wt/merge-arbiter-draft/data/merge-arbiter/artifacts/merge-v1/noharm-surface-v1.jsonl",
+  "sha256": "146a8ae42bb6f1e5fb957d44903d218c82df2c456e9b584cf177d6f3b89e8fd4",
+  "counts": {
+   "notdup": 27,
+   "sibling": 144,
+   "total": 171
+  },
+  "count_note": "verdictor's 39+39/105 came from wc -l (both sibling files lack the trailing newline: actual 40+40 specs); both-orientation sibling recipe gives 160 V43-TSIB pairs, minus 16 v4.3-holdout-slice ids = 144",
+  "sources": {
+   "datasets/corpus-v4/batch-notdup.jsonl": "ece065de5a74ccba1ca96401e298a9dd445ba3fef7d6702463cef83efc859d55",
+   "datasets/corpus-v4/batch-base-ru.jsonl": "404d43f28d384d0d78e834aed02d59e4bd00fc0d134236a867d20c4d89ba1482",
+   "datasets/corpus-v4/batch-base-en.jsonl": "526522bf4e749baf96bdd501e7f46a7a5d5f406aaac3d2c17ef793798ab4c293",
+   "datasets/corpus-v43/batch-translated-sibling-ru.jsonl": "6ab5b5faf7aa207cb3ce321a50ea42f89932f6901af014a437788e3c2377da54",
+   "datasets/corpus-v43/batch-translated-sibling-en.jsonl": "36ced21dc2c63480bca8482aba9fbdd1c641394e32a5dc9dc8471741c1ca9f0f"
+  },
+  "split_pins": {
+   "v42_holdout_excluded_ids": [
+    "V4-PND-0001",
+    "V4-PND-0002",
+    "V4-PND-0003",
+    "V4-PND-0004",
+    "V4-PND-0005",
+    "V4-PND-0006",
+    "V4-PND-0007",
+    "V4-PND-0008",
+    "V4-PND-0009"
+   ],
+   "v42_train_ids": [
+    "V4-PND-0010",
+    "V4-PND-0011",
+    "V4-PND-0012",
+    "V4-PND-0013",
+    "V4-PND-0014",
+    "V4-PND-0015",
+    "V4-PND-0016",
+    "V4-PND-0017",
+    "V4-PND-0018",
+    "V4-PND-0019",
+    "V4-PND-0020",
+    "V4-PND-0021",
+    "V4-PND-0022",
+    "V4-PND-0023",
+    "V4-PND-0024",
+    "V4-PND-0025",
+    "V4-PND-0026",
+    "V4-PND-0027",
+    "V4-PND-0028",
+    "V4-PND-0029",
+    "V4-PND-0030",
+    "V4-PND-0031",
+    "V4-PND-0032",
+    "V4-PND-0033",
+    "V4-PND-0034",
+    "V4-PND-0035",
+    "V4-PND-0036"
+   ],
+   "v43_holdout_slice_excluded_ids": [
+    "V43-TSIB-0001",
+    "V43-TSIB-0002",
+    "V43-TSIB-0003",
+    "V43-TSIB-0004",
+    "V43-TSIB-0005",
+    "V43-TSIB-0006",
+    "V43-TSIB-0007",
+    "V43-TSIB-0008",
+    "V43-TSIB-0009",
+    "V43-TSIB-0010",
+    "V43-TSIB-0011",
+    "V43-TSIB-0012",
+    "V43-TSIB-0013",
+    "V43-TSIB-0014",
+    "V43-TSIB-0015",
+    "V43-TSIB-0016"
+   ],
+   "v43_train_ids_count": 144
+  },
+  "trap_note": "the 9 v4.2-holdout and 16 v4.3-holdout-slice rows are sealed material: filtered by the replayed frozen split id lists, emitted set asserted disjoint (exact 0); texts never emitted, ids pinned here for the TL check",
+  "tl_machine_leg": "surface-vs-sheet and surface-vs-MA-holdout text-hash disjointness stays with the TL after this commit",
+  "created_at": "2026-10-29T17:57:20.218+00:00"
+ },
+ "delta_acc_measure_v2": {
+  "standard": "ML-STD-0004 (declared floor), stage 2",
+  "formula": "delta_acc = max(p95 - p5; 0.10)",
+  "stage1_pin": {
+   "commit": "5305c82",
+   "assert_event": "std0004_order_assert (above in run-log)",
+   "note": "formula fixed 2026-10-30 BEFORE any v2 draw"
+  },
+  "seeds": [
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   50,
+   51,
+   52
+  ],
+  "per_seed": [
+   {
+    "seed": 43,
+    "n_clusters": 25,
+    "acc_model": 0.96,
+    "acc_baseline_max": 0.52,
+    "delta": 0.44
+   },
+   {
+    "seed": 44,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.52,
+    "delta": 0.48
+   },
+   {
+    "seed": 45,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.52,
+    "delta": 0.48
+   },
+   {
+    "seed": 46,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.6,
+    "delta": 0.4
+   },
+   {
+    "seed": 47,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.56,
+    "delta": 0.44
+   },
+   {
+    "seed": 48,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.52,
+    "delta": 0.48
+   },
+   {
+    "seed": 49,
+    "n_clusters": 25,
+    "acc_model": 0.96,
+    "acc_baseline_max": 0.52,
+    "delta": 0.44
+   },
+   {
+    "seed": 50,
+    "n_clusters": 25,
+    "acc_model": 1.0,
+    "acc_baseline_max": 0.52,
+    "delta": 0.48
+   },
+   {
+    "seed": 51,
+    "n_clusters": 25,
+    "acc_model": 0.88,
+    "acc_baseline_max": 0.64,
+    "delta": 0.24
+   },
+   {
+    "seed": 52,
+    "n_clusters": 25,
+    "acc_model": 0.96,
+    "acc_baseline_max": 0.52,
+    "delta": 0.44
+   }
+  ],
+  "floor_seed_distribution": {
+   "n": 10,
+   "median": 0.44,
+   "p5": 0.312,
+   "p95": 0.48,
+   "max_pairwise": 0.24,
+   "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+  },
+  "delta_acc_declared": 0.168,
+  "delta_acc_recheck": 0.168,
+  "floor_q": {
+   "seeds": [
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72
+   ],
+   "rates": [
+    0.0,
+    0.04,
+    0.08,
+    0.08,
+    0.04,
+    0.0,
+    0.04,
+    0.0,
+    0.0,
+    0.0
+   ],
+   "distribution": {
+    "n": 10,
+    "median": 0.02,
+    "p5": 0.0,
+    "p95": 0.08,
+    "max_pairwise": 0.08,
+    "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+   },
+   "floor": 0.08,
+   "p90_char": 0.08,
+   "q": 0.24,
+   "formula": "q := max(0.20; p90_char + 2*floor_q)"
+  },
+  "floor_inv": {
+   "draws": [
+    73,
+    74,
+    75
+   ],
+   "disagreement_rates": [
+    0.0,
+    0.0125,
+    0.0
+   ],
+   "distribution": {
+    "n": 3,
+    "median": 0.0,
+    "p5": 0.0,
+    "p95": 0.01125,
+    "max_pairwise": 0.0125,
+    "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+   },
+   "floor": 0.0125,
+   "delta_inv": 0.025,
+   "formula": "delta_inv := 2*floor_inv"
+  },
+  "floor_perm": {
+   "perms": [
+    76,
+    77,
+    78
+   ],
+   "delta_rates": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "distribution": {
+    "n": 3,
+    "median": 0.0,
+    "p5": 0.0,
+    "p95": 0.0,
+    "max_pairwise": 0.0,
+    "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+   },
+   "floor": 0.0
+  },
+  "model_sha256": "60d1fe733937accf936776327f8f259fc2116aa6ffd011e81cd448a283bceefd",
+  "artifact": "data/merge-arbiter/artifacts/merge-v1/merge_arbiter_v2.json",
+  "contour": "production §5.1 WITH zone-v1 (composition statistic)",
+  "measured_at": "2026-10-30T00:46:19.869+00:00",
+  "remeasure_after_single_shot": "FORBIDDEN"
+ },
+ "committed_doc_sha256": "12c9be66f6775bb69edaa5c9d34e92997e1603541b28eb288bf1e28d54352cfc"
+}
