@@ -129,6 +129,9 @@ ART_DIR = REPO / "data" / "merge-arbiter" / "artifacts" / "merge-v1"
 COMMITTED_DIR = REPO / "datasets" / "merge-arbiter"
 COMMITTED_DOC = COMMITTED_DIR / "merge-v1-thresholds.frozen.json"
 RUNLOG = REPO / "artifacts" / "runs" / "run_log.jsonl"
+SPOT_DIR = REPO / "data" / "merge-arbiter" / "spot-sheet"
+COMMITTEE_SCORED = SPOT_DIR / "committee-scored-v1.json"  # g_spot frozen input (ADDENDUM-7 §3)
+COMMITTEE_SCORED_SHA256 = "5c3ea8ba9b672756c76cf1cb18a50d00d814b7303e79b561bf9e9f7c44b16250"
 SPEC = REPO / "docs" / "specs" / "merge-arbiter-corpus-prereg-DRAFT.md"
 
 SLICE_TRAIN = "merge-arbiter-merge-v1-train"
@@ -2813,6 +2816,16 @@ def cmd_gate(args: argparse.Namespace) -> int:
             "unpinned surface")
     log("noharm_surface_pin", path=str(noharm),
         sha256=surf_sec["sha256"], counts=surf_sec.get("counts"), ok=True)
+    # ADDENDUM-7 §3: the g_spot frozen input is pinned BEFORE gate_start;
+    # missing file or fp divergence = STOP class instrument, no sealed read
+    if not COMMITTEE_SCORED.exists() or \
+            sha256_file(COMMITTEE_SCORED) != COMMITTEE_SCORED_SHA256:
+        raise InstrumentAbort(
+            "committee-scored-v1.json missing or its sha256 diverges from "
+            "the ratified ADDENDUM-7 pin — g_spot never runs on an "
+            "unpinned surface")
+    log("committee_scored_pin", path=str(COMMITTEE_SCORED),
+        sha256=COMMITTEE_SCORED_SHA256, ok=True)
     model, tau_hi, tau_m = load_frozen(artifact)
     # Choice v2: the gate runs the FULL v2 contour (zone-v1 + model) — the
     # noharm certificate and the gating statistic are COMPOSITION legs.
@@ -2864,6 +2877,13 @@ def cmd_gate(args: argparse.Namespace) -> int:
         threshold="exact 0", surface_sha256=sha256_file(noharm),
         contour="COMPOSITION zone-v1 + model" if is_v2 else "model leg")
 
+    # g_spot (ADDENDUM-1 §3 + ADDENDUM-7 §3) — computed PRE-sealed: it is
+    # consistency-on-TRAIN, no sealed read is involved. A red leg here does
+    # NOT abort (DECLINE-class, rides the conjunction); only an instrument
+    # failure raises, and it raises BEFORE the sealed read.
+    spot = _eval_g_spot(model, tau_hi, tau_m, ctx=ctx)
+    log("gate_result", gate="g_spot", **spot)
+
     if not (corner_ok and g_noharm_ok):
         log("abort_pregate_red", corner_ok=corner_ok, noharm_ok=g_noharm_ok,
             note="pre-gate red -> holdout NOT read (ML-STD-0002 П6)")
@@ -2874,6 +2894,7 @@ def cmd_gate(args: argparse.Namespace) -> int:
     log("sealed_read_once", n_clusters=holdout["n"], sha256=holdout["sha256"])
     gates = _eval_gates_on_holdout(model, tau_hi, tau_m, holdout,
                                    pro["manifest"], doc, ctx)
+    gates["g_spot"] = spot  # conjunction leg (ADDENDUM-7 §3), computed pre-sealed
     for name, g in gates.items():
         log("gate_result", gate=name, **g)
     verdict = "ADOPT" if all(g["ok"] for g in gates.values()) else "DECLINE"
@@ -2907,6 +2928,126 @@ def _read_holdout_sealed() -> dict:
         raise InstrumentAbort(f"holdout strata count mismatch: {mism}")
     return {"sha256": sha, "clusters": clusters, "n": len(clusters),
             "strata": strata}
+
+
+def _eval_g_spot(model: lgb.Booster, tau_hi: float, tau_m: float,
+                 ctx: "dict | None" = None) -> dict:
+    """g_spot — committee-silver spot gate (ADDENDUM-1 §3 + ADDENDUM-7 §3).
+
+    Qualification: consistency-on-train + generator QA (ADDENDUM-1 §5);
+    generalization is judged ONLY by the sealed holdout legs. Inputs: the
+    pinned committee-scored-v1.json (fp asserted against the ratified
+    ADDENDUM-7 pin), the render-mapping row->member binding cross-checked
+    against sheet-selection.json whose sha is pinned INSIDE
+    committee-scored-v1.json, and cell content rebuilt via load_train()
+    (train.jsonl is a П4-tripwired frozen input). No sealed surface and
+    no real-store record is opened here; the spot-sheet/verdicts/render
+    artifacts are not modified.
+
+    Gates: CH-3 cells (8) — model keep-verdict on the post-arbitration
+    consensus member, >= 7/8; CH-2/CH-4 cells (12) — joint fold ban,
+    keep proposals exact 0. The consensus-NO-SAFE stop line on real cells
+    is validated at scoring time (0, ADDENDUM-7 §1) and NOT duplicated
+    here. Published: the gate numbers vs consensus + a NON-gate
+    diagnostic line vs the raw verdictor majority (no arbitration) +
+    model-leg abstain/refusal counts (ADDENDUM-1 §5.1 discipline).
+
+    Red here does NOT abort the cycle (DECLINE-class leg of the
+    conjunction); an instrument failure raises BEFORE the sealed read.
+    """
+    if sha256_file(COMMITTEE_SCORED) != COMMITTEE_SCORED_SHA256:
+        raise InstrumentAbort("committee-scored-v1.json fp diverged mid-cycle")
+    scored = json.loads(COMMITTEE_SCORED.read_text(encoding="utf-8"))
+    sel_path = SPOT_DIR / "sheet-selection.json"
+    if sha256_file(sel_path) != scored.get("selection_sha256"):
+        raise InstrumentAbort("sheet-selection.json diverges from the "
+                              "selection_sha256 pinned in "
+                              "committee-scored-v1.json")
+    mapping = json.loads((SPOT_DIR / "internal" / "render-mapping.json")
+                         .read_text(encoding="utf-8"))
+    rows = {r["row"]: r for r in scored["rows"]}
+    if sorted(mapping) != sorted(rows):
+        raise InstrumentAbort("render-mapping rows diverge from "
+                              "committee-scored rows")
+
+    sel_syn = {i["sheet_cluster"]: tuple(i["member_ids"])
+               for i in sel["synthetic"]}
+    by_mid: dict[str, "lib.Cluster"] = {}
+    for c in load_train():
+        for m in c.members:
+            by_mid[m.mid] = c
+    spot_rows = [r for r in scored["rows"]
+                 if r["truth_class"] in ("CH-3", "abstain")]
+    ch3_hits = ch3_total = 0
+    abs_prop = abs_total = 0
+    abst_model = zone_fired = 0
+    raw_hits = raw_total = 0
+    for r in spot_rows:
+        e = mapping[r["row"]]
+        if e.get("kind_ref") != "synthetic":
+            raise InstrumentAbort(f"sheet row {r['row']}: CH-3/abstain cell "
+                                  "is not a synthetic train-side cell")
+        mids = tuple(e["member_ids"])
+        if sel_syn.get(e["cluster"]) != mids:
+            raise InstrumentAbort(f"sheet row {r['row']}: render-mapping "
+                                  "diverges from the pinned "
+                                  "sheet-selection binding")
+        cluster = by_mid.get(mids[0])
+        if cluster is None or \
+                sorted(m.mid for m in cluster.members) != sorted(mids):
+            raise InstrumentAbort(f"sheet row {r['row']}: cluster "
+                                  f"{e['cluster']} not found in the frozen "
+                                  "train corpus")
+        d = arbitrate_production(cluster, model, tau_hi, tau_m, ctx=ctx)
+        abst_model += int(d["verdict"] == "abstain")
+        zone_fired += int(d.get("leg") == "zone-v1")
+        keep = d["verdict"] == "keep"
+        if r["truth_class"] == "CH-3":
+            ch3_total += 1
+            cons = r["consensus"]
+            if cons not in ("A", "B") or len(mids) != 2:
+                raise InstrumentAbort(f"sheet row {r['row']}: unexpected "
+                                      f"consensus label {cons!r}")
+            cons_mid = mids[0 if cons == "A" else 1]
+            if cluster.label.get("member") != cons_mid:
+                raise InstrumentAbort(
+                    f"sheet row {r['row']}: post-arbitration consensus "
+                    f"{cons} diverges from the by-construction train label "
+                    "(ADDENDUM-7 §1: consensus == construction)")
+            ch3_hits += int(keep and d.get("member") == cons_mid)
+            # raw verdictor majority (no arbitration) — diagnostic, not a gate
+            choices = [v["choice"] for v in r["verdicts"].values()]
+            raw = next((c for c in set(choices) if choices.count(c) >= 2),
+                       "SPLIT")
+            raw_total += 1
+            raw_hits += int(raw == cons)
+        else:
+            abs_total += 1
+            if cluster.label.get("type") != "abstain" or \
+                    cluster.stratum not in ("CH-2", "CH-4"):
+                raise InstrumentAbort(f"sheet row {r['row']}: abstain cell "
+                                      "does not match its by-construction "
+                                      "train cluster (CH-2/CH-4 expected)")
+            abs_prop += int(keep)
+    if (ch3_total, abs_total) != (8, 12):
+        raise InstrumentAbort(
+            f"sheet partition mismatch: CH-3 {ch3_total}/8, abstain "
+            f"{abs_total}/12 (ratified quotas: 8 CH-3 + 6 CH-2 + 6 CH-4)")
+    raw_line = (f"model_vs_raw_consensus: model {ch3_hits}/{ch3_total} vs "
+                f"raw verdictor-majority {raw_hits}/{raw_total} "
+                "(no arbitration; diagnostic, not a gate)")
+    print(raw_line)
+    return {
+        "ok": bool(ch3_hits >= 7 and abs_prop == 0),
+        "ch3_hits": ch3_hits, "ch3_total": ch3_total,
+        "threshold": ">= 7/8 vs post-arbitration consensus",
+        "abstain_proposals": abs_prop, "abstain_total": abs_total,
+        "fold_ban": "exact 0 (joint CH-2/CH-4, = 1.0)",
+        "model_abstain_refusals": abst_model,
+        "zone_fired_sheet": zone_fired,
+        "raw_diagnostic": raw_line,
+        "qualification": "consistency-on-train + generator QA (ADDENDUM-1 §5)",
+    }
 
 
 def _eval_gates_on_holdout(model: lgb.Booster, tau_hi: float, tau_m: float,
