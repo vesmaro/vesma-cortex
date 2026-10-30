@@ -920,7 +920,8 @@ def main() -> int:
         # scenario disjointness there (pigeonhole), documented in the manifest
         holdout = gen_family(SEED_HOLDOUT, QUOTA_HOLDOUT, used_train, "ma-h", "ma-hol",
                              suffix_pool=HOLDOUT_SUFFIXES)
-        disc = lambda fam: {c.scenario for c in fam if c.stratum in ("CH-3", "CH-4")}
+        def disc(fam):
+            return {c.scenario for c in fam if c.stratum in ("CH-3", "CH-4")}
         overlap = disc(train) & disc(holdout)
         if overlap:
             raise BuildStop(f"train/holdout scenario overlap (discriminative): {sorted(overlap)[:3]}")

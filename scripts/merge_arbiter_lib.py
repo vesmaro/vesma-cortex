@@ -864,7 +864,7 @@ def run_sanity_suite() -> list[dict]:
             row["cos_band_declared"] = "policy §3 T3: cos 0.9975-1.0 (med 0.9990), by construction"
         if cell["probe"] == 4:
             silv = silver_check_ch3(cell["cluster"])
-            ok = ok and silv["ok"] and len(sup := cell["cluster"].members[0].body) < len(
+            ok = ok and silv["ok"] and len(cell["cluster"].members[0].body) < len(
                 cell["cluster"].members[1].body)
             row["silver"] = silv
             row["ok"] = bool(ok)

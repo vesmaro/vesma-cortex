@@ -100,8 +100,8 @@ sys.path.append(str(REPO / "scripts"))
 # namespace package (no __init__.py, stale __pycache__ only), so a probe
 # import "succeeds" as a hollow husk and the frozen-builder path breaks.
 # Precedent: b2_g1b_probes.py (its try-import early-return is unsound here).
-import importlib
-import types
+import importlib  # noqa: E402  (frozen shim preamble — engine 6.6.0 vesmaro husk)
+import types  # noqa: E402
 
 _alias = types.ModuleType("vesmaro")
 _alias.__path__ = [str(Path(ENGINE_SRC) / "vesma")]
@@ -1099,7 +1099,7 @@ def select_strata() -> dict[str, list[dict]]:
     for (lo, hi), quota in zip(COS_BINS, COS_BIN_PAIRS.values()):
         name = f"[{lo:.2f},{hi:.2f})"
         in_bin = [s for s in xl_pool if lo <= s["m"]["cos"] < hi]
-        _log(f"pool_cos_bin", bin=name, candidates=len(in_bin), quota=quota,
+        _log("pool_cos_bin", bin=name, candidates=len(in_bin), quota=quota,
              cos_values=sorted(round(s["m"]["cos"], 4) for s in in_bin))
         got = _coverage_pick(in_bin, quota, lambda s: s["m"]["cos"])
         for s in got:
@@ -1279,7 +1279,7 @@ def assert_neg_disjoint(clusters: list[lib.Cluster],
                 "v4/v4.3 surface texts")
     if any(hits.values()):
         raise mt.InstrumentAbort(
-            f"A-neg-disjoint RED: " +
+            "A-neg-disjoint RED: " +
             " ".join(f"{k}={sorted(v)[:2]}" for k, v in hits.items() if v))
 
 
@@ -1619,7 +1619,7 @@ def cmd_build() -> int:
                           "share_string": SHARE_STRING},
         "convention": {
             "embedder_pin": lib.EMBEDDER_PIN,
-            "engine": f"/var/home/abyss/LABs/Projects/Project-Vesma/vesma @ release/6.6.0 (458fffc)",
+            "engine": "/var/home/abyss/LABs/Projects/Project-Vesma/vesma @ release/6.6.0 (458fffc)",
             "embed_text": "n1(title)\\nn1(body)\\nn1(space-joined tags), [:4096]; "
                           "n1 = lowercase + whitespace collapse",
             "char5": "cortex.features.pair (frozen; n-gram text is norm1)",

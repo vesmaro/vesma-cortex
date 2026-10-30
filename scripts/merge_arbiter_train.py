@@ -521,10 +521,9 @@ def frozen_inputs(manifest: dict) -> list["lib.Cluster"]:
     # Choice-v2 extension counts (ADDENDUM-6 §2 pos 5): own file, own sidecar
     # pins (the v2 byte tripwire runs separately in the v2 subcommands).
     neg2_counts: dict[str, int] = {}
-    neg2_manifest = None
     if NEG2_PATH.exists():
-        neg2_manifest = json.loads((CORPUS_DIR / "train-negatives-v2.manifest.json")
-                                   .read_text(encoding="utf-8"))
+        json.loads((CORPUS_DIR / "train-negatives-v2.manifest.json")
+                   .read_text(encoding="utf-8"))
         for c in clusters:
             if c.stratum == "theme-near" and c.substratum in EXPECTED_NEG_V2_COUNTS:
                 neg2_counts[c.substratum] = neg2_counts.get(c.substratum, 0) + 1

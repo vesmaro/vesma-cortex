@@ -247,7 +247,6 @@ def cmd_consolidate() -> int:
     Reveals by-construction labels AFTER the three scorings are fixed
     (ADDENDUM-1 §4). Emits committee-scored-v1.json + QA ladder report.
     """
-    import re
     vdir = SHEET_DIR / "verdicts"
     files = {name: json.loads((vdir / f"{name}-v1.json").read_text(encoding="utf-8"))
              for name in ("llm-assistant", "ml-engineer", "tech-lead")}
