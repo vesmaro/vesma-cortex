@@ -167,8 +167,23 @@ def main(argv: list[str] | None = None) -> int:
         note="written BEFORE feature computation (ADDENDUM-5 §1, NA mini-prereg)",
     )
 
+    # ---------------- artifact pin (cascade W1 finding P2: fp verification
+    # before load — the artifact must carry a ratified committed-doc pin,
+    # same trust chain as train/sanity/floors/gate) ----------------
+    artifact_path = Path(args.artifact)
+    artifact_sha = mt.sha256_file(artifact_path)
+    doc = mt.find_doc_for(artifact_sha)
+    mt.log(
+        "step1_artifact_pin",
+        artifact=str(artifact_path),
+        sha256=artifact_sha,
+        doc=doc.get("_doc_path"),
+        ok=True,
+        note="fp verified against committed frozen doc before load (cascade W1 P2 fix)",
+    )
+
     # ---------------- feature computation starts HERE ----------------
-    model, tau_hi, tau_m = mt.load_frozen(Path(args.artifact))
+    model, tau_hi, tau_m = mt.load_frozen(artifact_path)
     rows = [json.loads(line) for line in open(NOHARM, encoding="utf-8") if line.strip()]
 
     def surface_pair_x(r: dict) -> tuple[np.ndarray, np.ndarray]:
