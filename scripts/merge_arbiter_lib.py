@@ -51,7 +51,9 @@ def norm1_body(body: str) -> str:
 
 #: Embedder pin declared for the line (A-frozen). This build does not
 #: embed; the pin is recorded in the manifest and enforced at scoring time.
-EMBEDDER_PIN = "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba"
+EMBEDDER_PIN = (
+    "nano:sha256:3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba"
+)
 
 __all__ = [
     "EMBEDDER_PIN",
@@ -97,7 +99,8 @@ _LONGS = {
 
 SCAFFOLD_SEED = [
     dict(
-        sid="ru-migration", lang="ru",
+        sid="ru-migration",
+        lang="ru",
         title="Миграция сервиса на новый рантайм: заметки по плану",
         body=(
             "Фиксирую план миграции сервиса на новый рантайм, чтобы команда могла сверяться. "
@@ -109,7 +112,8 @@ SCAFFOLD_SEED = [
         ),
     ),
     dict(
-        sid="ru-retention", lang="ru",
+        sid="ru-retention",
+        lang="ru",
         title="Политика хранения черновиков: как договорились",
         body=(
             "Записываю итог договорённости про хранение черновиков, чтобы ориентир был под "
@@ -120,7 +124,8 @@ SCAFFOLD_SEED = [
         ),
     ),
     dict(
-        sid="ru-review-cfg", lang="ru",
+        sid="ru-review-cfg",
+        lang="ru",
         title="Ревью конфигов: черновик соглашения",
         body=(
             "Мысль про ревью конфигурационных файлов: любое изменение конфига проходит "
@@ -131,7 +136,8 @@ SCAFFOLD_SEED = [
         ),
     ),
     dict(
-        sid="ru-flags", lang="ru",
+        sid="ru-flags",
+        lang="ru",
         title="Фиче-флаги legacy: порядок выноса",
         body=(
             "План по выносу фиче-флагов из legacy-модуля. Сначала флаги, которые живут "
@@ -142,7 +148,8 @@ SCAFFOLD_SEED = [
         ),
     ),
     dict(
-        sid="ru-replicas", lang="ru",
+        sid="ru-replicas",
+        lang="ru",
         title="Включение реплик после окна: рабочая заметка",
         body=(
             "Заметка про восстановление после планового окна: сначала читающие реплики "
@@ -153,7 +160,8 @@ SCAFFOLD_SEED = [
         ),
     ),
     dict(
-        sid="ru-incident-labels", lang="ru",
+        sid="ru-incident-labels",
+        lang="ru",
         title="Ретроспективные метки инцидентов: набросок",
         body=(
             "Идея: помечать старые инциденты ретроспективными метками, чтобы поиск по "
@@ -164,7 +172,8 @@ SCAFFOLD_SEED = [
         ),
     ),
     dict(
-        sid="en-oncall", lang="en",
+        sid="en-oncall",
+        lang="en",
         title="On-call rotation handoff: working notes",
         body=(
             "Working notes for the on-call handoff reform. The rotating engineer writes a "
@@ -176,7 +185,8 @@ SCAFFOLD_SEED = [
         ),
     ),
     dict(
-        sid="en-cache", lang="en",
+        sid="en-cache",
+        lang="en",
         title="Edge cache invalidation: draft approach",
         body=(
             "Draft approach for edge cache invalidation: purge on publish, soft TTL of "
@@ -188,7 +198,8 @@ SCAFFOLD_SEED = [
         ),
     ),
     dict(
-        sid="en-backups", lang="en",
+        sid="en-backups",
+        lang="en",
         title="Backup restore drills: schedule sketch",
         body=(
             "Sketch of the restore drill schedule: quarterly full restore of the primary "
@@ -199,7 +210,8 @@ SCAFFOLD_SEED = [
         ),
     ),
     dict(
-        sid="en-deprecation", lang="en",
+        sid="en-deprecation",
+        lang="en",
         title="API deprecation policy: first draft",
         body=(
             "First draft of the API deprecation policy: endpoints get a sunset header "
@@ -210,7 +222,8 @@ SCAFFOLD_SEED = [
         ),
     ),
     dict(
-        sid="en-quotas", lang="en",
+        sid="en-quotas",
+        lang="en",
         title="Rate limits for internal consumers: notes",
         body=(
             "Notes on rate limits for internal consumers: default burst of two hundred "
@@ -222,7 +235,8 @@ SCAFFOLD_SEED = [
         ),
     ),
     dict(
-        sid="en-docs", lang="en",
+        sid="en-docs",
+        lang="en",
         title="Docs migration: what moves where",
         body=(
             "Working summary of the docs migration: architecture notes move to the "
@@ -234,14 +248,16 @@ SCAFFOLD_SEED = [
     ),
 ]
 
-_LONGS.update({
-    "en-oncall": _LONGS["ru-retention"],
-    "en-cache": _LONGS["ru-replicas"],
-    "en-backups": _LONGS["ru-migration"],
-    "en-deprecation": _LONGS["ru-review-cfg"],
-    "en-quotas": _LONGS["ru-flags"],
-    "en-docs": _LONGS["ru-incident-labels"],
-})
+_LONGS.update(
+    {
+        "en-oncall": _LONGS["ru-retention"],
+        "en-cache": _LONGS["ru-replicas"],
+        "en-backups": _LONGS["ru-migration"],
+        "en-deprecation": _LONGS["ru-review-cfg"],
+        "en-quotas": _LONGS["ru-flags"],
+        "en-docs": _LONGS["ru-incident-labels"],
+    }
+)
 
 SCAFFOLDS = SCAFFOLD_SEED
 
@@ -360,8 +376,11 @@ class Member:
 
     def to_record(self) -> RecordLike:
         return RecordLike(
-            title=self.title, body=self.body, tags=self.tags,
-            language=self.language, record_type=self.record_type,
+            title=self.title,
+            body=self.body,
+            tags=self.tags,
+            language=self.language,
+            record_type=self.record_type,
         )
 
 
@@ -378,13 +397,14 @@ class Cluster:
 
 
 ISO_FMT = "%Y-%m-%dT%H:%M:%SZ"
-_CREATED_LO = 1_782_864_000        # 2026-07-01T00:00:00Z
-_CREATED_HI = 1_792_454_400        # 2026-10-20T00:00:00Z
-_CREATED_SPREAD = 864_000          # per-member jitter, 10 days
+_CREATED_LO = 1_782_864_000  # 2026-07-01T00:00:00Z
+_CREATED_HI = 1_792_454_400  # 2026-10-20T00:00:00Z
+_CREATED_SPREAD = 864_000  # per-member jitter, 10 days
 
 
 def _iso(ts: float) -> str:
     import datetime as _dt
+
     return _dt.datetime.fromtimestamp(int(ts), _dt.timezone.utc).strftime(ISO_FMT)
 
 
@@ -403,6 +423,7 @@ def _other_kind(kind: str) -> str:
 
 
 # --- cluster builders ------------------------------------------------------
+
 
 def build_cluster(
     rng: random.Random,
@@ -436,12 +457,16 @@ def build_cluster(
         delta = [_slot_token(kind, value)]
         if substratum == "insert":
             sentence = _render_sentence(kind, value, lang, style, lead)
-            sup_body, s1, s2 = _insert_into(base, sentence, rng.choice(["start", "middle", "end"]))
+            sup_body, s1, s2 = _insert_into(
+                base, sentence, rng.choice(["start", "middle", "end"])
+            )
             sub_body = base
         elif substratum == "replace":
             fact_phrase = _FACT_POOL[kind]["short"][lang].format(v=value)
             filler = rng.choice(_FILLERS[lang])
-            assert len(filler) > len(fact_phrase) + 8, "filler must exceed fact phrase (short superset)"
+            assert len(filler) > len(fact_phrase) + 8, (
+                "filler must exceed fact phrase (short superset)"
+            )
             sup_body = base.replace(_LONGS[sid], fact_phrase)
             sub_body = base.replace(_LONGS[sid], filler)
             at = sup_body.find(fact_phrase)
@@ -449,11 +474,29 @@ def build_cluster(
             s1, s2 = at, at + len(fact_phrase)
         else:
             raise ValueError(substratum)
-        m_sup = Member(ids[0], title, sup_body, tags, "note", lang, _iso(ts0 + rng.randint(0, _CREATED_SPREAD)))
-        m_sub = Member(ids[1], title, sub_body, tags, "note", lang, _iso(ts0 + rng.randint(0, _CREATED_SPREAD)))
+        m_sup = Member(
+            ids[0],
+            title,
+            sup_body,
+            tags,
+            "note",
+            lang,
+            _iso(ts0 + rng.randint(0, _CREATED_SPREAD)),
+        )
+        m_sub = Member(
+            ids[1],
+            title,
+            sub_body,
+            tags,
+            "note",
+            lang,
+            _iso(ts0 + rng.randint(0, _CREATED_SPREAD)),
+        )
         decl["mode"] = substratum
         decl["facts"] = {m_sup.mid: delta, m_sub.mid: []}
-        decl["steps"] = [{"sup": m_sup.mid, "sub": m_sub.mid, "delta": delta, "spans": [(s1, s2)]}]
+        decl["steps"] = [
+            {"sup": m_sup.mid, "sub": m_sub.mid, "delta": delta, "spans": [(s1, s2)]}
+        ]
         members = [m_sup, m_sub]
         label = {"type": "keep", "member": m_sup.mid}
 
@@ -463,14 +506,46 @@ def build_cluster(
         v2 = rng.choice([v for v in _FACT_POOL[k2]["values"]])
         d1 = [_slot_token(kind, value)]
         d2 = [_slot_token(k2, v2)]
-        sent1 = _render_sentence(kind, value, lang, rng.randrange(3), rng.choice(INSERT_LEADS[lang]))
-        sent2 = _render_sentence(k2, v2, lang, rng.randrange(3), rng.choice(INSERT_LEADS[lang]))
+        sent1 = _render_sentence(
+            kind, value, lang, rng.randrange(3), rng.choice(INSERT_LEADS[lang])
+        )
+        sent2 = _render_sentence(
+            k2, v2, lang, rng.randrange(3), rng.choice(INSERT_LEADS[lang])
+        )
         body_a = base
-        body_b, b1, b2 = _insert_into(base, sent1, rng.choice(["start", "middle", "end"]))
-        body_c, c1, c2 = _insert_into(body_b, sent2, rng.choice(["start", "middle", "end"]))
-        m_a = Member(ids[0], title, body_a, tags, "note", lang, _iso(ts0 + rng.randint(0, _CREATED_SPREAD)))
-        m_b = Member(ids[1], title, body_b, tags, "note", lang, _iso(ts0 + rng.randint(0, _CREATED_SPREAD)))
-        m_c = Member(ids[2], title, body_c, tags, "note", lang, _iso(ts0 + rng.randint(0, _CREATED_SPREAD)))
+        body_b, b1, b2 = _insert_into(
+            base, sent1, rng.choice(["start", "middle", "end"])
+        )
+        body_c, c1, c2 = _insert_into(
+            body_b, sent2, rng.choice(["start", "middle", "end"])
+        )
+        m_a = Member(
+            ids[0],
+            title,
+            body_a,
+            tags,
+            "note",
+            lang,
+            _iso(ts0 + rng.randint(0, _CREATED_SPREAD)),
+        )
+        m_b = Member(
+            ids[1],
+            title,
+            body_b,
+            tags,
+            "note",
+            lang,
+            _iso(ts0 + rng.randint(0, _CREATED_SPREAD)),
+        )
+        m_c = Member(
+            ids[2],
+            title,
+            body_c,
+            tags,
+            "note",
+            lang,
+            _iso(ts0 + rng.randint(0, _CREATED_SPREAD)),
+        )
         decl["mode"] = "chain"
         decl["facts"] = {m_a.mid: [], m_b.mid: d1, m_c.mid: d1 + d2}
         decl["steps"] = [
@@ -484,29 +559,78 @@ def build_cluster(
     elif stratum == "CH-4":
         alt = next(v for v in _FACT_POOL[kind]["values"] if v != value)
         tmpl = _FACT_POOL[kind]["short"][lang]
-        m1 = Member(ids[0], title, base.replace(_LONGS[sid], tmpl.format(v=value)),
-                    tags, "note", lang, _iso(ts0 + rng.randint(0, _CREATED_SPREAD)))
-        m2 = Member(ids[1], title, base.replace(_LONGS[sid], tmpl.format(v=alt)),
-                    tags, "note", lang, _iso(ts0 + rng.randint(0, _CREATED_SPREAD)))
-        decl = {"kind": "CH-4", "mode": "conflict",
-                "facts": {m1.mid: [_slot_token(kind, value)], m2.mid: [_slot_token(kind, alt)]},
-                "steps": []}
+        m1 = Member(
+            ids[0],
+            title,
+            base.replace(_LONGS[sid], tmpl.format(v=value)),
+            tags,
+            "note",
+            lang,
+            _iso(ts0 + rng.randint(0, _CREATED_SPREAD)),
+        )
+        m2 = Member(
+            ids[1],
+            title,
+            base.replace(_LONGS[sid], tmpl.format(v=alt)),
+            tags,
+            "note",
+            lang,
+            _iso(ts0 + rng.randint(0, _CREATED_SPREAD)),
+        )
+        decl = {
+            "kind": "CH-4",
+            "mode": "conflict",
+            "facts": {
+                m1.mid: [_slot_token(kind, value)],
+                m2.mid: [_slot_token(kind, alt)],
+            },
+            "steps": [],
+        }
         members = [m1, m2]
         label = {"type": "abstain"}
         scenario = f"{sid}|conflict|{kind}|{value}vs{alt}"
 
     elif stratum == "CH-2":
         mode = substratum  # "tags" | "type" | "language"
-        m1 = Member(ids[0], title, base, tags, "note", lang, _iso(ts0 + rng.randint(0, _CREATED_SPREAD)))
+        m1 = Member(
+            ids[0],
+            title,
+            base,
+            tags,
+            "note",
+            lang,
+            _iso(ts0 + rng.randint(0, _CREATED_SPREAD)),
+        )
         if mode == "tags":
-            m2 = Member(ids[1], title, base, tags + ("archive",), "note", lang,
-                        _iso(ts0 + rng.randint(0, _CREATED_SPREAD)))
+            m2 = Member(
+                ids[1],
+                title,
+                base,
+                tags + ("archive",),
+                "note",
+                lang,
+                _iso(ts0 + rng.randint(0, _CREATED_SPREAD)),
+            )
         elif mode == "type":
-            m2 = Member(ids[1], title, base, tags, "summary", lang,
-                        _iso(ts0 + rng.randint(0, _CREATED_SPREAD)))
+            m2 = Member(
+                ids[1],
+                title,
+                base,
+                tags,
+                "summary",
+                lang,
+                _iso(ts0 + rng.randint(0, _CREATED_SPREAD)),
+            )
         elif mode == "language":
-            m2 = Member(ids[1], title, base, tags, "note", "en" if lang == "ru" else "ru",
-                        _iso(ts0 + rng.randint(0, _CREATED_SPREAD)))
+            m2 = Member(
+                ids[1],
+                title,
+                base,
+                tags,
+                "note",
+                "en" if lang == "ru" else "ru",
+                _iso(ts0 + rng.randint(0, _CREATED_SPREAD)),
+            )
         else:
             raise ValueError(mode)
         decl = {"kind": "CH-2", "mode": mode, "facts": {}, "steps": []}
@@ -518,15 +642,39 @@ def build_cluster(
         m1 = Member(ids[0], title, base, tags, "note", lang, _iso(ts0))
         members = [m1]
         for j in range(1, k):
-            members.append(Member(ids[j], title, base, tags, "note", lang,
-                                  _iso(ts0 + rng.randint(5, 130))))
+            members.append(
+                Member(
+                    ids[j],
+                    title,
+                    base,
+                    tags,
+                    "note",
+                    lang,
+                    _iso(ts0 + rng.randint(5, 130)),
+                )
+            )
         decl = {"kind": "CH-0", "facts": {}, "steps": []}
         label = {"type": "eligible-all"}
 
     elif stratum == "CH-5":
-        m1 = Member(ids[0], title, base, tags, "note", lang, _iso(ts0 + rng.randint(0, _CREATED_SPREAD)))
-        m2 = Member(ids[1], title, cosmetic_variant(base, rng), tags, "note", lang,
-                    _iso(ts0 + rng.randint(0, _CREATED_SPREAD)))
+        m1 = Member(
+            ids[0],
+            title,
+            base,
+            tags,
+            "note",
+            lang,
+            _iso(ts0 + rng.randint(0, _CREATED_SPREAD)),
+        )
+        m2 = Member(
+            ids[1],
+            title,
+            cosmetic_variant(base, rng),
+            tags,
+            "note",
+            lang,
+            _iso(ts0 + rng.randint(0, _CREATED_SPREAD)),
+        )
         members = [m1, m2]
         decl = {"kind": "CH-5", "facts": {}, "steps": []}
         label = {"type": "eligible-all"}
@@ -537,12 +685,19 @@ def build_cluster(
     # serialization order: random 50/50, independent of the label
     # (A-order-indep); mirrored scenario rows force opposite orientations
     # (A-symmetry)
-    flip = rng.random() < 0.5 if force_orientation is None else (force_orientation == "BA")
+    flip = (
+        rng.random() < 0.5 if force_orientation is None else (force_orientation == "BA")
+    )
     if flip:
         members = list(reversed(members))
     return Cluster(
-        cid="", stratum=stratum, substratum=decl.get("mode", substratum),
-        members=members, label=label, declaration=decl, scenario=scenario,
+        cid="",
+        stratum=stratum,
+        substratum=decl.get("mode", substratum),
+        members=members,
+        label=label,
+        declaration=decl,
+        scenario=scenario,
         orientation="BA" if flip else "AB",
     )
 
@@ -555,7 +710,7 @@ def cosmetic_variant(body: str, rng: random.Random) -> str:
         if mode == 0:
             i = out.find(" ")
             if i >= 0:
-                out = out[:i] + "  " + out[i + 1:]
+                out = out[:i] + "  " + out[i + 1 :]
         elif mode == 1:
             words = out.split(" ")
             j = rng.randrange(len(words))
@@ -568,6 +723,7 @@ def cosmetic_variant(body: str, rng: random.Random) -> str:
 
 
 # --- predicates (draft §2, production order §5.1) ---------------------------
+
 
 def classify(members: list[Member], declarations: dict | None = None) -> str:
     """Deterministic CH-class (predicates, not words).
@@ -610,7 +766,9 @@ def norm2_regions(body_a: str, body_b: str) -> list[tuple[int, int, int, int, st
 
     Opcode shape: (tag, i1, i2, j1, j2) — the tag is element 0.
     """
-    sm = difflib.SequenceMatcher(None, norm1_body(body_a), norm1_body(body_b), autojunk=False)
+    sm = difflib.SequenceMatcher(
+        None, norm1_body(body_a), norm1_body(body_b), autojunk=False
+    )
     return [op for op in sm.get_opcodes() if op[0] != "equal"]
 
 
@@ -627,8 +785,12 @@ def norm2_edit_clusters(body_a: str, body_b: str) -> list[tuple[int, int, int, i
     """Clustered edit regions (hulls) of the norm2-delta."""
     ops = norm2_regions(body_a, body_b)
     clusters: list[list[int]] = []
-    for (_t, i1, i2, j1, j2) in ops:
-        if clusters and i1 - clusters[-1][1] <= NORM2_GAP and j1 - clusters[-1][3] <= NORM2_GAP:
+    for _t, i1, i2, j1, j2 in ops:
+        if (
+            clusters
+            and i1 - clusters[-1][1] <= NORM2_GAP
+            and j1 - clusters[-1][3] <= NORM2_GAP
+        ):
             c = clusters[-1]
             c[1], c[3] = max(c[1], i2), max(c[3], j2)
             c[0], c[2] = min(c[0], i1), min(c[2], j1)
@@ -641,7 +803,7 @@ def _norm_spans(body: str, spans: list[tuple[int, int]]) -> list[tuple[int, int]
     """Map declared original-body spans onto the normalized surface."""
     nb = norm1_body(body)
     out = []
-    for (s1, s2) in spans:
+    for s1, s2 in spans:
         nfrag = " ".join(body[s1:s2].split()).lower()
         pos = nb.find(nfrag)
         assert pos >= 0, "declared slot fragment must survive normalization"
@@ -674,21 +836,30 @@ def silver_check_ch3(cluster: Cluster) -> dict:
             for (c1, c2, _d1, _d2), (p1, p2) in zip(sorted(clusters_), nspans):
                 overlap = max(0, min(c2, p2) - max(c1, p1))
                 slot_len = p2 - p1
-                if not (overlap / slot_len >= 0.8
-                        and c1 >= p1 - NORM2_GAP and c2 <= p2 + NORM2_GAP):
+                if not (
+                    overlap / slot_len >= 0.8
+                    and c1 >= p1 - NORM2_GAP
+                    and c2 <= p2 + NORM2_GAP
+                ):
                     bijection = False
                     break
         proper = set(facts[step["sub"]]) < set(facts[step["sup"]])
-        results.append({
-            "sup": step["sup"], "sub": step["sub"],
-            "regions": len(clusters_), "slots": len(nspans),
-            "bijection": bool(bijection), "proper_superset": bool(proper),
-            "ok": bool(bijection and proper),
-        })
+        results.append(
+            {
+                "sup": step["sup"],
+                "sub": step["sub"],
+                "regions": len(clusters_),
+                "slots": len(nspans),
+                "bijection": bool(bijection),
+                "proper_superset": bool(proper),
+                "ok": bool(bijection and proper),
+            }
+        )
     return {"ok": all(r["ok"] for r in results), "steps": results}
 
 
 # --- production contour v1 (draft §5.1) -------------------------------------
+
 
 def arbitrate_deterministic(cluster: Cluster) -> dict:
     """Deterministic legs of the production pipeline §5.1.
@@ -709,11 +880,17 @@ def arbitrate_deterministic(cluster: Cluster) -> dict:
     if cls == "CH-3":
         facts = cluster.declaration["facts"]
         sup_mid = max(facts, key=lambda mid: len(facts[mid]))
-        return {"verdict": "keep", "member": sup_mid, "leg": "silver-resolver", "class": cls}
+        return {
+            "verdict": "keep",
+            "member": sup_mid,
+            "leg": "silver-resolver",
+            "class": cls,
+        }
     return {"verdict": "abstain", "leg": "closure-rule", "class": cls}
 
 
 # --- baselines (draft §5) ----------------------------------------------------
+
 
 def baseline_keep_oldest(members: list[Member]) -> str:
     return min(members, key=lambda m: m.created_at).mid
@@ -745,6 +922,7 @@ def correct_set_ok(cluster: Cluster, chosen_mid: str | None) -> bool:
 
 # --- sanity fixtures (draft §6.1, MLC 28.10 edit N3) -------------------------
 
+
 def build_fixture_cells() -> list[dict]:
     """Seven adversarial fixture cells (fixed content, no RNG)."""
     sid, kind, lang = "ru-migration", "release", "ru"
@@ -757,66 +935,159 @@ def build_fixture_cells() -> list[dict]:
 
     cells: list[dict] = []
     # probe 1: self-cluster -> fold-eligible, keep in members
-    cells.append({"probe": 1, "name": "self-cluster", "cluster": Cluster(
-        cid="fx-1", stratum="CH-0", substratum="self",
-        members=[mk("fx-1a", base, "2026-09-01T10:00:00Z"),
-                 mk("fx-1b", base, "2026-09-01T10:00:07Z")],
-        label={"type": "eligible-all"}, declaration={"kind": "CH-0", "facts": {}, "steps": []})})
+    cells.append(
+        {
+            "probe": 1,
+            "name": "self-cluster",
+            "cluster": Cluster(
+                cid="fx-1",
+                stratum="CH-0",
+                substratum="self",
+                members=[
+                    mk("fx-1a", base, "2026-09-01T10:00:00Z"),
+                    mk("fx-1b", base, "2026-09-01T10:00:07Z"),
+                ],
+                label={"type": "eligible-all"},
+                declaration={"kind": "CH-0", "facts": {}, "steps": []},
+            ),
+        }
+    )
     # probe 2: byte-twin cluster -> fold-eligible
-    cells.append({"probe": 2, "name": "byte-twin", "cluster": Cluster(
-        cid="fx-2", stratum="CH-0", substratum="byte-twin",
-        members=[mk("fx-2a", base, "2026-09-01T10:00:00Z"),
-                 mk("fx-2b", base, "2026-09-01T10:01:32Z")],
-        label={"type": "eligible-all"}, declaration={"kind": "CH-0", "facts": {}, "steps": []})})
+    cells.append(
+        {
+            "probe": 2,
+            "name": "byte-twin",
+            "cluster": Cluster(
+                cid="fx-2",
+                stratum="CH-0",
+                substratum="byte-twin",
+                members=[
+                    mk("fx-2a", base, "2026-09-01T10:00:00Z"),
+                    mk("fx-2b", base, "2026-09-01T10:01:32Z"),
+                ],
+                label={"type": "eligible-all"},
+                declaration={"kind": "CH-0", "facts": {}, "steps": []},
+            ),
+        }
+    )
     # probe 3: razor single fact replacement (CH-4) -> ABSTAIN
     tmpl = _FACT_POOL[kind]["short"][lang]
     b1 = base.replace(_LONGS[sid], tmpl.format(v="3.2.1"))
     b2 = base.replace(_LONGS[sid], tmpl.format(v="3.2.2"))
-    cells.append({"probe": 3, "name": "razor-fact-replacement", "cluster": Cluster(
-        cid="fx-3", stratum="CH-4", substratum="conflict",
-        members=[mk("fx-3a", b1, "2026-09-01T10:00:00Z"),
-                 mk("fx-3b", b2, "2026-09-01T10:00:30Z")],
-        label={"type": "abstain"},
-        declaration={"kind": "CH-4", "mode": "conflict", "steps": [],
-                     "facts": {"fx-3a": ["release=3.2.1"], "fx-3b": ["release=3.2.2"]}})})
+    cells.append(
+        {
+            "probe": 3,
+            "name": "razor-fact-replacement",
+            "cluster": Cluster(
+                cid="fx-3",
+                stratum="CH-4",
+                substratum="conflict",
+                members=[
+                    mk("fx-3a", b1, "2026-09-01T10:00:00Z"),
+                    mk("fx-3b", b2, "2026-09-01T10:00:30Z"),
+                ],
+                label={"type": "abstain"},
+                declaration={
+                    "kind": "CH-4",
+                    "mode": "conflict",
+                    "steps": [],
+                    "facts": {"fx-3a": ["release=3.2.1"], "fx-3b": ["release=3.2.2"]},
+                },
+            ),
+        }
+    )
     # probe 4: CH-3 with SHORTER superset (short-superset sub-stratum) -> right keep
     fact = tmpl.format(v="4.0.0")
     filler = _FILLERS[lang][0]
     sup = mk("fx-4a", base.replace(_LONGS[sid], fact), "2026-09-02T09:00:00Z")
     sub = mk("fx-4b", base.replace(_LONGS[sid], filler), "2026-09-02T09:00:11Z")
     at = sup.body.find(fact)
-    assert at >= 0 and len(sup.body) < len(sub.body), "superset must be SHORTER (length-proxy kill)"
-    cells.append({"probe": 4, "name": "ch3-shorter-superset", "cluster": Cluster(
-        cid="fx-4", stratum="CH-3", substratum="replace",
-        members=[sup, sub],
-        label={"type": "keep", "member": "fx-4a"},
-        declaration={"kind": "CH-3", "mode": "replace",
-                     "facts": {"fx-4a": ["release=4.0.0"], "fx-4b": []},
-                     "steps": [{"sup": "fx-4a", "sub": "fx-4b", "delta": ["release=4.0.0"],
-                                "spans": [(at, at + len(fact))]},
-                               ]})})
+    assert at >= 0 and len(sup.body) < len(sub.body), (
+        "superset must be SHORTER (length-proxy kill)"
+    )
+    cells.append(
+        {
+            "probe": 4,
+            "name": "ch3-shorter-superset",
+            "cluster": Cluster(
+                cid="fx-4",
+                stratum="CH-3",
+                substratum="replace",
+                members=[sup, sub],
+                label={"type": "keep", "member": "fx-4a"},
+                declaration={
+                    "kind": "CH-3",
+                    "mode": "replace",
+                    "facts": {"fx-4a": ["release=4.0.0"], "fx-4b": []},
+                    "steps": [
+                        {
+                            "sup": "fx-4a",
+                            "sub": "fx-4b",
+                            "delta": ["release=4.0.0"],
+                            "spans": [(at, at + len(fact))],
+                        },
+                    ],
+                },
+            ),
+        }
+    )
     # probe 5: metadata delta -> ABSTAIN
-    cells.append({"probe": 5, "name": "metadata-delta", "cluster": Cluster(
-        cid="fx-5", stratum="CH-2", substratum="tags",
-        members=[mk("fx-5a", base, "2026-09-03T08:00:00Z"),
-                 mk("fx-5b", base, "2026-09-03T08:00:20Z", tags_=tags + ("archive",))],
-        label={"type": "abstain"},
-        declaration={"kind": "CH-2", "mode": "tags", "facts": {}, "steps": []})})
+    cells.append(
+        {
+            "probe": 5,
+            "name": "metadata-delta",
+            "cluster": Cluster(
+                cid="fx-5",
+                stratum="CH-2",
+                substratum="tags",
+                members=[
+                    mk("fx-5a", base, "2026-09-03T08:00:00Z"),
+                    mk(
+                        "fx-5b", base, "2026-09-03T08:00:20Z", tags_=tags + ("archive",)
+                    ),
+                ],
+                label={"type": "abstain"},
+                declaration={"kind": "CH-2", "mode": "tags", "facts": {}, "steps": []},
+            ),
+        }
+    )
     # probe 6: cosmetic invariance
     cos = cosmetic_variant(base, random.Random(7))
-    cells.append({"probe": 6, "name": "cosmetic-invariance", "cluster": Cluster(
-        cid="fx-6", stratum="CH-5", substratum="cosmetic",
-        members=[mk("fx-6a", base, "2026-09-04T08:00:00Z"),
-                 mk("fx-6b", cos, "2026-09-04T08:00:45Z")],
-        label={"type": "eligible-all"},
-        declaration={"kind": "CH-5", "facts": {}, "steps": []})})
+    cells.append(
+        {
+            "probe": 6,
+            "name": "cosmetic-invariance",
+            "cluster": Cluster(
+                cid="fx-6",
+                stratum="CH-5",
+                substratum="cosmetic",
+                members=[
+                    mk("fx-6a", base, "2026-09-04T08:00:00Z"),
+                    mk("fx-6b", cos, "2026-09-04T08:00:45Z"),
+                ],
+                label={"type": "eligible-all"},
+                declaration={"kind": "CH-5", "facts": {}, "steps": []},
+            ),
+        }
+    )
     # probe 7: self-cluster with NULL envelope (v42 double-null lesson)
-    cells.append({"probe": 7, "name": "null-envelope-self", "cluster": Cluster(
-        cid="fx-7", stratum="CH-0", substratum="self-null",
-        members=[mk("fx-7a", base, "2026-09-05T08:00:00Z", lang_=None, type_=None),
-                 mk("fx-7b", base, "2026-09-05T08:00:12Z", lang_=None, type_=None)],
-        label={"type": "eligible-all"},
-        declaration={"kind": "CH-0", "facts": {}, "steps": []})})
+    cells.append(
+        {
+            "probe": 7,
+            "name": "null-envelope-self",
+            "cluster": Cluster(
+                cid="fx-7",
+                stratum="CH-0",
+                substratum="self-null",
+                members=[
+                    mk("fx-7a", base, "2026-09-05T08:00:00Z", lang_=None, type_=None),
+                    mk("fx-7b", base, "2026-09-05T08:00:12Z", lang_=None, type_=None),
+                ],
+                label={"type": "eligible-all"},
+                declaration={"kind": "CH-0", "facts": {}, "steps": []},
+            ),
+        }
+    )
     return cells
 
 
@@ -824,7 +1095,11 @@ SANITY_EXPECT = {
     1: lambda r: r["verdict"] == "keep" and r["leg"] == "tie-break",
     2: lambda r: r["verdict"] == "keep" and r["leg"] == "tie-break",
     3: lambda r: r["verdict"] == "abstain" and r["class"] == "CH-4",
-    4: lambda r: r["verdict"] == "keep" and r["member"] == "fx-4a" and r["leg"] == "silver-resolver",
+    4: lambda r: (
+        r["verdict"] == "keep"
+        and r["member"] == "fx-4a"
+        and r["leg"] == "silver-resolver"
+    ),
     5: lambda r: r["verdict"] == "abstain" and r["class"] == "CH-2",
     6: lambda r: r["verdict"] == "keep" and r["leg"] == "tie-break",
     7: lambda r: r["verdict"] == "keep" and r["leg"] == "tie-break",
@@ -850,22 +1125,39 @@ def run_sanity_suite() -> list[dict]:
             # char5_jaccard >= 0.97 (G3 jaccard leg).
             a, b = cell["cluster"].members
             vec = features(a.to_record(), b.to_record(), similarity=1.0)
-            row["char5_jaccard"] = round(vec.values[FEATURE_NAMES.index("char5_jaccard")], 6)
-            row["char5_containment"] = round(vec.values[FEATURE_NAMES.index("char5_containment")], 6)
-            row["body_len_delta"] = int(vec.values[FEATURE_NAMES.index("body_len_delta")])
+            row["char5_jaccard"] = round(
+                vec.values[FEATURE_NAMES.index("char5_jaccard")], 6
+            )
+            row["char5_containment"] = round(
+                vec.values[FEATURE_NAMES.index("char5_containment")], 6
+            )
+            row["body_len_delta"] = int(
+                vec.values[FEATURE_NAMES.index("body_len_delta")]
+            )
             clusters_ = norm2_edit_clusters(a.body, b.body)
             row["edit_clusters"] = len(clusters_)
-            row["edit_cluster_chars"] = max((c[1] - c[0]) for c in clusters_) if clusters_ else 0
+            row["edit_cluster_chars"] = (
+                max((c[1] - c[0]) for c in clusters_) if clusters_ else 0
+            )
             row["razor_mechanical"] = bool(
-                row["body_len_delta"] == 0 and row["edit_clusters"] == 1
-                and row["edit_cluster_chars"] <= 6 and row["char5_jaccard"] >= 0.97)
+                row["body_len_delta"] == 0
+                and row["edit_clusters"] == 1
+                and row["edit_cluster_chars"] <= 6
+                and row["char5_jaccard"] >= 0.97
+            )
             ok = ok and row["razor_mechanical"]
             row["ok"] = bool(ok)
-            row["cos_band_declared"] = "policy §3 T3: cos 0.9975-1.0 (med 0.9990), by construction"
+            row["cos_band_declared"] = (
+                "policy §3 T3: cos 0.9975-1.0 (med 0.9990), by construction"
+            )
         if cell["probe"] == 4:
             silv = silver_check_ch3(cell["cluster"])
-            ok = ok and silv["ok"] and len(cell["cluster"].members[0].body) < len(
-                cell["cluster"].members[1].body)
+            ok = (
+                ok
+                and silv["ok"]
+                and len(cell["cluster"].members[0].body)
+                < len(cell["cluster"].members[1].body)
+            )
             row["silver"] = silv
             row["ok"] = bool(ok)
         if cell["probe"] == 6:
@@ -876,6 +1168,8 @@ def run_sanity_suite() -> list[dict]:
             row["ok"] = bool(ok)
         if cell["probe"] == 7:
             a = cell["cluster"].members[0]
-            row["double_null_envelope"] = bool(a.language is None and a.record_type is None)
+            row["double_null_envelope"] = bool(
+                a.language is None and a.record_type is None
+            )
         results.append(row)
     return results

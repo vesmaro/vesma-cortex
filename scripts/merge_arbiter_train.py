@@ -130,8 +130,12 @@ COMMITTED_DIR = REPO / "datasets" / "merge-arbiter"
 COMMITTED_DOC = COMMITTED_DIR / "merge-v1-thresholds.frozen.json"
 RUNLOG = REPO / "artifacts" / "runs" / "run_log.jsonl"
 SPOT_DIR = REPO / "data" / "merge-arbiter" / "spot-sheet"
-COMMITTEE_SCORED = SPOT_DIR / "committee-scored-v1.json"  # g_spot frozen input (ADDENDUM-7 §3)
-COMMITTEE_SCORED_SHA256 = "5c3ea8ba9b672756c76cf1cb18a50d00d814b7303e79b561bf9e9f7c44b16250"
+COMMITTEE_SCORED = (
+    SPOT_DIR / "committee-scored-v1.json"
+)  # g_spot frozen input (ADDENDUM-7 §3)
+COMMITTEE_SCORED_SHA256 = (
+    "5c3ea8ba9b672756c76cf1cb18a50d00d814b7303e79b561bf9e9f7c44b16250"
+)
 SPEC = REPO / "docs" / "specs" / "merge-arbiter-corpus-prereg-DRAFT.md"
 
 SLICE_TRAIN = "merge-arbiter-merge-v1-train"
@@ -176,7 +180,7 @@ LGB_PARAMS = {
     "verbose": -1,
 }
 #: Threshold grid — small, fixed, train-only (draft §2.2).
-TAU_HI_GRID = [round(0.50 + 0.05 * i, 2) for i in range(9)]   # 0.50..0.90
+TAU_HI_GRID = [round(0.50 + 0.05 * i, 2) for i in range(9)]  # 0.50..0.90
 TAU_M_GRID = [0.0, 0.05, 0.10, 0.15, 0.20, 0.30, 0.40, 0.50]
 
 #: Train strata counts vs the ratified quota table (P4/П5 count assert).
@@ -184,12 +188,15 @@ TAU_M_GRID = [0.0, 0.05, 0.10, 0.15, 0.20, 0.30, 0.40, 0.50]
 #: train-negatives.jsonl — the extension, not a re-emit; the 600 stay
 #: byte-identical (the v1 train pin still enforced by the tripwire).
 EXPECTED_TRAIN_COUNTS = {
-    ("CH-3", 2): 240, ("CH-3", 3): 12,
-    ("CH-0", 2): 90, ("CH-0", 3): 18,
-    ("CH-2", 2): 90, ("CH-4", 2): 90, ("CH-5", 2): 60,
+    ("CH-3", 2): 240,
+    ("CH-3", 3): 12,
+    ("CH-0", 2): 90,
+    ("CH-0", 3): 18,
+    ("CH-2", 2): 90,
+    ("CH-4", 2): 90,
+    ("CH-5", 2): 60,
 }
-EXPECTED_NEG_COUNTS = {"cross-lang-sibling": 80, "template-twin": 60,
-                       "near-topic": 60}
+EXPECTED_NEG_COUNTS = {"cross-lang-sibling": 80, "template-twin": 60, "near-topic": 60}
 #: Manifest assert-ledger holdout strata (gate-time count assert, П5).
 EXPECTED_HOLDOUT_STRATA = {"CH-3": 25, "CH-0": 11, "CH-2": 9, "CH-4": 9, "CH-5": 6}
 
@@ -220,8 +227,13 @@ FLOOR_SEEDS = list(range(43, 53))  # [43..52], pinned in run-log at measure star
 FLOOR_LEG_QUOTA = {"CH-3-k2": 22, "CH-3-chain": 3}
 #: Zero-filled to the full build quota shape (gen_family reads every key).
 _FLOOR_QUOTA_FULL = {
-    "CH-3-k2": 22, "CH-3-chain": 3,
-    "CH-0-k2": 0, "CH-0-triple": 0, "CH-2": 0, "CH-4": 0, "CH-5": 0,
+    "CH-3-k2": 22,
+    "CH-3-chain": 3,
+    "CH-0-k2": 0,
+    "CH-0-triple": 0,
+    "CH-2": 0,
+    "CH-4": 0,
+    "CH-5": 0,
 }
 
 # --- Choice v2 package (ADDENDUM-6, MLC 30.10 round 6; owner sanction 30.10) --
@@ -232,21 +244,33 @@ _FLOOR_QUOTA_FULL = {
 # paths (train / sanity / floor-seed / floors-composition / prelaunch / gate)
 # behave exactly as before — the iter-1..3 artifacts stay reproducible.
 
-NEG2_PATH = CORPUS_DIR / "train-negatives-v2.jsonl"  # v2 extension (ADDENDUM-6 §2 pos 5)
+NEG2_PATH = (
+    CORPUS_DIR / "train-negatives-v2.jsonl"
+)  # v2 extension (ADDENDUM-6 §2 pos 5)
 NULL2_PATH = CORPUS_DIR / "null-envelope-v2.json"  # null coverage v2 (seed 9405)
 
 #: v2 tripwire pins — the DE generation run (slice merge-arbiter-corpus-v2-negatives,
 #: run-log events negatives_v2_emitted / null_coverage_v2_emitted, 2026-10-30).
-NEG2_EXPECTED_SHA256 = "e601071a1542c4f4ae68542aed4315376534e371c61d1b9f6565355f117cf791"
-NULL2_EXPECTED_SHA256 = "729582c6db56f6e84f23416b5fb9094ec66b03098f182bf6f36c507ce287b923"
+NEG2_EXPECTED_SHA256 = (
+    "e601071a1542c4f4ae68542aed4315376534e371c61d1b9f6565355f117cf791"
+)
+NULL2_EXPECTED_SHA256 = (
+    "729582c6db56f6e84f23416b5fb9094ec66b03098f182bf6f36c507ce287b923"
+)
 #: corpus_fp_v2 = sha256(sha(train) : sha(neg1) : sha(neg2) : sha(null2)) —
 #: recomputed by the v2 tripwire, never trusted from the sidecar alone.
-CORPUS_FP_V2_EXPECTED = "c44c5491b5a49113c68e13e74b3ef1f335f9b68e94c89beda0b5175f4c3eacf9"
+CORPUS_FP_V2_EXPECTED = (
+    "c44c5491b5a49113c68e13e74b3ef1f335f9b68e94c89beda0b5175f4c3eacf9"
+)
 
 #: v2 negative strata row counts (pairs x 2 orientations, sidecar manifest
 #: quota_rows; ADDENDUM-6 §7.1 execution record).
-EXPECTED_NEG_V2_COUNTS = {"zone-boundary": 56, "cos-bins": 38,
-                          "sibling-residue": 24, "digit-lookalike": 60}
+EXPECTED_NEG_V2_COUNTS = {
+    "zone-boundary": 56,
+    "cos-bins": 38,
+    "sibling-residue": 24,
+    "digit-lookalike": 60,
+}
 
 #: Zone leg 3.5 (ADDENDUM-6 §2 pos 1). Constants are fixed BY RATIFICATION
 #: (derived from the structural train-support voids train-only before seal;
@@ -256,10 +280,14 @@ EXPECTED_NEG_V2_COUNTS = {"zone-boundary": 56, "cos-bins": 38,
 ZONE_V1 = {
     "version": "zone-v1",
     "rule": "(cos <= 0.85 AND char5 <= 0.05) OR (zeps >= 3 AND char5 <= 0.20)",
-    "tau_cos": 0.85, "tau_lex": 0.05, "tau_lex2": 0.20, "zeps_min": 3, "eps": 0.01,
+    "tau_cos": 0.85,
+    "tau_lex": 0.05,
+    "tau_lex2": 0.20,
+    "zeps_min": 3,
+    "eps": 0.01,
     "position": "leg 3.5 of §5.1: between the CH-2 refusal and the model leg",
     "pairness": "evaluates the PAIR cos of the candidate (nano, norm1); "
-                "any unordered pair of the cluster inside the zone fires",
+    "any unordered pair of the cluster inside the zone fires",
 }
 
 #: Known-uncovered pockets of zone-v1 (ADDENDUM-6 §2 errata/ML list) —
@@ -271,9 +299,11 @@ ZONE_V1_KNOWN_UNCOVERED = [
 ]
 
 #: Residual risk accepted by ratification (ADDENDUM-6 §2 errata 2).
-ZONE_V1_RESIDUAL_RISK = ("max char5 of the refused class 0.04947 -> margin to "
-                         "tau_lex 0.05 is 0.0005 with zeps=1 (the OR-leg does "
-                         "not insure it); accepted in frozen-doc zone-v1")
+ZONE_V1_RESIDUAL_RISK = (
+    "max char5 of the refused class 0.04947 -> margin to "
+    "tau_lex 0.05 is 0.0005 with zeps=1 (the OR-leg does "
+    "not insure it); accepted in frozen-doc zone-v1"
+)
 
 #: ML-STD-0004 (declared floor): stage-1 formula pin (committed BEFORE any v2
 #: draw) and the ratified formula; stage 2 = >= 10 draws, distribution
@@ -294,8 +324,14 @@ SLICE_GATE_V2 = "merge-arbiter-merge-v2-gate"
 #: Persistent nano embedding cache (keyed by sha256 of the truncated text).
 #: Derived data — lives under data/ (gitignored); phases reuse it so train /
 #: floors / prelaunch never re-embed the same text.
-EMBED_CACHE_PATH = (REPO / "data" / "merge-arbiter" / "artifacts" /
-                    "embed-cache" / "nano-3b752e06.v1.jsonl")
+EMBED_CACHE_PATH = (
+    REPO
+    / "data"
+    / "merge-arbiter"
+    / "artifacts"
+    / "embed-cache"
+    / "nano-3b752e06.v1.jsonl"
+)
 
 _ISO_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
 
@@ -311,6 +347,7 @@ class InstrumentAbort(Exception):
 
 
 # --- run-log (append-only) ---------------------------------------------------
+
 
 def log(event: str, **fields) -> None:
     row = {
@@ -351,23 +388,31 @@ def find_doc_for(artifact_sha: str) -> dict:
             return doc
     raise InstrumentAbort(
         f"no committed frozen doc pins an artifact with sha {artifact_sha[:12]}… "
-        f"(searched {candidates}) — the artifact has no ratified pin")
+        f"(searched {candidates}) — the artifact has no ratified pin"
+    )
 
 
 def v2_tripwire() -> dict:
     """Choice-v2 byte tripwire (ADDENDUM-6 §2 pos 5/6): the v2 extension
     files vs the DE generation pins; corpus_fp_v2 is RECOMPUTED over the
     four corpus files, never trusted from a sidecar."""
-    neg2_manifest = json.loads((CORPUS_DIR / "train-negatives-v2.manifest.json")
-                               .read_text(encoding="utf-8"))
+    neg2_manifest = json.loads(
+        (CORPUS_DIR / "train-negatives-v2.manifest.json").read_text(encoding="utf-8")
+    )
     pins = {
         "neg2_sha256": sha256_file(NEG2_PATH),
         "null2_sha256": sha256_file(NULL2_PATH),
         "train_jsonl_sha256": sha256_file(TRAIN_JSONL),
         "neg1_sha256": sha256_file(NEG_PATH),
         "corpus_fp_v2": sha256_text(
-            sha256_file(TRAIN_JSONL) + ":" + sha256_file(NEG_PATH) + ":" +
-            sha256_file(NEG2_PATH) + ":" + sha256_file(NULL2_PATH)),
+            sha256_file(TRAIN_JSONL)
+            + ":"
+            + sha256_file(NEG_PATH)
+            + ":"
+            + sha256_file(NEG2_PATH)
+            + ":"
+            + sha256_file(NULL2_PATH)
+        ),
     }
     want = {
         "neg2_sha256": NEG2_EXPECTED_SHA256,
@@ -377,20 +422,29 @@ def v2_tripwire() -> dict:
         "corpus_fp_v2": CORPUS_FP_V2_EXPECTED,
     }
     mism = [k for k, v in want.items() if pins[k] != v]
-    log("v2_byte_tripwire", pins=pins, expected=want, mismatch=mism,
-        sidecar_manifest={"negatives_v2_sha256": neg2_manifest["negatives_v2_sha256"],
-                          "seeds": neg2_manifest["seeds"],
-                          "quota_rows": neg2_manifest["quota_rows"],
-                          "cross_share": neg2_manifest["negative_mass"]["share_string"]})
+    log(
+        "v2_byte_tripwire",
+        pins=pins,
+        expected=want,
+        mismatch=mism,
+        sidecar_manifest={
+            "negatives_v2_sha256": neg2_manifest["negatives_v2_sha256"],
+            "seeds": neg2_manifest["seeds"],
+            "quota_rows": neg2_manifest["quota_rows"],
+            "cross_share": neg2_manifest["negative_mass"]["share_string"],
+        },
+    )
     if mism:
         raise InstrumentAbort(f"v2 byte tripwire mismatch: {mism}")
     if neg2_manifest["negatives_v2_sha256"] != NEG2_EXPECTED_SHA256:
-        raise InstrumentAbort("v2 sidecar manifest disagrees with the pinned "
-                              "negatives-v2 sha")
+        raise InstrumentAbort(
+            "v2 sidecar manifest disagrees with the pinned negatives-v2 sha"
+        )
     return pins
 
 
 # --- prologue (ML-STD-0003 П1-П6, П9) ----------------------------------------
+
 
 def prologue(expected_artifact: Path | None = None) -> dict:
     """Full machine prologue; order enforced by this runner, fail-closed."""
@@ -402,9 +456,15 @@ def prologue(expected_artifact: Path | None = None) -> dict:
         mem_ok = avail_mb >= 2000  # light lane needs << 1.5 GB; margin
     except (IndexError, ValueError):
         avail_mb, mem_ok = -1, False
-    log("swap_check", swapon_lines=swap.strip().splitlines(),
-        free_mem_line=free.strip().splitlines()[1] if len(free.splitlines()) > 1 else "",
-        available_mb=avail_mb, ram_overrun_stop=bool(not mem_ok))
+    log(
+        "swap_check",
+        swapon_lines=swap.strip().splitlines(),
+        free_mem_line=free.strip().splitlines()[1]
+        if len(free.splitlines()) > 1
+        else "",
+        available_mb=avail_mb,
+        ram_overrun_stop=bool(not mem_ok),
+    )
     if not mem_ok:
         raise InstrumentAbort(f"RAM below declared floor (free -m): {avail_mb} MB")
 
@@ -427,8 +487,12 @@ def prologue(expected_artifact: Path | None = None) -> dict:
 
     # П3: host pin.
     host = platform.node()
-    log("host", hostname=host, expectation=EXPECTED_HOST +
-        " — same host as the corpus build; cross-host needs a TL decision BEFORE the run")
+    log(
+        "host",
+        hostname=host,
+        expectation=EXPECTED_HOST
+        + " — same host as the corpus build; cross-host needs a TL decision BEFORE the run",
+    )
     if host != EXPECTED_HOST:
         raise InstrumentAbort(f"host changed vs expectation {EXPECTED_HOST}: {host}")
 
@@ -437,7 +501,8 @@ def prologue(expected_artifact: Path | None = None) -> dict:
     pins = {
         "merge_arbiter_lib_sha256": sha256_file(Path(lib.__file__)),
         "cortex_features_pair_sha256": sha256_file(
-            REPO / "src" / "cortex" / "features" / "pair.py"),
+            REPO / "src" / "cortex" / "features" / "pair.py"
+        ),
         "feature_names_sha256": sha256_text(repr(lib.FEATURE_NAMES)),
         "train_jsonl_sha256": sha256_file(TRAIN_JSONL),
         "manifest_sha256": sha256_file(MANIFEST),
@@ -461,7 +526,8 @@ def prologue(expected_artifact: Path | None = None) -> dict:
         if doc["train_jsonl_sha256"] != manifest["synthetic_train"]["sha256"]:
             raise InstrumentAbort(
                 "committed doc's train pin diverges from the manifest — "
-                "artifact/corpus binding broken")
+                "artifact/corpus binding broken"
+            )
     trip_mism = [k for k, v in want.items() if pins[k] != v]
     log("byte_tripwire", pins=pins, expected=want, mismatch=trip_mism)
     if trip_mism:
@@ -469,16 +535,27 @@ def prologue(expected_artifact: Path | None = None) -> dict:
 
     # П6: activation assert — ratified doc at HEAD, commits in ancestry.
     spec_text = SPEC.read_text(encoding="utf-8")
-    activated = bool(re.search(
-        r"\*\*Статус:\*\*\s*ACTIVATED v2 \(29\.10\)\s*\+\s*АДДЕНДУМ 1", spec_text))
+    activated = bool(
+        re.search(
+            r"\*\*Статус:\*\*\s*ACTIVATED v2 \(29\.10\)\s*\+\s*АДДЕНДУМ 1", spec_text
+        )
+    )
     ancestry = {}
     for name, commit in ACTIVATION_COMMITS.items():
-        r = subprocess.run(["git", "merge-base", "--is-ancestor", commit, "HEAD"],
-                           cwd=REPO, capture_output=True)
+        r = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", commit, "HEAD"],
+            cwd=REPO,
+            capture_output=True,
+        )
         ancestry[name] = {"commit": commit, "is_ancestor": r.returncode == 0}
     ok = activated and all(v["is_ancestor"] for v in ancestry.values())
-    log("activation", spec_sha256=sha256_text(spec_text),
-        status_line_present=activated, commits=ancestry, ok=ok)
+    log(
+        "activation",
+        spec_sha256=sha256_text(spec_text),
+        status_line_present=activated,
+        commits=ancestry,
+        ok=ok,
+    )
     if not ok:
         raise InstrumentAbort("activation assert failed: ratified spec not at HEAD")
 
@@ -495,45 +572,65 @@ def frozen_inputs(manifest: dict) -> list["lib.Cluster"]:
     clusters = load_train()
     counts: dict[tuple[str, int], int] = {}
     for c in clusters:
-        counts[(c.stratum, len(c.members))] = counts.get((c.stratum, len(c.members)), 0) + 1
-    count_mism = {f"{s}/k{k}": {"got": v, "want": EXPECTED_TRAIN_COUNTS[(s, k)]}
-                  for (s, k), v in counts.items()
-                  if (s, k) in EXPECTED_TRAIN_COUNTS
-                  and EXPECTED_TRAIN_COUNTS[(s, k)] != v}
-    extra = [f"{s}/k{k}" for (s, k) in counts
-             if s not in {st for st, _k in EXPECTED_TRAIN_COUNTS}
-             and s != "theme-near"]
+        counts[(c.stratum, len(c.members))] = (
+            counts.get((c.stratum, len(c.members)), 0) + 1
+        )
+    count_mism = {
+        f"{s}/k{k}": {"got": v, "want": EXPECTED_TRAIN_COUNTS[(s, k)]}
+        for (s, k), v in counts.items()
+        if (s, k) in EXPECTED_TRAIN_COUNTS and EXPECTED_TRAIN_COUNTS[(s, k)] != v
+    }
+    extra = [
+        f"{s}/k{k}"
+        for (s, k) in counts
+        if s not in {st for st, _k in EXPECTED_TRAIN_COUNTS} and s != "theme-near"
+    ]
     missing = [f"{s}/k{k}" for (s, k) in EXPECTED_TRAIN_COUNTS if (s, k) not in counts]
     # v1.1 extension counts (ADDENDUM-3): negatives ride the sidecar manifest
     neg_counts: dict[str, int] = {}
     if NEG_PATH.exists():
-        neg_manifest = json.loads((CORPUS_DIR / "train-negatives.manifest.json")
-                                  .read_text(encoding="utf-8"))
+        neg_manifest = json.loads(
+            (CORPUS_DIR / "train-negatives.manifest.json").read_text(encoding="utf-8")
+        )
         neg_sha = sha256_file(NEG_PATH)
         if neg_sha != neg_manifest.get("negatives_sha256"):
-            raise InstrumentAbort("train-negatives.jsonl diverges from its "
-                                  "sidecar manifest pin")
+            raise InstrumentAbort(
+                "train-negatives.jsonl diverges from its sidecar manifest pin"
+            )
         for c in clusters:
             if c.stratum == "theme-near" and c.substratum in EXPECTED_NEG_COUNTS:
                 neg_counts[c.substratum] = neg_counts.get(c.substratum, 0) + 1
         if neg_counts != EXPECTED_NEG_COUNTS:
-            count_mism["theme-near-v1"] = {"got": neg_counts, "want": EXPECTED_NEG_COUNTS}
+            count_mism["theme-near-v1"] = {
+                "got": neg_counts,
+                "want": EXPECTED_NEG_COUNTS,
+            }
     # Choice-v2 extension counts (ADDENDUM-6 §2 pos 5): own file, own sidecar
     # pins (the v2 byte tripwire runs separately in the v2 subcommands).
     neg2_counts: dict[str, int] = {}
     if NEG2_PATH.exists():
-        json.loads((CORPUS_DIR / "train-negatives-v2.manifest.json")
-                   .read_text(encoding="utf-8"))
+        json.loads(
+            (CORPUS_DIR / "train-negatives-v2.manifest.json").read_text(
+                encoding="utf-8"
+            )
+        )
         for c in clusters:
             if c.stratum == "theme-near" and c.substratum in EXPECTED_NEG_V2_COUNTS:
                 neg2_counts[c.substratum] = neg2_counts.get(c.substratum, 0) + 1
         if neg2_counts != EXPECTED_NEG_V2_COUNTS:
-            count_mism["theme-near-v2"] = {"got": neg2_counts,
-                                           "want": EXPECTED_NEG_V2_COUNTS}
-        unknown = sorted({c.substratum for c in clusters
-                          if c.stratum == "theme-near"
-                          and c.substratum not in EXPECTED_NEG_COUNTS
-                          and c.substratum not in EXPECTED_NEG_V2_COUNTS})
+            count_mism["theme-near-v2"] = {
+                "got": neg2_counts,
+                "want": EXPECTED_NEG_V2_COUNTS,
+            }
+        unknown = sorted(
+            {
+                c.substratum
+                for c in clusters
+                if c.stratum == "theme-near"
+                and c.substratum not in EXPECTED_NEG_COUNTS
+                and c.substratum not in EXPECTED_NEG_V2_COUNTS
+            }
+        )
         if unknown:
             count_mism["theme-near-unknown-substrata"] = unknown
     # null-coverage asserts on the EFFECTIVE corpus, PER ENVELOPE (v1:
@@ -543,8 +640,7 @@ def frozen_inputs(manifest: dict) -> list["lib.Cluster"]:
     if NULL_PATH.exists():
         mixed: list[str] = []
         env_infos = []
-        for env_path in ([NULL_PATH, NULL2_PATH] if NULL2_PATH.exists()
-                         else [NULL_PATH]):
+        for env_path in [NULL_PATH, NULL2_PATH] if NULL2_PATH.exists() else [NULL_PATH]:
             env_doc = json.loads(env_path.read_text(encoding="utf-8"))
             env_ids = set(env_doc["cluster_ids"])
             per_stratum: dict[str, int] = {}
@@ -561,66 +657,97 @@ def frozen_inputs(manifest: dict) -> list["lib.Cluster"]:
                     per_key[stratum_key(c)] = per_key.get(stratum_key(c), 0) + 1
             want_nulls = dict(env_doc["quota"])
             got_nulls = dict(per_stratum)
-            null_mism = {k: {"got": got_nulls.get(k), "want": v}
-                         for k, v in want_nulls.items() if got_nulls.get(k) != v}
+            null_mism = {
+                k: {"got": got_nulls.get(k), "want": v}
+                for k, v in want_nulls.items()
+                if got_nulls.get(k) != v
+            }
             extra_nulls = {k: v for k, v in per_stratum.items() if k not in want_nulls}
             if null_mism or extra_nulls:
                 raise InstrumentAbort(
                     f"null quota mismatch ({env_path.name}): {null_mism} "
-                    f"extra={extra_nulls}")
-            shares = {k: round(v / sum(1 for c in clusters
-                                       if _stratum_of(c) == k), 4)
-                      for k, v in per_stratum.items()}
+                    f"extra={extra_nulls}"
+                )
+            shares = {
+                k: round(v / sum(1 for c in clusters if _stratum_of(c) == k), 4)
+                for k, v in per_stratum.items()
+            }
             bad_share = {k: v for k, v in shares.items() if abs(v - 1 / 3) > 0.05}
             if bad_share:
-                raise InstrumentAbort(f"A-null-indep RED ({env_path.name}): {bad_share}")
-            env_infos.append({
-                "sidecar": env_path.name,
-                "sidecar_sha256": sha256_file(env_path),
-                "n_clusters": len(env_ids), "per_stratum": per_stratum,
-                "per_stratum_key": per_key, "shares": shares,
-            })
+                raise InstrumentAbort(
+                    f"A-null-indep RED ({env_path.name}): {bad_share}"
+                )
+            env_infos.append(
+                {
+                    "sidecar": env_path.name,
+                    "sidecar_sha256": sha256_file(env_path),
+                    "n_clusters": len(env_ids),
+                    "per_stratum": per_stratum,
+                    "per_stratum_key": per_key,
+                    "shares": shares,
+                }
+            )
         if mixed:
             raise InstrumentAbort(f"0-mixed-null RED: {sorted(mixed)[:5]}")
-        null_info = {"envelopes": env_infos, "mixed_null": 0,
-                     "pin": "null -> epoch 0 + flag 1 + delta 0 (A-null-pin strict)"}
+        null_info = {
+            "envelopes": env_infos,
+            "mixed_null": 0,
+            "pin": "null -> epoch 0 + flag 1 + delta 0 (A-null-pin strict)",
+        }
         log("null_coverage_asserts", **null_info, ok=True)
-    log("frozen_inputs",
+    log(
+        "frozen_inputs",
         train_jsonl_sha256=sha256_file(TRAIN_JSONL),
         manifest_sha256=sha256_file(MANIFEST),
         negatives_sha256=sha256_file(NEG_PATH) if NEG_PATH.exists() else None,
         negatives_v2_sha256=(sha256_file(NEG2_PATH) if NEG2_PATH.exists() else None),
-        corpus_fp_v1_1=(neg_manifest.get("corpus_fp_v1_1")
-                        if NEG_PATH.exists() else None),
+        corpus_fp_v1_1=(
+            neg_manifest.get("corpus_fp_v1_1") if NEG_PATH.exists() else None
+        ),
         n_clusters=len(clusters),
         counts={f"{s}/k{k}": n for (s, k), n in sorted(counts.items())},
         theme_near_counts=neg_counts or None,
         theme_near_v2_counts=neg2_counts or None,
-        mismatch=count_mism, missing=missing,
-        sealed_inputs=["NONE — MA-holdout-choice, holdout v4.5, g4-spec-v1, "
-                       "spot-sheet are NOT in the train input list"])
+        mismatch=count_mism,
+        missing=missing,
+        sealed_inputs=[
+            "NONE — MA-holdout-choice, holdout v4.5, g4-spec-v1, "
+            "spot-sheet are NOT in the train input list"
+        ],
+    )
     if count_mism or missing or extra:
-        raise InstrumentAbort(f"frozen_inputs count mismatch: {count_mism} "
-                              f"missing={missing} extra={extra}")
+        raise InstrumentAbort(
+            f"frozen_inputs count mismatch: {count_mism} "
+            f"missing={missing} extra={extra}"
+        )
     return clusters
 
 
 # --- corpus loading ----------------------------------------------------------
 
+
 def _cluster_from_row(row: dict) -> "lib.Cluster":
     members = [
         lib.Member(
-            mid=m["id"], title=m["title"], body=m["body"],
-            tags=tuple(m["tags"]), record_type=m["record_type"],
-            language=m["language"], created_at=m["created_at"],
+            mid=m["id"],
+            title=m["title"],
+            body=m["body"],
+            tags=tuple(m["tags"]),
+            record_type=m["record_type"],
+            language=m["language"],
+            created_at=m["created_at"],
         )
         for m in row["members"]
     ]
     return lib.Cluster(
-        cid=row["cluster_id"], stratum=row["stratum"],
-        substratum=row["substratum"], members=members,
-        label=row["label"], declaration=row["declaration"],
-        scenario=row["scenario"], orientation=row["orientation"],
+        cid=row["cluster_id"],
+        stratum=row["stratum"],
+        substratum=row["substratum"],
+        members=members,
+        label=row["label"],
+        declaration=row["declaration"],
+        scenario=row["scenario"],
+        orientation=row["orientation"],
     )
 
 
@@ -650,8 +777,9 @@ def load_train() -> list["lib.Cluster"]:
     null_ids: set[str] = set()
     for env_path in (NULL_PATH, NULL2_PATH):
         if env_path.exists():
-            null_ids |= set(json.loads(env_path.read_text(encoding="utf-8"))
-                            .get("cluster_ids", []))
+            null_ids |= set(
+                json.loads(env_path.read_text(encoding="utf-8")).get("cluster_ids", [])
+            )
     if null_ids:
         for c in clusters:
             if c.cid in null_ids:
@@ -680,16 +808,24 @@ MEMBER_FEATURE_NAMES = (
     # BLOCK P: frozen pair contract, mean-over-others (13)
     *FEATURE_NAMES,
     # BLOCK D: directional text on the frozen normalizer (3)
-    "d_other_in_mine", "d_mine_in_other", "d_rel_len",
+    "d_other_in_mine",
+    "d_mine_in_other",
+    "d_rel_len",
     # BLOCK E: edit-region block on the pinned norm2 machinery (6)
-    "e_n_clusters", "e_chars_mine", "e_chars_other",
-    "e_rel_chars", "e_digit_mine", "e_digit_other",
+    "e_n_clusters",
+    "e_chars_mine",
+    "e_chars_other",
+    "e_rel_chars",
+    "e_digit_mine",
+    "e_digit_other",
     # BLOCK V: envelope per A-null-pin (3)
-    "v_created_epoch", "v_created_null", "v_created_delta_mean",
+    "v_created_epoch",
+    "v_created_null",
+    "v_created_delta_mean",
 )
 N_PAIR_TERMS = len(MEMBER_FEATURE_NAMES) - 3  # 22 non-envelope per-other terms
-IDX_EPOCH = N_PAIR_TERMS      # v_created_epoch (own value, not a mean)
-IDX_NULL = N_PAIR_TERMS + 1   # v_created_null
+IDX_EPOCH = N_PAIR_TERMS  # v_created_epoch (own value, not a mean)
+IDX_NULL = N_PAIR_TERMS + 1  # v_created_null
 IDX_DELTA = N_PAIR_TERMS + 2  # v_created_delta_mean (mean over others)
 
 #: The declared constant passed as the frozen contract's measured-similarity
@@ -711,13 +847,19 @@ SIMILARITY_CONSTANT = 1.0
 V2_FEATURE_NAMES = (
     *MEMBER_FEATURE_NAMES,
     "e_cos",
-    "zeps_tok_body", "zeps_char5", "zeps_tok_title", "zeps_tags",
-    "zeps_digits", "zeps_lang", "zeps_type", "zeps_sum",
+    "zeps_tok_body",
+    "zeps_char5",
+    "zeps_tok_title",
+    "zeps_tags",
+    "zeps_digits",
+    "zeps_lang",
+    "zeps_type",
+    "zeps_sum",
 )
 N_V2_TERMS = len(V2_FEATURE_NAMES) - len(MEMBER_FEATURE_NAMES)  # 9
-IDX_E_COS = len(MEMBER_FEATURE_NAMES)            # 25
-IDX_ZEPS_FLAGS = IDX_E_COS + 1                   # 26..32
-IDX_ZEPS_SUM = IDX_ZEPS_FLAGS + 7                # 33
+IDX_E_COS = len(MEMBER_FEATURE_NAMES)  # 25
+IDX_ZEPS_FLAGS = IDX_E_COS + 1  # 26..32
+IDX_ZEPS_SUM = IDX_ZEPS_FLAGS + 7  # 33
 
 _NEG2 = None  # merge_arbiter_negatives_v2 module (lazy — it imports this module back)
 
@@ -730,6 +872,7 @@ def neg2():
     global _NEG2
     if _NEG2 is None:
         import merge_arbiter_negatives_v2 as _m
+
         _NEG2 = _m
     return _NEG2
 
@@ -760,11 +903,15 @@ class VecLeg:
                     self._cache[row["sha256"]] = row["vec"]
         EMBED_CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
         self._fh = open(EMBED_CACHE_PATH, "a", encoding="utf-8")
-        log("embedder_leg_init", pin=lib.EMBEDDER_PIN,
-            cached_texts=len(self._cache), cache=str(EMBED_CACHE_PATH),
+        log(
+            "embedder_leg_init",
+            pin=lib.EMBEDDER_PIN,
+            cached_texts=len(self._cache),
+            cache=str(EMBED_CACHE_PATH),
             convention=neg2().EMBED_TEXT_DOC
-            if hasattr(neg2(), "EMBED_TEXT_DOC") else
-            "n1(title)\\nn1(body)\\nn1(space-joined tags), [:4096]")
+            if hasattr(neg2(), "EMBED_TEXT_DOC")
+            else "n1(title)\\nn1(body)\\nn1(space-joined tags), [:4096]",
+        )
 
     @staticmethod
     def member_text(m: "lib.Member") -> str:
@@ -778,8 +925,9 @@ class VecLeg:
         if vec is None:
             vec = self._provider.embed(text)
             self._cache[key] = vec
-            self._fh.write(json.dumps({"sha256": key, "vec": vec},
-                                      ensure_ascii=False) + "\n")
+            self._fh.write(
+                json.dumps({"sha256": key, "vec": vec}, ensure_ascii=False) + "\n"
+            )
             self._fh.flush()
         return vec
 
@@ -789,8 +937,13 @@ class VecLeg:
 
 
 def _side_dict(m: "lib.Member") -> dict:
-    return {"title": m.title, "body": m.body, "tags": list(m.tags),
-            "language": m.language, "record_type": m.record_type}
+    return {
+        "title": m.title,
+        "body": m.body,
+        "tags": list(m.tags),
+        "language": m.language,
+        "record_type": m.record_type,
+    }
 
 
 def zeps_flags(sd_a: dict, sd_b: dict) -> tuple[int, ...]:
@@ -815,7 +968,8 @@ def zeps_flags(sd_a: dict, sd_b: dict) -> tuple[int, ...]:
     if sum(flags) != oracle:
         raise InstrumentAbort(
             f"zeps drift: local {sum(flags)} != generator oracle {oracle} "
-            f"(flags={flags}) — the ratified convention diverged")
+            f"(flags={flags}) — the ratified convention diverged"
+        )
     return flags
 
 
@@ -823,9 +977,11 @@ def pair_zone_metrics(a: "lib.Member", b: "lib.Member", vec: VecLeg) -> dict:
     """The zone's pair measurements on the pinned convention: PAIR cos
     (nano/norm1) + char5 (frozen extractor) + zeps (7 flags, cross-checked)."""
     sd_a, sd_b = _side_dict(a), _side_dict(b)
-    return {"cos": vec.cos(a, b),
-            "char5": neg2().char5_pair(sd_a, sd_b),
-            "zeps": sum(zeps_flags(sd_a, sd_b))}
+    return {
+        "cos": vec.cos(a, b),
+        "char5": neg2().char5_pair(sd_a, sd_b),
+        "zeps": sum(zeps_flags(sd_a, sd_b)),
+    }
 
 
 def zone_hit_pair(m: dict, zone: dict = ZONE_V1) -> str | None:
@@ -837,19 +993,22 @@ def zone_hit_pair(m: dict, zone: dict = ZONE_V1) -> str | None:
     return None
 
 
-def zone_hit_cluster(members: list["lib.Member"], vec: VecLeg,
-                     zone: dict = ZONE_V1) -> dict | None:
+def zone_hit_cluster(
+    members: list["lib.Member"], vec: VecLeg, zone: dict = ZONE_V1
+) -> dict | None:
     """Any unordered pair of the cluster inside the zone fires the leg."""
     for i in range(len(members)):
         for j in range(i + 1, len(members)):
             m = pair_zone_metrics(members[i], members[j], vec)
             leg = zone_hit_pair(m, zone)
             if leg:
-                return {"pair": [members[i].mid, members[j].mid],
-                        "zone_leg": leg,
-                        "cos": round(m["cos"], 6),
-                        "char5": round(m["char5"], 6),
-                        "zeps": int(m["zeps"])}
+                return {
+                    "pair": [members[i].mid, members[j].mid],
+                    "zone_leg": leg,
+                    "cos": round(m["cos"], 6),
+                    "char5": round(m["char5"], 6),
+                    "zeps": int(m["zeps"]),
+                }
     return None
 
 
@@ -859,8 +1018,11 @@ def _epoch(created_at: str | None) -> tuple[float, float]:
         return 0.0, 1.0
     if not _ISO_RE.match(created_at):
         raise InstrumentAbort(f"created_at is not ISO-8601 UTC (Z): {created_at!r}")
-    t = dt.datetime.strptime(created_at, "%Y-%m-%dT%H:%M:%SZ").replace(
-        tzinfo=dt.timezone.utc).timestamp()
+    t = (
+        dt.datetime.strptime(created_at, "%Y-%m-%dT%H:%M:%SZ")
+        .replace(tzinfo=dt.timezone.utc)
+        .timestamp()
+    )
     return float(t), 0.0
 
 
@@ -873,39 +1035,50 @@ def _digit_frac(text: str) -> float:
 def _pair_member_terms(mi: lib.Member, mj: lib.Member) -> list[float]:
     """Per-pair terms of member i against member j (22 values)."""
     vec = features(
-        RecordLike(title=mi.title, body=mi.body, tags=mi.tags,
-                   language=mi.language, record_type=mi.record_type),
-        RecordLike(title=mj.title, body=mj.body, tags=mj.tags,
-                   language=mj.language, record_type=mj.record_type),
+        RecordLike(
+            title=mi.title,
+            body=mi.body,
+            tags=mi.tags,
+            language=mi.language,
+            record_type=mi.record_type,
+        ),
+        RecordLike(
+            title=mj.title,
+            body=mj.body,
+            tags=mj.tags,
+            language=mj.language,
+            record_type=mj.record_type,
+        ),
         similarity=SIMILARITY_CONSTANT,
     )
     terms = list(vec.values)
 
     bi, bj = lib.norm1_body(mi.body), lib.norm1_body(mj.body)
-    terms.append(1.0 if bj in bi else 0.0)                       # d_other_in_mine
-    terms.append(1.0 if bi in bj else 0.0)                       # d_mine_in_other
+    terms.append(1.0 if bj in bi else 0.0)  # d_other_in_mine
+    terms.append(1.0 if bi in bj else 0.0)  # d_mine_in_other
     li, lj = len(bi), len(bj)
-    terms.append((li - lj) / (li + lj) if (li + lj) else 0.0)    # d_rel_len
+    terms.append((li - lj) / (li + lj) if (li + lj) else 0.0)  # d_rel_len
 
     hulls = lib.norm2_edit_clusters(mi.body, mj.body)
-    terms.append(float(len(hulls)))                              # e_n_clusters
+    terms.append(float(len(hulls)))  # e_n_clusters
     mine = other = 0
     mine_txt = other_txt = ""
-    for (c1, c2, d1, d2) in hulls:
-        mine += (c2 - c1)
-        other += (d2 - d1)
+    for c1, c2, d1, d2 in hulls:
+        mine += c2 - c1
+        other += d2 - d1
         mine_txt += bi[c1:c2]
         other_txt += bj[d1:d2]
-    terms.append(float(mine))                                    # e_chars_mine
-    terms.append(float(other))                                   # e_chars_other
-    terms.append((mine - other) / (mine + other + 1e-9))         # e_rel_chars
-    terms.append(_digit_frac(mine_txt))                          # e_digit_mine
-    terms.append(_digit_frac(other_txt))                         # e_digit_other
+    terms.append(float(mine))  # e_chars_mine
+    terms.append(float(other))  # e_chars_other
+    terms.append((mine - other) / (mine + other + 1e-9))  # e_rel_chars
+    terms.append(_digit_frac(mine_txt))  # e_digit_mine
+    terms.append(_digit_frac(other_txt))  # e_digit_other
     return terms
 
 
-def cluster_features(members: list[lib.Member],
-                     vec: "VecLeg | None" = None) -> np.ndarray:
+def cluster_features(
+    members: list[lib.Member], vec: "VecLeg | None" = None
+) -> np.ndarray:
     """(k, 25) member feature matrix (v1, when ``vec`` is None — the
     bit-identical v1 path) or (k, 34) Choice-v2 matrix (e_cos + zeps block
     appended) — permutation-invariant by construction.
@@ -945,14 +1118,15 @@ def cluster_features(members: list[lib.Member],
         acc[IDX_NULL] = nulls[i]
         if vec is not None:
             acc[IDX_E_COS] /= n_others
-            acc[IDX_ZEPS_FLAGS:IDX_ZEPS_FLAGS + 7] /= n_others
+            acc[IDX_ZEPS_FLAGS : IDX_ZEPS_FLAGS + 7] /= n_others
             acc[IDX_ZEPS_SUM] /= n_others
         rows[i] = acc
     return rows
 
 
-def assert_permutation_invariance(clusters: list[lib.Cluster], n_check: int = 40,
-                                  vec: "VecLeg | None" = None) -> None:
+def assert_permutation_invariance(
+    clusters: list[lib.Cluster], n_check: int = 40, vec: "VecLeg | None" = None
+) -> None:
     """Machine check: reversing the member order changes no member's row."""
     rng = random.Random(SEED)
     sample = rng.sample(clusters, min(n_check, len(clusters)))
@@ -966,14 +1140,17 @@ def assert_permutation_invariance(clusters: list[lib.Cluster], n_check: int = 40
             if not np.array_equal(x[p], xr[idxr[mid]]):
                 raise InstrumentAbort(
                     f"permutation invariance RED on {c.cid}/{mid}: features "
-                    "depend on serialization order")
+                    "depend on serialization order"
+                )
     log("feature_permutation_invariance", checked=len(sample), ok=True)
 
 
 # --- member-level training table ---------------------------------------------
 
-def member_rows(clusters: list[lib.Cluster],
-                vec: "VecLeg | None" = None) -> tuple[np.ndarray, np.ndarray, list[dict]]:
+
+def member_rows(
+    clusters: list[lib.Cluster], vec: "VecLeg | None" = None
+) -> tuple[np.ndarray, np.ndarray, list[dict]]:
     """Build the member-level table (see module docstring for the labeling).
 
     CH-3 k2: positive = the keep member (superset), negative = the other.
@@ -992,8 +1169,7 @@ def member_rows(clusters: list[lib.Cluster],
         for p, m in enumerate(c.members):
             xs.append(x[p])
             ys.append(1.0 if m.mid in pos else 0.0)
-            meta.append({"cluster_id": c.cid, "mid": m.mid,
-                         "stratum": stratum_key(c)})
+            meta.append({"cluster_id": c.cid, "mid": m.mid, "stratum": stratum_key(c)})
     return np.array(xs), np.array(ys), meta
 
 
@@ -1010,8 +1186,10 @@ def predict_scores(booster: lgb.Booster, x: np.ndarray) -> np.ndarray:
 
 # --- decision rule (draft §2.2) ----------------------------------------------
 
-def decide(scores: dict[str, float], created: dict[str, float],
-           tau_hi: float, tau_m: float) -> dict:
+
+def decide(
+    scores: dict[str, float], created: dict[str, float], tau_hi: float, tau_m: float
+) -> dict:
     """keep = argmax e_i iff e_(1) >= tau_hi and e_(1) - e_(2) >= tau_m.
 
     Order-invariant tie-break among exact score ties: keep-oldest (min
@@ -1023,12 +1201,17 @@ def decide(scores: dict[str, float], created: dict[str, float],
     second = order[1] if len(order) > 1 else order[0]
     e1, e2 = scores[top], scores[second]
     if e1 >= tau_hi and (e1 - e2) >= tau_m:
-        return {"verdict": "keep", "member": top, "e1": round(e1, 6),
-                "e2": round(e2, 6)}
+        return {
+            "verdict": "keep",
+            "member": top,
+            "e1": round(e1, 6),
+            "e2": round(e2, 6),
+        }
     return {"verdict": "abstain", "e1": round(e1, 6), "e2": round(e2, 6)}
 
 
 # --- CV over clusters (train-only threshold fit, draft §2.2) ------------------
+
 
 def make_folds(clusters: list[lib.Cluster]) -> list[set[str]]:
     """K-fold BY CLUSTER, stratified by stratum, pairwise-disjoint folds.
@@ -1049,13 +1232,13 @@ def make_folds(clusters: list[lib.Cluster]) -> list[set[str]]:
     for a in range(CV_K):
         for b in range(a + 1, CV_K):
             if folds[a] & folds[b]:
-                raise InstrumentAbort(f"fold {a} and fold {b} overlap — "
-                                      "folds must be pairwise disjoint")
+                raise InstrumentAbort(
+                    f"fold {a} and fold {b} overlap — folds must be pairwise disjoint"
+                )
     return folds
 
 
-def cv_thresholds(clusters: list[lib.Cluster],
-                  vec: "VecLeg | None" = None) -> dict:
+def cv_thresholds(clusters: list[lib.Cluster], vec: "VecLeg | None" = None) -> dict:
     """Fit (tau_hi, tau_m) by out-of-fold cluster decisions on train only.
 
     Selection metric (brief/§2.2): correct-set acc + abstain rate on CH-3,
@@ -1085,8 +1268,12 @@ def cv_thresholds(clusters: list[lib.Cluster],
             rows = row_idx[cid]
             sc = predict_scores(m_f, xs[rows])
             oof[cid] = {meta[p]["mid"]: float(s) for p, s in zip(rows, sc)}
-        log("cv_fold", fold=f, n_train_clusters=len(train_ids),
-            n_eval_clusters=len(fold))
+        log(
+            "cv_fold",
+            fold=f,
+            n_train_clusters=len(train_ids),
+            n_eval_clusters=len(fold),
+        )
 
     created_by_cid = {
         cid: {m.mid: _epoch(m.created_at)[0] for m in c.members}
@@ -1107,17 +1294,26 @@ def cv_thresholds(clusters: list[lib.Cluster],
                     ok_n += 1
             acc = ok_n / len(ch3_ids)
             abst = abst_n / len(ch3_ids)
-            grid.append({"tau_hi": tau_hi, "tau_m": tau_m,
-                         "acc_ch3": round(acc, 4),
-                         "abstain_rate_ch3": round(abst, 4),
-                         "score": round(acc - abst, 4)})
+            grid.append(
+                {
+                    "tau_hi": tau_hi,
+                    "tau_m": tau_m,
+                    "acc_ch3": round(acc, 4),
+                    "abstain_rate_ch3": round(abst, 4),
+                    "score": round(acc - abst, 4),
+                }
+            )
     grid.sort(key=lambda g: (-g["score"], -g["acc_ch3"], -g["tau_hi"], -g["tau_m"]))
     best = grid[0]
-    log("cv_threshold_selected", **best,
+    log(
+        "cv_threshold_selected",
+        **best,
         selection="max(acc_ch3 - abstain_rate_ch3); ties: acc, tau_hi, tau_m (desc)",
-        grid_points=len(grid), ch3_n=len(ch3_ids),
+        grid_points=len(grid),
+        ch3_n=len(ch3_ids),
         note="train-only; the ratified q = max(0.20; p90+2*floor_q) gate "
-             "constant is NOT used for any choice here")
+        "constant is NOT used for any choice here",
+    )
     tau_hi, tau_m = best["tau_hi"], best["tau_m"]
 
     # CV-neg-abstain (ADDENDUM-3 §2; ADDENDUM-6 §1 leg 3 for v2): OOF abstain
@@ -1133,13 +1329,17 @@ def cv_thresholds(clusters: list[lib.Cluster],
         expected_subs |= set(EXPECTED_NEG_V2_COUNTS)
     absent_subs = sorted(expected_subs - set(neg_by_sub))
     if absent_subs:
-        raise InstrumentAbort(f"CV-neg-abstain: substrata absent from the "
-                              f"effective corpus: {absent_subs}")
+        raise InstrumentAbort(
+            f"CV-neg-abstain: substrata absent from the effective corpus: {absent_subs}"
+        )
     neg_rates = {}
     for sub, ids in sorted(neg_by_sub.items()):
-        abst = sum(1 for cid in ids
-                   if decide(oof[cid], created_by_cid[cid], tau_hi, tau_m)
-                   ["verdict"] == "abstain") / len(ids)
+        abst = sum(
+            1
+            for cid in ids
+            if decide(oof[cid], created_by_cid[cid], tau_hi, tau_m)["verdict"]
+            == "abstain"
+        ) / len(ids)
         neg_rates[sub] = round(abst, 4)
     red = {s: r for s, r in neg_rates.items() if r < NEG_ABSTAIN_MIN}
     log("cv_neg_abstain", per_substratum=neg_rates, floor=NEG_ABSTAIN_MIN, red=red)
@@ -1151,38 +1351,51 @@ def cv_thresholds(clusters: list[lib.Cluster],
     # cluster quanta ⇒ every fold 1.0). Tolerance pinned NOREGRESS_TOL.
     per_fold_acc = {}
     for f, fold in enumerate(folds):
-        fold_ch3 = sorted(cid for cid in fold if cid in by_cid
-                          and by_cid[cid].stratum == "CH-3")
+        fold_ch3 = sorted(
+            cid for cid in fold if cid in by_cid and by_cid[cid].stratum == "CH-3"
+        )
         if not fold_ch3:
             continue
         ok = 0
         for cid in fold_ch3:
             d = decide(oof[cid], created_by_cid[cid], tau_hi, tau_m)
-            if d["verdict"] == "keep" and d.get("member") == by_cid[cid].label["member"]:
+            if (
+                d["verdict"] == "keep"
+                and d.get("member") == by_cid[cid].label["member"]
+            ):
                 ok += 1
         per_fold_acc[f] = round(ok / len(fold_ch3), 4)
     noreg_red = {f: a for f, a in per_fold_acc.items() if a < 1.0 - NOREGRESS_TOL}
-    log("cv_noregress", per_fold_ch3_acc=per_fold_acc, reference=1.0,
+    log(
+        "cv_noregress",
+        per_fold_ch3_acc=per_fold_acc,
+        reference=1.0,
         reference_artifact="merge_arbiter_v1-1-iter3.json (sha256 19bf073e…, "
-                           "aggregate OOF CH-3 acc 1.0 over cluster quanta)",
+        "aggregate OOF CH-3 acc 1.0 over cluster quanta)",
         tolerance=NOREGRESS_TOL,
         tolerance_pin="0.02 fixed BEFORE the v2 retrain (ADDENDUM-3 §2; "
-                      "carried over from the v1 cycle unchanged)",
-        floor=round(1.0 - NOREGRESS_TOL, 4), red=noreg_red)
+        "carried over from the v1 cycle unchanged)",
+        floor=round(1.0 - NOREGRESS_TOL, 4),
+        red=noreg_red,
+    )
     if noreg_red:
-        raise InstrumentAbort(f"CV-noregress RED: fold accs {noreg_red} below "
-                              f"{1.0 - NOREGRESS_TOL}")
+        raise InstrumentAbort(
+            f"CV-noregress RED: fold accs {noreg_red} below {1.0 - NOREGRESS_TOL}"
+        )
 
-    return {"best": best, "grid_top": grid[:10],
-            "ch3_n": len(ch3_ids),
-            "neg_abstain": neg_rates,
-            "noregress": {"per_fold": per_fold_acc, "reference": 1.0,
-                          "tol": NOREGRESS_TOL},
-            "folds": [{"fold": f, "n": len(fold)} for f, fold in enumerate(folds)]}
+    return {
+        "best": best,
+        "grid_top": grid[:10],
+        "ch3_n": len(ch3_ids),
+        "neg_abstain": neg_rates,
+        "noregress": {"per_fold": per_fold_acc, "reference": 1.0, "tol": NOREGRESS_TOL},
+        "folds": [{"fold": f, "n": len(fold)} for f, fold in enumerate(folds)],
+    }
 
 
-def oof_decided_member(scores: dict[str, float], created: dict[str, float],
-                       tau_hi: float, tau_m: float) -> str | None:
+def oof_decided_member(
+    scores: dict[str, float], created: dict[str, float], tau_hi: float, tau_m: float
+) -> str | None:
     """The keep member of the decision rule, or None on abstain."""
     d = decide(scores, created, tau_hi, tau_m)
     return d.get("member") if d["verdict"] == "keep" else None
@@ -1198,15 +1411,21 @@ def _sentinel_members(c: lib.Cluster) -> list[lib.Member]:
     sentinel so the FROZEN baseline functions stay usable; on both-null
     clusters keep-oldest is tie-ambiguous (all epoch-0) — the formal
     argmin E(r) is degenerate there, disclosed in the artifact."""
-    return [lib.Member(m.mid, m.title, m.body, m.tags, m.record_type,
-                       m.language,
-                       NULL_EPOCH_SENTINEL if m.created_at is None
-                       else m.created_at)
-            for m in c.members]
+    return [
+        lib.Member(
+            m.mid,
+            m.title,
+            m.body,
+            m.tags,
+            m.record_type,
+            m.language,
+            NULL_EPOCH_SENTINEL if m.created_at is None else m.created_at,
+        )
+        for m in c.members
+    ]
 
 
-def baselines_per_stratum(clusters: list[lib.Cluster],
-                          sentinel: bool = False) -> dict:
+def baselines_per_stratum(clusters: list[lib.Cluster], sentinel: bool = False) -> dict:
     table: dict[str, dict[str, list[int]]] = {}
     for c in clusters:
         key = stratum_key(c)
@@ -1215,8 +1434,10 @@ def baselines_per_stratum(clusters: list[lib.Cluster],
         for bname, bfn in lib.BASELINES.items():
             row[bname][1] += 1
             row[bname][0] += int(lib.correct_set_ok(c, bfn(members)))
-    return {key: {b: round(n[0] / n[1], 4) if n[1] else None for b, n in row.items()}
-            for key, row in table.items()}
+    return {
+        key: {b: round(n[0] / n[1], 4) if n[1] else None for b, n in row.items()}
+        for key, row in table.items()
+    }
 
 
 def check_baselines_vs_manifest(manifest: dict, mine: dict) -> None:
@@ -1227,13 +1448,19 @@ def check_baselines_vs_manifest(manifest: dict, mine: dict) -> None:
             got = mine.get(key, {}).get(b)
             if got is None or abs(got - v) > 1e-9:
                 diff[f"{key}/{b}"] = {"got": got, "want": v}
-    log("baseline_reproduction", mismatch=diff,
-        note="same train material + same frozen baseline code path -> exact")
+    log(
+        "baseline_reproduction",
+        mismatch=diff,
+        note="same train material + same frozen baseline code path -> exact",
+    )
     if diff:
-        raise InstrumentAbort(f"baseline table diverges from the build manifest: {diff}")
+        raise InstrumentAbort(
+            f"baseline table diverges from the build manifest: {diff}"
+        )
 
 
 # --- delta_acc floor measurement (ratified MLC 29.10, see constants block) ----
+
 
 def _train_scenario_keys() -> set[str]:
     """CH-3/CH-4 scenario keys of train.jsonl — the exclusion set for the
@@ -1301,8 +1528,13 @@ def cmd_floor_seed(args: argparse.Namespace) -> int:
     global _SLICE
     _SLICE = SLICE_FLOOR
     started = dt.datetime.now(dt.timezone.utc)
-    log("cost_declaration", expected_prolog_s=2, expected_cycle_s=60,
-        expected_peak_ram_gb=1.0, lane="light (draft §9)")
+    log(
+        "cost_declaration",
+        expected_prolog_s=2,
+        expected_cycle_s=60,
+        expected_peak_ram_gb=1.0,
+        lane="light (draft §9)",
+    )
     pro = prologue(expected_artifact=Path(args.artifact))
     model, tau_hi, tau_m = load_frozen(Path(args.artifact))
     model_sha = pro["pins"]["artifact_sha256"]
@@ -1310,8 +1542,10 @@ def cmd_floor_seed(args: argparse.Namespace) -> int:
     doc_path = Path(args.doc_out)
     doc = json.loads(doc_path.read_text(encoding="utf-8"))
 
-    log("floor_seed_measure_start",
-        seeds=seeds, n_draws=len(seeds),
+    log(
+        "floor_seed_measure_start",
+        seeds=seeds,
+        n_draws=len(seeds),
         gate_leg_quota=FLOOR_LEG_QUOTA,
         recipe="mb.gen_family (frozen build recipe, same code path)",
         model_sha256=model_sha,
@@ -1319,27 +1553,34 @@ def cmd_floor_seed(args: argparse.Namespace) -> int:
         floor_semantics="max pairwise |delta_d - delta_e| over all draw pairs",
         delta_acc_formula="max(2 * floor_seed_aggregate; 0.10)",
         ratification="MLC 29.10, option (a), unanimous; chairman-consolidated",
-        note="model is NOT retrained; fixed BEFORE gate_start")
+        note="model is NOT retrained; fixed BEFORE gate_start",
+    )
 
     train_clusters = load_train()
     train_ids = {m.mid for c in train_clusters for m in c.members}
     train_ids |= {c.cid for c in train_clusters}
     train_scen = _train_scenario_keys()
     holdout_ids = _holdout_id_manifest()
-    log("holdout_id_manifest_read", n_ids=len(holdout_ids),
+    log(
+        "holdout_id_manifest_read",
+        n_ids=len(holdout_ids),
         content_read=False,
         note="id-only read for the ratified disjointness leg "
-             "(ADDENDUM-1 §2 pre-check precedent); no content kept")
+        "(ADDENDUM-1 §2 pre-check precedent); no content kept",
+    )
 
     rows = []
     for seed in seeds:
         used = set(train_scen)  # holdout-style exclusion (fresh set per draw)
-        fam = mb.gen_family(seed, _FLOOR_QUOTA_FULL, used,
-                            f"ma-fs-{seed}", f"ma-fseed{seed}")
+        fam = mb.gen_family(
+            seed, _FLOOR_QUOTA_FULL, used, f"ma-fs-{seed}", f"ma-fseed{seed}"
+        )
         # count assert: the draw is exactly the gate-leg composition
         got: dict[tuple[str, int], int] = {}
         for c in fam:
-            got[(c.stratum, len(c.members))] = got.get((c.stratum, len(c.members)), 0) + 1
+            got[(c.stratum, len(c.members))] = (
+                got.get((c.stratum, len(c.members)), 0) + 1
+            )
         if got != {("CH-3", 2): 22, ("CH-3", 3): 3} or len(fam) != 25:
             raise InstrumentAbort(f"draw seed={seed} composition mismatch: {got}")
         # disjointness asserts (fail-closed, id + scenario level)
@@ -1348,78 +1589,110 @@ def cmd_floor_seed(args: argparse.Namespace) -> int:
         id_holdout_hits = draw_ids & holdout_ids
         draw_scen = {c.scenario for c in fam}
         scen_hits = draw_scen & train_scen
-        log("floor_seed_draw_disjointness", seed=seed,
-            ids_train=sorted(id_train_hits), ids_holdout=sorted(id_holdout_hits),
-            scenarios_train=sorted(scen_hits))
+        log(
+            "floor_seed_draw_disjointness",
+            seed=seed,
+            ids_train=sorted(id_train_hits),
+            ids_holdout=sorted(id_holdout_hits),
+            scenarios_train=sorted(scen_hits),
+        )
         if id_train_hits or id_holdout_hits or scen_hits:
             raise InstrumentAbort(
                 f"draw seed={seed} intersects existing material: "
                 f"train_ids={sorted(id_train_hits)} holdout_ids={sorted(id_holdout_hits)} "
-                f"train_scenarios={sorted(scen_hits)}")
+                f"train_scenarios={sorted(scen_hits)}"
+            )
 
-        acc_model = _pooled_acc(fam, lambda c: (
-            (d := arbitrate_production(c, model, tau_hi, tau_m))["verdict"] == "keep"
-            and d.get("member") == c.label["member"]))
+        acc_model = _pooled_acc(
+            fam,
+            lambda c: (
+                (d := arbitrate_production(c, model, tau_hi, tau_m))["verdict"]
+                == "keep"
+                and d.get("member") == c.label["member"]
+            ),
+        )
         acc_base = max(
             _pooled_acc(fam, lambda c, b=bfn: lib.correct_set_ok(c, b(c.members)))
-            for bfn in lib.BASELINES.values())
+            for bfn in lib.BASELINES.values()
+        )
         delta = acc_model - acc_base
-        rows.append({"seed": seed, "n_clusters": len(fam),
-                     "acc_model": round(acc_model, 4),
-                     "acc_baseline_max": round(acc_base, 4),
-                     "delta": round(delta, 4)})
+        rows.append(
+            {
+                "seed": seed,
+                "n_clusters": len(fam),
+                "acc_model": round(acc_model, 4),
+                "acc_baseline_max": round(acc_base, 4),
+                "delta": round(delta, 4),
+            }
+        )
         log("floor_seed_draw", **rows[-1])
 
     deltas = [r["delta"] for r in rows]
-    floor = max(abs(a - b) for i, a in enumerate(deltas) for b in deltas[i + 1:])
+    floor = max(abs(a - b) for i, a in enumerate(deltas) for b in deltas[i + 1 :])
     delta_acc = max(2 * floor, 0.10)
-    log("floor_seed_measure_end",
-        per_seed=rows, floor_seed_aggregate=round(floor, 4),
+    log(
+        "floor_seed_measure_end",
+        per_seed=rows,
+        floor_seed_aggregate=round(floor, 4),
         delta_acc=round(delta_acc, 4),
         pairs_compared=len(seeds) * (len(seeds) - 1) // 2,
-        model_sha256=model_sha, artifact=args.artifact,
+        model_sha256=model_sha,
+        artifact=args.artifact,
         wall_s=round((dt.datetime.now(dt.timezone.utc) - started).total_seconds(), 1),
-        remeasure_after_single_shot="FORBIDDEN")
+        remeasure_after_single_shot="FORBIDDEN",
+    )
 
     # committed doc: append the delta_acc_measure section ONLY (thresholds,
     # cv, baselines and the durable artifact stay byte-untouched)
     if "delta_acc_measure" in doc:
-        raise InstrumentAbort("delta_acc_measure already present in "
-                              f"{doc_path} — re-measuring is forbidden (fixed "
-                              "BEFORE gate_start; rewrite would be "
-                              "threshold-fitting)")
+        raise InstrumentAbort(
+            "delta_acc_measure already present in "
+            f"{doc_path} — re-measuring is forbidden (fixed "
+            "BEFORE gate_start; rewrite would be "
+            "threshold-fitting)"
+        )
     doc["delta_acc_measure"] = {
         "ratification": "MLC 29.10, option (a), unanimous, chairman-consolidated",
         "granularity": "floor_seed for delta_acc is measured at the granularity "
-                       "of the gating statistic (CH-3 aggregate, gate-leg "
-                       "composition 22 k2 + 3 chain); the per-stratum table in "
-                       "the build manifest is a characterization artifact and "
-                       "does NOT enter the formula",
+        "of the gating statistic (CH-3 aggregate, gate-leg "
+        "composition 22 k2 + 3 chain); the per-stratum table in "
+        "the build manifest is a characterization artifact and "
+        "does NOT enter the formula",
         "seeds": FLOOR_SEEDS,
         "per_seed": rows,
         "floor_seed_aggregate": round(floor, 4),
         "delta_acc": round(delta_acc, 4),
         "model_sha256": model_sha,
-        "measured_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="milliseconds"),
+        "measured_at": dt.datetime.now(dt.timezone.utc).isoformat(
+            timespec="milliseconds"
+        ),
         "remeasure_after_single_shot": "FORBIDDEN",
     }
     doc.pop("committed_doc_sha256", None)
     doc["committed_doc_sha256"] = sha256_text(
-        json.dumps(doc, ensure_ascii=False, sort_keys=True))
-    doc_path.write_text(json.dumps(doc, ensure_ascii=False, indent=1),
-                         encoding="utf-8")
-    log("committed_doc_updated", path=str(doc_path),
+        json.dumps(doc, ensure_ascii=False, sort_keys=True)
+    )
+    doc_path.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
+    log(
+        "committed_doc_updated",
+        path=str(doc_path),
         committed_doc_sha256=doc["committed_doc_sha256"],
         payload_artifact_untouched=True,
-        thresholds_untouched=True)
+        thresholds_untouched=True,
+    )
     return 0
 
 
 # --- production contour §5.1 (code legs + model leg) --------------------------
 
-def arbitrate_production(cluster: lib.Cluster, booster: lgb.Booster,
-                         tau_hi: float, tau_m: float,
-                         ctx: "dict | None" = None) -> dict:
+
+def arbitrate_production(
+    cluster: lib.Cluster,
+    booster: lgb.Booster,
+    tau_hi: float,
+    tau_m: float,
+    ctx: "dict | None" = None,
+) -> dict:
     """Through pipeline: classify (NO declarations — production has none)
     -> CH-0/CH-5 tie-break -> CH-2 refusal -> [Choice v2: zone leg 3.5
     (zone-v1, refusal-only)] -> model leg for the rest.
@@ -1436,27 +1709,27 @@ def arbitrate_production(cluster: lib.Cluster, booster: lgb.Booster,
     zone = ctx.get("zone")
     cls = lib.classify(cluster.members, declarations=None)
     if cls in ("CH-0", "CH-5"):
-        keep = min(cluster.members,
-                   key=lambda m: (_epoch(m.created_at)[0], m.mid))
-        return {"verdict": "keep", "member": keep.mid, "leg": "tie-break",
-                "class": cls}
+        keep = min(cluster.members, key=lambda m: (_epoch(m.created_at)[0], m.mid))
+        return {"verdict": "keep", "member": keep.mid, "leg": "tie-break", "class": cls}
     if cls == "CH-2":
         return {"verdict": "abstain", "leg": "refusal", "class": cls}
     if zone is not None:
         if vec is None:
-            raise InstrumentAbort("zone leg configured without the vec leg — "
-                                  "the zone evaluates the PAIR nano cos")
+            raise InstrumentAbort(
+                "zone leg configured without the vec leg — "
+                "the zone evaluates the PAIR nano cos"
+            )
         hit = zone_hit_cluster(cluster.members, vec, zone)
         if hit:
             # ONE-SIDEDNESS (ADDENDUM-6 §1 leg 2): the leg emits ONLY abstain;
             # the keep side of cos/zeps is read nowhere in the contour.
-            return {"verdict": "abstain", "leg": "zone-v1", "class": cls,
-                    "zone": hit}
+            return {"verdict": "abstain", "leg": "zone-v1", "class": cls, "zone": hit}
     x = cluster_features(cluster.members, vec=vec)
     if x.shape[1] != booster.num_feature():
         raise InstrumentAbort(
             f"feature contract mismatch: contour builds {x.shape[1]} columns, "
-            f"the frozen booster expects {booster.num_feature()}")
+            f"the frozen booster expects {booster.num_feature()}"
+        )
     sc = predict_scores(booster, x)
     scores = {m.mid: float(s) for m, s in zip(cluster.members, sc)}
     created = {m.mid: _epoch(m.created_at)[0] for m in cluster.members}
@@ -1475,17 +1748,22 @@ SANITY_EXPECT_MODEL = {
     1: lambda r: r["verdict"] == "keep" and r["leg"] == "tie-break",
     2: lambda r: r["verdict"] == "keep" and r["leg"] == "tie-break",
     3: lambda r: r["verdict"] == "abstain" and r["leg"] == "model",
-    4: lambda r: r["verdict"] == "keep" and r.get("member") == "fx-4a"
-                  and r["leg"] == "model",
+    4: lambda r: (
+        r["verdict"] == "keep" and r.get("member") == "fx-4a" and r["leg"] == "model"
+    ),
     5: lambda r: r["verdict"] == "abstain" and r["leg"] == "refusal",
     6: lambda r: r["verdict"] == "keep" and r["leg"] == "tie-break",
     7: lambda r: r["verdict"] == "keep" and r["leg"] == "tie-break",
 }
 
 
-def run_model_sanity_suite(booster: lgb.Booster, tau_hi: float, tau_m: float,
-                           log_it: bool = True,
-                           ctx: "dict | None" = None) -> list[dict]:
+def run_model_sanity_suite(
+    booster: lgb.Booster,
+    tau_hi: float,
+    tau_m: float,
+    log_it: bool = True,
+    ctx: "dict | None" = None,
+) -> list[dict]:
     """7 probes through the production contour with the FROZEN model.
 
     Every probe is additionally executed with the REVERSED member order:
@@ -1501,27 +1779,54 @@ def run_model_sanity_suite(booster: lgb.Booster, tau_hi: float, tau_m: float,
         res = arbitrate_production(cell["cluster"], booster, tau_hi, tau_m, ctx=ctx)
         rev = list(reversed(cell["cluster"].members))
         res_rev = arbitrate_production(
-            lib.Cluster(cid=cell["cluster"].cid, stratum=cell["cluster"].stratum,
-                        substratum=cell["cluster"].substratum, members=rev,
-                        label=cell["cluster"].label,
-                        declaration=cell["cluster"].declaration),
-            booster, tau_hi, tau_m, ctx=ctx)
+            lib.Cluster(
+                cid=cell["cluster"].cid,
+                stratum=cell["cluster"].stratum,
+                substratum=cell["cluster"].substratum,
+                members=rev,
+                label=cell["cluster"].label,
+                declaration=cell["cluster"].declaration,
+            ),
+            booster,
+            tau_hi,
+            tau_m,
+            ctx=ctx,
+        )
         ok = bool(SANITY_EXPECT_MODEL[cell["probe"]](res))
-        inv = (res["verdict"] == res_rev["verdict"]
-               and res.get("member") == res_rev.get("member"))
+        inv = res["verdict"] == res_rev["verdict"] and res.get("member") == res_rev.get(
+            "member"
+        )
         all_ok = all_ok and ok and inv
-        row = {"probe": cell["probe"], "name": cell["name"], "ok": ok,
-               "order_invariant": inv, "result": res}
+        row = {
+            "probe": cell["probe"],
+            "name": cell["name"],
+            "ok": ok,
+            "order_invariant": inv,
+            "result": res,
+        }
         results.append(row)
         if log_it:
-            log("sanity_probe", probe=cell["probe"], name=cell["name"], ok=ok,
-                order_invariant=inv, verdict=res.get("verdict"),
-                member=res.get("member"), leg=res.get("leg"),
+            log(
+                "sanity_probe",
+                probe=cell["probe"],
+                name=cell["name"],
+                ok=ok,
+                order_invariant=inv,
+                verdict=res.get("verdict"),
+                member=res.get("member"),
+                leg=res.get("leg"),
                 zone=res.get("zone"),
-                e1=res.get("e1"), e2=res.get("e2"), scores=res.get("scores"))
+                e1=res.get("e1"),
+                e2=res.get("e2"),
+                scores=res.get("scores"),
+            )
     if log_it:
-        log("sanity_suite_done", ok=all_ok, probes=len(results),
-            expectation="7/7 + order invariance; red => holdout NOT read")
+        log(
+            "sanity_suite_done",
+            ok=all_ok,
+            probes=len(results),
+            expectation="7/7 + order invariance; red => holdout NOT read",
+        )
     if not all_ok:
         raise InstrumentAbort("sanity suite RED (§6.1) — sealed surfaces stay sealed")
     return results
@@ -1541,54 +1846,78 @@ def artifact_paths() -> tuple[Path, Path]:
     return ART_DIR / ART_NAME, DOC_OUT
 
 
-def freeze_artifact(booster: lgb.Booster, tau_hi: float, tau_m: float,
-                    cv: dict, baselines: dict, pins: dict) -> tuple[Path, Path, str]:
+def freeze_artifact(
+    booster: lgb.Booster,
+    tau_hi: float,
+    tau_m: float,
+    cv: dict,
+    baselines: dict,
+    pins: dict,
+) -> tuple[Path, Path, str]:
     durable, committed = artifact_paths()
     neg_manifest = None
     if NEG_PATH.exists():
-        neg_manifest = json.loads((CORPUS_DIR / "train-negatives.manifest.json")
-                                  .read_text(encoding="utf-8"))
+        neg_manifest = json.loads(
+            (CORPUS_DIR / "train-negatives.manifest.json").read_text(encoding="utf-8")
+        )
     art = {
-        "artifact": ("vesma-cortex-merge-v1" if neg_manifest is None
-                     else "vesma-cortex-merge-v1 (corpus v1.1, ADDENDUM-3)"),
-        "frozen_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="milliseconds"),
-        "thresholds": {"tau_hi": tau_hi, "tau_m": tau_m,
-                       "rule": "keep=argmax e_i iff e1>=tau_hi and e1-e2>=tau_m; "
-                               "else ABSTAIN (draft §2.2)",
-                       "fit": "train-only 5-fold CV by clusters, pairwise-disjoint "
-                              "folds, seed 42; NO sealed surface used for any "
-                              "choice (N2)"},
+        "artifact": (
+            "vesma-cortex-merge-v1"
+            if neg_manifest is None
+            else "vesma-cortex-merge-v1 (corpus v1.1, ADDENDUM-3)"
+        ),
+        "frozen_at": dt.datetime.now(dt.timezone.utc).isoformat(
+            timespec="milliseconds"
+        ),
+        "thresholds": {
+            "tau_hi": tau_hi,
+            "tau_m": tau_m,
+            "rule": "keep=argmax e_i iff e1>=tau_hi and e1-e2>=tau_m; "
+            "else ABSTAIN (draft §2.2)",
+            "fit": "train-only 5-fold CV by clusters, pairwise-disjoint "
+            "folds, seed 42; NO sealed surface used for any "
+            "choice (N2)",
+        },
         "feature_names": list(MEMBER_FEATURE_NAMES),
         "similarity_constant": SIMILARITY_CONSTANT,
         "lgb_params": dict(LGB_PARAMS),
         "booster_model_string": booster.model_to_string(),
-        "cv": {"best": cv["best"], "top10": cv["grid_top"],
-               "ch3_n": cv["ch3_n"], "folds": cv["folds"],
-               "neg_abstain": cv.get("neg_abstain"),
-               "noregress": cv.get("noregress")},
+        "cv": {
+            "best": cv["best"],
+            "top10": cv["grid_top"],
+            "ch3_n": cv["ch3_n"],
+            "folds": cv["folds"],
+            "neg_abstain": cv.get("neg_abstain"),
+            "noregress": cv.get("noregress"),
+        },
         "baselines_per_stratum_train": baselines,
-        "corpus": (None if neg_manifest is None else {
-            "recipe": "corpus v1.1 = v1 (600, byte-identical) + theme-near "
-                      "negative block (200, ADDENDUM-3)",
-            "train_jsonl_sha256": pins["train_jsonl_sha256"],
-            "negatives_sha256": neg_manifest["negatives_sha256"],
-            "corpus_fp_v1_1": neg_manifest["corpus_fp_v1_1"],
-            "seeds": neg_manifest["seeds"],
-        }),
+        "corpus": (
+            None
+            if neg_manifest is None
+            else {
+                "recipe": "corpus v1.1 = v1 (600, byte-identical) + theme-near "
+                "negative block (200, ADDENDUM-3)",
+                "train_jsonl_sha256": pins["train_jsonl_sha256"],
+                "negatives_sha256": neg_manifest["negatives_sha256"],
+                "corpus_fp_v1_1": neg_manifest["corpus_fp_v1_1"],
+                "seeds": neg_manifest["seeds"],
+            }
+        ),
         "pins": dict(pins),
     }
-    durable.write_text(json.dumps(art, ensure_ascii=False, indent=1),
-                       encoding="utf-8")
+    durable.write_text(json.dumps(art, ensure_ascii=False, indent=1), encoding="utf-8")
     art_sha = sha256_file(durable)
 
     committed_doc = {
         "artifact": art["artifact"],
         "frozen_at": art["frozen_at"],
         "thresholds": art["thresholds"],
-        "cv_ch3_oof": {"acc": cv["best"]["acc_ch3"],
-                       "abstain_rate": cv["best"]["abstain_rate_ch3"],
-                       "score": cv["best"]["score"],
-                       "ch3_n": cv["ch3_n"]},
+        "cv_ch3_oof": {
+            "acc": cv["best"]["acc_ch3"],
+            "abstain_rate": cv["best"]["abstain_rate_ch3"],
+            "score": cv["best"]["score"],
+            "ch3_n": cv["ch3_n"],
+        },
         "cv_neg_abstain": cv.get("neg_abstain"),
         "cv_noregress": cv.get("noregress"),
         "cv_grid_top10": cv["grid_top"],
@@ -1602,15 +1931,17 @@ def freeze_artifact(booster: lgb.Booster, tau_hi: float, tau_m: float,
         "cortex_features_pair_sha256": pins["cortex_features_pair_sha256"],
         "feature_names_pin_sha256": pins["feature_names_sha256"],
         "embedder_pin": pins["embedder_pin"],
-        "env": {"python": EXPECTED_ENV["python"],
-                "lightgbm": EXPECTED_ENV["lightgbm"],
-                "numpy": EXPECTED_ENV["numpy"],
-                "venv_suffix": EXPECTED_ENV["venv_suffix"]},
+        "env": {
+            "python": EXPECTED_ENV["python"],
+            "lightgbm": EXPECTED_ENV["lightgbm"],
+            "numpy": EXPECTED_ENV["numpy"],
+            "venv_suffix": EXPECTED_ENV["venv_suffix"],
+        },
         "seed": SEED,
         "boundary_v1": "cos_target enters as the declared constant "
-                       f"{SIMILARITY_CONSTANT} (no measured vector leg in "
-                       "corpus v1); the vector leg joins the Choice contract "
-                       "in a later engine wave",
+        f"{SIMILARITY_CONSTANT} (no measured vector leg in "
+        "corpus v1); the vector leg joins the Choice contract "
+        "in a later engine wave",
     }
     if neg_manifest is not None:
         committed_doc["corpus_v1_1"] = {
@@ -1627,22 +1958,33 @@ def freeze_artifact(booster: lgb.Booster, tau_hi: float, tau_m: float,
             if "noharm_surface" in v1:
                 committed_doc["noharm_surface"] = v1["noharm_surface"]
     committed_doc["committed_doc_sha256"] = sha256_text(
-        json.dumps(committed_doc, ensure_ascii=False, sort_keys=True))
-    committed.write_text(json.dumps(committed_doc, ensure_ascii=False, indent=1),
-                         encoding="utf-8")
-    log("artifact_frozen", durable=str(durable), durable_sha256=art_sha,
-        committed=str(committed), thresholds=art["thresholds"])
+        json.dumps(committed_doc, ensure_ascii=False, sort_keys=True)
+    )
+    committed.write_text(
+        json.dumps(committed_doc, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
+    log(
+        "artifact_frozen",
+        durable=str(durable),
+        durable_sha256=art_sha,
+        committed=str(committed),
+        thresholds=art["thresholds"],
+    )
     return durable, committed, art_sha
 
 
 def load_frozen(path: Path) -> tuple[lgb.Booster, float, float]:
     art = json.loads(path.read_text(encoding="utf-8"))
     t = art["thresholds"]
-    return lgb.Booster(model_str=art["booster_model_string"]), \
-        float(t["tau_hi"]), float(t["tau_m"])
+    return (
+        lgb.Booster(model_str=art["booster_model_string"]),
+        float(t["tau_hi"]),
+        float(t["tau_m"]),
+    )
 
 
 # --- subcommand: train --------------------------------------------------------
+
 
 def cmd_train(args: argparse.Namespace) -> int:
     global _SLICE, ART_NAME, DOC_OUT
@@ -1650,16 +1992,25 @@ def cmd_train(args: argparse.Namespace) -> int:
     ART_NAME = args.artifact_name
     DOC_OUT = Path(args.doc_out)
     if DOC_OUT.exists():
-        raise InstrumentAbort(f"committed doc already exists: {DOC_OUT} — "
-                              "re-freeze over an existing doc is forbidden")
+        raise InstrumentAbort(
+            f"committed doc already exists: {DOC_OUT} — "
+            "re-freeze over an existing doc is forbidden"
+        )
     durable_path = ART_DIR / ART_NAME
     if durable_path.exists():
-        raise InstrumentAbort(f"durable artifact already exists: {durable_path} "
-                              "— refreeze over frozen bytes is forbidden")
+        raise InstrumentAbort(
+            f"durable artifact already exists: {durable_path} "
+            "— refreeze over frozen bytes is forbidden"
+        )
     started = dt.datetime.now(dt.timezone.utc)
-    log("cost_declaration", expected_prolog_s=2, expected_cycle_s=180,
-        expected_peak_ram_gb=1.5, run_tag=args.run_tag,
-        lane="light (draft §9): LightGBM cycle, direct sequential run allowed")
+    log(
+        "cost_declaration",
+        expected_prolog_s=2,
+        expected_cycle_s=180,
+        expected_peak_ram_gb=1.5,
+        run_tag=args.run_tag,
+        lane="light (draft §9): LightGBM cycle, direct sequential run allowed",
+    )
     pro = prologue()
     clusters = frozen_inputs(pro["manifest"])
 
@@ -1670,10 +2021,11 @@ def cmd_train(args: argparse.Namespace) -> int:
     # no negatives, no null overrides) for exact reproduction; the recorded
     # table runs on the EFFECTIVE corpus (with the ADDENDUM-4 null
     # coverage, sentinel-wrapped)
-    v1_clusters = [_cluster_from_row(json.loads(line))
-                   for line in open(TRAIN_JSONL, encoding="utf-8")]
-    check_baselines_vs_manifest(pro["manifest"],
-                                baselines_per_stratum(v1_clusters))
+    v1_clusters = [
+        _cluster_from_row(json.loads(line))
+        for line in open(TRAIN_JSONL, encoding="utf-8")
+    ]
+    check_baselines_vs_manifest(pro["manifest"], baselines_per_stratum(v1_clusters))
     baselines = baselines_per_stratum(clusters, sentinel=True)
 
     cv = cv_thresholds(clusters)
@@ -1685,13 +2037,18 @@ def cmd_train(args: argparse.Namespace) -> int:
     booster2 = fit_booster(xs, ys)
     s1 = booster.model_to_string()
     s2 = booster2.model_to_string()
-    log("determinism_selfcheck", boosters_byte_equal=bool(s1 == s2),
-        n_rows=int(len(ys)), positives=int(ys.sum()))
+    log(
+        "determinism_selfcheck",
+        boosters_byte_equal=bool(s1 == s2),
+        n_rows=int(len(ys)),
+        positives=int(ys.sum()),
+    )
     if s1 != s2:
         raise InstrumentAbort("booster not byte-deterministic across two fits")
 
     durable, _committed, art_sha = freeze_artifact(
-        booster, tau_hi, tau_m, cv, baselines, pro["pins"])
+        booster, tau_hi, tau_m, cv, baselines, pro["pins"]
+    )
 
     # sanity suite on the FROZEN artifact (proves the load path too)
     fm, f_hi, f_m = load_frozen(durable)
@@ -1706,19 +2063,31 @@ def cmd_train(args: argparse.Namespace) -> int:
             abst_n += 1
         elif d.get("member") == c.label["member"]:
             ok_n += 1
-    log("train_ch3_insampling", n=len(ch3), acc=round(ok_n / len(ch3), 4),
+    log(
+        "train_ch3_insampling",
+        n=len(ch3),
+        acc=round(ok_n / len(ch3), 4),
         abstain_rate=round(abst_n / len(ch3), 4),
-        note="in-sample diagnostic; the selection number is the CV OOF row")
+        note="in-sample diagnostic; the selection number is the CV OOF row",
+    )
 
     wall = (dt.datetime.now(dt.timezone.utc) - started).total_seconds()
-    log("train_done", status="GREEN", wall_s=round(wall, 1),
-        tau_hi=f_hi, tau_m=f_m, artifact_sha256=art_sha, cv_best=cv["best"],
+    log(
+        "train_done",
+        status="GREEN",
+        wall_s=round(wall, 1),
+        tau_hi=f_hi,
+        tau_m=f_m,
+        artifact_sha256=art_sha,
+        cv_best=cv["best"],
         note="thresholds FROZEN before any sealed read (N2); the single-shot "
-             "gate run stays unexecuted in this phase")
+        "gate run stays unexecuted in this phase",
+    )
     return 0
 
 
 # --- Choice v2: zone asserts, contour ctx, v2 freeze, train-v2 ----------------
+
 
 def assert_zone_ch3_zero_v2(clusters: list[lib.Cluster], vec: VecLeg) -> None:
     """A-zone-ch3-zero (ADDENDUM-6 §2): 0 CH-3 pairs inside the zone over
@@ -1740,18 +2109,25 @@ def assert_zone_ch3_zero_v2(clusters: list[lib.Cluster], vec: VecLeg) -> None:
                 worst["zeps"] = max(worst["zeps"], int(m["zeps"]))
                 if zone_hit_pair(m):
                     hits += 1
-    log("a_zone_ch3_zero", pairs=pairs, hits=hits,
-        worst={"cos": round(worst["cos"], 6),
-               "char5": round(worst["char5"], 6), "zeps": worst["zeps"]},
+    log(
+        "a_zone_ch3_zero",
+        pairs=pairs,
+        hits=hits,
+        worst={
+            "cos": round(worst["cos"], 6),
+            "char5": round(worst["char5"], 6),
+            "zeps": worst["zeps"],
+        },
         zone=ZONE_V1["rule"],
-        note="incl. transitive chain pairs (stricter than the author-side 264)")
+        note="incl. transitive chain pairs (stricter than the author-side 264)",
+    )
     if hits:
         raise InstrumentAbort(f"A-zone-ch3-zero RED: {hits} CH-3 pairs in zone")
 
 
-def resolve_ctx(artifact_path: Path,
-                with_zone: bool = True) -> tuple[lgb.Booster, float, float,
-                                                 "dict | None"]:
+def resolve_ctx(
+    artifact_path: Path, with_zone: bool = True
+) -> tuple[lgb.Booster, float, float, "dict | None"]:
     """Load a frozen artifact and build its contour ctx (fail-closed).
 
     A 25-feature artifact -> ctx=None (the exact v1 contour). A Choice-v2
@@ -1764,19 +2140,28 @@ def resolve_ctx(artifact_path: Path,
     names = art.get("feature_names") or MEMBER_FEATURE_NAMES
     if len(names) == len(MEMBER_FEATURE_NAMES):
         if with_zone and art.get("zone_v1"):
-            raise InstrumentAbort("v1-width artifact declares zone_v1 — "
-                                  "inconsistent artifact")
+            raise InstrumentAbort(
+                "v1-width artifact declares zone_v1 — inconsistent artifact"
+            )
         return booster, tau_hi, tau_m, None
     if with_zone and not art.get("zone_v1"):
-        raise InstrumentAbort("Choice-v2 artifact without the zone_v1 section — "
-                              "refusing an accidental zone-less contour")
+        raise InstrumentAbort(
+            "Choice-v2 artifact without the zone_v1 section — "
+            "refusing an accidental zone-less contour"
+        )
     zone = art.get("zone_v1", {}).get("constants") if with_zone else None
     return booster, tau_hi, tau_m, {"vec": VecLeg(), "zone": zone}
 
 
-def freeze_artifact_v2(booster: lgb.Booster, tau_hi: float, tau_m: float,
-                       cv: dict, baselines: dict, pins: dict,
-                       v2pins: dict) -> tuple[Path, Path, str]:
+def freeze_artifact_v2(
+    booster: lgb.Booster,
+    tau_hi: float,
+    tau_m: float,
+    cv: dict,
+    baselines: dict,
+    pins: dict,
+    v2pins: dict,
+) -> tuple[Path, Path, str]:
     """Freeze the Choice-v2 durable artifact + committed doc (ADDENDUM-6 §2):
     34-feature contract, the zone_v1 section (constants + provenance +
     known-uncovered pockets + residual risk), the v2 corpus pins, the
@@ -1784,67 +2169,80 @@ def freeze_artifact_v2(booster: lgb.Booster, tau_hi: float, tau_m: float,
     committed doc (single doc contract; the surface is untouched)."""
     durable = ART_DIR / ART_NAME
     committed = DOC_OUT
-    neg_manifest = json.loads((CORPUS_DIR / "train-negatives.manifest.json")
-                              .read_text(encoding="utf-8"))
-    neg2_manifest = json.loads((CORPUS_DIR / "train-negatives-v2.manifest.json")
-                               .read_text(encoding="utf-8"))
+    neg_manifest = json.loads(
+        (CORPUS_DIR / "train-negatives.manifest.json").read_text(encoding="utf-8")
+    )
+    neg2_manifest = json.loads(
+        (CORPUS_DIR / "train-negatives-v2.manifest.json").read_text(encoding="utf-8")
+    )
     zone_sec = {
         "constants": dict(ZONE_V1),
         "provenance": "ADDENDUM-6 §2 pos 1 (MLC 30.10 round 6, 3/3; commit "
-                      "f2b51bd): constants derived from the structural "
-                      "train-support voids train-only before seal and fixed "
-                      "by ratification (owner directive 30.10: constants "
-                      "already fixed — not re-derived); §1 legality: "
-                      "structural + one-sided (refusal-only) + indivisible "
-                      "package with the train extension + zone-off probe",
+        "f2b51bd): constants derived from the structural "
+        "train-support voids train-only before seal and fixed "
+        "by ratification (owner directive 30.10: constants "
+        "already fixed — not re-derived); §1 legality: "
+        "structural + one-sided (refusal-only) + indivisible "
+        "package with the train extension + zone-off probe",
         "residual_risk": ZONE_V1_RESIDUAL_RISK,
         "known_uncovered": ZONE_V1_KNOWN_UNCOVERED,
         "pairness": "evaluates the PAIR cos of the candidate (nano + norm1, "
-                    "the SAME convention as e_cos); any unordered pair of "
-                    "the cluster inside the zone fires",
-        "build_asserts": {"A-zone-coverage": "GREEN at generation "
-                          "(edge_gap 0.0018, max_gap 0.0196, 132 points; "
-                          "sidecar manifest coverage_after_generation)",
-                          "A-zone-ch3-zero": "0/276 at generation (DE) and "
-                          "re-asserted on the effective corpus at train time"},
+        "the SAME convention as e_cos); any unordered pair of "
+        "the cluster inside the zone fires",
+        "build_asserts": {
+            "A-zone-coverage": "GREEN at generation "
+            "(edge_gap 0.0018, max_gap 0.0196, 132 points; "
+            "sidecar manifest coverage_after_generation)",
+            "A-zone-ch3-zero": "0/276 at generation (DE) and "
+            "re-asserted on the effective corpus at train time",
+        },
     }
     art = {
         "artifact": "vesma-cortex-merge-v2 (Choice v2, ADDENDUM-6)",
-        "frozen_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="milliseconds"),
-        "thresholds": {"tau_hi": tau_hi, "tau_m": tau_m,
-                       "rule": "keep=argmax e_i iff e1>=tau_hi and e1-e2>=tau_m; "
-                               "else ABSTAIN (draft §2.2); the zone-v1 leg "
-                               "precedes the model leg and refuses only",
-                       "fit": "train-only 5-fold CV by clusters, pairwise-disjoint "
-                              "folds, seed 42; NO sealed surface used for any "
-                              "choice (N2); CV readers measure the MODEL leg "
-                              "only (the zone does not make the riders green)"},
+        "frozen_at": dt.datetime.now(dt.timezone.utc).isoformat(
+            timespec="milliseconds"
+        ),
+        "thresholds": {
+            "tau_hi": tau_hi,
+            "tau_m": tau_m,
+            "rule": "keep=argmax e_i iff e1>=tau_hi and e1-e2>=tau_m; "
+            "else ABSTAIN (draft §2.2); the zone-v1 leg "
+            "precedes the model leg and refuses only",
+            "fit": "train-only 5-fold CV by clusters, pairwise-disjoint "
+            "folds, seed 42; NO sealed surface used for any "
+            "choice (N2); CV readers measure the MODEL leg "
+            "only (the zone does not make the riders green)",
+        },
         "feature_names": list(V2_FEATURE_NAMES),
         "similarity_constant": SIMILARITY_CONSTANT,
         "lgb_params": dict(LGB_PARAMS),
         "booster_model_string": booster.model_to_string(),
-        "cv": {"best": cv["best"], "top10": cv["grid_top"],
-               "ch3_n": cv["ch3_n"], "folds": cv["folds"],
-               "neg_abstain": cv.get("neg_abstain"),
-               "noregress": cv.get("noregress")},
+        "cv": {
+            "best": cv["best"],
+            "top10": cv["grid_top"],
+            "ch3_n": cv["ch3_n"],
+            "folds": cv["folds"],
+            "neg_abstain": cv.get("neg_abstain"),
+            "noregress": cv.get("noregress"),
+        },
         "zone_v1": zone_sec,
         "convention": {
             "embedder_pin": lib.EMBEDDER_PIN,
             "embed_text": "n1(title)\\nn1(body)\\nn1(space-joined tags), "
-                          "[:4096]; n1 = lower + whitespace-collapse "
-                          "(release/6.6.0, 458fffc; shim vesmaro->vesma "
-                          "unconditional — empty namespace husk)",
+            "[:4096]; n1 = lower + whitespace-collapse "
+            "(release/6.6.0, 458fffc; shim vesmaro->vesma "
+            "unconditional — empty namespace husk)",
             "char5": "frozen cortex.features.pair (its n-gram text is norm1; "
-                     "the similarity input feeds cos_target only)",
+            "the similarity input feeds cos_target only)",
             "zeps": "7 eps-flags (eps=0.01, framing §2.4), generator-oracle "
-                    "cross-checked on every pair (fail-closed)",
+            "cross-checked on every pair (fail-closed)",
             "dir": "construction-only parameter of the digit-lookalike "
-                   "strata (ADDENDUM-6 pos 4); NOT an inference feature",
+            "strata (ADDENDUM-6 pos 4); NOT an inference feature",
         },
         "baselines_per_stratum_train": baselines,
         "corpus": {
             "recipe": "Choice v2 = corpus v1.1 (600 + 200, byte-identical) "
-                      "+ 4 theme-near v2 strata (178, ADDENDUM-6 §2 pos 5)",
+            "+ 4 theme-near v2 strata (178, ADDENDUM-6 §2 pos 5)",
             "train_jsonl_sha256": pins["train_jsonl_sha256"],
             "negatives_sha256": neg_manifest["negatives_sha256"],
             "negatives_v2_sha256": NEG2_EXPECTED_SHA256,
@@ -1853,13 +2251,15 @@ def freeze_artifact_v2(booster: lgb.Booster, tau_hi: float, tau_m: float,
             "seeds": neg2_manifest["seeds"],
             "negative_mass": neg2_manifest["negative_mass"],
         },
-        "pins": {**pins, "neg2_sha256": v2pins["neg2_sha256"],
-                 "null2_sha256": v2pins["null2_sha256"],
-                 "corpus_fp_v2": v2pins["corpus_fp_v2"]},
+        "pins": {
+            **pins,
+            "neg2_sha256": v2pins["neg2_sha256"],
+            "null2_sha256": v2pins["null2_sha256"],
+            "corpus_fp_v2": v2pins["corpus_fp_v2"],
+        },
     }
     art_sha = ""
-    durable.write_text(json.dumps(art, ensure_ascii=False, indent=1),
-                       encoding="utf-8")
+    durable.write_text(json.dumps(art, ensure_ascii=False, indent=1), encoding="utf-8")
     art_sha = sha256_file(durable)
 
     committed_doc = {
@@ -1869,12 +2269,14 @@ def freeze_artifact_v2(booster: lgb.Booster, tau_hi: float, tau_m: float,
         "zone_v1": zone_sec,
         "convention": art["convention"],
         "ratification": "ADDENDUM-6 (MLC 30.10 round 6, commit f2b51bd) + "
-                        "ML-STD-0004 (declared floor); owner sanction 30.10 "
-                        "«фич-работа v2»; one cycle §3 ADDENDUM-3, no cuts",
-        "cv_ch3_oof": {"acc": cv["best"]["acc_ch3"],
-                       "abstain_rate": cv["best"]["abstain_rate_ch3"],
-                       "score": cv["best"]["score"],
-                       "ch3_n": cv["ch3_n"]},
+        "ML-STD-0004 (declared floor); owner sanction 30.10 "
+        "«фич-работа v2»; one cycle §3 ADDENDUM-3, no cuts",
+        "cv_ch3_oof": {
+            "acc": cv["best"]["acc_ch3"],
+            "abstain_rate": cv["best"]["abstain_rate_ch3"],
+            "score": cv["best"]["score"],
+            "ch3_n": cv["ch3_n"],
+        },
         "cv_neg_abstain": cv.get("neg_abstain"),
         "cv_noregress": cv.get("noregress"),
         "cv_grid_top10": cv["grid_top"],
@@ -1892,26 +2294,36 @@ def freeze_artifact_v2(booster: lgb.Booster, tau_hi: float, tau_m: float,
         "negatives_v2_sha256": NEG2_EXPECTED_SHA256,
         "null_envelope_v2_sha256": NULL2_EXPECTED_SHA256,
         "corpus_fp_v2": v2pins["corpus_fp_v2"],
-        "env": {"python": EXPECTED_ENV["python"],
-                "lightgbm": EXPECTED_ENV["lightgbm"],
-                "numpy": EXPECTED_ENV["numpy"],
-                "venv_suffix": EXPECTED_ENV["venv_suffix"]},
+        "env": {
+            "python": EXPECTED_ENV["python"],
+            "lightgbm": EXPECTED_ENV["lightgbm"],
+            "numpy": EXPECTED_ENV["numpy"],
+            "venv_suffix": EXPECTED_ENV["venv_suffix"],
+        },
         "seed": SEED,
         "boundary_v2": "e_cos is MEASURED (pinned nano on norm1; the v1 "
-                       "declared-constant boundary is retired for v2); the "
-                       "zone-v1 leg precedes the model leg and refuses only",
+        "declared-constant boundary is retired for v2); the "
+        "zone-v1 leg precedes the model leg and refuses only",
     }
     if COMMITTED_DOC.exists():
         v1_doc = json.loads(COMMITTED_DOC.read_text(encoding="utf-8"))
         if "noharm_surface" in v1_doc:
             committed_doc["noharm_surface"] = v1_doc["noharm_surface"]
     committed_doc["committed_doc_sha256"] = sha256_text(
-        json.dumps(committed_doc, ensure_ascii=False, sort_keys=True))
-    committed.write_text(json.dumps(committed_doc, ensure_ascii=False, indent=1),
-                         encoding="utf-8")
-    log("artifact_frozen_v2", durable=str(durable), durable_sha256=art_sha,
-        committed=str(committed), thresholds=art["thresholds"],
-        n_features=len(V2_FEATURE_NAMES), zone=ZONE_V1["rule"])
+        json.dumps(committed_doc, ensure_ascii=False, sort_keys=True)
+    )
+    committed.write_text(
+        json.dumps(committed_doc, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
+    log(
+        "artifact_frozen_v2",
+        durable=str(durable),
+        durable_sha256=art_sha,
+        committed=str(committed),
+        thresholds=art["thresholds"],
+        n_features=len(V2_FEATURE_NAMES),
+        zone=ZONE_V1["rule"],
+    )
     return durable, committed, art_sha
 
 
@@ -1925,17 +2337,26 @@ def cmd_train_v2(args: argparse.Namespace) -> int:
     ART_NAME = args.artifact_name
     DOC_OUT = Path(args.doc_out)
     if DOC_OUT.exists():
-        raise InstrumentAbort(f"committed doc already exists: {DOC_OUT} — "
-                              "re-freeze over an existing doc is forbidden")
+        raise InstrumentAbort(
+            f"committed doc already exists: {DOC_OUT} — "
+            "re-freeze over an existing doc is forbidden"
+        )
     durable_path = ART_DIR / ART_NAME
     if durable_path.exists():
-        raise InstrumentAbort(f"durable artifact already exists: {durable_path} "
-                              "— refreeze over frozen bytes is forbidden")
+        raise InstrumentAbort(
+            f"durable artifact already exists: {durable_path} "
+            "— refreeze over frozen bytes is forbidden"
+        )
     started = dt.datetime.now(dt.timezone.utc)
-    log("cost_declaration", expected_prolog_s=3, expected_cycle_s=1500,
-        expected_peak_ram_gb=2.5, run_tag=args.run_tag,
+    log(
+        "cost_declaration",
+        expected_prolog_s=3,
+        expected_cycle_s=1500,
+        expected_peak_ram_gb=2.5,
+        run_tag=args.run_tag,
         lane="v2 light+: LightGBM cycle + pinned nano embedder (disk-cached); "
-             "sequential, single lane")
+        "sequential, single lane",
+    )
     pro = prologue()
     v2pins = v2_tripwire()
     clusters = frozen_inputs(pro["manifest"])
@@ -1947,10 +2368,11 @@ def cmd_train_v2(args: argparse.Namespace) -> int:
     # train-side baselines: the manifest check runs on the ORIGINAL 600
     # (exact reproduction of the build characterization, unchanged); the
     # recorded table runs on the EFFECTIVE v2 corpus (sentinel-wrapped)
-    v1_clusters = [_cluster_from_row(json.loads(line))
-                   for line in open(TRAIN_JSONL, encoding="utf-8")]
-    check_baselines_vs_manifest(pro["manifest"],
-                                baselines_per_stratum(v1_clusters))
+    v1_clusters = [
+        _cluster_from_row(json.loads(line))
+        for line in open(TRAIN_JSONL, encoding="utf-8")
+    ]
+    check_baselines_vs_manifest(pro["manifest"], baselines_per_stratum(v1_clusters))
     baselines = baselines_per_stratum(clusters, sentinel=True)
 
     cv = cv_thresholds(clusters, vec=vec)
@@ -1962,13 +2384,18 @@ def cmd_train_v2(args: argparse.Namespace) -> int:
     booster2 = fit_booster(xs, ys)
     s1 = booster.model_to_string()
     s2 = booster2.model_to_string()
-    log("determinism_selfcheck", boosters_byte_equal=bool(s1 == s2),
-        n_rows=int(len(ys)), positives=int(ys.sum()))
+    log(
+        "determinism_selfcheck",
+        boosters_byte_equal=bool(s1 == s2),
+        n_rows=int(len(ys)),
+        positives=int(ys.sum()),
+    )
     if s1 != s2:
         raise InstrumentAbort("booster not byte-deterministic across two fits")
 
     durable, _committed, art_sha = freeze_artifact_v2(
-        booster, tau_hi, tau_m, cv, baselines, pro["pins"], v2pins)
+        booster, tau_hi, tau_m, cv, baselines, pro["pins"], v2pins
+    )
 
     # sanity suite on the FROZEN artifact through the FULL v2 contour
     fbooster, f_hi, f_m, fctx = resolve_ctx(durable, with_zone=True)
@@ -1985,29 +2412,41 @@ def cmd_train_v2(args: argparse.Namespace) -> int:
             abst_n += 1
         elif d.get("member") == c.label["member"]:
             ok_n += 1
-    log("train_ch3_insampling", n=len(ch3), acc=round(ok_n / len(ch3), 4),
-        abstain_rate=round(abst_n / len(ch3), 4), zone_fired=zone_n,
+    log(
+        "train_ch3_insampling",
+        n=len(ch3),
+        acc=round(ok_n / len(ch3), 4),
+        abstain_rate=round(abst_n / len(ch3), 4),
+        zone_fired=zone_n,
         note="in-sample diagnostic; the selection number is the CV OOF row; "
-             "zone_fired must be 0 (A-zone-ch3-zero)")
+        "zone_fired must be 0 (A-zone-ch3-zero)",
+    )
     if zone_n:
-        raise InstrumentAbort("zone fired on train CH-3 in-sample — "
-                              "A-zone-ch3-zero drift")
+        raise InstrumentAbort(
+            "zone fired on train CH-3 in-sample — A-zone-ch3-zero drift"
+        )
 
     wall = (dt.datetime.now(dt.timezone.utc) - started).total_seconds()
-    log("train_v2_done", status="GREEN", wall_s=round(wall, 1),
-        tau_hi=f_hi, tau_m=f_m, artifact_sha256=art_sha, cv_best=cv["best"],
+    log(
+        "train_v2_done",
+        status="GREEN",
+        wall_s=round(wall, 1),
+        tau_hi=f_hi,
+        tau_m=f_m,
+        artifact_sha256=art_sha,
+        cv_best=cv["best"],
         n_features=len(V2_FEATURE_NAMES),
         note="thresholds FROZEN before any sealed read (N2); the single-shot "
-             "gate run stays unexecuted in this phase")
+        "gate run stays unexecuted in this phase",
+    )
     return 0
-
-
 
 
 def _gate_leg_draw(seed: int) -> list[lib.Cluster]:
     """CH-3 gate-leg composition (22 k2 + 3 chain), frozen build recipe."""
-    return mb.gen_family(seed, dict(_FLOOR_QUOTA_FULL), set(),
-                         f"ma-fl-{seed}", f"ma-flseed{seed}")
+    return mb.gen_family(
+        seed, dict(_FLOOR_QUOTA_FULL), set(), f"ma-fl-{seed}", f"ma-flseed{seed}"
+    )
 
 
 def cmd_floors_composition(args: argparse.Namespace) -> int:
@@ -2019,31 +2458,49 @@ def cmd_floors_composition(args: argparse.Namespace) -> int:
     doc; fixed BEFORE gate_start."""
     global _SLICE
     _SLICE = SLICE_FLOOR
-    log("cost_declaration", expected_prolog_s=2, expected_cycle_s=120,
-        expected_peak_ram_gb=1.0, lane="light (draft §9)")
+    log(
+        "cost_declaration",
+        expected_prolog_s=2,
+        expected_cycle_s=120,
+        expected_peak_ram_gb=1.0,
+        lane="light (draft §9)",
+    )
     pro = prologue(expected_artifact=Path(args.artifact))
     model, tau_hi, tau_m = load_frozen(Path(args.artifact))
     doc_path = Path(args.doc_out)
     doc = json.loads(doc_path.read_text(encoding="utf-8"))
     if "floors_v2" in doc:
-        raise InstrumentAbort("floors_v2 already present — re-derivation "
-                              "forbidden (fixed BEFORE gate_start)")
+        raise InstrumentAbort(
+            "floors_v2 already present — re-derivation "
+            "forbidden (fixed BEFORE gate_start)"
+        )
 
     q_seeds = _parse_seeds(args.q_seeds)
     q_rates = []
     for seed in q_seeds:
         fam = _gate_leg_draw(seed)
-        abst = sum(1 for c in fam
-                   if arbitrate_production(c, model, tau_hi, tau_m)
-                   ["verdict"] == "abstain") / len(fam)
+        abst = sum(
+            1
+            for c in fam
+            if arbitrate_production(c, model, tau_hi, tau_m)["verdict"] == "abstain"
+        ) / len(fam)
         q_rates.append(round(abst, 4))
-    floor_q = max(abs(a - b) for i, a in enumerate(q_rates)
-                  for b in q_rates[i + 1:]) if len(q_rates) > 1 else 0.0
+    floor_q = (
+        max(abs(a - b) for i, a in enumerate(q_rates) for b in q_rates[i + 1 :])
+        if len(q_rates) > 1
+        else 0.0
+    )
     p90_char = sorted(q_rates)[int(round(0.9 * (len(q_rates) - 1)))] if q_rates else 0.0
     q = max(0.20, p90_char + 2 * floor_q)
-    log("floor_q_measure", seeds=q_seeds, rates=q_rates, p90_char=p90_char,
-        floor_q=round(floor_q, 4), q=round(q, 4),
-        formula="q := max(0.20; p90_char + 2*floor_q)")
+    log(
+        "floor_q_measure",
+        seeds=q_seeds,
+        rates=q_rates,
+        p90_char=p90_char,
+        floor_q=round(floor_q, 4),
+        q=round(q, 4),
+        formula="q := max(0.20; p90_char + 2*floor_q)",
+    )
 
     # floor_inv: cosmetic variation on train fold-eligible clusters, 3 draws
     eligible = [c for c in load_train() if c.stratum in ("CH-3", "CH-5")]
@@ -2055,21 +2512,38 @@ def cmd_floors_composition(args: argparse.Namespace) -> int:
         for c in sample:
             base = arbitrate_production(c, model, tau_hi, tau_m)
             pert = lib.Cluster(
-                cid=c.cid, stratum=c.stratum, substratum=c.substratum,
-                members=[lib.Member(m.mid, m.title,
-                                    lib.cosmetic_variant(m.body, rng),
-                                    m.tags, m.record_type, m.language,
-                                    m.created_at)
-                         for m in c.members],
-                label=c.label, declaration=c.declaration)
+                cid=c.cid,
+                stratum=c.stratum,
+                substratum=c.substratum,
+                members=[
+                    lib.Member(
+                        m.mid,
+                        m.title,
+                        lib.cosmetic_variant(m.body, rng),
+                        m.tags,
+                        m.record_type,
+                        m.language,
+                        m.created_at,
+                    )
+                    for m in c.members
+                ],
+                label=c.label,
+                declaration=c.declaration,
+            )
             alt = arbitrate_production(pert, model, tau_hi, tau_m)
-            dis += int(base["verdict"] != alt["verdict"]
-                       or base.get("member") != alt.get("member"))
+            dis += int(
+                base["verdict"] != alt["verdict"]
+                or base.get("member") != alt.get("member")
+            )
         inv_disagreements.append(round(dis / len(sample), 4))
     floor_inv = max(inv_disagreements) if inv_disagreements else 0.0
-    log("floor_inv_measure", draws=args.inv_seeds,
-        disagreement_rates=inv_disagreements, floor_inv=floor_inv,
-        delta_inv_formula="delta_inv := 2*floor_inv")
+    log(
+        "floor_inv_measure",
+        draws=args.inv_seeds,
+        disagreement_rates=inv_disagreements,
+        floor_inv=floor_inv,
+        delta_inv_formula="delta_inv := 2*floor_inv",
+    )
 
     # floor_perm: order permutation on a train sample, 3 permutations
     pairs = [c for c in eligible if len(c.members) == 2]
@@ -2079,46 +2553,70 @@ def cmd_floors_composition(args: argparse.Namespace) -> int:
         delta = 0
         for c in sample:
             base = arbitrate_production(c, model, tau_hi, tau_m)
-            rev = lib.Cluster(cid=c.cid, stratum=c.stratum,
-                              substratum=c.substratum,
-                              members=list(reversed(c.members)),
-                              label=c.label, declaration=c.declaration)
+            rev = lib.Cluster(
+                cid=c.cid,
+                stratum=c.stratum,
+                substratum=c.substratum,
+                members=list(reversed(c.members)),
+                label=c.label,
+                declaration=c.declaration,
+            )
             alt = arbitrate_production(rev, model, tau_hi, tau_m)
-            delta += int(base["verdict"] != alt["verdict"]
-                         or base.get("member") != alt.get("member"))
+            delta += int(
+                base["verdict"] != alt["verdict"]
+                or base.get("member") != alt.get("member")
+            )
         perm_deltas.append(round(delta / len(sample), 4))
     floor_perm = max(perm_deltas) if perm_deltas else 0.0
-    log("floor_perm_measure", perms=args.perm_seeds, delta_rates=perm_deltas,
+    log(
+        "floor_perm_measure",
+        perms=args.perm_seeds,
+        delta_rates=perm_deltas,
         floor_perm=floor_perm,
         note="structurally 0: member features are bit-identical under "
-             "presentation permutation (machine-asserted)")
+        "presentation permutation (machine-asserted)",
+    )
 
     doc["floors_v2"] = {
         "artifact_sha256": pro["pins"]["artifact_sha256"],
-        "floor_q": {"seeds": q_seeds, "rates": q_rates,
-                    "p90_char": p90_char, "floor": round(floor_q, 4)},
+        "floor_q": {
+            "seeds": q_seeds,
+            "rates": q_rates,
+            "p90_char": p90_char,
+            "floor": round(floor_q, 4),
+        },
         "q": round(q, 4),
-        "floor_inv": {"draws": args.inv_seeds,
-                      "disagreement_rates": inv_disagreements,
-                      "floor": floor_inv},
+        "floor_inv": {
+            "draws": args.inv_seeds,
+            "disagreement_rates": inv_disagreements,
+            "floor": floor_inv,
+        },
         "delta_inv": round(2 * floor_inv, 4),
-        "floor_perm": {"perms": args.perm_seeds, "delta_rates": perm_deltas,
-                       "floor": floor_perm},
+        "floor_perm": {
+            "perms": args.perm_seeds,
+            "delta_rates": perm_deltas,
+            "floor": floor_perm,
+        },
         "measured_at": dt.datetime.now(dt.timezone.utc).isoformat(
-            timespec="milliseconds"),
+            timespec="milliseconds"
+        ),
         "remeasure_after_single_shot": "FORBIDDEN",
     }
     doc.pop("committed_doc_sha256", None)
     doc["committed_doc_sha256"] = sha256_text(
-        json.dumps(doc, ensure_ascii=False, sort_keys=True))
-    doc_path.write_text(json.dumps(doc, ensure_ascii=False, indent=1),
-                        encoding="utf-8")
-    log("committed_doc_updated", path=str(doc_path),
-        floors=["floor_q", "floor_inv", "floor_perm"])
+        json.dumps(doc, ensure_ascii=False, sort_keys=True)
+    )
+    doc_path.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
+    log(
+        "committed_doc_updated",
+        path=str(doc_path),
+        floors=["floor_q", "floor_inv", "floor_perm"],
+    )
     return 0
 
 
 # --- Choice v2 floors (ML-STD-0004 declared floor, stage 2) -------------------
+
 
 def _dist(values: list[float]) -> dict:
     """The ML-STD-0004 published distribution: median, p5, p95,
@@ -2128,13 +2626,17 @@ def _dist(values: list[float]) -> dict:
     med = float(np.median(values))
     p5 = float(np.percentile(values, 5))
     p95 = float(np.percentile(values, 95))
-    mp = max((abs(a - b) for i, a in enumerate(values)
-              for b in values[i + 1:]), default=0.0)
-    return {"n": len(values),
-            "median": round(med, 6), "p5": round(p5, 6), "p95": round(p95, 6),
-            "max_pairwise": round(mp, 6),
-            "method": "numpy.percentile linear interpolation (numpy "
-                      f"{np.__version__})"}
+    mp = max(
+        (abs(a - b) for i, a in enumerate(values) for b in values[i + 1 :]), default=0.0
+    )
+    return {
+        "n": len(values),
+        "median": round(med, 6),
+        "p5": round(p5, 6),
+        "p95": round(p95, 6),
+        "max_pairwise": round(mp, 6),
+        "method": f"numpy.percentile linear interpolation (numpy {np.__version__})",
+    }
 
 
 def cmd_floors_v2(args: argparse.Namespace) -> int:
@@ -2149,68 +2651,90 @@ def cmd_floors_v2(args: argparse.Namespace) -> int:
     global _SLICE
     _SLICE = SLICE_FLOOR_V2
     started = dt.datetime.now(dt.timezone.utc)
-    log("cost_declaration", expected_prolog_s=3, expected_cycle_s=1800,
+    log(
+        "cost_declaration",
+        expected_prolog_s=3,
+        expected_cycle_s=1800,
         expected_peak_ram_gb=2.5,
         lane="v2 light+: 10 seed draws + 10 q draws through the v2 contour "
-             "(embedder disk-cached); sequential, single lane")
+        "(embedder disk-cached); sequential, single lane",
+    )
     pro = prologue(expected_artifact=Path(args.artifact))
     booster, tau_hi, tau_m, ctx = resolve_ctx(Path(args.artifact), with_zone=True)
     model_sha = pro["pins"]["artifact_sha256"]
     doc_path = Path(args.doc_out)
     doc = json.loads(doc_path.read_text(encoding="utf-8"))
     if "delta_acc_measure_v2" in doc:
-        raise InstrumentAbort("delta_acc_measure_v2 already present — "
-                              "re-derivation is forbidden (ML-STD-0004 П3/П6; "
-                              "the v1 delta_acc_measure section is NOT reused)")
+        raise InstrumentAbort(
+            "delta_acc_measure_v2 already present — "
+            "re-derivation is forbidden (ML-STD-0004 П3/П6; "
+            "the v1 delta_acc_measure section is NOT reused)"
+        )
 
     # П1 order assert: stage 1 (formula committed) STRICTLY BEFORE stage 2
     # (first draw) — enforced by the runner, not by agreement.
-    r = subprocess.run(["git", "merge-base", "--is-ancestor",
-                        STD0004_FORMULA_COMMIT, "HEAD"], cwd=REPO,
-                       capture_output=True)
-    log("std0004_order_assert",
-        formula_commit=STD0004_FORMULA_COMMIT, is_ancestor=r.returncode == 0,
+    r = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", STD0004_FORMULA_COMMIT, "HEAD"],
+        cwd=REPO,
+        capture_output=True,
+    )
+    log(
+        "std0004_order_assert",
+        formula_commit=STD0004_FORMULA_COMMIT,
+        is_ancestor=r.returncode == 0,
         formula=DELTA_ACC_FORMULA,
         stage1="ML-STD-0004 §1/П2: formula fixed BEFORE any v2 draw "
-               "(commit 5305c82, 2026-10-30, MLC round 6)",
+        "(commit 5305c82, 2026-10-30, MLC round 6)",
         stage2="this run: draws -> published distribution -> frozen delta_acc "
-               "-> gate_start",
-        ok=r.returncode == 0)
+        "-> gate_start",
+        ok=r.returncode == 0,
+    )
     if r.returncode != 0:
-        raise InstrumentAbort("ML-STD-0004 П1 order assert RED: the stage-1 "
-                              f"formula commit {STD0004_FORMULA_COMMIT} is not "
-                              "an ancestor of HEAD")
+        raise InstrumentAbort(
+            "ML-STD-0004 П1 order assert RED: the stage-1 "
+            f"formula commit {STD0004_FORMULA_COMMIT} is not "
+            "an ancestor of HEAD"
+        )
 
-    log("floor_seed_v2_measure_start",
-        seeds=FLOOR_SEEDS, n_draws=len(FLOOR_SEEDS),
+    log(
+        "floor_seed_v2_measure_start",
+        seeds=FLOOR_SEEDS,
+        n_draws=len(FLOOR_SEEDS),
         gate_leg_quota=FLOOR_LEG_QUOTA,
         recipe="mb.gen_family (frozen build recipe, same code path)",
         model_sha256=model_sha,
         contour="production §5.1 WITH the zone-v1 leg (the gating statistic "
-                "is the COMPOSITION zone+model; ADDENDUM-6 §3)",
+        "is the COMPOSITION zone+model; ADDENDUM-6 §3)",
         statistic="acc_choice(model, draw) - max pooled baseline, CH-3 "
-                  "gate-leg composition",
+        "gate-leg composition",
         delta_acc_formula=DELTA_ACC_FORMULA,
         standard="ML-STD-0004 (declared floor), stage 2",
-        note="the FROZEN v2 model is NOT retrained; fixed BEFORE gate_start")
+        note="the FROZEN v2 model is NOT retrained; fixed BEFORE gate_start",
+    )
 
     train_clusters = load_train()
     train_ids = {m.mid for c in train_clusters for m in c.members}
     train_ids |= {c.cid for c in train_clusters}
     train_scen = _train_scenario_keys()
     holdout_ids = _holdout_id_manifest()
-    log("holdout_id_manifest_read", n_ids=len(holdout_ids),
+    log(
+        "holdout_id_manifest_read",
+        n_ids=len(holdout_ids),
         content_read=False,
-        note="id-only read for the ratified disjointness leg; no content kept")
+        note="id-only read for the ratified disjointness leg; no content kept",
+    )
 
     rows = []
     for seed in _parse_seeds(args.seeds):
         used = set(train_scen)  # holdout-style exclusion (fresh per draw)
-        fam = mb.gen_family(seed, dict(_FLOOR_QUOTA_FULL), used,
-                            f"ma-fs-{seed}", f"ma-fseed{seed}")
+        fam = mb.gen_family(
+            seed, dict(_FLOOR_QUOTA_FULL), used, f"ma-fs-{seed}", f"ma-fseed{seed}"
+        )
         got: dict[tuple[str, int], int] = {}
         for c in fam:
-            got[(c.stratum, len(c.members))] = got.get((c.stratum, len(c.members)), 0) + 1
+            got[(c.stratum, len(c.members))] = (
+                got.get((c.stratum, len(c.members)), 0) + 1
+            )
         if got != {("CH-3", 2): 22, ("CH-3", 3): 3} or len(fam) != 25:
             raise InstrumentAbort(f"draw seed={seed} composition mismatch: {got}")
         draw_ids = {m.mid for c in fam for m in c.members} | {c.cid for c in fam}
@@ -2218,48 +2742,63 @@ def cmd_floors_v2(args: argparse.Namespace) -> int:
         id_holdout_hits = draw_ids & holdout_ids
         draw_scen = {c.scenario for c in fam}
         scen_hits = draw_scen & train_scen
-        log("floor_seed_draw_disjointness", seed=seed,
-            ids_train=sorted(id_train_hits), ids_holdout=sorted(id_holdout_hits),
-            scenarios_train=sorted(scen_hits))
+        log(
+            "floor_seed_draw_disjointness",
+            seed=seed,
+            ids_train=sorted(id_train_hits),
+            ids_holdout=sorted(id_holdout_hits),
+            scenarios_train=sorted(scen_hits),
+        )
         if id_train_hits or id_holdout_hits or scen_hits:
             raise InstrumentAbort(
                 f"draw seed={seed} intersects existing material: "
                 f"train_ids={sorted(id_train_hits)} "
                 f"holdout_ids={sorted(id_holdout_hits)} "
-                f"train_scenarios={sorted(scen_hits)}")
+                f"train_scenarios={sorted(scen_hits)}"
+            )
 
         hits = zone_fired = 0
         for c in fam:
             d = arbitrate_production(c, booster, tau_hi, tau_m, ctx=ctx)
             zone_fired += int(d.get("leg") == "zone-v1")
-            hits += int(d["verdict"] == "keep"
-                        and d.get("member") == c.label["member"])
+            hits += int(d["verdict"] == "keep" and d.get("member") == c.label["member"])
         if zone_fired:
             raise InstrumentAbort(
                 f"draw seed={seed}: the zone-v1 leg fired on fresh CH-3 "
                 f"({zone_fired} pairs) — composition poisoned, floors are "
-                "not measurable (report to TL, not an input fix)")
+                "not measurable (report to TL, not an input fix)"
+            )
         acc_model = hits / len(fam)
         acc_base = max(
             _pooled_acc(fam, lambda c, b=bfn: lib.correct_set_ok(c, b(c.members)))
-            for bfn in lib.BASELINES.values())
-        rows.append({"seed": seed, "n_clusters": len(fam),
-                     "acc_model": round(acc_model, 4),
-                     "acc_baseline_max": round(acc_base, 4),
-                     "delta": round(acc_model - acc_base, 4)})
+            for bfn in lib.BASELINES.values()
+        )
+        rows.append(
+            {
+                "seed": seed,
+                "n_clusters": len(fam),
+                "acc_model": round(acc_model, 4),
+                "acc_baseline_max": round(acc_base, 4),
+                "delta": round(acc_model - acc_base, 4),
+            }
+        )
         log("floor_seed_draw", **rows[-1], zone_fired=0)
 
     deltas = [r_["delta"] for r_ in rows]
     dist = _dist(deltas)
     delta_acc = max(dist["p95"] - dist["p5"], 0.10)
-    log("floor_seed_v2_measure_end",
-        per_seed=rows, floor_seed_distribution=dist,
+    log(
+        "floor_seed_v2_measure_end",
+        per_seed=rows,
+        floor_seed_distribution=dist,
         delta_acc_declared=round(delta_acc, 4),
         formula=DELTA_ACC_FORMULA,
         pairs_compared=len(deltas) * (len(deltas) - 1) // 2,
-        model_sha256=model_sha, artifact=args.artifact,
+        model_sha256=model_sha,
+        artifact=args.artifact,
         wall_s=round((dt.datetime.now(dt.timezone.utc) - started).total_seconds(), 1),
-        remeasure_after_single_shot="FORBIDDEN")
+        remeasure_after_single_shot="FORBIDDEN",
+    )
 
     # --- floor_q (gate g_abstain_sens): 10 draws, the ratified formula
     # q = max(0.20; p90_char + 2*floor_q) is NOT touched (ML-STD-0004 П4) —
@@ -2275,17 +2814,26 @@ def cmd_floors_v2(args: argparse.Namespace) -> int:
             zone_fired += int(d.get("leg") == "zone-v1")
             abst += int(d["verdict"] == "abstain")
         if zone_fired:
-            raise InstrumentAbort(f"floor_q draw seed={seed}: zone fired on "
-                                  "fresh CH-3 — composition poisoned")
+            raise InstrumentAbort(
+                f"floor_q draw seed={seed}: zone fired on "
+                "fresh CH-3 — composition poisoned"
+            )
         q_rates.append(round(abst / len(fam), 4))
     dist_q = _dist([float(x) for x in q_rates])
     floor_q = dist_q["max_pairwise"]
     p90_char = sorted(q_rates)[int(round(0.9 * (len(q_rates) - 1)))] if q_rates else 0.0
     q = max(0.20, p90_char + 2 * floor_q)
-    log("floor_q_v2_measure", seeds=q_seeds, rates=q_rates, distribution=dist_q,
-        p90_char=p90_char, floor_q=floor_q, q=round(q, 4),
+    log(
+        "floor_q_v2_measure",
+        seeds=q_seeds,
+        rates=q_rates,
+        distribution=dist_q,
+        p90_char=p90_char,
+        floor_q=floor_q,
+        q=round(q, 4),
         formula="q := max(0.20; p90_char + 2*floor_q) — unchanged (П4)",
-        note="only the distribution is new; the threshold formula is not touched")
+        note="only the distribution is new; the threshold formula is not touched",
+    )
 
     # --- floor_inv: cosmetic variation on train fold-eligible clusters
     eligible = [c for c in train_clusters if c.stratum in ("CH-3", "CH-5")]
@@ -2298,23 +2846,41 @@ def cmd_floors_v2(args: argparse.Namespace) -> int:
         for c in sample:
             base = arbitrate_production(c, booster, tau_hi, tau_m, ctx=ctx)
             pert = lib.Cluster(
-                cid=c.cid, stratum=c.stratum, substratum=c.substratum,
-                members=[lib.Member(m.mid, m.title,
-                                    lib.cosmetic_variant(m.body, rng),
-                                    m.tags, m.record_type, m.language,
-                                    m.created_at)
-                         for m in c.members],
-                label=c.label, declaration=c.declaration)
+                cid=c.cid,
+                stratum=c.stratum,
+                substratum=c.substratum,
+                members=[
+                    lib.Member(
+                        m.mid,
+                        m.title,
+                        lib.cosmetic_variant(m.body, rng),
+                        m.tags,
+                        m.record_type,
+                        m.language,
+                        m.created_at,
+                    )
+                    for m in c.members
+                ],
+                label=c.label,
+                declaration=c.declaration,
+            )
             alt = arbitrate_production(pert, booster, tau_hi, tau_m, ctx=ctx)
-            dis += int(base["verdict"] != alt["verdict"]
-                       or base.get("member") != alt.get("member"))
+            dis += int(
+                base["verdict"] != alt["verdict"]
+                or base.get("member") != alt.get("member")
+            )
         inv_disagreements.append(round(dis / len(sample), 4))
     dist_inv = _dist([float(x) for x in inv_disagreements])
     floor_inv = max(inv_disagreements) if inv_disagreements else 0.0
-    log("floor_inv_v2_measure", draws=args.inv_seeds,
-        disagreement_rates=inv_disagreements, distribution=dist_inv,
-        floor_inv=floor_inv, delta_inv=round(2 * floor_inv, 4),
-        delta_inv_formula="delta_inv := 2*floor_inv — unchanged (П4)")
+    log(
+        "floor_inv_v2_measure",
+        draws=args.inv_seeds,
+        disagreement_rates=inv_disagreements,
+        distribution=dist_inv,
+        floor_inv=floor_inv,
+        delta_inv=round(2 * floor_inv, 4),
+        delta_inv_formula="delta_inv := 2*floor_inv — unchanged (П4)",
+    )
 
     # --- floor_perm: order permutation on a train sample
     pairs = [c for c in eligible if len(c.members) == 2]
@@ -2325,63 +2891,96 @@ def cmd_floors_v2(args: argparse.Namespace) -> int:
         delta = 0
         for c in sample:
             base = arbitrate_production(c, booster, tau_hi, tau_m, ctx=ctx)
-            rev = lib.Cluster(cid=c.cid, stratum=c.stratum,
-                              substratum=c.substratum,
-                              members=list(reversed(c.members)),
-                              label=c.label, declaration=c.declaration)
+            rev = lib.Cluster(
+                cid=c.cid,
+                stratum=c.stratum,
+                substratum=c.substratum,
+                members=list(reversed(c.members)),
+                label=c.label,
+                declaration=c.declaration,
+            )
             alt = arbitrate_production(rev, booster, tau_hi, tau_m, ctx=ctx)
-            delta += int(base["verdict"] != alt["verdict"]
-                         or base.get("member") != alt.get("member"))
+            delta += int(
+                base["verdict"] != alt["verdict"]
+                or base.get("member") != alt.get("member")
+            )
         perm_deltas.append(round(delta / len(sample), 4))
     dist_perm = _dist([float(x) for x in perm_deltas])
     floor_perm = max(perm_deltas) if perm_deltas else 0.0
-    log("floor_perm_v2_measure", perms=args.perm_seeds,
-        delta_rates=perm_deltas, distribution=dist_perm, floor_perm=floor_perm,
+    log(
+        "floor_perm_v2_measure",
+        perms=args.perm_seeds,
+        delta_rates=perm_deltas,
+        distribution=dist_perm,
+        floor_perm=floor_perm,
         note="structurally 0: member features are bit-identical under "
-             "presentation permutation (machine-asserted)")
+        "presentation permutation (machine-asserted)",
+    )
 
     doc["delta_acc_measure_v2"] = {
         "standard": "ML-STD-0004 (declared floor), stage 2",
         "formula": DELTA_ACC_FORMULA,
-        "stage1_pin": {"commit": STD0004_FORMULA_COMMIT,
-                       "assert_event": "std0004_order_assert (above in run-log)",
-                       "note": "formula fixed 2026-10-30 BEFORE any v2 draw"},
+        "stage1_pin": {
+            "commit": STD0004_FORMULA_COMMIT,
+            "assert_event": "std0004_order_assert (above in run-log)",
+            "note": "formula fixed 2026-10-30 BEFORE any v2 draw",
+        },
         "seeds": FLOOR_SEEDS,
         "per_seed": rows,
         "floor_seed_distribution": dist,
         "delta_acc_declared": round(delta_acc, 4),
         "delta_acc_recheck": round(max(dist["p95"] - dist["p5"], 0.10), 4),
-        "floor_q": {"seeds": q_seeds, "rates": q_rates,
-                    "distribution": dist_q, "floor": floor_q,
-                    "p90_char": p90_char, "q": round(q, 4),
-                    "formula": "q := max(0.20; p90_char + 2*floor_q)"},
-        "floor_inv": {"draws": inv_seeds,
-                      "disagreement_rates": inv_disagreements,
-                      "distribution": dist_inv, "floor": floor_inv,
-                      "delta_inv": round(2 * floor_inv, 4),
-                      "formula": "delta_inv := 2*floor_inv"},
-        "floor_perm": {"perms": perm_seeds, "delta_rates": perm_deltas,
-                       "distribution": dist_perm, "floor": floor_perm},
+        "floor_q": {
+            "seeds": q_seeds,
+            "rates": q_rates,
+            "distribution": dist_q,
+            "floor": floor_q,
+            "p90_char": p90_char,
+            "q": round(q, 4),
+            "formula": "q := max(0.20; p90_char + 2*floor_q)",
+        },
+        "floor_inv": {
+            "draws": inv_seeds,
+            "disagreement_rates": inv_disagreements,
+            "distribution": dist_inv,
+            "floor": floor_inv,
+            "delta_inv": round(2 * floor_inv, 4),
+            "formula": "delta_inv := 2*floor_inv",
+        },
+        "floor_perm": {
+            "perms": perm_seeds,
+            "delta_rates": perm_deltas,
+            "distribution": dist_perm,
+            "floor": floor_perm,
+        },
         "model_sha256": model_sha,
         "artifact": args.artifact,
         "contour": "production §5.1 WITH zone-v1 (composition statistic)",
         "measured_at": dt.datetime.now(dt.timezone.utc).isoformat(
-            timespec="milliseconds"),
+            timespec="milliseconds"
+        ),
         "remeasure_after_single_shot": "FORBIDDEN",
     }
-    if doc["delta_acc_measure_v2"]["delta_acc_declared"] != \
-            doc["delta_acc_measure_v2"]["delta_acc_recheck"]:
-        raise InstrumentAbort("declared delta_acc does not reproduce from the "
-                              "published p5/p95 under the ML-STD-0004 formula")
+    if (
+        doc["delta_acc_measure_v2"]["delta_acc_declared"]
+        != doc["delta_acc_measure_v2"]["delta_acc_recheck"]
+    ):
+        raise InstrumentAbort(
+            "declared delta_acc does not reproduce from the "
+            "published p5/p95 under the ML-STD-0004 formula"
+        )
     doc.pop("committed_doc_sha256", None)
     doc["committed_doc_sha256"] = sha256_text(
-        json.dumps(doc, ensure_ascii=False, sort_keys=True))
-    doc_path.write_text(json.dumps(doc, ensure_ascii=False, indent=1),
-                        encoding="utf-8")
-    log("committed_doc_updated", path=str(doc_path),
+        json.dumps(doc, ensure_ascii=False, sort_keys=True)
+    )
+    doc_path.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
+    log(
+        "committed_doc_updated",
+        path=str(doc_path),
         section="delta_acc_measure_v2",
         floors=["floor_seed", "floor_q", "floor_inv", "floor_perm"],
-        delta_acc_declared=round(delta_acc, 4))
+        delta_acc_declared=round(delta_acc, 4),
+    )
     return 0
 
 
@@ -2397,43 +2996,64 @@ def cmd_prelaunch(args: argparse.Namespace) -> int:
     if getattr(args, "profile", "v1") == "v2":
         return _prelaunch_v2(args)
     _SLICE = SLICE_FLOOR
-    log("cost_declaration", expected_prolog_s=2, expected_cycle_s=120,
-        expected_peak_ram_gb=1.0, lane="light (draft §9)")
+    log(
+        "cost_declaration",
+        expected_prolog_s=2,
+        expected_cycle_s=120,
+        expected_peak_ram_gb=1.0,
+        lane="light (draft §9)",
+    )
     pro = prologue(expected_artifact=Path(args.artifact))
     model, tau_hi, tau_m = load_frozen(Path(args.artifact))
     doc = find_doc_for(pro["pins"]["artifact_sha256"])
 
     # committee-scored-v1.json NOT in the inputs (machine assert)
     forbidden = "committee-scored-v1.json"
-    input_list = ["corpus manifest", "train.jsonl", "train-negatives.jsonl",
-                  "negatives sidecar manifest", "frozen artifact + committed doc",
-                  "sheet-selection.json (prelaunch id check only)"]
+    input_list = [
+        "corpus manifest",
+        "train.jsonl",
+        "train-negatives.jsonl",
+        "negatives sidecar manifest",
+        "frozen artifact + committed doc",
+        "sheet-selection.json (prelaunch id check only)",
+    ]
     in_inputs = any(forbidden in p for p in input_list)
-    log("committee_scored_not_in_inputs", forbidden=forbidden,
-        input_list=input_list, in_inputs=in_inputs, ok=not in_inputs,
+    log(
+        "committee_scored_not_in_inputs",
+        forbidden=forbidden,
+        input_list=input_list,
+        in_inputs=in_inputs,
+        ok=not in_inputs,
         note="existence of the file on disk is NOT an input; the assert is "
-             "on the declared input list")
+        "on the declared input list",
+    )
     if in_inputs:
         raise InstrumentAbort("committee-scored-v1.json found in the input list")
 
     # П6 pre-registration, VERBATIM per ADDENDUM-4 §4 — written to the
     # run-log BEFORE any gate_start of the upcoming single-shot cycle
-    PREREG = ("ратифицированная процедура на материал-чувствительной модели "
-              "даёт δ_acc = 0.48; свежие дельты 0.24–0.48 (медиана 0.44). "
-              "Если g_acc красный: интерпретация — \"модель v1 не "
-              "сертифицируемо превосходит базлайны под собственной "
-              "ратифицированной процедурой допуска\"; вердикт цикла DECLINE "
-              "окончателен, повтор с теми же числами запрещён, возврат "
-              "только через новый fresh-seal цикл с канон-вопросом о "
-              "семантике пола в ArchCom. Послемёрная аналитика (легальна): "
-              "дельта holdout сравнивается с распределением 10 розыгрышей — "
-              "внутри диапазона → \"нестабильность на свежем материале\" "
-              "(дефект покрытия/рецепта), ниже хвоста → \"реальная слабость "
-              "на holdout\"; оба исхода = DECLINE, порог не пересматривается")
-    log("prereg_delta_acc", prereg=PREREG, verbatim="ADDENDUM-4 §4",
-         delta_acc=doc.get("delta_acc_measure", {}).get("delta_acc"),
-         note="written BEFORE gate_start; the gate asserts this event exists "
-              "in the run-log prior to gate_start (П6 order)")
+    PREREG = (
+        "ратифицированная процедура на материал-чувствительной модели "
+        "даёт δ_acc = 0.48; свежие дельты 0.24–0.48 (медиана 0.44). "
+        'Если g_acc красный: интерпретация — "модель v1 не '
+        "сертифицируемо превосходит базлайны под собственной "
+        'ратифицированной процедурой допуска"; вердикт цикла DECLINE '
+        "окончателен, повтор с теми же числами запрещён, возврат "
+        "только через новый fresh-seal цикл с канон-вопросом о "
+        "семантике пола в ArchCom. Послемёрная аналитика (легальна): "
+        "дельта holdout сравнивается с распределением 10 розыгрышей — "
+        'внутри диапазона → "нестабильность на свежем материале" '
+        '(дефект покрытия/рецепта), ниже хвоста → "реальная слабость '
+        'на holdout"; оба исхода = DECLINE, порог не пересматривается'
+    )
+    log(
+        "prereg_delta_acc",
+        prereg=PREREG,
+        verbatim="ADDENDUM-4 §4",
+        delta_acc=doc.get("delta_acc_measure", {}).get("delta_acc"),
+        note="written BEFORE gate_start; the gate asserts this event exists "
+        "in the run-log prior to gate_start (П6 order)",
+    )
 
     # sanity 7/7 on the NEW model (probes 3/4 = CH-3 quality guards)
     run_model_sanity_suite(model, tau_hi, tau_m)
@@ -2441,8 +3061,11 @@ def cmd_prelaunch(args: argparse.Namespace) -> int:
     # noharm QA: expect 0/171 + 0/27 (surface untouched, §4)
     surface = Path(doc["noharm_surface"]["path"])
     rows_total, proposals_total = _noharm_proposals(surface, model, tau_hi, tau_m)
-    notdup_rows = [json.loads(line) for line in open(surface, encoding="utf-8")
-                   if json.loads(line)["pair_id"].startswith("V4-PND")]
+    notdup_rows = [
+        json.loads(line)
+        for line in open(surface, encoding="utf-8")
+        if json.loads(line)["pair_id"].startswith("V4-PND")
+    ]
     tmp = ART_DIR / "_qa_notdup.jsonl"
     with open(tmp, "w", encoding="utf-8") as fh:
         for r in notdup_rows:
@@ -2450,47 +3073,67 @@ def cmd_prelaunch(args: argparse.Namespace) -> int:
     n_notdup, p_notdup = _noharm_proposals(tmp, model, tau_hi, tau_m)
     tmp.unlink()
     qa_ok = proposals_total == 0 and p_notdup == 0
-    log("noharm_qa", rows=rows_total, proposals=proposals_total,
-        notdup_rows=n_notdup, notdup_proposals=p_notdup,
-        expectation="0/171 + 0/27", ok=qa_ok,
-        note="red => разбор рецепта; поверхность не трогается (§3.5)")
+    log(
+        "noharm_qa",
+        rows=rows_total,
+        proposals=proposals_total,
+        notdup_rows=n_notdup,
+        notdup_proposals=p_notdup,
+        expectation="0/171 + 0/27",
+        ok=qa_ok,
+        note="red => разбор рецепта; поверхность не трогается (§3.5)",
+    )
     if not qa_ok:
-        raise InstrumentAbort(f"noharm QA RED: {proposals_total}/{rows_total} "
-                              f"(notdup {p_notdup}/{n_notdup})")
+        raise InstrumentAbort(
+            f"noharm QA RED: {proposals_total}/{rows_total} "
+            f"(notdup {p_notdup}/{n_notdup})"
+        )
 
     # sheet pre-check: member_ids ⊆ synthetic_train (id level only)
-    sheet_doc = json.loads((REPO / "data" / "merge-arbiter" / "spot-sheet" /
-                            "sheet-selection.json").read_text(encoding="utf-8"))
+    sheet_doc = json.loads(
+        (
+            REPO / "data" / "merge-arbiter" / "spot-sheet" / "sheet-selection.json"
+        ).read_text(encoding="utf-8")
+    )
     sheet_ids = set()
     for row in sheet_doc.get("synthetic", []):
         sheet_ids.update(row.get("member_ids", []))
     train_ids = {m.mid for c in load_train() for m in c.members}
     missing = sorted(sheet_ids - train_ids)
-    log("sheet_precheck", sheet_member_ids=len(sheet_ids),
-        missing_from_train=missing[:5], ok=not missing,
-        note="id-level read only; the sheet fp e45e72a4… is not touched")
+    log(
+        "sheet_precheck",
+        sheet_member_ids=len(sheet_ids),
+        missing_from_train=missing[:5],
+        ok=not missing,
+        note="id-level read only; the sheet fp e45e72a4… is not touched",
+    )
     if missing:
-        raise InstrumentAbort(f"sheet pre-check RED: {len(missing)} member_ids "
-                              "outside synthetic_train")
-
+        raise InstrumentAbort(
+            f"sheet pre-check RED: {len(missing)} member_ids outside synthetic_train"
+        )
 
     absent = [k for k in ("delta_acc_measure", "floors_v2") if k not in doc]
-    log("prelaunch_done", artifact=args.artifact,
-        doc=doc.get("_doc_path", "n/a"), missing_sections=absent,
+    log(
+        "prelaunch_done",
+        artifact=args.artifact,
+        doc=doc.get("_doc_path", "n/a"),
+        missing_sections=absent,
         status="GREEN" if not absent else "INCOMPLETE",
         note="single-shot stays unexecuted; return to it on a separate "
-             "command after MLC scoring validation")
+        "command after MLC scoring validation",
+    )
     if absent:
-        print(f"PRELAUNCH INCOMPLETE — missing doc sections: {absent}",
-              file=sys.stderr)
+        print(f"PRELAUNCH INCOMPLETE — missing doc sections: {absent}", file=sys.stderr)
         return 1
     return 0
 
 
 # --- Choice v2 pre-launch (ADDENDUM-6 §6 step 2 tail) -------------------------
 
-def _zone_off_probe(doc: dict, booster: lgb.Booster, tau_hi: float,
-                    tau_m: float, vec: VecLeg) -> dict:
+
+def _zone_off_probe(
+    doc: dict, booster: lgb.Booster, tau_hi: float, tau_m: float, vec: VecLeg
+) -> dict:
     """ADDENDUM-6 §1 leg 4: the zone-off honesty probe (NOT a gate).
 
     Reproduce the refused class (keep = exactly 24/171) with the FROZEN
@@ -2507,9 +3150,11 @@ def _zone_off_probe(doc: dict, booster: lgb.Booster, tau_hi: float,
         except OSError:
             continue
     if v1_path is None:
-        raise InstrumentAbort(f"v1-iter3 artifact (sha {ITER3_ARTIFACT_SHA_PREFIX}…) "
-                              f"not found under {ART_DIR} — the zone-off probe "
-                              "needs the v1 reference")
+        raise InstrumentAbort(
+            f"v1-iter3 artifact (sha {ITER3_ARTIFACT_SHA_PREFIX}…) "
+            f"not found under {ART_DIR} — the zone-off probe "
+            "needs the v1 reference"
+        )
     v1_booster, v1_hi, v1_m = load_frozen(v1_path)
     surface = Path(doc["noharm_surface"]["path"])
     rows = [json.loads(line) for line in open(surface, encoding="utf-8")]
@@ -2519,19 +3164,23 @@ def _zone_off_probe(doc: dict, booster: lgb.Booster, tau_hi: float,
         if d["verdict"] == "keep":
             v1_kept.append(r)
     if len(v1_kept) != 24:
-        raise InstrumentAbort(f"v1 reproduction on the 171-surface diverges: "
-                              f"keep = {len(v1_kept)} (framing §1.1: exactly "
-                              "24) — surface or reference artifact drifted")
+        raise InstrumentAbort(
+            f"v1 reproduction on the 171-surface diverges: "
+            f"keep = {len(v1_kept)} (framing §1.1: exactly "
+            "24) — surface or reference artifact drifted"
+        )
     nozone_ctx = {"vec": vec}  # zone OFF, vec ON (the v2 model needs its features)
     keeps_of_24 = 0
     for r in v1_kept:
-        d = arbitrate_production(_noharm_cluster(r, 0), booster, tau_hi,
-                                 tau_m, ctx=nozone_ctx)
+        d = arbitrate_production(
+            _noharm_cluster(r, 0), booster, tau_hi, tau_m, ctx=nozone_ctx
+        )
         keeps_of_24 += int(d["verdict"] == "keep")
     total_proposals = 0
     for idx, r in enumerate(rows):
-        d = arbitrate_production(_noharm_cluster(r, idx), booster, tau_hi,
-                                 tau_m, ctx=nozone_ctx)
+        d = arbitrate_production(
+            _noharm_cluster(r, idx), booster, tau_hi, tau_m, ctx=nozone_ctx
+        )
         total_proposals += int(d["verdict"] == "keep")
     probe = {
         "v1_reference": str(v1_path),
@@ -2543,7 +3192,7 @@ def _zone_off_probe(doc: dict, booster: lgb.Booster, tau_hi: float,
         "surface_proposals_zone_off": total_proposals,
         "not_a_gate": True,
         "honesty": "how many of the 24 the RETRAINED model rejects WITHOUT "
-                   "the zone (ADDENDUM-6 §1 leg 4; published before gate_start)",
+        "the zone (ADDENDUM-6 §1 leg 4; published before gate_start)",
     }
     log("zone_off_probe", **probe)
     return probe
@@ -2558,10 +3207,14 @@ def _prelaunch_v2(args: argparse.Namespace) -> int:
     the prematch subcommand."""
     global _SLICE
     _SLICE = SLICE_FLOOR_V2
-    log("cost_declaration", expected_prolog_s=3, expected_cycle_s=1200,
+    log(
+        "cost_declaration",
+        expected_prolog_s=3,
+        expected_cycle_s=1200,
         expected_peak_ram_gb=2.5,
         lane="v2 light+: contour probes over the surface + floors reads "
-             "(embedder disk-cached); sequential, single lane")
+        "(embedder disk-cached); sequential, single lane",
+    )
     pro = prologue(expected_artifact=Path(args.artifact))
     booster, tau_hi, tau_m, ctx = resolve_ctx(Path(args.artifact), with_zone=True)
     vec = ctx["vec"]
@@ -2570,26 +3223,40 @@ def _prelaunch_v2(args: argparse.Namespace) -> int:
     # committee-scored surfaces are NOT in the inputs (machine assert,
     # both scoring generations)
     forbidden = ("committee-scored-v1.json", "committee-scored-v2.json")
-    input_list = ["corpus manifest", "train.jsonl", "train-negatives.jsonl",
-                  "train-negatives-v2.jsonl", "null-envelope.json",
-                  "null-envelope-v2.json", "frozen artifact + committed doc",
-                  "sheet-selection.json (prelaunch id check only)"]
+    input_list = [
+        "corpus manifest",
+        "train.jsonl",
+        "train-negatives.jsonl",
+        "train-negatives-v2.jsonl",
+        "null-envelope.json",
+        "null-envelope-v2.json",
+        "frozen artifact + committed doc",
+        "sheet-selection.json (prelaunch id check only)",
+    ]
     in_inputs = [f for f in forbidden if any(f in p for p in input_list)]
-    log("committee_scored_not_in_inputs", forbidden=list(forbidden),
-        input_list=input_list, in_inputs=in_inputs, ok=not in_inputs,
+    log(
+        "committee_scored_not_in_inputs",
+        forbidden=list(forbidden),
+        input_list=input_list,
+        in_inputs=in_inputs,
+        ok=not in_inputs,
         note="existence of the files on disk is NOT an input; the assert is "
-             "on the declared input list")
+        "on the declared input list",
+    )
     if in_inputs:
-        raise InstrumentAbort(f"committee-scored file found in the input "
-                              f"list: {in_inputs}")
+        raise InstrumentAbort(
+            f"committee-scored file found in the input list: {in_inputs}"
+        )
 
     # ML-STD-0004 prereg (П1/П6): the declared floor is written to the
     # run-log BEFORE any gate_start of the upcoming single-shot cycle
     measure = doc.get("delta_acc_measure_v2")
     if not measure or "floor_seed_distribution" not in measure:
-        raise InstrumentAbort("committed doc has no delta_acc_measure_v2 — "
-                              "run floors-v2 BEFORE prelaunch (the declared "
-                              "floor must exist before the prereg event)")
+        raise InstrumentAbort(
+            "committed doc has no delta_acc_measure_v2 — "
+            "run floors-v2 BEFORE prelaunch (the declared "
+            "floor must exist before the prereg event)"
+        )
     dist = measure["floor_seed_distribution"]
     PREREG = (
         "Цикл Choice v2 (ADDENDUM-6): допуск g_acc объявлен по ML-STD-0004 "
@@ -2600,12 +3267,18 @@ def _prelaunch_v2(args: argparse.Namespace) -> int:
         f"max-pairwise {dist['max_pairwise']}; объявленный "
         f"δ_acc = {measure['delta_acc_declared']} заморожен до sealed-чтения; "
         "перемер пола после single-shot запрещён (П6); послемёрная "
-        "аналитика легальна и вердикт не меняет")
-    log("prereg_delta_acc_v2", prereg=PREREG, formula=DELTA_ACC_FORMULA,
-        distribution=dist, delta_acc_declared=measure["delta_acc_declared"],
+        "аналитика легальна и вердикт не меняет"
+    )
+    log(
+        "prereg_delta_acc_v2",
+        prereg=PREREG,
+        formula=DELTA_ACC_FORMULA,
+        distribution=dist,
+        delta_acc_declared=measure["delta_acc_declared"],
         artifact_sha256=measure.get("model_sha256"),
         note="written BEFORE gate_start; the gate asserts this event exists "
-             "prior to gate_start (П1/П6)")
+        "prior to gate_start (П1/П6)",
+    )
 
     # sanity 7/7 through the FULL v2 contour (a zone fire on a CH-3/CH-4
     # fixture would surface as leg zone-v1 and RED the probe)
@@ -2614,10 +3287,14 @@ def _prelaunch_v2(args: argparse.Namespace) -> int:
     # noharm QA through the v2 contour: expect 0/171 + 0/27 — the
     # composition zone+model is what is certified (ADDENDUM-6 §3)
     surface = Path(doc["noharm_surface"]["path"])
-    rows_total, proposals_total = _noharm_proposals(surface, booster,
-                                                    tau_hi, tau_m, ctx=ctx)
-    notdup_rows = [json.loads(line) for line in open(surface, encoding="utf-8")
-                   if json.loads(line)["pair_id"].startswith("V4-PND")]
+    rows_total, proposals_total = _noharm_proposals(
+        surface, booster, tau_hi, tau_m, ctx=ctx
+    )
+    notdup_rows = [
+        json.loads(line)
+        for line in open(surface, encoding="utf-8")
+        if json.loads(line)["pair_id"].startswith("V4-PND")
+    ]
     tmp = ART_DIR / "_qa_notdup.jsonl"
     with open(tmp, "w", encoding="utf-8") as fh:
         for r in notdup_rows:
@@ -2625,79 +3302,117 @@ def _prelaunch_v2(args: argparse.Namespace) -> int:
     n_notdup, p_notdup = _noharm_proposals(tmp, booster, tau_hi, tau_m, ctx=ctx)
     tmp.unlink()
     qa_ok = proposals_total == 0 and p_notdup == 0
-    log("noharm_qa_v2", rows=rows_total, proposals=proposals_total,
-        notdup_rows=n_notdup, notdup_proposals=p_notdup,
-        expectation="0/171 + 0/27", ok=qa_ok,
+    log(
+        "noharm_qa_v2",
+        rows=rows_total,
+        proposals=proposals_total,
+        notdup_rows=n_notdup,
+        notdup_proposals=p_notdup,
+        expectation="0/171 + 0/27",
+        ok=qa_ok,
         contour="COMPOSITION zone-v1 + model (ADDENDUM-6 §3; the wording "
-                "«модель зелёная на noharm» is forbidden)",
+        "«модель зелёная на noharm» is forbidden)",
         note="any red => СТОП и отчёт TL (хард-терминальность ADDENDUM-5 §2), "
-             "НЕ итерация; поверхность не трогается")
+        "НЕ итерация; поверхность не трогается",
+    )
     if not qa_ok:
-        raise InstrumentAbort(f"noharm QA RED: {proposals_total}/{rows_total} "
-                              f"(notdup {p_notdup}/{n_notdup}) — STOP, report "
-                              "to TL; do NOT iterate")
+        raise InstrumentAbort(
+            f"noharm QA RED: {proposals_total}/{rows_total} "
+            f"(notdup {p_notdup}/{n_notdup}) — STOP, report "
+            "to TL; do NOT iterate"
+        )
 
     # zone-off honesty probe (published, NOT a gate)
     _zone_off_probe(doc, booster, tau_hi, tau_m, vec)
 
     # sheet pre-check: member_ids ⊆ synthetic_train (id level only)
-    sheet_doc = json.loads((REPO / "data" / "merge-arbiter" / "spot-sheet" /
-                            "sheet-selection.json").read_text(encoding="utf-8"))
+    sheet_doc = json.loads(
+        (
+            REPO / "data" / "merge-arbiter" / "spot-sheet" / "sheet-selection.json"
+        ).read_text(encoding="utf-8")
+    )
     sheet_ids = set()
     for row in sheet_doc.get("synthetic", []):
         sheet_ids.update(row.get("member_ids", []))
     train_ids = {m.mid for c in load_train() for m in c.members}
     missing = sorted(sheet_ids - train_ids)
-    log("sheet_precheck", sheet_member_ids=len(sheet_ids),
-        missing_from_train=missing[:5], ok=not missing,
-        note="id-level read only; the sheet fp e45e72a4… is not touched")
+    log(
+        "sheet_precheck",
+        sheet_member_ids=len(sheet_ids),
+        missing_from_train=missing[:5],
+        ok=not missing,
+        note="id-level read only; the sheet fp e45e72a4… is not touched",
+    )
     if missing:
-        raise InstrumentAbort(f"sheet pre-check RED: {len(missing)} member_ids "
-                              "outside synthetic_train")
+        raise InstrumentAbort(
+            f"sheet pre-check RED: {len(missing)} member_ids outside synthetic_train"
+        )
 
     # prematch: the ONLY permitted spot-sheet subcommand (render/verdicts/
     # internal stay untouched — detached scoring in progress)
-    r = subprocess.run([sys.executable,
-                        str(REPO / "scripts" / "merge_arbiter_sheet_score.py"),
-                        "prematch"], cwd=REPO, capture_output=True, text=True)
+    r = subprocess.run(
+        [
+            sys.executable,
+            str(REPO / "scripts" / "merge_arbiter_sheet_score.py"),
+            "prematch",
+        ],
+        cwd=REPO,
+        capture_output=True,
+        text=True,
+    )
     try:
         payload = json.loads(r.stdout)
     except json.JSONDecodeError:
         payload = {}
     prematch_ok = r.returncode == 0 and bool(payload.get("prematch_ok"))
-    log("sheet_prematch", ok=prematch_ok,
+    log(
+        "sheet_prematch",
+        ok=prematch_ok,
         prematch_ok=payload.get("prematch_ok"),
         sheet_rows=payload.get("sheet_rows"),
         syn_members_subset_train=payload.get("syn_members_subset_train"),
         syn_members_intersect_holdout=payload.get("syn_members_intersect_holdout"),
         sheet_class_counts=payload.get("sheet_class_counts"),
         stderr_tail=r.stderr.strip().splitlines()[-3:],
-        note="scripts/merge_arbiter_sheet_score.py prematch ONLY")
+        note="scripts/merge_arbiter_sheet_score.py prematch ONLY",
+    )
     if not prematch_ok:
-        raise InstrumentAbort("sheet prematch RED — the pre-launch checklist "
-                              "is not green")
+        raise InstrumentAbort(
+            "sheet prematch RED — the pre-launch checklist is not green"
+        )
 
     absent = [k for k in ("delta_acc_measure_v2",) if k not in doc]
-    log("prelaunch_v2_done", artifact=args.artifact,
-        doc=doc.get("_doc_path", "n/a"), missing_sections=absent,
+    log(
+        "prelaunch_v2_done",
+        artifact=args.artifact,
+        doc=doc.get("_doc_path", "n/a"),
+        missing_sections=absent,
         contour="zone-v1 + model (composition)",
         status="GREEN" if not absent else "INCOMPLETE",
         note="the single-shot stays UNEXECUTED — it runs only on a separate, "
-             "explicit owner command (ADDENDUM-6 §6 step 3)")
+        "explicit owner command (ADDENDUM-6 §6 step 3)",
+    )
     if absent:
-        print(f"PRELAUNCH V2 INCOMPLETE — missing doc sections: {absent}",
-              file=sys.stderr)
+        print(
+            f"PRELAUNCH V2 INCOMPLETE — missing doc sections: {absent}", file=sys.stderr
+        )
         return 1
     return 0
 
 
 # --- subcommand: sanity (frozen artifact, no training) ------------------------
 
+
 def cmd_sanity(args: argparse.Namespace) -> int:
     global _SLICE
     _SLICE = SLICE_TRAIN
-    log("cost_declaration", expected_prolog_s=2, expected_cycle_s=30,
-        expected_peak_ram_gb=0.5, lane="light (draft §9)")
+    log(
+        "cost_declaration",
+        expected_prolog_s=2,
+        expected_cycle_s=30,
+        expected_peak_ram_gb=0.5,
+        lane="light (draft §9)",
+    )
     pro = prologue(expected_artifact=Path(args.artifact))
     _ = pro  # pins asserted in the prologue
     model, tau_hi, tau_m = load_frozen(Path(args.artifact))
@@ -2726,24 +3441,42 @@ def prior_single_shot(slice_name: str) -> bool:
 
 
 def _noharm_cluster(row: dict, idx: int) -> lib.Cluster:
-    a = lib.Member(mid=row.get("id_a", "a"), title=row["title_a"],
-                   body=row["body_a"], tags=tuple(row.get("tags_a", ())),
-                   record_type=row.get("type_a"), language=row.get("lang_a"),
-                   created_at=row.get("created_a"))
-    b = lib.Member(mid=row.get("id_b", "b"), title=row["title_b"],
-                   body=row["body_b"], tags=tuple(row.get("tags_b", ())),
-                   record_type=row.get("type_b"), language=row.get("lang_b"),
-                   created_at=row.get("created_b"))
-    return lib.Cluster(cid=row.get("pair_id", f"noharm-{idx}"),
-                       stratum="NOT-DUP", substratum="v42",
-                       members=[a, b], label={"type": "abstain"},
-                       declaration={})
+    a = lib.Member(
+        mid=row.get("id_a", "a"),
+        title=row["title_a"],
+        body=row["body_a"],
+        tags=tuple(row.get("tags_a", ())),
+        record_type=row.get("type_a"),
+        language=row.get("lang_a"),
+        created_at=row.get("created_a"),
+    )
+    b = lib.Member(
+        mid=row.get("id_b", "b"),
+        title=row["title_b"],
+        body=row["body_b"],
+        tags=tuple(row.get("tags_b", ())),
+        record_type=row.get("type_b"),
+        language=row.get("lang_b"),
+        created_at=row.get("created_b"),
+    )
+    return lib.Cluster(
+        cid=row.get("pair_id", f"noharm-{idx}"),
+        stratum="NOT-DUP",
+        substratum="v42",
+        members=[a, b],
+        label={"type": "abstain"},
+        declaration={},
+    )
 
 
-def _noharm_proposals(noharm: Path, model: lgb.Booster,
-                      tau_hi: float, tau_m: float,
-                      ctx: "dict | None" = None,
-                      rows_out: "list | None" = None) -> tuple[int, int]:
+def _noharm_proposals(
+    noharm: Path,
+    model: lgb.Booster,
+    tau_hi: float,
+    tau_m: float,
+    ctx: "dict | None" = None,
+    rows_out: "list | None" = None,
+) -> tuple[int, int]:
     """g_noharm_v42: frozen NOT-dup surface (committed v42/v4.3 train
     strata; holdouts and seals are NOT read). A keep verdict on any row =
     a fold proposal. Expected: exact 0.
@@ -2782,27 +3515,42 @@ def cmd_gate(args: argparse.Namespace) -> int:
     # sniff the artifact generation for the slice name (the v1 slice/event
     # history stays untouched; the v2 cycle has its own single-shot slot)
     art_sniff = json.loads(artifact.read_text(encoding="utf-8"))
-    is_v2 = len(art_sniff.get("feature_names", MEMBER_FEATURE_NAMES)) > \
-        len(MEMBER_FEATURE_NAMES)
+    is_v2 = len(art_sniff.get("feature_names", MEMBER_FEATURE_NAMES)) > len(
+        MEMBER_FEATURE_NAMES
+    )
     slice_name = SLICE_GATE_V2 if is_v2 else SLICE_GATE
     _SLICE = slice_name
 
     if prior_single_shot(slice_name):
-        log("refuse", reason="single-shot already spent for this slice "
-                             "(sealed_read_once/gate_done in run-log) — П8")
+        log(
+            "refuse",
+            reason="single-shot already spent for this slice "
+            "(sealed_read_once/gate_done in run-log) — П8",
+        )
         print("REFUSED: single-shot already spent (П8).", file=sys.stderr)
         return 2
     if not args.execute_single_shot:
-        log("refuse", reason="gate phase implemented but NOT executed: "
-                             "--execute-single-shot absent; no sealed read",
+        log(
+            "refuse",
+            reason="gate phase implemented but NOT executed: "
+            "--execute-single-shot absent; no sealed read",
             note="this phase stays train-only; the single-shot is a separate, "
-                 "explicitly flagged run")
-        print("REFUSED: gate phase requires --execute-single-shot. "
-              "No sealed surface was touched.", file=sys.stderr)
+            "explicitly flagged run",
+        )
+        print(
+            "REFUSED: gate phase requires --execute-single-shot. "
+            "No sealed surface was touched.",
+            file=sys.stderr,
+        )
         return 2
 
-    log("cost_declaration", expected_prolog_s=2, expected_cycle_s=90,
-        expected_peak_ram_gb=1.0, lane="light (draft §9)")
+    log(
+        "cost_declaration",
+        expected_prolog_s=2,
+        expected_cycle_s=90,
+        expected_peak_ram_gb=1.0,
+        lane="light (draft §9)",
+    )
     pro = prologue(expected_artifact=artifact)
     doc = find_doc_for(sha256_file(artifact))
     # noharm surface pin: fixed BEFORE gate_start (committed doc section
@@ -2812,19 +3560,32 @@ def cmd_gate(args: argparse.Namespace) -> int:
         raise InstrumentAbort(
             "noharm surface missing or its sha256 diverges from the "
             "committed noharm_surface pin — the gate never runs on an "
-            "unpinned surface")
-    log("noharm_surface_pin", path=str(noharm),
-        sha256=surf_sec["sha256"], counts=surf_sec.get("counts"), ok=True)
+            "unpinned surface"
+        )
+    log(
+        "noharm_surface_pin",
+        path=str(noharm),
+        sha256=surf_sec["sha256"],
+        counts=surf_sec.get("counts"),
+        ok=True,
+    )
     # ADDENDUM-7 §3: the g_spot frozen input is pinned BEFORE gate_start;
     # missing file or fp divergence = STOP class instrument, no sealed read
-    if not COMMITTEE_SCORED.exists() or \
-            sha256_file(COMMITTEE_SCORED) != COMMITTEE_SCORED_SHA256:
+    if (
+        not COMMITTEE_SCORED.exists()
+        or sha256_file(COMMITTEE_SCORED) != COMMITTEE_SCORED_SHA256
+    ):
         raise InstrumentAbort(
             "committee-scored-v1.json missing or its sha256 diverges from "
             "the ratified ADDENDUM-7 pin — g_spot never runs on an "
-            "unpinned surface")
-    log("committee_scored_pin", path=str(COMMITTEE_SCORED),
-        sha256=COMMITTEE_SCORED_SHA256, ok=True)
+            "unpinned surface"
+        )
+    log(
+        "committee_scored_pin",
+        path=str(COMMITTEE_SCORED),
+        sha256=COMMITTEE_SCORED_SHA256,
+        ok=True,
+    )
     model, tau_hi, tau_m = load_frozen(artifact)
     # Choice v2: the gate runs the FULL v2 contour (zone-v1 + model) — the
     # noharm certificate and the gating statistic are COMPOSITION legs.
@@ -2848,33 +3609,42 @@ def cmd_gate(args: argparse.Namespace) -> int:
                 prereg_event = row.get("event")
                 break
     if not prereg_seen:
-        raise InstrumentAbort("prereg_delta_acc[_v2] event not found in the "
-                              "run-log — the ratified pre-registration is a "
-                              "precondition of gate_start (П6)")
+        raise InstrumentAbort(
+            "prereg_delta_acc[_v2] event not found in the "
+            "run-log — the ratified pre-registration is a "
+            "precondition of gate_start (П6)"
+        )
     log("prereg_order_assert", prereg_seen=True, prereg_event=prereg_event, ok=True)
 
     # П1: gate_start BEFORE any eval computation (sanity suite, fixtures,
     # no-harm, sealed reads are all eval reads — they start only now).
-    log("gate_start",
-        note="full prologue green above; every eval read starts after this event")
+    log(
+        "gate_start",
+        note="full prologue green above; every eval read starts after this event",
+    )
 
     # pre-sealed: sanity §6.1 with the frozen model (red => abort, no holdout)
     run_model_sanity_suite(model, tau_hi, tau_m, ctx=ctx)
 
     # g_corner leg 1 (identity corner) — fixture-based, no sealed read
     cells = {cell["probe"]: cell for cell in lib.build_fixture_cells()}
-    corner = arbitrate_production(cells[1]["cluster"], model, tau_hi, tau_m,
-                                  ctx=ctx)
-    corner_ok = (corner["verdict"] == "keep"
-                 and corner.get("member") in
-                 {m.mid for m in cells[1]["cluster"].members})
+    corner = arbitrate_production(cells[1]["cluster"], model, tau_hi, tau_m, ctx=ctx)
+    corner_ok = corner["verdict"] == "keep" and corner.get("member") in {
+        m.mid for m in cells[1]["cluster"].members
+    }
     log("g_corner_leg1", ok=corner_ok, result=corner, threshold="exact")
 
     rows, proposals = _noharm_proposals(noharm, model, tau_hi, tau_m, ctx=ctx)
     g_noharm_ok = proposals == 0
-    log("g_noharm_v42", rows=rows, proposals=proposals, ok=g_noharm_ok,
-        threshold="exact 0", surface_sha256=sha256_file(noharm),
-        contour="COMPOSITION zone-v1 + model" if is_v2 else "model leg")
+    log(
+        "g_noharm_v42",
+        rows=rows,
+        proposals=proposals,
+        ok=g_noharm_ok,
+        threshold="exact 0",
+        surface_sha256=sha256_file(noharm),
+        contour="COMPOSITION zone-v1 + model" if is_v2 else "model leg",
+    )
 
     # g_spot (ADDENDUM-1 §3 + ADDENDUM-7 §3) — computed PRE-sealed: it is
     # consistency-on-TRAIN, no sealed read is involved. A red leg here does
@@ -2884,22 +3654,30 @@ def cmd_gate(args: argparse.Namespace) -> int:
     log("gate_result", gate="g_spot", **spot)
 
     if not (corner_ok and g_noharm_ok):
-        log("abort_pregate_red", corner_ok=corner_ok, noharm_ok=g_noharm_ok,
-            note="pre-gate red -> holdout NOT read (ML-STD-0002 П6)")
+        log(
+            "abort_pregate_red",
+            corner_ok=corner_ok,
+            noharm_ok=g_noharm_ok,
+            note="pre-gate red -> holdout NOT read (ML-STD-0002 П6)",
+        )
         return 3
 
     # ============ SEALED READ — SINGLE-SHOT (not executed in this phase) =====
-    holdout = _read_holdout_sealed()          # the single legal read
+    holdout = _read_holdout_sealed()  # the single legal read
     log("sealed_read_once", n_clusters=holdout["n"], sha256=holdout["sha256"])
-    gates = _eval_gates_on_holdout(model, tau_hi, tau_m, holdout,
-                                   pro["manifest"], doc, ctx)
+    gates = _eval_gates_on_holdout(
+        model, tau_hi, tau_m, holdout, pro["manifest"], doc, ctx
+    )
     gates["g_spot"] = spot  # conjunction leg (ADDENDUM-7 §3), computed pre-sealed
     for name, g in gates.items():
         log("gate_result", gate=name, **g)
     verdict = "ADOPT" if all(g["ok"] for g in gates.values()) else "DECLINE"
-    log("gate_done", verdict=verdict,
+    log(
+        "gate_done",
+        verdict=verdict,
         red=[k for k, g in gates.items() if not g["ok"]],
-        discipline="holdout read exactly once; no re-run (П8)")
+        discipline="holdout read exactly once; no re-run (П8)",
+    )
     print(f"VERDICT: {verdict}")
     return 0
 
@@ -2921,16 +3699,19 @@ def _read_holdout_sealed() -> dict:
     strata: dict[str, int] = {}
     for c in clusters:
         strata[c.stratum] = strata.get(c.stratum, 0) + 1
-    mism = {k: {"got": v, "want": EXPECTED_HOLDOUT_STRATA[k]}
-            for k, v in strata.items() if EXPECTED_HOLDOUT_STRATA.get(k) != v}
+    mism = {
+        k: {"got": v, "want": EXPECTED_HOLDOUT_STRATA[k]}
+        for k, v in strata.items()
+        if EXPECTED_HOLDOUT_STRATA.get(k) != v
+    }
     if mism or set(strata) != set(EXPECTED_HOLDOUT_STRATA):
         raise InstrumentAbort(f"holdout strata count mismatch: {mism}")
-    return {"sha256": sha, "clusters": clusters, "n": len(clusters),
-            "strata": strata}
+    return {"sha256": sha, "clusters": clusters, "n": len(clusters), "strata": strata}
 
 
-def _eval_g_spot(model: lgb.Booster, tau_hi: float, tau_m: float,
-                 ctx: "dict | None" = None) -> dict:
+def _eval_g_spot(
+    model: lgb.Booster, tau_hi: float, tau_m: float, ctx: "dict | None" = None
+) -> dict:
     """g_spot — committee-silver spot gate (ADDENDUM-1 §3 + ADDENDUM-7 §3).
 
     Qualification: consistency-on-train + generator QA (ADDENDUM-1 §5);
@@ -2959,25 +3740,25 @@ def _eval_g_spot(model: lgb.Booster, tau_hi: float, tau_m: float,
     scored = json.loads(COMMITTEE_SCORED.read_text(encoding="utf-8"))
     sel_path = SPOT_DIR / "sheet-selection.json"
     if sha256_file(sel_path) != scored.get("selection_sha256"):
-        raise InstrumentAbort("sheet-selection.json diverges from the "
-                              "selection_sha256 pinned in "
-                              "committee-scored-v1.json")
+        raise InstrumentAbort(
+            "sheet-selection.json diverges from the "
+            "selection_sha256 pinned in "
+            "committee-scored-v1.json"
+        )
     sel = json.loads(sel_path.read_text(encoding="utf-8"))
-    mapping = json.loads((SPOT_DIR / "internal" / "render-mapping.json")
-                         .read_text(encoding="utf-8"))
+    mapping = json.loads(
+        (SPOT_DIR / "internal" / "render-mapping.json").read_text(encoding="utf-8")
+    )
     rows = {r["row"]: r for r in scored["rows"]}
     if sorted(mapping) != sorted(rows):
-        raise InstrumentAbort("render-mapping rows diverge from "
-                              "committee-scored rows")
+        raise InstrumentAbort("render-mapping rows diverge from committee-scored rows")
 
-    sel_syn = {i["sheet_cluster"]: tuple(i["member_ids"])
-               for i in sel["synthetic"]}
+    sel_syn = {i["sheet_cluster"]: tuple(i["member_ids"]) for i in sel["synthetic"]}
     by_mid: dict[str, "lib.Cluster"] = {}
     for c in load_train():
         for m in c.members:
             by_mid[m.mid] = c
-    spot_rows = [r for r in scored["rows"]
-                 if r["truth_class"] in ("CH-3", "abstain")]
+    spot_rows = [r for r in scored["rows"] if r["truth_class"] in ("CH-3", "abstain")]
     ch3_hits = ch3_total = 0
     abs_prop = abs_total = 0
     abst_model = zone_fired = 0
@@ -2985,19 +3766,24 @@ def _eval_g_spot(model: lgb.Booster, tau_hi: float, tau_m: float,
     for r in spot_rows:
         e = mapping[r["row"]]
         if e.get("kind_ref") != "synthetic":
-            raise InstrumentAbort(f"sheet row {r['row']}: CH-3/abstain cell "
-                                  "is not a synthetic train-side cell")
+            raise InstrumentAbort(
+                f"sheet row {r['row']}: CH-3/abstain cell "
+                "is not a synthetic train-side cell"
+            )
         mids = tuple(e["member_ids"])
         if sel_syn.get(e["cluster"]) != mids:
-            raise InstrumentAbort(f"sheet row {r['row']}: render-mapping "
-                                  "diverges from the pinned "
-                                  "sheet-selection binding")
+            raise InstrumentAbort(
+                f"sheet row {r['row']}: render-mapping "
+                "diverges from the pinned "
+                "sheet-selection binding"
+            )
         cluster = by_mid.get(mids[0])
-        if cluster is None or \
-                sorted(m.mid for m in cluster.members) != sorted(mids):
-            raise InstrumentAbort(f"sheet row {r['row']}: cluster "
-                                  f"{e['cluster']} not found in the frozen "
-                                  "train corpus")
+        if cluster is None or sorted(m.mid for m in cluster.members) != sorted(mids):
+            raise InstrumentAbort(
+                f"sheet row {r['row']}: cluster "
+                f"{e['cluster']} not found in the frozen "
+                "train corpus"
+            )
         d = arbitrate_production(cluster, model, tau_hi, tau_m, ctx=ctx)
         abst_model += int(d["verdict"] == "abstain")
         zone_fired += int(d.get("leg") == "zone-v1")
@@ -3006,42 +3792,52 @@ def _eval_g_spot(model: lgb.Booster, tau_hi: float, tau_m: float,
             ch3_total += 1
             cons = r["consensus"]
             if cons not in ("A", "B") or len(mids) != 2:
-                raise InstrumentAbort(f"sheet row {r['row']}: unexpected "
-                                      f"consensus label {cons!r}")
+                raise InstrumentAbort(
+                    f"sheet row {r['row']}: unexpected consensus label {cons!r}"
+                )
             cons_mid = mids[0 if cons == "A" else 1]
             if cluster.label.get("member") != cons_mid:
                 raise InstrumentAbort(
                     f"sheet row {r['row']}: post-arbitration consensus "
                     f"{cons} diverges from the by-construction train label "
-                    "(ADDENDUM-7 §1: consensus == construction)")
+                    "(ADDENDUM-7 §1: consensus == construction)"
+                )
             ch3_hits += int(keep and d.get("member") == cons_mid)
             # raw verdictor majority (no arbitration) — diagnostic, not a gate
             choices = [v["choice"] for v in r["verdicts"].values()]
-            raw = next((c for c in set(choices) if choices.count(c) >= 2),
-                       "SPLIT")
+            raw = next((c for c in set(choices) if choices.count(c) >= 2), "SPLIT")
             raw_total += 1
             raw_hits += int(raw == cons)
         else:
             abs_total += 1
-            if cluster.label.get("type") != "abstain" or \
-                    cluster.stratum not in ("CH-2", "CH-4"):
-                raise InstrumentAbort(f"sheet row {r['row']}: abstain cell "
-                                      "does not match its by-construction "
-                                      "train cluster (CH-2/CH-4 expected)")
+            if cluster.label.get("type") != "abstain" or cluster.stratum not in (
+                "CH-2",
+                "CH-4",
+            ):
+                raise InstrumentAbort(
+                    f"sheet row {r['row']}: abstain cell "
+                    "does not match its by-construction "
+                    "train cluster (CH-2/CH-4 expected)"
+                )
             abs_prop += int(keep)
     if (ch3_total, abs_total) != (8, 12):
         raise InstrumentAbort(
             f"sheet partition mismatch: CH-3 {ch3_total}/8, abstain "
-            f"{abs_total}/12 (ratified quotas: 8 CH-3 + 6 CH-2 + 6 CH-4)")
-    raw_line = (f"model_vs_raw_consensus: model {ch3_hits}/{ch3_total} vs "
-                f"raw verdictor-majority {raw_hits}/{raw_total} "
-                "(no arbitration; diagnostic, not a gate)")
+            f"{abs_total}/12 (ratified quotas: 8 CH-3 + 6 CH-2 + 6 CH-4)"
+        )
+    raw_line = (
+        f"model_vs_raw_consensus: model {ch3_hits}/{ch3_total} vs "
+        f"raw verdictor-majority {raw_hits}/{raw_total} "
+        "(no arbitration; diagnostic, not a gate)"
+    )
     print(raw_line)
     return {
         "ok": bool(ch3_hits >= 7 and abs_prop == 0),
-        "ch3_hits": ch3_hits, "ch3_total": ch3_total,
+        "ch3_hits": ch3_hits,
+        "ch3_total": ch3_total,
         "threshold": ">= 7/8 vs post-arbitration consensus",
-        "abstain_proposals": abs_prop, "abstain_total": abs_total,
+        "abstain_proposals": abs_prop,
+        "abstain_total": abs_total,
         "fold_ban": "exact 0 (joint CH-2/CH-4, = 1.0)",
         "model_abstain_refusals": abst_model,
         "zone_fired_sheet": zone_fired,
@@ -3050,9 +3846,15 @@ def _eval_g_spot(model: lgb.Booster, tau_hi: float, tau_m: float,
     }
 
 
-def _eval_gates_on_holdout(model: lgb.Booster, tau_hi: float, tau_m: float,
-                           holdout: dict, manifest: dict, doc: dict,
-                           ctx: "dict | None" = None) -> dict:
+def _eval_gates_on_holdout(
+    model: lgb.Booster,
+    tau_hi: float,
+    tau_m: float,
+    holdout: dict,
+    manifest: dict,
+    doc: dict,
+    ctx: "dict | None" = None,
+) -> dict:
     """Gate formulas §5 — thresholds are FROZEN constants, never revisited.
 
     δ_acc resolution (fail-closed; the gate never runs on an unfixed floor):
@@ -3072,33 +3874,43 @@ def _eval_gates_on_holdout(model: lgb.Booster, tau_hi: float, tau_m: float,
             raise InstrumentAbort(
                 "ML-STD-0004 П2: the declared delta_acc does not reproduce "
                 f"from the published p5/p95 (declared {declared}, recheck "
-                f"{recheck}) — процессный инцидент, эскалация MLC/владельцу")
+                f"{recheck}) — процессный инцидент, эскалация MLC/владельцу"
+            )
         delta_acc = declared
         floor_seed_aggregate = float(dist["max_pairwise"])
         q = float(m2.get("floor_q", {}).get("q", 0.20))
-        floor_source = "ML-STD-0004 delta_acc_measure_v2 (declared floor), " \
-                       "fixed before gate_start"
+        floor_source = (
+            "ML-STD-0004 delta_acc_measure_v2 (declared floor), fixed before gate_start"
+        )
     else:
         measure = doc.get("delta_acc_measure")
-        if not measure or "delta_acc" not in measure or \
-                "floor_seed_aggregate" not in measure:
+        if (
+            not measure
+            or "delta_acc" not in measure
+            or "floor_seed_aggregate" not in measure
+        ):
             raise InstrumentAbort(
                 "committed doc has no ratified delta_acc section — δ_acc is "
-                "unfixed; run the floor measurement BEFORE the gate cycle")
+                "unfixed; run the floor measurement BEFORE the gate cycle"
+            )
         delta_acc = float(measure["delta_acc"])
         floor_seed_aggregate = float(measure["floor_seed_aggregate"])
         q = 0.20
-        floor_source = "ratified delta_acc_measure (MLC 29.10, option a), " \
-                       "fixed before gate_start"
+        floor_source = (
+            "ratified delta_acc_measure (MLC 29.10, option a), fixed before gate_start"
+        )
 
     clusters: list[lib.Cluster] = holdout["clusters"]
     ch3 = [c for c in clusters if c.stratum == "CH-3"]
     ch24 = [c for c in clusters if c.stratum in ("CH-2", "CH-4")]
 
-    d3 = {c.cid: arbitrate_production(c, model, tau_hi, tau_m, ctx=ctx)
-          for c in ch3}
-    hits = sum(1 for c in ch3 if d3[c.cid]["verdict"] == "keep"
-               and d3[c.cid].get("member") == c.label["member"])
+    d3 = {c.cid: arbitrate_production(c, model, tau_hi, tau_m, ctx=ctx) for c in ch3}
+    hits = sum(
+        1
+        for c in ch3
+        if d3[c.cid]["verdict"] == "keep"
+        and d3[c.cid].get("member") == c.label["member"]
+    )
     abst3 = sum(1 for c in ch3 if d3[c.cid]["verdict"] == "abstain")
     zone3 = sum(1 for c in ch3 if d3[c.cid].get("leg") == "zone-v1")
     acc_model = hits / len(ch3) if ch3 else 0.0
@@ -3107,8 +3919,11 @@ def _eval_gates_on_holdout(model: lgb.Booster, tau_hi: float, tau_m: float,
     # baselines on the SAME CH-3 material, pooled (the g_acc statistic is
     # the CH-3 aggregate, not per-sub-stratum)
     def pooled_acc(bfn) -> float:
-        return sum(int(lib.correct_set_ok(c, bfn(c.members))) for c in ch3) \
-            / len(ch3) if ch3 else 0.0
+        return (
+            sum(int(lib.correct_set_ok(c, bfn(c.members))) for c in ch3) / len(ch3)
+            if ch3
+            else 0.0
+        )
 
     acc_baseline = max(pooled_acc(bfn) for bfn in lib.BASELINES.values())
 
@@ -3117,42 +3932,70 @@ def _eval_gates_on_holdout(model: lgb.Booster, tau_hi: float, tau_m: float,
     for c in [c for c in clusters if c.stratum == "CH-5"]:
         base = arbitrate_production(c, model, tau_hi, tau_m, ctx=ctx)
         pert = lib.Cluster(
-            cid=c.cid, stratum=c.stratum, substratum=c.substratum,
-            members=[lib.Member(m.mid, m.title,
-                                lib.cosmetic_variant(m.body, random.Random(7)),
-                                m.tags, m.record_type, m.language, m.created_at)
-                     for m in c.members],
-            label=c.label, declaration=c.declaration)
+            cid=c.cid,
+            stratum=c.stratum,
+            substratum=c.substratum,
+            members=[
+                lib.Member(
+                    m.mid,
+                    m.title,
+                    lib.cosmetic_variant(m.body, random.Random(7)),
+                    m.tags,
+                    m.record_type,
+                    m.language,
+                    m.created_at,
+                )
+                for m in c.members
+            ],
+            label=c.label,
+            declaration=c.declaration,
+        )
         alt = arbitrate_production(pert, model, tau_hi, tau_m, ctx=ctx)
         inv_pairs += 1
-        inv_ok += int(base["verdict"] == alt["verdict"]
-                      and base.get("member") == alt.get("member"))
+        inv_ok += int(
+            base["verdict"] == alt["verdict"]
+            and base.get("member") == alt.get("member")
+        )
     inv_rate = inv_ok / inv_pairs if inv_pairs else 1.0
 
-    prop24 = sum(1 for c in ch24
-                 if arbitrate_production(c, model, tau_hi, tau_m,
-                                         ctx=ctx)["verdict"] == "keep")
+    prop24 = sum(
+        1
+        for c in ch24
+        if arbitrate_production(c, model, tau_hi, tau_m, ctx=ctx)["verdict"] == "keep"
+    )
 
     return {
-        "g_acc": {"ok": bool((acc_model - acc_baseline) >= delta_acc),
-                  "acc_model": round(acc_model, 4),
-                  "acc_best_baseline": round(acc_baseline, 4),
-                  "delta": round(acc_model - acc_baseline, 4),
-                  "delta_acc": round(delta_acc, 4),
-                  "floor_seed_aggregate": floor_seed_aggregate,
-                  "source": floor_source},
-        "g_fold_exact": {"ok": prop24 == 0, "proposals": prop24,
-                         "threshold": "exact 0"},
-        "g_abstain_sens": {"ok": bool(abst_rate3 <= q),
-                           "abstain_rate": round(abst_rate3, 4), "q": q,
-                           "zone_fired_ch3": zone3},
-        "g_inv": {"ok": bool(inv_rate >= 1.0),
-                  "agreement": round(inv_rate, 4), "pairs": inv_pairs,
-                  "delta_inv": 0.0},
+        "g_acc": {
+            "ok": bool((acc_model - acc_baseline) >= delta_acc),
+            "acc_model": round(acc_model, 4),
+            "acc_best_baseline": round(acc_baseline, 4),
+            "delta": round(acc_model - acc_baseline, 4),
+            "delta_acc": round(delta_acc, 4),
+            "floor_seed_aggregate": floor_seed_aggregate,
+            "source": floor_source,
+        },
+        "g_fold_exact": {
+            "ok": prop24 == 0,
+            "proposals": prop24,
+            "threshold": "exact 0",
+        },
+        "g_abstain_sens": {
+            "ok": bool(abst_rate3 <= q),
+            "abstain_rate": round(abst_rate3, 4),
+            "q": q,
+            "zone_fired_ch3": zone3,
+        },
+        "g_inv": {
+            "ok": bool(inv_rate >= 1.0),
+            "agreement": round(inv_rate, 4),
+            "pairs": inv_pairs,
+            "delta_inv": 0.0,
+        },
     }
 
 
 # --- CLI ----------------------------------------------------------------------
+
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
@@ -3166,15 +4009,18 @@ def main(argv: list[str] | None = None) -> int:
     p_train2 = sub.add_parser(
         "train-v2",
         help="Choice-v2 retrain (ADDENDUM-6): 34-feature contract + zone-v1 "
-             "contour + CV riders; train-only, no sealed read")
+        "contour + CV riders; train-only, no sealed read",
+    )
     p_train2.add_argument("--run-tag", default="v2-attempt1")
     p_train2.add_argument("--artifact-name", default="merge_arbiter_v2.json")
-    p_train2.add_argument("--doc-out",
-                          default=str(COMMITTED_DIR /
-                                      "merge-v1-thresholds.frozen-choice-v2.json"))
+    p_train2.add_argument(
+        "--doc-out",
+        default=str(COMMITTED_DIR / "merge-v1-thresholds.frozen-choice-v2.json"),
+    )
     p_train2.set_defaults(fn=cmd_train_v2)
-    p_floors = sub.add_parser("floors-composition",
-                              help="floor_q / floor_inv / floor_perm (§3.3)")
+    p_floors = sub.add_parser(
+        "floors-composition", help="floor_q / floor_inv / floor_perm (§3.3)"
+    )
     p_floors.add_argument("--artifact", required=True)
     p_floors.add_argument("--doc-out", required=True)
     p_floors.add_argument("--q-seeds", default="63-72")
@@ -3184,22 +4030,29 @@ def main(argv: list[str] | None = None) -> int:
     p_floors2 = sub.add_parser(
         "floors-v2",
         help="Choice-v2 floors per ML-STD-0004 (stage 2): floor_seed "
-             "distribution + declared delta_acc + floor_q/inv/perm in one "
-             "delta_acc_measure_v2 section")
+        "distribution + declared delta_acc + floor_q/inv/perm in one "
+        "delta_acc_measure_v2 section",
+    )
     p_floors2.add_argument("--artifact", required=True)
     p_floors2.add_argument("--doc-out", required=True)
-    p_floors2.add_argument("--seeds", default="43-52",
-                           help="floor_seed composition draws (>= 10, П3)")
+    p_floors2.add_argument(
+        "--seeds", default="43-52", help="floor_seed composition draws (>= 10, П3)"
+    )
     p_floors2.add_argument("--q-seeds", default="63-72")
     p_floors2.add_argument("--inv-seeds", default="73-75")
     p_floors2.add_argument("--perm-seeds", default="76-78")
     p_floors2.set_defaults(fn=cmd_floors_v2)
-    p_pre = sub.add_parser("prelaunch",
-                           help="ADDENDUM-3 §3.6 checklist (no sealed read)")
+    p_pre = sub.add_parser(
+        "prelaunch", help="ADDENDUM-3 §3.6 checklist (no sealed read)"
+    )
     p_pre.add_argument("--artifact", required=True)
-    p_pre.add_argument("--profile", default="v1", choices=["v1", "v2"],
-                       help="v2 = Choice-v2 checklist (zone contour, ML-STD-0004 "
-                            "prereg, zone-off probe, sheet prematch)")
+    p_pre.add_argument(
+        "--profile",
+        default="v1",
+        choices=["v1", "v2"],
+        help="v2 = Choice-v2 checklist (zone contour, ML-STD-0004 "
+        "prereg, zone-off probe, sheet prematch)",
+    )
     p_pre.set_defaults(fn=cmd_prelaunch)
 
     p_san = sub.add_parser("sanity", help="7-probe suite on the frozen artifact")
@@ -3207,29 +4060,42 @@ def main(argv: list[str] | None = None) -> int:
     p_san.set_defaults(fn=cmd_sanity)
 
     p_floor = sub.add_parser(
-        "floor-seed",
-        help="ratified delta_acc floor measurement (MLC 29.10, option a)")
-    p_floor.add_argument("--artifact", required=True,
-                         help="frozen merge-v1 artifact (model NOT retrained)")
-    p_floor.add_argument("--seeds", default="43-52",
-                         help="inclusive range or comma list, e.g. 53-62")
+        "floor-seed", help="ratified delta_acc floor measurement (MLC 29.10, option a)"
+    )
+    p_floor.add_argument(
+        "--artifact",
+        required=True,
+        help="frozen merge-v1 artifact (model NOT retrained)",
+    )
+    p_floor.add_argument(
+        "--seeds", default="43-52", help="inclusive range or comma list, e.g. 53-62"
+    )
     p_floor.add_argument("--doc-out", default=str(COMMITTED_DOC))
     p_floor.set_defaults(fn=cmd_floor_seed)
 
     p_gate = sub.add_parser("gate", help="single-shot gate cycle (sealed read)")
     p_gate.add_argument("--artifact", required=True)
-    p_gate.add_argument("--noharm", required=True,
-                        help="committed NOT-dup v42/v4.3 surface (jsonl), not a seal")
-    p_gate.add_argument("--execute-single-shot", action="store_true",
-                        help="EXPLICIT flag required for any sealed read")
+    p_gate.add_argument(
+        "--noharm",
+        required=True,
+        help="committed NOT-dup v42/v4.3 surface (jsonl), not a seal",
+    )
+    p_gate.add_argument(
+        "--execute-single-shot",
+        action="store_true",
+        help="EXPLICIT flag required for any sealed read",
+    )
     p_gate.set_defaults(fn=cmd_gate)
 
     args = ap.parse_args(argv)
     try:
         return args.fn(args)
     except InstrumentAbort as exc:
-        log("abort_instrument", error=str(exc),
-            note="STOP class instrument; sealed surfaces not read")
+        log(
+            "abort_instrument",
+            error=str(exc),
+            note="STOP class instrument; sealed surfaces not read",
+        )
         print(f"INSTRUMENT ABORT: {exc}", file=sys.stderr)
         return 3
 

@@ -5,6 +5,7 @@ Pinned per MLC 29.10: local open-weights model (real store texts never go
 to hosted APIs), frozen prompt, per-row scoring without cross-row context,
 ONE pass — transport failures become NOT SCORED, never retried.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -15,7 +16,9 @@ from pathlib import Path
 
 WT = Path(__file__).resolve().parents[1]
 RENDER = WT / "data" / "merge-arbiter" / "spot-sheet" / "blind-render-v1.md"
-OUT = WT / "data" / "merge-arbiter" / "spot-sheet" / "verdicts" / "llm-assistant-v1.json"
+OUT = (
+    WT / "data" / "merge-arbiter" / "spot-sheet" / "verdicts" / "llm-assistant-v1.json"
+)
 
 MODEL_PIN = "qwen2.5:7b-instruct"
 ENDPOINT = "http://127.0.0.1:11434/api/generate"
@@ -51,16 +54,23 @@ def main() -> int:
     results = []
     for row_id, row_body in rows:
         prompt = PROMPT_TEMPLATE.format(row=row_id, body=row_body.strip())
-        payload = json.dumps({
-            "model": MODEL_PIN, "prompt": prompt, "stream": False,
-            "format": "json",
-            "options": {"temperature": 0, "num_ctx": 2048},
-        }).encode()
+        payload = json.dumps(
+            {
+                "model": MODEL_PIN,
+                "prompt": prompt,
+                "stream": False,
+                "format": "json",
+                "options": {"temperature": 0, "num_ctx": 2048},
+            }
+        ).encode()
         choice, basis, note = "NOT SCORED", "", ""
         try:
-            with urllib.request.urlopen(urllib.request.Request(
-                    ENDPOINT, data=payload, headers={"Content-Type": "application/json"}),
-                    timeout=600) as resp:
+            with urllib.request.urlopen(
+                urllib.request.Request(
+                    ENDPOINT, data=payload, headers={"Content-Type": "application/json"}
+                ),
+                timeout=600,
+            ) as resp:
                 answer = json.loads(resp.read())["response"]
             parsed = json.loads(answer)
             choice = str(parsed.get("choice", "NOT SCORED")).strip().upper()
@@ -73,13 +83,27 @@ def main() -> int:
         print(f"{row_id}: {choice}", flush=True)
     scored = [r for r in results if r["choice"] != "NOT SCORED"]
     OUT.parent.mkdir(parents=True, exist_ok=True)
-    OUT.write_text(json.dumps({
-        "verdictor": "llm-assistant", "model_pin": MODEL_PIN, "temperature": 0,
-        "passes": 1, "retries": 0, "render_sha256": render_sha,
-        "rows": results,
-    }, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(json.dumps({"scored": len(scored), "not_scored": 40 - len(scored),
-                      "out": str(OUT)}))
+    OUT.write_text(
+        json.dumps(
+            {
+                "verdictor": "llm-assistant",
+                "model_pin": MODEL_PIN,
+                "temperature": 0,
+                "passes": 1,
+                "retries": 0,
+                "render_sha256": render_sha,
+                "rows": results,
+            },
+            ensure_ascii=False,
+            indent=1,
+        ),
+        encoding="utf-8",
+    )
+    print(
+        json.dumps(
+            {"scored": len(scored), "not_scored": 40 - len(scored), "out": str(OUT)}
+        )
+    )
     return 0
 
 

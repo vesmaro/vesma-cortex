@@ -13,6 +13,7 @@ Seal discipline: holdout.jsonl is opened ONLY here, machine-internal; the
 script never prints holdout or real-record content; outputs are booleans,
 counts and fingerprints (data-contract §1/§6).
 """
+
 from __future__ import annotations
 
 import argparse
@@ -36,12 +37,18 @@ def sha256_file(p: Path) -> str:
 
 
 def load_jsonl(p: Path) -> list[dict]:
-    return [json.loads(line) for line in p.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return [
+        json.loads(line)
+        for line in p.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
 
 
 def sheet_rows() -> list[dict]:
     """Parse the frozen owner sheet table into row dicts."""
-    lines = (SHEET_DIR / "owner-spot-sheet-v1.md").read_text(encoding="utf-8").splitlines()
+    lines = (
+        (SHEET_DIR / "owner-spot-sheet-v1.md").read_text(encoding="utf-8").splitlines()
+    )
     rows = []
     for ln in lines:
         if ln.startswith("| ") and not ln.startswith("| #"):
@@ -49,10 +56,15 @@ def sheet_rows() -> list[dict]:
             # separator rows have no digit in the first cell; skeletons may
             # legitimately contain '---' (markdown frontmatter of real records)
             if len(cells) >= 6 and cells[0].isdigit():
-                rows.append({
-                    "row": int(cells[0]), "cluster": cells[1],
-                    "a": cells[2], "b": cells[3], "c": cells[4],
-                })
+                rows.append(
+                    {
+                        "row": int(cells[0]),
+                        "cluster": cells[1],
+                        "a": cells[2],
+                        "b": cells[3],
+                        "c": cells[4],
+                    }
+                )
     return rows
 
 
@@ -72,7 +84,9 @@ def surface(rec: dict) -> dict:
 
 def cmd_premarket() -> int:
     checks: dict[str, object] = {}
-    checks["sheet_fp_match"] = sha256_file(SHEET_DIR / "owner-spot-sheet-v1.md") == SEALED_SHEET_FP
+    checks["sheet_fp_match"] = (
+        sha256_file(SHEET_DIR / "owner-spot-sheet-v1.md") == SEALED_SHEET_FP
+    )
     checks["selection_sha256"] = sha256_file(SHEET_DIR / "sheet-selection.json")
 
     rows = sheet_rows()
@@ -84,7 +98,9 @@ def cmd_premarket() -> int:
         len(sel["real"]) == EXPECTED_STRATA["real"] and len(sel["synthetic"]) == 20
     )
 
-    train = load_jsonl(CORPUS / "train.jsonl")  # cluster rows: members + label + declaration
+    train = load_jsonl(
+        CORPUS / "train.jsonl"
+    )  # cluster rows: members + label + declaration
     holdout = load_jsonl(CORPUS / "holdout.jsonl")  # machine-internal only
     train_by_id = {m["id"]: m for cl in train for m in cl["members"]}
     train_ids = set(train_by_id)
@@ -92,19 +108,30 @@ def cmd_premarket() -> int:
     syn_members = [m for item in sel["synthetic"] for m in item["member_ids"]]
     checks["syn_members"] = len(syn_members)
     checks["syn_members_subset_train"] = set(syn_members) <= train_ids
-    checks["syn_members_intersect_holdout"] = len(set(syn_members) & holdout_ids)  # must be 0
+    checks["syn_members_intersect_holdout"] = len(
+        set(syn_members) & holdout_ids
+    )  # must be 0
 
     # stratum composition of sheet synthetic clusters — aggregate counts ONLY
-    syn_by_cluster = {item["sheet_cluster"]: item["member_ids"] for item in sel["synthetic"]}
+    syn_by_cluster = {
+        item["sheet_cluster"]: item["member_ids"] for item in sel["synthetic"]
+    }
     class_counts: dict[str, int] = {}
     for cl in train:
         if cl["cluster_id"] in syn_by_cluster:
-            class_counts[cl["label"]["type"]] = class_counts.get(cl["label"]["type"], 0) + 1
-    checks["sheet_class_counts"] = class_counts  # expect {keep: 8, abstain: 12} = CH-3 8 + CH-2/CH-4 12
+            class_counts[cl["label"]["type"]] = (
+                class_counts.get(cl["label"]["type"], 0) + 1
+            )
+    checks["sheet_class_counts"] = (
+        class_counts  # expect {keep: 8, abstain: 12} = CH-3 8 + CH-2/CH-4 12
+    )
     checks["stratum_counts_ok"] = (
         len(sel["real"]) == EXPECTED_STRATA["real"]
-        and class_counts == {"keep": EXPECTED_STRATA["keep_CH-3"],
-                             "abstain": EXPECTED_STRATA["abstain_CH-2_CH-4"]}
+        and class_counts
+        == {
+            "keep": EXPECTED_STRATA["keep_CH-3"],
+            "abstain": EXPECTED_STRATA["abstain_CH-2_CH-4"],
+        }
         and len(syn_by_cluster) == 20
     )
 
@@ -124,8 +151,10 @@ def cmd_premarket() -> int:
     checks["real_snapshot_available"] = _snapshot_ok()
 
     ok = (
-        checks["sheet_fp_match"] and checks["stratum_counts_ok"]
-        and checks["syn_members_subset_train"] and checks["syn_members_intersect_holdout"] == 0
+        checks["sheet_fp_match"]
+        and checks["stratum_counts_ok"]
+        and checks["syn_members_subset_train"]
+        and checks["syn_members_intersect_holdout"] == 0
         and checks["syn_surface_incomplete"] == 0
         and checks["real_snapshot_available"]
         and checks["real_store_ids_subset_anchor68"]
@@ -141,7 +170,11 @@ def _snapshot_ok() -> bool:
     snap = DATA / "snapshot" / "probe-20261028"
     if not snap.exists():
         return False
-    return any(snap.glob("*.db")) or any(snap.glob("*.sqlite*")) or any(p.is_file() for p in snap.iterdir())
+    return (
+        any(snap.glob("*.db"))
+        or any(snap.glob("*.sqlite*"))
+        or any(p.is_file() for p in snap.iterdir())
+    )
 
 
 def _real_record_ids() -> set[str]:
@@ -161,7 +194,9 @@ def cmd_render() -> int:
     INTERNAL.mkdir(parents=True, exist_ok=True)
     rows = sheet_rows()
     sel = selection()
-    train_by_id = {m["id"]: m for cl in load_jsonl(CORPUS / "train.jsonl") for m in cl["members"]}
+    train_by_id = {
+        m["id"]: m for cl in load_jsonl(CORPUS / "train.jsonl") for m in cl["members"]
+    }
     real = _load_real_records({s for item in sel["real"] for s in item["store_ids"]})
 
     mapping = {}
@@ -186,58 +221,90 @@ def cmd_render() -> int:
         item = next((x for x in sel["synthetic"] if x["sheet_cluster"] == cid), None)
         if item:
             cands = [surface(train_by_id[mid]) for mid in item["member_ids"]]
-            mapping[nid] = {"kind_ref": "synthetic", "cluster": cid, "member_ids": item["member_ids"]}
+            mapping[nid] = {
+                "kind_ref": "synthetic",
+                "cluster": cid,
+                "member_ids": item["member_ids"],
+            }
         else:
             ritem = next((x for x in sel["real"] if x["sheet_cluster"] == cid), None)
             cands = [real[sid] for sid in ritem["store_ids"]]
-            mapping[nid] = {"kind_ref": "real", "cluster": cid, "store_ids": ritem["store_ids"]}
+            mapping[nid] = {
+                "kind_ref": "real",
+                "cluster": cid,
+                "store_ids": ritem["store_ids"],
+            }
         render_parts.append(f"## {nid}")
         for label, cand in zip("ABC", cands):
             render_parts.append(f"### Кандидат {label}")
             render_parts.append(f"- title: {cand['title']}")
             render_parts.append(f"- tags: {cand['tags']}")
-            render_parts.append(f"- record_type: {cand['record_type']} · language: {cand['language']}")
+            render_parts.append(
+                f"- record_type: {cand['record_type']} · language: {cand['language']}"
+            )
             render_parts.append(f"- body:\n\n{cand['body']}")
             render_parts.append("")
     render_path = SHEET_DIR / "blind-render-v1.md"
     render_path.write_text("\n".join(render_parts), encoding="utf-8")
     (INTERNAL / "render-mapping.json").write_text(
-        json.dumps(mapping, ensure_ascii=False, indent=1), encoding="utf-8")
+        json.dumps(mapping, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
 
     # 1:1 assert vs frozen sheet: row count, candidate counts, skeleton prefixes
     sheet_ok = len(rows) == 40 and len(mapping) == 40
-    print(json.dumps({
-        "render": str(render_path), "rows": len(rows),
-        "assert_1_to_1_row_count": sheet_ok,
-        "render_sha256": sha256_file(render_path),
-        "mapping_sha256": sha256_file(INTERNAL / "render-mapping.json"),
-    }, ensure_ascii=False, indent=1))
+    print(
+        json.dumps(
+            {
+                "render": str(render_path),
+                "rows": len(rows),
+                "assert_1_to_1_row_count": sheet_ok,
+                "render_sha256": sha256_file(render_path),
+                "mapping_sha256": sha256_file(INTERNAL / "render-mapping.json"),
+            },
+            ensure_ascii=False,
+            indent=1,
+        )
+    )
     return 0 if sheet_ok else 1
 
 
 def _load_real_records(store_ids: set[str]) -> dict[str, dict]:
     import sqlite3
+
     db = DATA / "snapshot" / "probe-20261028" / "vesma.db"
     out: dict[str, dict] = {}
     if db.exists():
         con = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
         con.execute("PRAGMA query_only=ON")
         try:
-            q = ("SELECT id, title, content, tags, memory_type, metadata "
-                 "FROM memories WHERE id IN (%s)" % ",".join("?" * len(store_ids)))
-            for rid, title, content, tags, mtype, meta in con.execute(q, list(store_ids)):
+            q = (
+                "SELECT id, title, content, tags, memory_type, metadata "
+                "FROM memories WHERE id IN (%s)" % ",".join("?" * len(store_ids))
+            )
+            for rid, title, content, tags, mtype, meta in con.execute(
+                q, list(store_ids)
+            ):
                 lang = None
                 try:
                     lang = (json.loads(meta) or {}).get("canon", {}).get("language")
                 except Exception:
                     pass
-                out[rid] = surface({"title": title, "body": content,
-                                    "tags": tags or [], "record_type": mtype, "language": lang})
+                out[rid] = surface(
+                    {
+                        "title": title,
+                        "body": content,
+                        "tags": tags or [],
+                        "record_type": mtype,
+                        "language": lang,
+                    }
+                )
         finally:
             con.close()
     missing = store_ids - set(out)
     if missing:
-        print(f"WARN real records missing from snapshot: {len(missing)}", file=sys.stderr)
+        print(
+            f"WARN real records missing from snapshot: {len(missing)}", file=sys.stderr
+        )
     return out
 
 
@@ -248,8 +315,10 @@ def cmd_consolidate() -> int:
     (ADDENDUM-1 §4). Emits committee-scored-v1.json + QA ladder report.
     """
     vdir = SHEET_DIR / "verdicts"
-    files = {name: json.loads((vdir / f"{name}-v1.json").read_text(encoding="utf-8"))
-             for name in ("llm-assistant", "ml-engineer", "tech-lead")}
+    files = {
+        name: json.loads((vdir / f"{name}-v1.json").read_text(encoding="utf-8"))
+        for name in ("llm-assistant", "ml-engineer", "tech-lead")
+    }
     mapping = json.loads((INTERNAL / "render-mapping.json").read_text(encoding="utf-8"))
     render_sha = sha256_file(SHEET_DIR / "blind-render-v1.md")
     for name, v in files.items():
@@ -278,11 +347,20 @@ def cmd_consolidate() -> int:
             if lab["type"] == "keep":
                 member_ids = m["member_ids"]
                 keep_idx = member_ids.index(lab["member"])
-                truth[nid] = {"class": "CH-3", "row": row["row"],
-                              "keep_letter": "ABC"[keep_idx], "keep_member": lab["member"],
-                              "member_ids": member_ids, "cluster_id": cid}
+                truth[nid] = {
+                    "class": "CH-3",
+                    "row": row["row"],
+                    "keep_letter": "ABC"[keep_idx],
+                    "keep_member": lab["member"],
+                    "member_ids": member_ids,
+                    "cluster_id": cid,
+                }
             else:
-                truth[nid] = {"class": "abstain", "row": row["row"], "acceptable": "abstain"}
+                truth[nid] = {
+                    "class": "abstain",
+                    "row": row["row"],
+                    "acceptable": "abstain",
+                }
 
     order = [f"N{i:02d}" for i in range(1, 41)]
     per_row = []
@@ -297,8 +375,10 @@ def cmd_consolidate() -> int:
     for cl in train:
         decl[cl["cluster_id"]] = cl.get("declaration", {}).get("facts", {})
     for nid in order:
-        verdicts = {name: next(r for r in files[name]["rows"] if r["row"] == nid)
-                    for name in files}
+        verdicts = {
+            name: next(r for r in files[name]["rows"] if r["row"] == nid)
+            for name in files
+        }
         t = truth[nid]
         rec = {"row": nid, "truth_class": t["class"], "verdicts": {}}
         for name, v in verdicts.items():
@@ -322,8 +402,9 @@ def cmd_consolidate() -> int:
                 fsets = [set(facts.get(mid, [])) for mid in mids]
                 sup_i = None
                 for i, fi in enumerate(fsets):
-                    if all(fi >= fj for j, fj in enumerate(fsets) if j != i) and \
-                       all(len(fi) > len(fj) for j, fj in enumerate(fsets) if j != i):
+                    if all(fi >= fj for j, fj in enumerate(fsets) if j != i) and all(
+                        len(fi) > len(fj) for j, fj in enumerate(fsets) if j != i
+                    ):
                         sup_i = i
                 if sup_i is not None:
                     arb_letter = "ABC"[sup_i]
@@ -350,45 +431,83 @@ def cmd_consolidate() -> int:
 
     # QA ladder (ADDENDUM-1 §4)
     ladder = {
-        "individual_CH3_hits": {n: {"hits": h, "of": len(ch3)} for n, h in ind_hits.items()},
+        "individual_CH3_hits": {
+            n: {"hits": h, "of": len(ch3)} for n, h in ind_hits.items()
+        },
         "individual_pass": all(h >= 7 for h in ind_hits.values()),
         "consensus_raw_unanimous_CH3": sum(
-            1 for n in ch3 if next(r for r in per_row if r["row"] == n)["raw_unanimous_vs_truth"]),
+            1
+            for n in ch3
+            if next(r for r in per_row if r["row"] == n)["raw_unanimous_vs_truth"]
+        ),
         "abstain_unanimous": sum(
-            1 for n in abst if next(r for r in per_row if r["row"] == n)["raw_unanimous_vs_truth"]),
+            1
+            for n in abst
+            if next(r for r in per_row if r["row"] == n)["raw_unanimous_vs_truth"]
+        ),
         "abstain_of": len(abst),
         "real_consensus_nosafe": sum(
-            1 for n in real if next(r for r in per_row if r["row"] == n)["no_safe_members"] >= 2),
-        "real_single_nosafe": [n for n in real
-                               if next(r for r in per_row if r["row"] == n)["no_safe_members"] == 1],
-        "ch3_majority_resolved": [n for n in ch3
-                                  if next(r for r in per_row if r["row"] == n).get("majority_resolved")],
+            1
+            for n in real
+            if next(r for r in per_row if r["row"] == n)["no_safe_members"] >= 2
+        ),
+        "real_single_nosafe": [
+            n
+            for n in real
+            if next(r for r in per_row if r["row"] == n)["no_safe_members"] == 1
+        ],
+        "ch3_majority_resolved": [
+            n
+            for n in ch3
+            if next(r for r in per_row if r["row"] == n).get("majority_resolved")
+        ],
         "tight_path": None,
     }
     cons_hits = ladder["consensus_raw_unanimous_CH3"]
     ladder["ladder_verdict"] = (
-        "PASS" if ladder["individual_pass"] and cons_hits == 8
+        "PASS"
+        if ladder["individual_pass"]
+        and cons_hits == 8
         and ladder["abstain_unanimous"] == ladder["abstain_of"]
-        and ladder["real_consensus_nosafe"] == 0 else
-        "REVIEW" if ladder["individual_pass"] and cons_hits == 7
+        and ladder["real_consensus_nosafe"] == 0
+        else "REVIEW"
+        if ladder["individual_pass"]
+        and cons_hits == 7
         and ladder["abstain_unanimous"] == ladder["abstain_of"]
-        and ladder["real_consensus_nosafe"] == 0 else "STOP")
+        and ladder["real_consensus_nosafe"] == 0
+        else "STOP"
+    )
     if cons_hits == 7:
-        ladder["tight_path"] = "model must take 7/7 remaining CH-3 cells; any second miss = DECLINE"
+        ladder["tight_path"] = (
+            "model must take 7/7 remaining CH-3 cells; any second miss = DECLINE"
+        )
 
     out = {
-        "sheet_fp": SEALED_SHEET_FP, "render_sha256": render_sha,
+        "sheet_fp": SEALED_SHEET_FP,
+        "render_sha256": render_sha,
         "selection_sha256": checks_sel_sha(),
         "verdict_files": {n: str(vdir / f"{n}-v1.json") for n in files},
-        "rows": per_row, "qa_ladder": ladder,
+        "rows": per_row,
+        "qa_ladder": ladder,
     }
     outp = SHEET_DIR / "committee-scored-v1.json"
     outp.write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(json.dumps({
-        "committee_scored": str(outp), "sha256": sha256_file(outp),
-        "qa_ladder": ladder, "truth_classes": {
-            "CH-3": len(ch3), "abstain": len(abst), "REAL-CH0": len(real)},
-    }, ensure_ascii=False, indent=1))
+    print(
+        json.dumps(
+            {
+                "committee_scored": str(outp),
+                "sha256": sha256_file(outp),
+                "qa_ladder": ladder,
+                "truth_classes": {
+                    "CH-3": len(ch3),
+                    "abstain": len(abst),
+                    "REAL-CH0": len(real),
+                },
+            },
+            ensure_ascii=False,
+            indent=1,
+        )
+    )
     return 0
 
 
@@ -403,8 +522,11 @@ def main() -> int:
     sub.add_parser("render")
     sub.add_parser("consolidate")
     args = ap.parse_args()
-    return {"prematch": cmd_premarket, "render": cmd_render,
-            "consolidate": cmd_consolidate}[args.cmd]()
+    return {
+        "prematch": cmd_premarket,
+        "render": cmd_render,
+        "consolidate": cmd_consolidate,
+    }[args.cmd]()
 
 
 if __name__ == "__main__":

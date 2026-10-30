@@ -97,7 +97,9 @@ from gen_dataset_v43_strategies import _validate_side  # noqa: E402 (frozen vali
 NEG_PATH = mt.CORPUS_DIR / "train-negatives.jsonl"
 NEG_MANIFEST = mt.CORPUS_DIR / "train-negatives.manifest.json"
 NOHARM_SURFACE = mt.ART_DIR / "noharm-surface-v1.jsonl"
-SHEET_SELECTION = REPO / "data" / "merge-arbiter" / "spot-sheet" / "sheet-selection.json"
+SHEET_SELECTION = (
+    REPO / "data" / "merge-arbiter" / "spot-sheet" / "sheet-selection.json"
+)
 SLICE = "merge-arbiter-corpus-v1-1-negatives"
 
 #: Fresh seeds, pinned BEFORE generation (run-log + sidecar manifest).
@@ -127,43 +129,79 @@ _THEME_NEAR_SUBSTRATA = ("cross-lang-sibling", "template-twin", "near-topic")
 #: language), frame B = sibling side (the OTHER language, different
 #: meaning on the same topic). {v} slots take DIFFERENT values per side.
 CROSS_LANG_TOPICS = [
-    dict(sid="ru-migration", just="the record plans the runtime cutover window, "
-         "the sibling reports the same migration cancelled — opposite project states on one topic",
-         a="Миграция сервиса на новый рантайм запланирована на окно {v}: сначала интеграционные тесты, затем читающие клиенты.",
-         b="The runtime migration was postponed: the cutover window of {v} minutes is cancelled and clients stay on the current runtime this quarter."),
-    dict(sid="ru-retention", just="the record states the automatic archive rule, the sibling announces the rule retired — the retention policy moved in opposite directions",
-         a="Черновики старше {v} дней архивируются автоматически, архив читается поиском и не показывается в выдаче.",
-         b="Draft retention changed: nothing is archived automatically anymore, the {v}-day rule is retired and cleanup is a manual monthly task."),
-    dict(sid="ru-review-cfg", just="the record mandates config review with a window, the sibling drops the mandate for hotfixes — different effective policies",
-         a="Ревью конфигов обязательно для правок портов и лимитов, окно ревью — {v} часов, отметка в журнале изменений.",
-         b="Config review policy is dropped for hotfixes: the {v}-hour review window now applies only to scheduled changes, log marks are optional."),
-    dict(sid="ru-flags", just="the record starts the flag cleanup, the sibling freezes it — opposite execution states of the same cleanup",
-         a="Вынос фиче-флагов из legacy начнётся с флагов старше {v} дней, каждый вынос фиксируется отдельным коммитом.",
-         b="Feature-flag cleanup is frozen: flags older than {v} days stay in the legacy module until the rewrite lands, no commits are cut."),
-    dict(sid="ru-replicas", just="the record fixes the classic restart order, the sibling documents an inverted order — different runbooks for the same window",
-         a="После окна включение реплик начинается с читающих контуров, контроль отставания — каждые {v} минут, мастер последним.",
-         b="Replica restart order is inverted this time: border replicas come first, lag checks run every {v} minutes on the writer path, the master is promoted early."),
-    dict(sid="ru-incident-labels", just="the record keeps minting retro labels, the sibling closes the experiment — opposite labeling regimes",
-         a="Ретроспективные метки ставятся в течение {v} дней после пост-мортема, каждая метка несёт ссылку на разбор.",
-         b="The retro-label experiment ended: no labels are minted after incidents anymore, the {v}-day trial window is closed and links live in the postmortem only."),
-    dict(sid="en-oncall", just="the record keeps the manual handoff summary, the sibling retires it — opposite handoff mechanics",
-         a="The on-call handoff moves to the shared channel; the rotating engineer posts the summary within {v} minutes of shift end.",
-         b="Ручной хэндофф отменяют: сводка смены дежурным больше не отправляется, окно {v} минут упразднено, состояние читают из дашборда."),
-    dict(sid="en-cache", just="the record keeps manual purge with a soft TTL, the sibling switches to event-driven invalidation — different cache regimes",
-         a="Edge cache purge stays manual; soft TTL is {v} minutes for hot paths, pricing pages are never cached.",
-         b="Кэш переводят на автоматическую инвалидацию по событию публикации, ручной пургатор убирают, TTL {v} минут сохраняется только для статики."),
-    dict(sid="en-backups", just="the record keeps quarterly drills, the sibling replaces them with an annual game day — different drill schedules",
-         a="Quarterly restore drills continue; the next full drill must finish within {v} hours including the report.",
-         b="Расписание drills меняют: полные восстановления реже, годовой game day заменяет квартальные, окно {v} часов на отчёт не лимитирует."),
-    dict(sid="en-deprecation", just="the record applies the sunset header to all consumers, the sibling narrows it to paid ones — different deprecation scopes",
-         a="Deprecated endpoints keep the sunset header {v} days ahead; zero-traffic consumers are contacted before removal.",
-         b="Политику деприкейшена смягчили: sunset-заголовок за {v} дней нужен только для платных потребителей, остальные отключаются без предупреждения."),
-    dict(sid="en-quotas", just="the record keeps the batch fast lane, the sibling removes it — opposite rate-limit outcomes",
-         a="Default burst stays at the negotiated limit; batch jobs get the fast lane only within the {v} minute maintenance window.",
-         b="Лимиты пересмотрели: батч-задачи теряют быстрый lane, окно обслуживания {v} минут больше не даёт исключений, burst считается по базовому тарифу."),
-    dict(sid="en-docs", just="the record reports the migration done and moving on, the sibling reports it suspended — opposite project states",
-         a="Docs migration is done for architecture notes; runbooks move next sprint, redirects re-index within {v} days.",
-         b="Миграцию документации приостановили: runbooks остаются на месте, редиректы за {v} дней не устанавливаются, план переписывается."),
+    dict(
+        sid="ru-migration",
+        just="the record plans the runtime cutover window, "
+        "the sibling reports the same migration cancelled — opposite project states on one topic",
+        a="Миграция сервиса на новый рантайм запланирована на окно {v}: сначала интеграционные тесты, затем читающие клиенты.",
+        b="The runtime migration was postponed: the cutover window of {v} minutes is cancelled and clients stay on the current runtime this quarter.",
+    ),
+    dict(
+        sid="ru-retention",
+        just="the record states the automatic archive rule, the sibling announces the rule retired — the retention policy moved in opposite directions",
+        a="Черновики старше {v} дней архивируются автоматически, архив читается поиском и не показывается в выдаче.",
+        b="Draft retention changed: nothing is archived automatically anymore, the {v}-day rule is retired and cleanup is a manual monthly task.",
+    ),
+    dict(
+        sid="ru-review-cfg",
+        just="the record mandates config review with a window, the sibling drops the mandate for hotfixes — different effective policies",
+        a="Ревью конфигов обязательно для правок портов и лимитов, окно ревью — {v} часов, отметка в журнале изменений.",
+        b="Config review policy is dropped for hotfixes: the {v}-hour review window now applies only to scheduled changes, log marks are optional.",
+    ),
+    dict(
+        sid="ru-flags",
+        just="the record starts the flag cleanup, the sibling freezes it — opposite execution states of the same cleanup",
+        a="Вынос фиче-флагов из legacy начнётся с флагов старше {v} дней, каждый вынос фиксируется отдельным коммитом.",
+        b="Feature-flag cleanup is frozen: flags older than {v} days stay in the legacy module until the rewrite lands, no commits are cut.",
+    ),
+    dict(
+        sid="ru-replicas",
+        just="the record fixes the classic restart order, the sibling documents an inverted order — different runbooks for the same window",
+        a="После окна включение реплик начинается с читающих контуров, контроль отставания — каждые {v} минут, мастер последним.",
+        b="Replica restart order is inverted this time: border replicas come first, lag checks run every {v} minutes on the writer path, the master is promoted early.",
+    ),
+    dict(
+        sid="ru-incident-labels",
+        just="the record keeps minting retro labels, the sibling closes the experiment — opposite labeling regimes",
+        a="Ретроспективные метки ставятся в течение {v} дней после пост-мортема, каждая метка несёт ссылку на разбор.",
+        b="The retro-label experiment ended: no labels are minted after incidents anymore, the {v}-day trial window is closed and links live in the postmortem only.",
+    ),
+    dict(
+        sid="en-oncall",
+        just="the record keeps the manual handoff summary, the sibling retires it — opposite handoff mechanics",
+        a="The on-call handoff moves to the shared channel; the rotating engineer posts the summary within {v} minutes of shift end.",
+        b="Ручной хэндофф отменяют: сводка смены дежурным больше не отправляется, окно {v} минут упразднено, состояние читают из дашборда.",
+    ),
+    dict(
+        sid="en-cache",
+        just="the record keeps manual purge with a soft TTL, the sibling switches to event-driven invalidation — different cache regimes",
+        a="Edge cache purge stays manual; soft TTL is {v} minutes for hot paths, pricing pages are never cached.",
+        b="Кэш переводят на автоматическую инвалидацию по событию публикации, ручной пургатор убирают, TTL {v} минут сохраняется только для статики.",
+    ),
+    dict(
+        sid="en-backups",
+        just="the record keeps quarterly drills, the sibling replaces them with an annual game day — different drill schedules",
+        a="Quarterly restore drills continue; the next full drill must finish within {v} hours including the report.",
+        b="Расписание drills меняют: полные восстановления реже, годовой game day заменяет квартальные, окно {v} часов на отчёт не лимитирует.",
+    ),
+    dict(
+        sid="en-deprecation",
+        just="the record applies the sunset header to all consumers, the sibling narrows it to paid ones — different deprecation scopes",
+        a="Deprecated endpoints keep the sunset header {v} days ahead; zero-traffic consumers are contacted before removal.",
+        b="Политику деприкейшена смягчили: sunset-заголовок за {v} дней нужен только для платных потребителей, остальные отключаются без предупреждения.",
+    ),
+    dict(
+        sid="en-quotas",
+        just="the record keeps the batch fast lane, the sibling removes it — opposite rate-limit outcomes",
+        a="Default burst stays at the negotiated limit; batch jobs get the fast lane only within the {v} minute maintenance window.",
+        b="Лимиты пересмотрели: батч-задачи теряют быстрый lane, окно обслуживания {v} минут больше не даёт исключений, burst считается по базовому тарифу.",
+    ),
+    dict(
+        sid="en-docs",
+        just="the record reports the migration done and moving on, the sibling reports it suspended — opposite project states",
+        a="Docs migration is done for architecture notes; runbooks move next sprint, redirects re-index within {v} days.",
+        b="Миграцию документации приостановили: runbooks остаются на месте, редиректы за {v} дней не устанавливаются, план переписывается.",
+    ),
 ]
 
 #: Value variants per topic index: (record_value, sibling_value) — always
@@ -211,25 +249,29 @@ def _cross_lang_specs() -> list[dict]:
             # record is en, the authored sibling title is ru — swap the
             # length/wording asymmetry per variant instead of per topic
             if vi % 2 == 1:
-                a_title = f"{a_title} (черновик)" if a_lang == "ru" else f"{a_title} (draft)"
-            specs.append({
-                "key": f"xn-{topic['sid']}-{vi}",
-                "record": {
-                    "lang": a_lang,
-                    "title": a_title,
-                    "body": topic["a"].format(v=va),
-                    "tags": ["platform", "notes"],
-                    "record_type": "note",
-                },
-                "sibling": {
-                    "lang": b_lang,
-                    "title": b_title,
-                    "body": topic["b"].format(v=vb),
-                    "tags": ["platform", "notes"],
-                    "record_type": "note",
-                },
-                "justification": topic["just"],
-            })
+                a_title = (
+                    f"{a_title} (черновик)" if a_lang == "ru" else f"{a_title} (draft)"
+                )
+            specs.append(
+                {
+                    "key": f"xn-{topic['sid']}-{vi}",
+                    "record": {
+                        "lang": a_lang,
+                        "title": a_title,
+                        "body": topic["a"].format(v=va),
+                        "tags": ["platform", "notes"],
+                        "record_type": "note",
+                    },
+                    "sibling": {
+                        "lang": b_lang,
+                        "title": b_title,
+                        "body": topic["b"].format(v=vb),
+                        "tags": ["platform", "notes"],
+                        "record_type": "note",
+                    },
+                    "justification": topic["just"],
+                }
+            )
     return specs
 
 
@@ -270,18 +312,34 @@ _TOPIC_ALTS = [
 
 # --- construction ------------------------------------------------------------
 
-def _mk_member(mid: str, title: str, body: str, tags, rtype, lang, ts: str) -> lib.Member:
-    return lib.Member(mid=mid, title=title, body=body, tags=tuple(tags),
-                      record_type=rtype, language=lang, created_at=ts)
+
+def _mk_member(
+    mid: str, title: str, body: str, tags, rtype, lang, ts: str
+) -> lib.Member:
+    return lib.Member(
+        mid=mid,
+        title=title,
+        body=body,
+        tags=tuple(tags),
+        record_type=rtype,
+        language=lang,
+        created_at=ts,
+    )
 
 
 def _iso(ts: float) -> str:
     return dt.datetime.fromtimestamp(int(ts), dt.timezone.utc).strftime(lib.ISO_FMT)
 
 
-def _emit_both_orientations(prefix: str, stratum_pair: str, just: str,
-                            scenario: str, side_a: dict, side_b: dict,
-                            rng: random.Random) -> list[lib.Cluster]:
+def _emit_both_orientations(
+    prefix: str,
+    stratum_pair: str,
+    just: str,
+    scenario: str,
+    side_a: dict,
+    side_b: dict,
+    rng: random.Random,
+) -> list[lib.Cluster]:
     """Each pair is emitted in BOTH orientations (A-symmetry extended to
     the negative strata, ADDENDUM-3 §1) — mirrored scenario rows with
     FRESH ids per orientation (the gen_family convention)."""
@@ -290,26 +348,50 @@ def _emit_both_orientations(prefix: str, stratum_pair: str, just: str,
     for orient in ("AB", "BA"):
         mids = (f"{prefix}-a-{orient}", f"{prefix}-b-{orient}")
         members = [
-            _mk_member(mids[0], side_a["title"], side_a["body"], side_a["tags"],
-                       side_a["record_type"], side_a["language"],
-                       _iso(rng.randint(lo, hi))),
-            _mk_member(mids[1], side_b["title"], side_b["body"], side_b["tags"],
-                       side_b["record_type"], side_b["language"],
-                       _iso(rng.randint(lo, hi))),
+            _mk_member(
+                mids[0],
+                side_a["title"],
+                side_a["body"],
+                side_a["tags"],
+                side_a["record_type"],
+                side_a["language"],
+                _iso(rng.randint(lo, hi)),
+            ),
+            _mk_member(
+                mids[1],
+                side_b["title"],
+                side_b["body"],
+                side_b["tags"],
+                side_b["record_type"],
+                side_b["language"],
+                _iso(rng.randint(lo, hi)),
+            ),
         ]
         if orient == "BA":
             members.reverse()
-        out.append(lib.Cluster(
-            cid=f"{prefix}-{orient}", stratum="theme-near",
-            substratum=stratum_pair, members=members,
-            label={"type": "abstain"}, declaration=_decl(stratum_pair, just),
-            scenario=scenario, orientation=orient))
+        out.append(
+            lib.Cluster(
+                cid=f"{prefix}-{orient}",
+                stratum="theme-near",
+                substratum=stratum_pair,
+                members=members,
+                label={"type": "abstain"},
+                declaration=_decl(stratum_pair, just),
+                scenario=scenario,
+                orientation=orient,
+            )
+        )
     return out
 
 
 def _decl(substratum: str, justification: str) -> dict:
-    return {"kind": "theme-near", "mode": substratum, "facts": {}, "steps": [],
-            "justification": justification}
+    return {
+        "kind": "theme-near",
+        "mode": substratum,
+        "facts": {},
+        "steps": [],
+        "justification": justification,
+    }
 
 
 def _build_cross_lang(seed: int) -> list[lib.Cluster]:
@@ -318,20 +400,40 @@ def _build_cross_lang(seed: int) -> list[lib.Cluster]:
     for spec in _cross_lang_specs():
         rec = dict(spec["record"])
         sib = dict(spec["sibling"])
-        _validate_side(rec, "neg.record", spec)   # frozen v4.3 validator
+        _validate_side(rec, "neg.record", spec)  # frozen v4.3 validator
         _validate_side(sib, "neg.sibling", spec)
-        if not isinstance(spec["justification"], str) or not spec["justification"].strip():
+        if (
+            not isinstance(spec["justification"], str)
+            or not spec["justification"].strip()
+        ):
             raise mt.InstrumentAbort(f"{spec['key']}: empty justification")
         if rec["lang"] == sib["lang"]:
             raise mt.InstrumentAbort(f"{spec['key']}: cross-lang pair with equal langs")
-        side_a = {"title": rec["title"], "body": rec["body"], "tags": rec["tags"],
-                  "record_type": rec["record_type"], "language": rec["lang"]}
-        side_b = {"title": sib["title"], "body": sib["body"], "tags": sib["tags"],
-                  "record_type": sib["record_type"], "language": sib["lang"]}
-        clusters.extend(_emit_both_orientations(
-            f"ma-neg-xn-{spec['key']}", "cross-lang-sibling", spec["justification"],
-            f"{spec['key']}|cross-lang|{rec['lang']}-{sib['lang']}",
-            side_a, side_b, rng))
+        side_a = {
+            "title": rec["title"],
+            "body": rec["body"],
+            "tags": rec["tags"],
+            "record_type": rec["record_type"],
+            "language": rec["lang"],
+        }
+        side_b = {
+            "title": sib["title"],
+            "body": sib["body"],
+            "tags": sib["tags"],
+            "record_type": sib["record_type"],
+            "language": sib["lang"],
+        }
+        clusters.extend(
+            _emit_both_orientations(
+                f"ma-neg-xn-{spec['key']}",
+                "cross-lang-sibling",
+                spec["justification"],
+                f"{spec['key']}|cross-lang|{rec['lang']}-{sib['lang']}",
+                side_a,
+                side_b,
+                rng,
+            )
+        )
     return clusters
 
 
@@ -343,7 +445,7 @@ def _build_twin(seed: int) -> list[lib.Cluster]:
     # deterministic pair assignment: scaffold x (fillerA, fillerB), unique combos
     pair_no = 0
     for si in range(len(lib.SCAFFOLDS)):
-        for (fa, fb) in ((i, (i + 1 + si) % n_f) for i in range(n_f)):
+        for fa, fb in ((i, (i + 1 + si) % n_f) for i in range(n_f)):
             if fa == fb:
                 continue
             if pair_no >= QUOTA_PAIRS["template-twin"]:
@@ -363,21 +465,43 @@ def _build_twin(seed: int) -> list[lib.Cluster]:
             body_a = base.replace("{LONG}", _TWIN_FILLERS[fa])
             body_b = base.replace("{LONG}", _TWIN_FILLERS[fb])
             pair_no += 1
-            side_a = {"title": title, "body": body_a, "tags": tags,
-                      "record_type": "note", "language": lang}
-            side_b = {"title": title, "body": body_b, "tags": tags,
-                      "record_type": "note", "language": lang}
-            just = ("same scaffold template, two different filler paragraphs in the "
-                    f"variable region ({fa} vs {fb}) — no fact on either side, "
-                    "different content, same topic")
-            clusters.extend(_emit_both_orientations(
-                f"ma-neg-tw-{pair_no:03d}", "template-twin", just,
-                f"{sid}|twin|{fa}|{fb}", side_a, side_b, rng))
+            side_a = {
+                "title": title,
+                "body": body_a,
+                "tags": tags,
+                "record_type": "note",
+                "language": lang,
+            }
+            side_b = {
+                "title": title,
+                "body": body_b,
+                "tags": tags,
+                "record_type": "note",
+                "language": lang,
+            }
+            just = (
+                "same scaffold template, two different filler paragraphs in the "
+                f"variable region ({fa} vs {fb}) — no fact on either side, "
+                "different content, same topic"
+            )
+            clusters.extend(
+                _emit_both_orientations(
+                    f"ma-neg-tw-{pair_no:03d}",
+                    "template-twin",
+                    just,
+                    f"{sid}|twin|{fa}|{fb}",
+                    side_a,
+                    side_b,
+                    rng,
+                )
+            )
         if pair_no >= QUOTA_PAIRS["template-twin"]:
             break
     if len(clusters) != 2 * QUOTA_PAIRS["template-twin"]:
-        raise mt.InstrumentAbort(f"template-twin clusters: {len(clusters)}, "
-                                 f"want {2 * QUOTA_PAIRS['template-twin']}")
+        raise mt.InstrumentAbort(
+            f"template-twin clusters: {len(clusters)}, "
+            f"want {2 * QUOTA_PAIRS['template-twin']}"
+        )
     return clusters
 
 
@@ -399,31 +523,56 @@ def _build_near(seed: int) -> list[lib.Cluster]:
             title = lib.scaffold_title(sid)
             tags = ("platform", "notes")
             base = lib.scaffold_body(sid)
-            side_a = {"title": title, "body": base + " " + _TOPIC_ALTS[ia],
-                      "tags": tags, "record_type": "note", "language": lang}
-            side_b = {"title": title, "body": base + " " + _TOPIC_ALTS[ib],
-                      "tags": tags, "record_type": "note", "language": lang}
+            side_a = {
+                "title": title,
+                "body": base + " " + _TOPIC_ALTS[ia],
+                "tags": tags,
+                "record_type": "note",
+                "language": lang,
+            }
+            side_b = {
+                "title": title,
+                "body": base + " " + _TOPIC_ALTS[ib],
+                "tags": tags,
+                "record_type": "note",
+                "language": lang,
+            }
             pair_no += 1
-            just = ("same topic, different added closing statement "
-                    f"({ia} vs {ib}) — neither side contains the other, "
-                    "different content, same topic")
-            clusters.extend(_emit_both_orientations(
-                f"ma-neg-nt-{pair_no:03d}", "near-topic", just,
-                f"{sid}|near|{ia}|{ib}", side_a, side_b, rng))
+            just = (
+                "same topic, different added closing statement "
+                f"({ia} vs {ib}) — neither side contains the other, "
+                "different content, same topic"
+            )
+            clusters.extend(
+                _emit_both_orientations(
+                    f"ma-neg-nt-{pair_no:03d}",
+                    "near-topic",
+                    just,
+                    f"{sid}|near|{ia}|{ib}",
+                    side_a,
+                    side_b,
+                    rng,
+                )
+            )
         if pair_no >= QUOTA_PAIRS["near-topic"]:
             break
     if len(clusters) != 2 * QUOTA_PAIRS["near-topic"]:
-        raise mt.InstrumentAbort(f"near-topic clusters: {len(clusters)}, "
-                                 f"want {2 * QUOTA_PAIRS['near-topic']}")
+        raise mt.InstrumentAbort(
+            f"near-topic clusters: {len(clusters)}, "
+            f"want {2 * QUOTA_PAIRS['near-topic']}"
+        )
     return clusters
 
 
 # --- asserts (§2, fail-closed) ------------------------------------------------
 
+
 def _char5(a: lib.Member, b: lib.Member) -> float:
-    vec = features(RecordLike(a.title, a.body, a.tags, a.language, a.record_type),
-                   RecordLike(b.title, b.body, b.tags, b.language, b.record_type),
-                   similarity=1.0)
+    vec = features(
+        RecordLike(a.title, a.body, a.tags, a.language, a.record_type),
+        RecordLike(b.title, b.body, b.tags, b.language, b.record_type),
+        similarity=1.0,
+    )
     return vec.values[FEATURE_NAMES.index("char5_jaccard")]
 
 
@@ -442,33 +591,45 @@ def assert_neg_silver(clusters: list[lib.Cluster]) -> None:
     for c in clusters:
         a, b = c.members[0], c.members[1]
         same_norm = lib.norm1_body(a.body) == lib.norm1_body(b.body)
-        same_env = (lib.norm1_body(a.title) == lib.norm1_body(b.title)
-                    and frozenset(a.tags) == frozenset(b.tags)
-                    and a.record_type == b.record_type
-                    and a.language == b.language)
+        same_env = (
+            lib.norm1_body(a.title) == lib.norm1_body(b.title)
+            and frozenset(a.tags) == frozenset(b.tags)
+            and a.record_type == b.record_type
+            and a.language == b.language
+        )
         if same_norm and same_env:
             raise mt.InstrumentAbort(
-                f"A-neg-silver RED: {c.cid} passes the dup surface-identity leg")
+                f"A-neg-silver RED: {c.cid} passes the dup surface-identity leg"
+            )
         j = _char5(a, b)
         worst = max(worst, j)
         if j > 0.90:
             raise mt.InstrumentAbort(
                 f"A-neg-silver RED: {c.cid} char5_jaccard={j:.4f} > 0.90 "
-                "(razor band proximity)")
-    mt.log("a_neg_silver", pairs=len(clusters), max_char5_jaccard=round(worst, 4),
-           predicate="fails §A dup: norm1 body identity leg (cross-lang: also "
-                     "language leg); char5 <= 0.90 razor guard; cos<0.92 leg "
-                     "structural (census admits only through surface identity)")
+                "(razor band proximity)"
+            )
+    mt.log(
+        "a_neg_silver",
+        pairs=len(clusters),
+        max_char5_jaccard=round(worst, 4),
+        predicate="fails §A dup: norm1 body identity leg (cross-lang: also "
+        "language leg); char5 <= 0.90 razor guard; cos<0.92 leg "
+        "structural (census admits only through surface identity)",
+    )
 
 
 def _body_hashes(clusters: list[lib.Cluster]) -> set[str]:
     return {mt.sha256_text(m.body) for c in clusters for m in c.members}
 
 
-def assert_neg_disjoint(clusters: list[lib.Cluster],
-                        surface_hashes: set[str], train_hashes: set[str],
-                        scaffold_hashes: set[str],
-                        holdout_ids: set[str], sheet_ids: set[str]) -> None:
+def assert_neg_disjoint(
+    clusters: list[lib.Cluster],
+    surface_hashes: set[str],
+    train_hashes: set[str],
+    scaffold_hashes: set[str],
+    holdout_ids: set[str],
+    sheet_ids: set[str],
+) -> None:
     """A-neg-disjoint: 0 body-hash vs noharm surface / train / raw
     scaffolds; 0 cluster+member id vs holdout id-manifest / sheet
     member_ids (sheet read at ID LEVEL ONLY from sheet-selection.json)."""
@@ -479,21 +640,32 @@ def assert_neg_disjoint(clusters: list[lib.Cluster],
     hits_scaffold = neg_h & scaffold_hashes
     hits_holdout_ids = neg_ids & holdout_ids
     hits_sheet_ids = neg_ids & sheet_ids
-    mt.log("a_neg_disjoint", body_hashes=len(neg_h),
-           hits_surface=sorted(hits_surface)[:3], hits_train=sorted(hits_train)[:3],
-           hits_raw_scaffold=sorted(hits_scaffold)[:3],
-           hits_holdout_ids=sorted(hits_holdout_ids)[:3],
-           hits_sheet_ids=sorted(hits_sheet_ids)[:3],
-           sheet_read="sheet-selection.json, ID LEVEL ONLY, facts logged",
-           note="scaffold overlap with the surface computed from the recipe: "
-                "negatives reuse merge-arbiter scaffolds (authored class), the "
-                "surface carries v4/v4.3 batch texts — 0 topic overlap expected")
-    if hits_surface or hits_train or hits_scaffold or hits_holdout_ids or hits_sheet_ids:
+    mt.log(
+        "a_neg_disjoint",
+        body_hashes=len(neg_h),
+        hits_surface=sorted(hits_surface)[:3],
+        hits_train=sorted(hits_train)[:3],
+        hits_raw_scaffold=sorted(hits_scaffold)[:3],
+        hits_holdout_ids=sorted(hits_holdout_ids)[:3],
+        hits_sheet_ids=sorted(hits_sheet_ids)[:3],
+        sheet_read="sheet-selection.json, ID LEVEL ONLY, facts logged",
+        note="scaffold overlap with the surface computed from the recipe: "
+        "negatives reuse merge-arbiter scaffolds (authored class), the "
+        "surface carries v4/v4.3 batch texts — 0 topic overlap expected",
+    )
+    if (
+        hits_surface
+        or hits_train
+        or hits_scaffold
+        or hits_holdout_ids
+        or hits_sheet_ids
+    ):
         raise mt.InstrumentAbort(
             f"A-neg-disjoint RED: surface={sorted(hits_surface)[:2]} "
             f"train={sorted(hits_train)[:2]} scaffold={sorted(hits_scaffold)[:2]} "
             f"holdout_ids={sorted(hits_holdout_ids)[:2]} "
-            f"sheet_ids={sorted(hits_sheet_ids)[:2]}")
+            f"sheet_ids={sorted(hits_sheet_ids)[:2]}"
+        )
 
 
 def preflight_fixtures() -> None:
@@ -504,14 +676,35 @@ def preflight_fixtures() -> None:
     topic = CROSS_LANG_TOPICS[0]
     rec = dict(specs[0]["record"])
     sib = dict(specs[0]["sibling"])
-    cells.append(lib.Cluster(
-        cid="fx-xn", stratum="theme-near", substratum="cross-lang-sibling",
-        members=[_mk_member("fx-xn-a", rec["title"], rec["body"], rec["tags"],
-                            rec["record_type"], rec["lang"], lib._iso(lib._CREATED_LO)),
-                 _mk_member("fx-xn-b", sib["title"], sib["body"], sib["tags"],
-                            sib["record_type"], sib["lang"], lib._iso(lib._CREATED_LO))],
-        label={"type": "abstain"},
-        declaration=_decl("cross-lang-sibling", topic["just"])))
+    cells.append(
+        lib.Cluster(
+            cid="fx-xn",
+            stratum="theme-near",
+            substratum="cross-lang-sibling",
+            members=[
+                _mk_member(
+                    "fx-xn-a",
+                    rec["title"],
+                    rec["body"],
+                    rec["tags"],
+                    rec["record_type"],
+                    rec["lang"],
+                    lib._iso(lib._CREATED_LO),
+                ),
+                _mk_member(
+                    "fx-xn-b",
+                    sib["title"],
+                    sib["body"],
+                    sib["tags"],
+                    sib["record_type"],
+                    sib["lang"],
+                    lib._iso(lib._CREATED_LO),
+                ),
+            ],
+            label={"type": "abstain"},
+            declaration=_decl("cross-lang-sibling", topic["just"]),
+        )
+    )
     twin = _build_twin(SEED_TEMPLATE_TWIN)[0]
     twin.cid = "fx-tw"
     twin.members[0].mid, twin.members[1].mid = "fx-tw-a", "fx-tw-b"
@@ -526,62 +719,102 @@ def preflight_fixtures() -> None:
         # full map on the fixture: silver-fail, label-from-declaration,
         # class routing (undefined -> model leg), orientation balance
         a, b = c.members
-        silver_fails = not (lib.norm1_body(a.body) == lib.norm1_body(b.body)
-                            and lib.norm1_body(a.title) == lib.norm1_body(b.title)
-                            and frozenset(a.tags) == frozenset(b.tags)
-                            and a.record_type == b.record_type
-                            and a.language == b.language)
-        label_ok = lib.correct_set_ok(c, None) is False  # abstain strata: any keep wrong
+        silver_fails = not (
+            lib.norm1_body(a.body) == lib.norm1_body(b.body)
+            and lib.norm1_body(a.title) == lib.norm1_body(b.title)
+            and frozenset(a.tags) == frozenset(b.tags)
+            and a.record_type == b.record_type
+            and a.language == b.language
+        )
+        label_ok = (
+            lib.correct_set_ok(c, None) is False
+        )  # abstain strata: any keep wrong
         cls = lib.classify(c.members, declarations=None)
         routing_ok = cls == "undefined"
         rev = list(reversed(c.members))
         rev_decl = _decl(c.substratum, c.declaration["justification"])
-        rev_c = lib.Cluster(cid=c.cid, stratum=c.stratum, substratum=c.substratum,
-                            members=rev, label=c.label, declaration=rev_decl)
-        decl_matches = (c.declaration["kind"] == "theme-near"
-                        and c.declaration["mode"] == c.substratum
-                        and bool(c.declaration["justification"].strip())
-                        and rev_c.declaration["justification"] == c.declaration["justification"])
+        rev_c = lib.Cluster(
+            cid=c.cid,
+            stratum=c.stratum,
+            substratum=c.substratum,
+            members=rev,
+            label=c.label,
+            declaration=rev_decl,
+        )
+        decl_matches = (
+            c.declaration["kind"] == "theme-near"
+            and c.declaration["mode"] == c.substratum
+            and bool(c.declaration["justification"].strip())
+            and rev_c.declaration["justification"] == c.declaration["justification"]
+        )
         row_ok = silver_fails and label_ok and routing_ok and decl_matches
         all_ok = all_ok and row_ok
-        mt.log("preflight_fixture", cell=c.cid, substratum=c.substratum,
-               silver_fails=silver_fails, label_ok=label_ok,
-               route_class=cls, routing_ok=routing_ok, decl_ok=decl_matches,
-               ok=row_ok)
+        mt.log(
+            "preflight_fixture",
+            cell=c.cid,
+            substratum=c.substratum,
+            silver_fails=silver_fails,
+            label_ok=label_ok,
+            route_class=cls,
+            routing_ok=routing_ok,
+            decl_ok=decl_matches,
+            ok=row_ok,
+        )
     if not all_ok:
-        raise mt.InstrumentAbort("preflight RED on theme-near fixtures — "
-                                 "emission forbidden (П3)")
-    mt.log("preflight_pass", cells=3,
-           note="fixture cells of every new substratum; full assert map green "
-                "BEFORE emission")
+        raise mt.InstrumentAbort(
+            "preflight RED on theme-near fixtures — emission forbidden (П3)"
+        )
+    mt.log(
+        "preflight_pass",
+        cells=3,
+        note="fixture cells of every new substratum; full assert map green "
+        "BEFORE emission",
+    )
 
 
 # --- emission -----------------------------------------------------------------
 
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("cmd", choices=["build", "null-coverage"])
-    ap.add_argument("--iter2", action="store_true",
-                    help="ratified iter-guard re-emission (iteration 2 of 2)")
+    ap.add_argument(
+        "--iter2",
+        action="store_true",
+        help="ratified iter-guard re-emission (iteration 2 of 2)",
+    )
     args = ap.parse_args(argv)
     if args.cmd == "null-coverage":
         return cmd_null_coverage(args)
 
     mt._SLICE = SLICE
-    mt.log("cost_declaration", expected_prolog_s=2, expected_cycle_s=30,
-           expected_peak_ram_gb=1.0, lane="light (draft §9)")
+    mt.log(
+        "cost_declaration",
+        expected_prolog_s=2,
+        expected_cycle_s=30,
+        expected_peak_ram_gb=1.0,
+        lane="light (draft §9)",
+    )
 
     # prologue (train-side: no sealed surface, no holdout content)
     swap = subprocess.run(["swapon", "--show"], capture_output=True, text=True).stdout
     free = subprocess.run(["free", "-m"], capture_output=True, text=True).stdout
     avail_mb = int(free.splitlines()[1].split()[6])
-    mt.log("swap_check", swapon_lines=swap.strip().splitlines(),
-           available_mb=avail_mb, ram_overrun_stop=bool(avail_mb < 2000))
+    mt.log(
+        "swap_check",
+        swapon_lines=swap.strip().splitlines(),
+        available_mb=avail_mb,
+        ram_overrun_stop=bool(avail_mb < 2000),
+    )
     if avail_mb < 2000:
         raise mt.InstrumentAbort("RAM below floor")
-    env = {"executable": sys.executable, "python": sys.version.split()[0],
-           "lightgbm": mt.lgb.__version__, "numpy": mt.np.__version__,
-           "machine": platform.machine()}
+    env = {
+        "executable": sys.executable,
+        "python": sys.version.split()[0],
+        "lightgbm": mt.lgb.__version__,
+        "numpy": mt.np.__version__,
+        "machine": platform.machine(),
+    }
     mt.log("env", **env)
     mt.log("host", hostname=platform.node(), expectation=mt.EXPECTED_HOST)
     if platform.node() != mt.EXPECTED_HOST:
@@ -592,20 +825,34 @@ def main(argv: list[str] | None = None) -> int:
         "noharm_surface_sha256": mt.sha256_file(NOHARM_SURFACE),
         "merge_arbiter_lib_sha256": mt.sha256_file(Path(mt.lib.__file__)),
         "gen_v43_strategies_sha256": mt.sha256_file(
-            REPO / "scripts" / "gen_dataset_v43_strategies.py"),
+            REPO / "scripts" / "gen_dataset_v43_strategies.py"
+        ),
     }
-    if pins["train_jsonl_sha256"] != "e60bc7d05bd0348d8811d094b890c0931c9495b9ae03169951232bf547b93cd6":
-        raise mt.InstrumentAbort("train.jsonl diverges from the sealed v1 pin — "
-                                 "extension discipline broken")
-    inputs = ["corpus manifest + train.jsonl (pins)", "noharm surface (hash only)",
-              "sheet-selection.json (ID LEVEL ONLY)",
-              "holdout id-manifest (ID ONLY, no content)",
-              "frozen generators (lib, gen_dataset_v43_strategies)"]
-    mt.log("frozen_inputs", pins=pins, input_list=inputs,
-           committee_scored_in_inputs=False,
-           sealed_inputs=["NONE — MA-holdout-choice content, holdout v4.5, "
-                          "g4-spec-v1, spot-sheet render/verdicts/internal/"
-                          "committee-scored are NOT in the input list"])
+    if (
+        pins["train_jsonl_sha256"]
+        != "e60bc7d05bd0348d8811d094b890c0931c9495b9ae03169951232bf547b93cd6"
+    ):
+        raise mt.InstrumentAbort(
+            "train.jsonl diverges from the sealed v1 pin — extension discipline broken"
+        )
+    inputs = [
+        "corpus manifest + train.jsonl (pins)",
+        "noharm surface (hash only)",
+        "sheet-selection.json (ID LEVEL ONLY)",
+        "holdout id-manifest (ID ONLY, no content)",
+        "frozen generators (lib, gen_dataset_v43_strategies)",
+    ]
+    mt.log(
+        "frozen_inputs",
+        pins=pins,
+        input_list=inputs,
+        committee_scored_in_inputs=False,
+        sealed_inputs=[
+            "NONE — MA-holdout-choice content, holdout v4.5, "
+            "g4-spec-v1, spot-sheet render/verdicts/internal/"
+            "committee-scored are NOT in the input list"
+        ],
+    )
 
     # ID-level reads (facts logged; no labels, no texts)
     holdout_ids = mt._holdout_id_manifest()
@@ -615,22 +862,36 @@ def main(argv: list[str] | None = None) -> int:
         sheet_ids.update(row.get("member_ids", []))
     for row in sheet_doc.get("real", []):
         sheet_ids.update(row.get("store_ids", []))
-    mt.log("id_manifest_reads", holdout_ids=len(holdout_ids),
-           sheet_member_ids=len(sheet_ids),
-           sheet_source="sheet-selection.json (id lists only, no labels)",
-           content_read=False)
+    mt.log(
+        "id_manifest_reads",
+        holdout_ids=len(holdout_ids),
+        sheet_member_ids=len(sheet_ids),
+        sheet_source="sheet-selection.json (id lists only, no labels)",
+        content_read=False,
+    )
 
     # ratification assert: ADDENDUM-3 at HEAD (commit e953eec in ancestry)
-    r = subprocess.run(["git", "merge-base", "--is-ancestor",
-                        "e953eec", "HEAD"], cwd=REPO, capture_output=True)
-    addendum_ok = (r.returncode == 0
-                   and (REPO / "docs" / "specs" /
-                        "merge-arbiter-corpus-prereg-ADDENDUM-3.md").exists())
-    mt.log("activation_addendum3", commit="e953eec", is_ancestor=r.returncode == 0,
-           ok=addendum_ok)
+    r = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", "e953eec", "HEAD"],
+        cwd=REPO,
+        capture_output=True,
+    )
+    addendum_ok = (
+        r.returncode == 0
+        and (
+            REPO / "docs" / "specs" / "merge-arbiter-corpus-prereg-ADDENDUM-3.md"
+        ).exists()
+    )
+    mt.log(
+        "activation_addendum3",
+        commit="e953eec",
+        is_ancestor=r.returncode == 0,
+        ok=addendum_ok,
+    )
     if not addendum_ok:
-        raise mt.InstrumentAbort("ADDENDUM-3 not at HEAD — corpus extension "
-                                 "has no ratified recipe")
+        raise mt.InstrumentAbort(
+            "ADDENDUM-3 not at HEAD — corpus extension has no ratified recipe"
+        )
 
     # seeds pinned BEFORE generation
     iter2 = "--iter2" in sys.argv
@@ -638,20 +899,27 @@ def main(argv: list[str] | None = None) -> int:
     global SEED_CROSS_LANG, SEED_TEMPLATE_TWIN, SEED_NEAR_TOPIC
     if iter2:
         SEED_CROSS_LANG, SEED_TEMPLATE_TWIN, SEED_NEAR_TOPIC = active_seeds
-    mt.log("seeds_pinned", seeds=active_seeds,
-           per_substratum={"cross-lang-sibling": SEED_CROSS_LANG,
-                           "template-twin": SEED_TEMPLATE_TWIN,
-                           "near-topic": SEED_NEAR_TOPIC},
-           fresh="!= 42 family, != 43..62 floor family",
-           noregress_tol=NOREGRESS_TOL,
-           note="pinned BEFORE generation (ADDENDUM-3 §3.1); CV-noregress "
-                "tolerance fixed BEFORE retrain")
+    mt.log(
+        "seeds_pinned",
+        seeds=active_seeds,
+        per_substratum={
+            "cross-lang-sibling": SEED_CROSS_LANG,
+            "template-twin": SEED_TEMPLATE_TWIN,
+            "near-topic": SEED_NEAR_TOPIC,
+        },
+        fresh="!= 42 family, != 43..62 floor family",
+        noregress_tol=NOREGRESS_TOL,
+        note="pinned BEFORE generation (ADDENDUM-3 §3.1); CV-noregress "
+        "tolerance fixed BEFORE retrain",
+    )
 
     preflight_fixtures()
 
-    clusters = (_build_cross_lang(SEED_CROSS_LANG)
-                + _build_twin(SEED_TEMPLATE_TWIN)
-                + _build_near(SEED_NEAR_TOPIC))
+    clusters = (
+        _build_cross_lang(SEED_CROSS_LANG)
+        + _build_twin(SEED_TEMPLATE_TWIN)
+        + _build_near(SEED_NEAR_TOPIC)
+    )
     counts: dict[str, int] = {}
     for c in clusters:
         counts[c.substratum] = counts.get(c.substratum, 0) + 1
@@ -662,86 +930,125 @@ def main(argv: list[str] | None = None) -> int:
     for c in clusters:
         by_scen.setdefault(c.scenario, {})[c.orientation] = c.cid
     if any(sorted(v) != ["AB", "BA"] for v in by_scen.values()):
-        raise mt.InstrumentAbort("A-symmetry RED: some scenario lacks a "
-                                 "mirrored orientation row")
+        raise mt.InstrumentAbort(
+            "A-symmetry RED: some scenario lacks a mirrored orientation row"
+        )
     # mirrored rows carry the same two bodies
     body_by_cid = {c.cid: frozenset(m.body for m in c.members) for c in clusters}
     for scen, orients in by_scen.items():
         if body_by_cid[orients["AB"]] != body_by_cid[orients["BA"]]:
-            raise mt.InstrumentAbort(f"A-symmetry RED: {scen} mirrored rows "
-                                     "carry different bodies")
+            raise mt.InstrumentAbort(
+                f"A-symmetry RED: {scen} mirrored rows carry different bodies"
+            )
 
     # disjointness base = the ORIGINAL v1 train.jsonl bodies (the previous
     # negatives iteration is the artifact being REPLACED, not train)
-    train_v1 = [mt._cluster_from_row(json.loads(line))
-                for line in open(mt.TRAIN_JSONL, encoding="utf-8")]
+    train_v1 = [
+        mt._cluster_from_row(json.loads(line))
+        for line in open(mt.TRAIN_JSONL, encoding="utf-8")
+    ]
     train_hashes = _body_hashes(train_v1)
-    surface_rows = [json.loads(line) for line in
-                    open(NOHARM_SURFACE, encoding="utf-8") if line.strip()]
-    surface_hashes = {mt.sha256_text(r[k]) for r in surface_rows
-                      for k in ("body_a", "body_b")}
-    scaffold_hashes = {mt.sha256_text(lib.scaffold_body(s["sid"]))
-                       for s in lib.SCAFFOLDS}
+    surface_rows = [
+        json.loads(line)
+        for line in open(NOHARM_SURFACE, encoding="utf-8")
+        if line.strip()
+    ]
+    surface_hashes = {
+        mt.sha256_text(r[k]) for r in surface_rows for k in ("body_a", "body_b")
+    }
+    scaffold_hashes = {
+        mt.sha256_text(lib.scaffold_body(s["sid"])) for s in lib.SCAFFOLDS
+    }
     assert_neg_silver(clusters)
-    assert_neg_disjoint(clusters, surface_hashes, train_hashes, scaffold_hashes,
-                        holdout_ids, sheet_ids)
+    assert_neg_disjoint(
+        clusters, surface_hashes, train_hashes, scaffold_hashes, holdout_ids, sheet_ids
+    )
 
     # emission (durable, gitignored; train.jsonl untouched)
     iter2 = "--iter2" in sys.argv
     if NEG_PATH.exists() and not iter2:
-        raise mt.InstrumentAbort("train-negatives.jsonl exists — re-emission "
-                                 "forbidden without the ratified iter-guard "
-                                 "flag (--iter2, ADDENDUM-3: max 2 iterations)")
+        raise mt.InstrumentAbort(
+            "train-negatives.jsonl exists — re-emission "
+            "forbidden without the ratified iter-guard "
+            "flag (--iter2, ADDENDUM-3: max 2 iterations)"
+        )
     if iter2:
-        mt.log("iter2_reemission", reason="noharm QA iteration-1 RED 24/171: "
-               "cross-lang training band too narrow (identical titles, "
-               "no zero-overlap coverage); diversified per diagnosis",
-               note="iteration 2 of max 2 (Iter-guard); next red => MLC "
-                    "design review")
+        mt.log(
+            "iter2_reemission",
+            reason="noharm QA iteration-1 RED 24/171: "
+            "cross-lang training band too narrow (identical titles, "
+            "no zero-overlap coverage); diversified per diagnosis",
+            note="iteration 2 of max 2 (Iter-guard); next red => MLC design review",
+        )
     with open(NEG_PATH, "w", encoding="utf-8") as fh:
         for c in clusters:
-            fh.write(json.dumps({
-                "cluster_id": c.cid, "k": len(c.members),
-                "label": c.label, "members": [{
-                    "id": m.mid, "title": m.title, "body": m.body,
-                    "tags": list(m.tags), "record_type": m.record_type,
-                    "language": m.language, "created_at": m.created_at,
-                } for m in c.members],
-                "declaration": c.declaration, "stratum": c.stratum,
-                "substratum": c.substratum, "scenario": c.scenario,
-                "orientation": c.orientation,
-            }, ensure_ascii=False, sort_keys=True) + "\n")
+            fh.write(
+                json.dumps(
+                    {
+                        "cluster_id": c.cid,
+                        "k": len(c.members),
+                        "label": c.label,
+                        "members": [
+                            {
+                                "id": m.mid,
+                                "title": m.title,
+                                "body": m.body,
+                                "tags": list(m.tags),
+                                "record_type": m.record_type,
+                                "language": m.language,
+                                "created_at": m.created_at,
+                            }
+                            for m in c.members
+                        ],
+                        "declaration": c.declaration,
+                        "stratum": c.stratum,
+                        "substratum": c.substratum,
+                        "scenario": c.scenario,
+                        "orientation": c.orientation,
+                    },
+                    ensure_ascii=False,
+                    sort_keys=True,
+                )
+                + "\n"
+            )
     neg_sha = mt.sha256_file(NEG_PATH)
     manifest = {
         "regime": "ADDENDUM-3 theme-near negative block: extension of corpus v1 "
-                  "(600 byte-untouched) with 200 abstain-by-construction "
-                  "clusters; frozen generators, authored negative content in "
-                  "this module; ML-STD-0002 П1-П6 map: A-neg-silver (surface-"
-                  "identity predicate leg + char5 razor guard), A-neg-disjoint "
-                  "(hash train/surface/scaffold + id holdout/sheet), A-count-v1.1, "
-                  "A-symmetry extended, A-created-indep/A-order-indep carried, "
-                  "preflight fixtures PASS before emission",
-        "created_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="milliseconds"),
+        "(600 byte-untouched) with 200 abstain-by-construction "
+        "clusters; frozen generators, authored negative content in "
+        "this module; ML-STD-0002 П1-П6 map: A-neg-silver (surface-"
+        "identity predicate leg + char5 razor guard), A-neg-disjoint "
+        "(hash train/surface/scaffold + id holdout/sheet), A-count-v1.1, "
+        "A-symmetry extended, A-created-indep/A-order-indep carried, "
+        "preflight fixtures PASS before emission",
+        "created_at": dt.datetime.now(dt.timezone.utc).isoformat(
+            timespec="milliseconds"
+        ),
         "seeds": SEED_LIST,
         "quota": {"cross-lang-sibling": 80, "template-twin": 60, "near-topic": 60},
         "n": len(clusters),
         "negatives_sha256": neg_sha,
         "corpus_fp_v1_1": mt.sha256_text(
-            mt.sha256_file(mt.TRAIN_JSONL) + ":" + neg_sha),
+            mt.sha256_file(mt.TRAIN_JSONL) + ":" + neg_sha
+        ),
         "base_train_sha256": pins["train_jsonl_sha256"],
         "noregress_tol": NOREGRESS_TOL,
         "justification_validator": "gen_dataset_v43_strategies._validate_side "
-                                   "+ non-empty justification (A-labels extended)",
+        "+ non-empty justification (A-labels extended)",
     }
-    NEG_MANIFEST.write_text(json.dumps(manifest, ensure_ascii=False, indent=1),
-                            encoding="utf-8")
-    mt.log("negatives_emitted", path=str(NEG_PATH), sha256=neg_sha,
-           counts=counts, corpus_fp_v1_1=manifest["corpus_fp_v1_1"],
-           train_jsonl_untouched=True,
-           note="extension, not re-emit; the 600 stay byte-identical")
+    NEG_MANIFEST.write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
+    mt.log(
+        "negatives_emitted",
+        path=str(NEG_PATH),
+        sha256=neg_sha,
+        counts=counts,
+        corpus_fp_v1_1=manifest["corpus_fp_v1_1"],
+        train_jsonl_untouched=True,
+        note="extension, not re-emit; the 600 stay byte-identical",
+    )
     return 0
-
-
 
 
 # --- null-envelope coverage (ADDENDUM-4, terminal iteration 3) ---------------
@@ -754,8 +1061,14 @@ SEED_NULL = 9201  # fresh; pinned BEFORE selection
 #: (A-null-indep 1/3 +/- 0.05 holds exactly by construction; every
 #: theme-near substratum >= 20 coverage; CH-5 exactly 20).
 NULL_QUOTA = {
-    "CH-3": 84, "CH-0": 36, "CH-2": 30, "CH-4": 30, "CH-5": 20,
-    "cross-lang-sibling": 27, "template-twin": 20, "near-topic": 20,
+    "CH-3": 84,
+    "CH-0": 36,
+    "CH-2": 30,
+    "CH-4": 30,
+    "CH-5": 20,
+    "cross-lang-sibling": 27,
+    "template-twin": 20,
+    "near-topic": 20,
 }
 
 
@@ -770,26 +1083,44 @@ def cmd_null_coverage(args) -> int:
     0-mixed-null / strict A-null-pin run HERE and again in the trainer
     prologue on the effective corpus."""
     mt._SLICE = SLICE_NULL
-    mt.log("cost_declaration", expected_prolog_s=2, expected_cycle_s=30,
-           expected_peak_ram_gb=1.0, lane="light (draft §9)")
+    mt.log(
+        "cost_declaration",
+        expected_prolog_s=2,
+        expected_cycle_s=30,
+        expected_peak_ram_gb=1.0,
+        lane="light (draft §9)",
+    )
     # ratification assert
-    r = subprocess.run(["git", "merge-base", "--is-ancestor", "8a64156", "HEAD"],
-                       cwd=REPO, capture_output=True)
-    ok = r.returncode == 0 and (REPO / "docs" / "specs" /
-                                "merge-arbiter-corpus-prereg-ADDENDUM-4.md").exists()
-    mt.log("activation_addendum4", commit="8a64156",
-           is_ancestor=r.returncode == 0, ok=ok)
+    r = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", "8a64156", "HEAD"],
+        cwd=REPO,
+        capture_output=True,
+    )
+    ok = (
+        r.returncode == 0
+        and (
+            REPO / "docs" / "specs" / "merge-arbiter-corpus-prereg-ADDENDUM-4.md"
+        ).exists()
+    )
+    mt.log(
+        "activation_addendum4", commit="8a64156", is_ancestor=r.returncode == 0, ok=ok
+    )
     if not ok:
         raise mt.InstrumentAbort("ADDENDUM-4 not at HEAD")
 
-    mt.log("seeds_pinned", seeds=[SEED_NULL],
-           purpose="null-cluster selection within strata",
-           fresh="!= 42/43-62/9001-9103 families", note="pinned BEFORE selection")
+    mt.log(
+        "seeds_pinned",
+        seeds=[SEED_NULL],
+        purpose="null-cluster selection within strata",
+        fresh="!= 42/43-62/9001-9103 families",
+        note="pinned BEFORE selection",
+    )
 
     clusters = mt.load_train()
     if NULL_PATH.exists():
-        raise mt.InstrumentAbort("null-envelope.json already exists — "
-                                 "re-emission forbidden")
+        raise mt.InstrumentAbort(
+            "null-envelope.json already exists — re-emission forbidden"
+        )
     by_stratum: dict[str, list] = {}
     for c in clusters:
         by_stratum.setdefault(_stratum_of(c), []).append(c)
@@ -801,8 +1132,9 @@ def cmd_null_coverage(args) -> int:
     for stratum, quota in sorted(NULL_QUOTA.items()):
         pool = sorted(c.cid for c in by_stratum[stratum])
         if quota > len(pool):
-            raise mt.InstrumentAbort(f"null quota {quota} > volume {len(pool)} "
-                                     f"for {stratum}")
+            raise mt.InstrumentAbort(
+                f"null quota {quota} > volume {len(pool)} for {stratum}"
+            )
         picks = rng.sample(pool, quota)
         chosen.extend(picks)
     chosen_set = set(chosen)
@@ -817,13 +1149,18 @@ def cmd_null_coverage(args) -> int:
     ab = sum(1 for c in clusters if c.cid in chosen_set and c.orientation == "AB")
     ba = sum(1 for c in clusters if c.cid in chosen_set and c.orientation == "BA")
     # label independence: keep-labeled clusters among the chosen
-    keep_null = sum(1 for c in clusters if c.cid in chosen_set
-                    and c.label["type"] == "keep")
-    mt.log("a_null_indep", shares=shares, orientation={"AB": ab, "BA": ba},
-           keep_labeled_nulls=keep_null,
-           note="exact 1/3 shares by construction; orientation split within "
-                "sampling noise; label independence carried by uniform "
-                "selection inside strata")
+    keep_null = sum(
+        1 for c in clusters if c.cid in chosen_set and c.label["type"] == "keep"
+    )
+    mt.log(
+        "a_null_indep",
+        shares=shares,
+        orientation={"AB": ab, "BA": ba},
+        keep_labeled_nulls=keep_null,
+        note="exact 1/3 shares by construction; orientation split within "
+        "sampling noise; label independence carried by uniform "
+        "selection inside strata",
+    )
 
     # A-null-lang: equal shares across the three theme-near substrata
     xn = shares["cross-lang-sibling"]
@@ -832,12 +1169,19 @@ def cmd_null_coverage(args) -> int:
     if max(xn, tw, nt) - min(xn, tw, nt) > 0.05:
         raise mt.InstrumentAbort("A-null-lang RED: theme-near shares diverge")
     # A-null-cover: >= 20 per substratum
-    cover = {k: v for k, v in NULL_QUOTA.items()
-             if k in ("cross-lang-sibling", "template-twin", "near-topic")}
+    cover = {
+        k: v
+        for k, v in NULL_QUOTA.items()
+        if k in ("cross-lang-sibling", "template-twin", "near-topic")
+    }
     if any(v < 20 for v in cover.values()):
         raise mt.InstrumentAbort(f"A-null-cover RED: {cover}")
-    mt.log("a_null_lang_cover", theme_near_shares={"xn": xn, "twin": tw, "nt": nt},
-           cover=cover, ok=True)
+    mt.log(
+        "a_null_lang_cover",
+        theme_near_shares={"xn": xn, "twin": tw, "nt": nt},
+        cover=cover,
+        ok=True,
+    )
 
     doc = {
         "version": "null-coverage-1 (ADDENDUM-4, terminal iteration 3)",
@@ -846,23 +1190,30 @@ def cmd_null_coverage(args) -> int:
         "quota": NULL_QUOTA,
         "shares": shares,
         "semantics": "both-null pairs only: every member of a listed cluster "
-                     "gets created_at=None (0 mixed-null by construction; "
-                     "asserted again on the effective corpus)",
+        "gets created_at=None (0 mixed-null by construction; "
+        "asserted again on the effective corpus)",
         "base_files_untouched": [str(mt.TRAIN_JSONL), str(NEG_PATH)],
-        "created_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="milliseconds"),
+        "created_at": dt.datetime.now(dt.timezone.utc).isoformat(
+            timespec="milliseconds"
+        ),
     }
-    NULL_PATH.write_text(json.dumps(doc, ensure_ascii=False, indent=1),
-                         encoding="utf-8")
+    NULL_PATH.write_text(
+        json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
     null_sha = mt.sha256_file(NULL_PATH)
     # corpus fp v1.1 (iter-3) = sha(train + negatives + null sidecar)
-    fp = mt.sha256_text(mt.sha256_file(mt.TRAIN_JSONL) + ":" +
-                        mt.sha256_file(NEG_PATH) + ":" + null_sha)
-    mt.log("null_coverage_emitted", path=str(NULL_PATH), sha256=null_sha,
-           n_null_clusters=len(chosen_set),
-           total_null_members=sum(len(c.members) for c in clusters
-                                  if c.cid in chosen_set),
-           corpus_fp_v1_1_iter3=fp,
-           base_files_untouched=True)
+    fp = mt.sha256_text(
+        mt.sha256_file(mt.TRAIN_JSONL) + ":" + mt.sha256_file(NEG_PATH) + ":" + null_sha
+    )
+    mt.log(
+        "null_coverage_emitted",
+        path=str(NULL_PATH),
+        sha256=null_sha,
+        n_null_clusters=len(chosen_set),
+        total_null_members=sum(len(c.members) for c in clusters if c.cid in chosen_set),
+        corpus_fp_v1_1_iter3=fp,
+        base_files_untouched=True,
+    )
     return 0
 
 
