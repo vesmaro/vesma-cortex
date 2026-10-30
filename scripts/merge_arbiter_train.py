@@ -2888,23 +2888,29 @@ def cmd_floors_v2(args: argparse.Namespace) -> int:
     perm_seeds = _parse_seeds(args.perm_seeds)
     perm_deltas = []
     for perm_seed in perm_seeds:
-        delta = 0
+        # cascade W2 P3: distinct permutation per seed (was: full reversal
+        # three times — published as n=3 while it was n=1)
+        rng = random.Random(perm_seed)
+        perm_deltas.append(0)
         for c in sample:
             base = arbitrate_production(c, booster, tau_hi, tau_m, ctx=ctx)
+            shuffled = [m for m in c.members]
+            rng.shuffle(shuffled)
             rev = lib.Cluster(
                 cid=c.cid,
                 stratum=c.stratum,
                 substratum=c.substratum,
-                members=list(reversed(c.members)),
+                members=shuffled,
                 label=c.label,
                 declaration=c.declaration,
             )
             alt = arbitrate_production(rev, booster, tau_hi, tau_m, ctx=ctx)
-            delta += int(
+            delta = int(
                 base["verdict"] != alt["verdict"]
                 or base.get("member") != alt.get("member")
             )
-        perm_deltas.append(round(delta / len(sample), 4))
+            perm_deltas[-1] += delta
+        perm_deltas[-1] = round(perm_deltas[-1] / len(sample), 4)
     dist_perm = _dist([float(x) for x in perm_deltas])
     floor_perm = max(perm_deltas) if perm_deltas else 0.0
     log(
@@ -3595,8 +3601,12 @@ def cmd_gate(args: argparse.Namespace) -> int:
         ctx = None
 
     # П1+П6: the ratified prereg event must exist BEFORE gate_start
-    # (v1: ADDENDUM-4 §4 verbatim; v2: the ML-STD-0004 declared floor)
-    prereg_seen = False
+    # (v1: ADDENDUM-4 §4 verbatim; v2: the ML-STD-0004 declared floor).
+    # Cascade W2 P2: the event must belong to THIS cycle — profile-matched
+    # event name AND the same artifact sha (a stale/foreign prereg must not
+    # satisfy the assert).
+    expected_prereg_event = "prereg_delta_acc_v2" if is_v2 else "prereg_delta_acc"
+    artifact_sha_for_prereg = sha256_file(artifact)
     prereg_event = None
     if RUNLOG.exists():
         for line in open(RUNLOG, encoding="utf-8"):
@@ -3604,17 +3614,62 @@ def cmd_gate(args: argparse.Namespace) -> int:
                 row = json.loads(line)
             except json.JSONDecodeError:
                 continue
-            if row.get("event") in ("prereg_delta_acc", "prereg_delta_acc_v2"):
-                prereg_seen = True
-                prereg_event = row.get("event")
-                break
-    if not prereg_seen:
+            if row.get("event") != expected_prereg_event:
+                continue
+            if row.get("artifact_sha256") not in (None, artifact_sha_for_prereg):
+                continue
+            prereg_event = expected_prereg_event
+            break
+    if prereg_event is None:
         raise InstrumentAbort(
-            "prereg_delta_acc[_v2] event not found in the "
-            "run-log — the ratified pre-registration is a "
-            "precondition of gate_start (П6)"
+            f"{expected_prereg_event} event bound to artifact "
+            f"{artifact_sha_for_prereg[:12]}… not found in the run-log — "
+            "the ratified pre-registration is a precondition of gate_start "
+            "(П6; cascade W2 P2: a stale/foreign prereg no longer satisfies "
+            "the assert)"
         )
-    log("prereg_order_assert", prereg_seen=True, prereg_event=prereg_event, ok=True)
+    log(
+        "prereg_order_assert",
+        prereg_seen=True,
+        prereg_event=prereg_event,
+        artifact_sha256=artifact_sha_for_prereg,
+        ok=True,
+    )
+
+    # Cascade W2 P2: ML-STD-0004 П2 requires the declared-floor validation
+    # as a START refusal — resolve (and П2-recheck) the ratified floor
+    # section HERE, before gate_start, never after the sealed read.
+    doc = find_doc_for(sha256_file(artifact))
+    m2 = doc.get("delta_acc_measure_v2")
+    if m2:
+        dist = m2.get("floor_seed_distribution") or {}
+        declared = float(m2["delta_acc_declared"])
+        recheck = max(float(dist["p95"]) - float(dist["p5"]), 0.10)
+        if abs(declared - recheck) > 1e-9:
+            raise InstrumentAbort(
+                "ML-STD-0004 П2: the declared delta_acc does not reproduce "
+                f"from the published p5/p95 (declared {declared}, recheck "
+                f"{recheck}) — процессный инцидент, эскалация MLC/владельцу"
+            )
+        for req_key in ("floor_q", "floor_inv"):
+            if req_key not in m2:
+                raise InstrumentAbort(
+                    f"committed doc delta_acc_measure_v2 has no '{req_key}' "
+                    "section — gate tolerances are unfixed (ML-STD-0004 П2: "
+                    "отказ старта)"
+                )
+    else:
+        measure = doc.get("delta_acc_measure")
+        if (
+            not measure
+            or "delta_acc" not in measure
+            or "floor_seed_aggregate" not in measure
+        ):
+            raise InstrumentAbort(
+                "committed doc has no ratified delta_acc section — δ_acc is "
+                "unfixed; run the floor measurement BEFORE the gate cycle"
+            )
+    log("declared_floor_assert", ok=True, source="pre-gate_start (cascade W2 P2)")
 
     # П1: gate_start BEFORE any eval computation (sanity suite, fixtures,
     # no-harm, sealed reads are all eval reads — they start only now).
@@ -3878,7 +3933,10 @@ def _eval_gates_on_holdout(
             )
         delta_acc = declared
         floor_seed_aggregate = float(dist["max_pairwise"])
-        q = float(m2.get("floor_q", {}).get("q", 0.20))
+        # cascade W2 P3: gate tolerances come from the committed doc — no
+        # silent fallback (ML-STD-0004 П6: divergence = process incident)
+        q = float(m2["floor_q"]["q"])
+        delta_inv = float(m2["floor_inv"]["delta_inv"])
         floor_source = (
             "ML-STD-0004 delta_acc_measure_v2 (declared floor), fixed before gate_start"
         )
@@ -3895,7 +3953,9 @@ def _eval_gates_on_holdout(
             )
         delta_acc = float(measure["delta_acc"])
         floor_seed_aggregate = float(measure["floor_seed_aggregate"])
-        q = 0.20
+        floors_v2 = doc.get("floors_v2") or {}
+        q = float(floors_v2["q"])
+        delta_inv = float(floors_v2["delta_inv"])
         floor_source = (
             "ratified delta_acc_measure (MLC 29.10, option a), fixed before gate_start"
         )
@@ -3986,10 +4046,10 @@ def _eval_gates_on_holdout(
             "zone_fired_ch3": zone3,
         },
         "g_inv": {
-            "ok": bool(inv_rate >= 1.0),
+            "ok": bool(inv_rate >= 1.0 - delta_inv),
             "agreement": round(inv_rate, 4),
             "pairs": inv_pairs,
-            "delta_inv": 0.0,
+            "delta_inv": delta_inv,
         },
     }
 
