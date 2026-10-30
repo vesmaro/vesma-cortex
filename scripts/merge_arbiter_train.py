@@ -2963,6 +2963,7 @@ def _eval_g_spot(model: lgb.Booster, tau_hi: float, tau_m: float,
         raise InstrumentAbort("sheet-selection.json diverges from the "
                               "selection_sha256 pinned in "
                               "committee-scored-v1.json")
+    sel = json.loads(sel_path.read_text(encoding="utf-8"))
     mapping = json.loads((SPOT_DIR / "internal" / "render-mapping.json")
                          .read_text(encoding="utf-8"))
     rows = {r["row"]: r for r in scored["rows"]}
