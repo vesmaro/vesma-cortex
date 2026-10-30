@@ -249,7 +249,7 @@ def cmd_consolidate() -> int:
     """
     import re
     vdir = SHEET_DIR / "verdicts"
-    files = {name: json.loads((vdir / f"{name}.json").read_text(encoding="utf-8"))
+    files = {name: json.loads((vdir / f"{name}-v1.json").read_text(encoding="utf-8"))
              for name in ("llm-assistant", "ml-engineer", "tech-lead")}
     mapping = json.loads((INTERNAL / "render-mapping.json").read_text(encoding="utf-8"))
     render_sha = sha256_file(SHEET_DIR / "blind-render-v1.md")
@@ -280,16 +280,23 @@ def cmd_consolidate() -> int:
                 member_ids = m["member_ids"]
                 keep_idx = member_ids.index(lab["member"])
                 truth[nid] = {"class": "CH-3", "row": row["row"],
-                              "keep_letter": "ABC"[keep_idx], "keep_member": lab["member"]}
+                              "keep_letter": "ABC"[keep_idx], "keep_member": lab["member"],
+                              "member_ids": member_ids, "cluster_id": cid}
             else:
-                truth[nid] = {"class": lab["type"], "row": row["row"], "acceptable": "abstain"}
+                truth[nid] = {"class": "abstain", "row": row["row"], "acceptable": "abstain"}
 
     order = [f"N{i:02d}" for i in range(1, 41)]
     per_row = []
     ind_hits = {n: 0 for n in files}
     ch3 = [n for n in order if truth[n]["class"] == "CH-3"]
-    abst = [n for n in order if truth[n]["class"] in ("CH-2", "CH-4")]
+    abst = [n for n in order if truth[n]["class"] == "abstain"]
     real = [n for n in order if truth[n]["class"] == "REAL-CH0"]
+    # declarations for the mechanical arbitrator (ADDENDUM-1 §2: predicate
+    # arbitration PRECEDES majority; declaration ⊆-check is the ratified
+    # mechanical form for synthetic CH-3, A-silver §2.1)
+    decl = {}
+    for cl in train:
+        decl[cl["cluster_id"]] = cl.get("declaration", {}).get("facts", {})
     for nid in order:
         verdicts = {name: next(r for r in files[name]["rows"] if r["row"] == nid)
                     for name in files}
@@ -308,7 +315,26 @@ def cmd_consolidate() -> int:
                 for v in verdicts.values():
                     counts[v["choice"]] = counts.get(v["choice"], 0) + 1
                 top = max(counts, key=lambda c: counts[c])
-                if counts[top] >= 2:
+                # mechanical arbitration FIRST (ADDENDUM-1 §2): declaration
+                # ⊆-check on the generator's declared fact slots; resolves
+                # only when strictly one member carries extra declared facts
+                facts = decl.get(t["cluster_id"], {})
+                mids = t["member_ids"]
+                fsets = [set(facts.get(mid, [])) for mid in mids]
+                sup_i = None
+                for i, fi in enumerate(fsets):
+                    if all(fi >= fj for j, fj in enumerate(fsets) if j != i) and \
+                       all(len(fi) > len(fj) for j, fj in enumerate(fsets) if j != i):
+                        sup_i = i
+                if sup_i is not None:
+                    arb_letter = "ABC"[sup_i]
+                    rec["arbitration"] = {
+                        "resolved_by": "declaration-subset-check",
+                        "letter": arb_letter,
+                        "matches_construction": arb_letter == t["keep_letter"],
+                    }
+                    cons = arb_letter
+                elif counts[top] >= 2:
                     cons = top
                     rec["majority_resolved"] = True
             rec["consensus"] = cons
@@ -354,7 +380,7 @@ def cmd_consolidate() -> int:
     out = {
         "sheet_fp": SEALED_SHEET_FP, "render_sha256": render_sha,
         "selection_sha256": checks_sel_sha(),
-        "verdict_files": {n: str(vdir / f"{n}.json") for n in files},
+        "verdict_files": {n: str(vdir / f"{n}-v1.json") for n in files},
         "rows": per_row, "qa_ladder": ladder,
     }
     outp = SHEET_DIR / "committee-scored-v1.json"
