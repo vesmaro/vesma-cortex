@@ -36,10 +36,10 @@ zcode-транскриптов (проверка за TL); до верифика
 
 W0 harness_system (только байты/токены, `owned: false`) · W1 pinned_rules
 (lane=rules) · W2 memory_recall (+флаги: ccr_expanded, redactions>0,
-dup_group по sha256(norm(content)), age_days, in_cache_prefix — derived
+dup_group по sha256(norm(content)), age_days, in_cache_prefix, content_type (класс W0–W4 события) — derived
 поля экспортёра) · W2c хвостовые композиции (awareness-хвост ADR-0035 +
 codegraph-beacon, вне budget-блоков) · W3 tool_dialog (source: harness) ·
-W4 beacon. Единицы: один счётчик токенов на событие
+W4 beacon (бюджетные beacon-блоки; W2c — только внебюджетные хвосты; артефакт классифицируется ровно один раз по месту в окне — без двойного счёта). Единицы: один счётчик токенов на событие
 (`estimate_tokens` движка для W1–W4; W0 — оценка харнеса с флагом
 `estimator: external`; смешивание в одной сумме запрещено). Дрейф
 `tokens(Б) − tokens(А)` между точками съёма — метрика редактуры харнеса.
@@ -60,7 +60,7 @@ join с Plane A по `assembly_id`.
 4. Ничего наружу (safety-контракт, без исключений).
 5. Sampling фиксирован prereg'ом («все вызовы наших сессий»), изменение —
    аддендум до смены.
-6. Firewall-якоря: B0-коллектор (counters-not-raw) + vitals-границы们;
+6. Firewall-якоря: B0-коллектор (counters-not-raw) + vitals-границы;
    append-only; в репу — счётчики/фингерпринты, никаких сырых строк.
 
 ## 5. Кэш-инварианты будущего L2 (rules-curator v0 — harness-side policy)
