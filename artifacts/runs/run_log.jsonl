@@ -998,3 +998,9 @@
 {"ts": "2026-11-01T23:22:12.107769+00:00", "event": "build_done", "slice": "conflict-detector-corpus-build", "ok": true, "train_sha": "0be52dd220c79281", "hold_sha": "e8adfec9625b0f72", "seal": "1f676613de08fcdd", "elapsed_s": 97.9}
 {"ts": "2026-11-01T23:22:12.261020+00:00", "event": "sheet_frozen", "slice": "conflict-detector-corpus-build", "n": 48, "fp": "3cf995028de31a30712bd142cbf37a097303eec9f8fa11aa38ebf2a7a6225888"}
 {"ts": "2026-11-01T23:22:12.318361+00:00", "event": "card_written", "slice": "conflict-detector-corpus-build", "path": "docs/experiments/conflict-detector-corpus-card.md"}
+{"ts": "2026-11-01T23:26:33.248008+00:00", "event": "build_start", "slice": "conflict-detector-corpus-build", "pin_sha": "f4cd283de628b940"}
+{"ts": "2026-11-01T23:27:10.553011+00:00", "event": "build_start", "slice": "conflict-detector-corpus-build", "pin_sha": "f4cd283de628b940"}
+{"ts": "2026-11-01T23:28:44.866861+00:00", "event": "build_done", "slice": "conflict-detector-corpus-build", "ok": true, "train_sha": "0be52dd220c79281", "hold_sha": "e8adfec9625b0f72", "seal": "5d147008eed4819b", "elapsed_s": 94.3}
+{"ts": "2026-11-01T23:33:34.251231+00:00", "event": "sheet_frozen", "slice": "conflict-detector-corpus-build", "n": 48, "fp": "3052c04c493aa91afd5e187bfb079a3b29ff277ef01941acd4c31bbd1cf4295d"}
+{"ts": "2026-11-01T23:34:19.450066+00:00", "event": "sheet_frozen", "slice": "conflict-detector-corpus-build", "n": 48, "fp": "af008eca34362dab662060b061411b41f4f8c1e3bd7fde697b1aa3cb6c863781"}
+{"ts": "2026-11-01T23:34:19.495388+00:00", "event": "card_written", "slice": "conflict-detector-corpus-build", "path": "docs/experiments/conflict-detector-corpus-card.md"}

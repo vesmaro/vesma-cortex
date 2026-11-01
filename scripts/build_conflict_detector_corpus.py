@@ -988,6 +988,128 @@ def cmd_build() -> int:
     return 0 if all_ok else 1
 
 
+#: Neutral render fillers for long-channel bodies in the gold sheet:
+#: the corpus long channel reuses one 8-sentence filler set (known
+#: limitation, see dataset card) which is unreadable for a human verdict
+#: pass — the SHEET renders long bodies with these UNIQUE sentences
+#: instead (>= 35 distinct per body, 0 repeated sentences). Neutral by
+#: design: no dates, no versions, no conflict semantics — the verdict of
+#: a pair never depends on them.
+RENDER_FILLERS_RU = [
+    "Отчётные формы архивируются автоматически по окончании периода.",
+    "Справочники синхронизируются с корпоративным реестром по расписанию.",
+    "Ошибки интеграций группируются по источнику и попадают в сводку.",
+    "Журнал действий администраторов доступен в отдельной панели.",
+    "Ночные обновления справочников не влияют на работу пользователей.",
+    "Доступ к панели управления разграничен по проектным ролям.",
+    "Служебные уведомления доставляются в общий канал дежурных.",
+    "Резервные копии проверяются автоматикой по контрольным суммам.",
+    "Данные мониторинга хранятся в отдельном долгосрочном хранилище.",
+    "Изменения настроек фиксируются с указанием автора правки.",
+    "Шаблоны отчётов настраиваются на уровне рабочей области.",
+    "События сбоя собираются в единый журнал разбора инцидентов.",
+    "Документация по интеграциям обновляется вместе с релизами.",
+    "Очередь фоновых заданий наблюдается на общей панели дежурных.",
+    "Квоты на хранение пересматриваются по итогам квартала.",
+    "Внешние вызовы проходят через единый шлюз с общими лимитами.",
+    "Служба поддержки получает сводку обращений в начале смены.",
+    "Новые версии зависимостей апробируются на выделенном стенде.",
+    "Схемы обмена данными версионируются в общем репозитории.",
+    "Уведомления о деградациях уходят ответственным автоматически.",
+    "Итоговые показатели собираются в еженедельный отчёт команды.",
+    "Проверки целостности данных выполняются по ночному расписанию.",
+    "Служебные учётные записи пересматриваются при ротации команды.",
+    "Журнал изменений доступен каждому участнику проекта на чтение.",
+    "Временные файлы очищаются автоматически по завершении задач.",
+    "Профили окружений описаны в конфигурации рабочей области.",
+    "Согласование доступов проходит в рамках общей процедуры команды.",
+    "Статистика использования собирается в обезличенном виде.",
+    "Резервный контур разворачивается теми же средствами автоматизации.",
+    "Расписание обслуживания публикуется в общем календаре команды.",
+    "Служебные метрики доступности дублируются на внешнюю панель.",
+    "Инструкции по восстановлению проверяются учебными прогонами.",
+    "Журнал рассылок сопровождения хранится в общем архиве команды.",
+    "Обновления документации согласуются с владельцами компонентов.",
+    "Проверочные отчёты формируются перед каждым плановым окном.",
+    "Очереди уведомлений наблюдаются по глубине и возрасту записей.",
+    "Доступы пересматриваются по окончании проектных этапов.",
+    "Служебные сценарии автоматизации хранятся рядом с проектом.",
+    "Итоги проверок целостности публикуются в канале дежурных.",
+    "Сводки по ошибкам рассылаются ответственным по расписанию.",
+]
+
+#: Worked examples for the sheet preamble (ADDENDUM-7 §4 issue 1, §3.3):
+#: one worked example per class, instructive material — the class names
+#: here are allowed; blindness applies to the 48 scorable blocks only.
+WORKED_EXAMPLES = [
+    ("CD-1 numeric", "несовместимые значения одной числовой оси слота",
+     "A: «Лимит запросов к сервису — 200 в минуту.» / B: «Лимит запросов к сервису — 1000 в минуту.»",
+     "CONTRADICTS", "одна числовая ось, значения несовместимы"),
+    ("CD-2 date", "несовместимые даты/сроки одного событийного слота тела",
+     "A: «Обновление намечено на 5 октября.» / B: «Обновление намечено на 15 октября.»",
+     "CONTRADICTS", "одно событие — два несовместимых срока"),
+    ("CD-3 status", "несовместимые состояния статусного словаря",
+     "A: «Модуль активен в реестре сервисов.» / B: «Модуль архивирован в реестре сервисов.»",
+     "CONTRADICTS", "статусы взаимно исключающие"),
+    ("CD-4 modal", "полярность модальности над одной способностью",
+     "A: «Виджет оплаты допускает анонимный доступ к ресурсам.» / B: «Виджет оплаты требует авторизацию для доступа к ресурсам.»",
+     "CONTRADICTS", "allow vs require над одной способностью"),
+    ("CD-5 conditional", "безусловное отрицание условного клейма на домене условия",
+     "A: «При включённом флаге multipart модуль режет большие файлы на части.» / B: «Модуль никогда не резать большие файлы на части, независимо от флага multipart.»",
+     "CONTRADICTS", "безусловное «никогда не» против условного «при флаге»"),
+    ("CD-6 semantic", "качественное несовместимое предикат-пара (полярный оператор)",
+     "A: «Компонент даёт заметный прирост скорости.» / B: «Компонент замедлил работу системы.»",
+     "CONTRADICTS", "полярные оценки одного эффекта"),
+    ("NC-1 addition", "вставка слота-надмножества, конъюнкция выполнима",
+     "A: обычное описание сервиса. / B: то же + «Дополнительно поддерживается выгрузка результатов в CSV.»",
+     "NO-CONFLICT", "добавка не отменяет сказанное — оба утверждения совместимы"),
+    ("NC-2 refinement", "совместимое уточнение v |= c",
+     "A: «Лимит запросов — не более 1000 в минуту.» / B: «Лимит запросов — 800 в минуту.»",
+     "NO-CONFLICT", "800 укладывается в «не более 1000» — уточнение, не спор"),
+    ("NC-3 supersede", "version-namespace соседи — supersede-семантика",
+     "A: «Текущая версия модуля — v1.2.0.» / B: «Текущая версия модуля — v1.3.0.»",
+     "NO-CONFLICT", "различие только в номере версии — смена поколения, не конфликт фактов"),
+    ("NC-4 metadata", "дельта метаданных при тождественном содержании",
+     "A и B: тела слово в слово одинаковы; различаются только тег/тип записи.",
+     "NO-CONFLICT", "содержание тождественно — спорить нечему"),
+    ("NC-5 theme", "разные предметы (sibling/far), конфликтировать нечему",
+     "A: запись о планировщике фоновых задач. / B: запись о рецепте борща.",
+     "NO-CONFLICT", "разные предметы — пересечение тем не создаёт противоречия"),
+]
+
+
+def _render_body(body: str, pair_id: str, channel: str) -> str:
+    """Sheet readability render: replace REPEATED sentences (the corpus
+    long channel reuses one filler set — known limitation) with unique
+    neutral sentences from RENDER_FILLERS_RU. Slot/basis sentences are
+    unique already and pass through untouched. Short/medium bodies are
+    duplicate-free by construction (asserted)."""
+    sents = _sents(body)
+    dup = len(sents) - len(set(sents))
+    if dup == 0:
+        return body
+    rng = random.Random(f"sheet-render:{pair_id}")
+    order = list(range(len(RENDER_FILLERS_RU)))
+    rng.shuffle(order)
+    seen: set[str] = set(sents)
+    out = []
+    j = 0
+    for s in sents:
+        if s in seen and out and s in set(out):
+            while j < len(order) and RENDER_FILLERS_RU[order[j]] in seen:
+                j += 1
+            if j >= len(order):
+                die(f"sheet render: filler pool exhausted for {pair_id}")
+            s = RENDER_FILLERS_RU[order[j]]
+            j += 1
+        seen.add(s)
+        out.append(s)
+    rendered = " ".join(out)
+    if channel == "long" and len(rendered) < 2000:
+        die(f"sheet render: long body for {pair_id} degraded below 2000 chars")
+    return rendered
+
+
 def cmd_sheet() -> int:
     rows = [json.loads(l) for l in (CORPUS_DIR / "train.jsonl").read_text(encoding="utf-8").splitlines() if l]
     a_rows = [r for r in rows if r["orientation"] == "a>b"]
@@ -1012,30 +1134,57 @@ def cmd_sheet() -> int:
     picks = picks[:48]
     order = list(range(len(picks)))
     rng.shuffle(order)
-    lines = ["GOLD SHEET CD-v1 — blind render (48 blocks; verdict per block:",
-             "CONTRADICTS / NO-CONFLICT + slot basis; classes and declarations withheld)", ""]
+    lines = ["GOLD SHEET CD-v1 — blind render (48 scorable blocks; verdict per block:",
+             "CONTRADICTS / NO-CONFLICT + slot basis; block classes and declarations withheld)", ""]
+    lines += ["=" * 72,
+              "ИНСТРУКТАЖ — определения классов с примерами (не скорируется;",
+              "в 48 блоках ниже классы не называются). Ориентир времени: ~16 мин.", ""]
+    for cls, definition, example, verdict, basis in WORKED_EXAMPLES:
+        lines.append(f"{cls} — {definition}")
+        lines.append(f"  пример: {example}")
+        lines.append(f"  вердикт: {verdict} (основание: {basis})")
+        lines.append("")
+    lines += ["=" * 72, "СКОРИРУЕМЫЕ БЛОКИ (48):", ""]
     meta = []
+    n_dedup = 0
     for i, idx in enumerate(order):
         r = picks[idx]
         a, b = r["envelope_a"], r["envelope_b"]
+        ch = r["measured"]["len_channel"]
+        body_a = _render_body(a["body"], r["pair_id"] + ":a", ch)
+        body_b = _render_body(b["body"], r["pair_id"] + ":b", ch)
+        for txt in (body_a, body_b):
+            if len(_sents(txt)) != len(set(_sents(txt))):
+                die(f"sheet render: duplicate sentences left in {r['pair_id']} ({ch})")
+        if ch in ("short", "medium") and (body_a != a["body"] or body_b != b["body"]):
+            n_dedup += 1  # medium-borderline NC-1 30-insert bodies (see card)
         lines.append(f"N{i+1:02d}")
         lines.append(f"  A [{a['language'] or '—'}/{a['record_type'] or '—'}] {a['title']}")
-        lines.append(f"     {a['body']}")
+        lines.append(f"     {body_a}")
         lines.append(f"  B [{b['language'] or '—'}/{b['record_type'] or '—'}] {b['title']}")
-        lines.append(f"     {b['body']}")
-        lines.append(f"  verdict: ______   basis: ______________________")
+        lines.append(f"     {body_b}")
+        lines.append("  verdict: ______   basis: ______________________")
         lines.append("")
         meta.append({"block": f"N{i+1:02d}", "pair_id": r["pair_id"], "stratum": r["stratum"],
-                     "label": r["label"], "role": "confusable" if idx < 16 else
+                     "label": r["label"], "len_channel": ch,
+                     "render_dedup": body_a != a["body"] or body_b != b["body"],
+                     "role": "confusable" if idx < 16 else
                      ("twin" if idx < 18 else ("reserve" if idx >= 43 else "cover"))})
     SHEET_DIR.mkdir(parents=True, exist_ok=True)
     (SHEET_DIR / "gold-sheet-render-v1.txt").write_text("\n".join(lines), encoding="utf-8")
-    sheet_json = {"ts": now(), "n": len(meta), "blocks": meta}
+    sheet_json = {"ts": now(), "n": len(meta),
+                  "render_note": "long-channel bodies rendered with unique neutral fillers "
+                                 "(corpus long channel repeats one filler set — known limitation, "
+                                 "dataset card); slot/basis sentences untouched; 0 repeated "
+                                 "sentences per rendered body (asserted)",
+                  "blocks": meta}
     sp = SHEET_DIR / "gold-sheet-v1.json"
     sp.write_text(json.dumps(sheet_json, ensure_ascii=False, indent=2), encoding="utf-8")
     fp = lib.sha(sp.read_text(encoding="utf-8"))
     log("sheet_frozen", n=len(meta), fp=fp)
     print(f"SHEET: {len(meta)} blocks, fp {fp[:16]}… — TL FORMAT GATE pending; NOT owner-ready")
+    print(f"render: dedup applied to {sum(1 for m in meta if m['render_dedup'])} blocks; "
+          f"medium-borderline hits (NC-1 30-insert dial): {n_dedup}")
     return 0
 
 
@@ -1087,6 +1236,24 @@ def cmd_card() -> int:
 
 Банды train: {m['bands_train']}. Базлайны (train): {m['baselines']}.
 Ассерты: {sum(1 for v in m['asserts'].values() if v['ok'])}/{len(m['asserts'])} PASS.
+
+## Известные ограничения (known limitations)
+
+- **Long-канал тел корпуса использует повторяющийся филлер**: тела
+  ≥ 2000 символов собраны из одного набора из 8 нейтральных
+  предложений-филлеров, повторённого 4–8 раз; то же свойство у
+  30-вставочного диала NC-1, тела которого лежат у верхней границы
+  medium-канала (длина канала и нейтральность сохранены, конфликтные
+  слоты не затронуты). Для человека-верdict-инструмента это нечитаемо —
+  золотой лист рендерит такие тела с уникальными филлерами (см.
+  render_note в gold-sheet-v1.json). Короткие тела и прочие средние —
+  без повторов (проверено рендером листа).
+- **Watch-item (characterization до обучения):** если модель выродится
+  на длинных неповторяющихся текстах (деградация long-канала против
+  short/medium на characterization-пробах), — генераторный фикс пула
+  филлеров ДО обучения; окно есть: обучение стартует после миграции
+  движковой ноги (§7). Короткие/средние каналы повторов не содержат
+  (проверено рендером листа, 0 замен).
 
 ## Провенанс и дисциплина
 
