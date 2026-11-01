@@ -140,6 +140,15 @@ def gen_pool(seed: int, prefix: str) -> list[lib.Scenario]:
                                 sid("CD-1"), "CD-1", subj, "ru", lib.NUM_SLOTS[si],
                                 vals[vi], vals[vj], fillers=r.choice([1, 2]),
                                 para_b=para_b, cross=cross, rng=r), r)
+                    # ratified hard-floor source family "CD-1-paraphrase"
+                    # (design 4.3 / ADDENDUM-1 B): cross pairs with the
+                    # paraphrase dial engaged
+                    for para_b in (1, 2):
+                        r = random.Random(f"{seed}:CD1p:{subj}:{si}:{vi}:{vj}:{para_b}")
+                        add(lib.build_scenario(
+                            sid("CD-1"), "CD-1", subj, "ru", lib.NUM_SLOTS[si],
+                            vals[vi], vals[vj], fillers=r.choice([1, 2]),
+                            para_b=para_b, cross=True, rng=r), r)
         for key, ru, en, vals in date_slots:
             for vi in range(len(vals)):
                 for vj in range(len(vals)):
@@ -163,13 +172,34 @@ def gen_pool(seed: int, prefix: str) -> list[lib.Scenario]:
                 add(lib.build_scenario(sid("CD-5"), "CD-5", subj, "ru", None,
                                        c[2], c[3], fillers=fl, rng=r), r)
         for pl in lib.POLAR_SLOTS:
+            pe0 = next(e for e in lib.EN_POLAR if e[0] == pl[0])
             for fl in (0, 1):
                 r = random.Random(f"{seed}:CD-6:{subj}:{pl[0]}:{fl}")
                 add(lib.build_scenario(sid("CD-6"), "CD-6", subj, "ru", None, None,
                                        None, polar=pl, fillers=fl, rng=r), r)
-        for ii, ins in enumerate(lib.INSERT_RU):
+                # deviant EN surface chosen deterministically per cell:
+                # spreads CD-6x across the lower bands (surface probe)
+                surfaces = lib.EN_NEG_SURFACES[pl[0]]
+                rng_s = random.Random(f"{seed}:CD-6x:{subj}:{pl[0]}:{fl}")
+                vi = rng_s.randrange(len(surfaces))
+                surf = surfaces[vi]
+                pe = (pe0[0], surf, surf, surf)
+                r2 = random.Random(f"{seed}:CD-6xr:{subj}:{pl[0]}:{fl}")
+                add(lib.build_scenario(sid("CD-6"), "CD-6", subj, "ru", None, None,
+                                       None, polar=pl, polar_en=pe,
+                                       cross=True, rng=r2), r2)
+        ins_pool = lib.INSERT_POOL
+        n_ins = len(ins_pool)
+        for combo_idx, combo in enumerate(
+                [(i,) for i in range(3)]                       # single inserts
+                + [(0, 1), (0, 2), (1, 2)]                     # pairs (existing)
+                + [(i, (i + 1) % n_ins, (i + 3) % n_ins) for i in range(3)]   # triples
+                + [tuple(sorted((i, (i + 1) % n_ins, (i + 3) % n_ins, (i + 5) % n_ins)))
+                   for i in range(2)]                          # quads -> [0.95,0.97)
+                + [(0, 1, 3, 4, 6), (1, 2, 4, 5, 7)]):         # quints (some <0.95)
             for fl in (0, 1):
-                r = random.Random(f"{seed}:NC-1:{subj}:{ii}:{fl}")
+                r = random.Random(f"{seed}:NC-1:{subj}:{combo_idx}:{fl}")
+                ins = " ".join(ins_pool[i] for i in combo)
                 add(lib.build_scenario(sid("NC-1"), "NC-1", subj, "ru", None, None,
                                        None, insert_sent=ins, fillers=fl, rng=r), r)
         for axis, c, v in (("lim", 1000, 800), ("lim", 1000, 500),
@@ -237,20 +267,33 @@ def select_cells(pool: list[lib.Scenario], n_total: int, *,
     corner_c = [x for x in by_s["NC-4"] if x.side_a.record_type != x.side_b.record_type]
     for x in corner_c[:corner]:
         take(x)
-    # 2) hard positives in [0.60,0.70): lowest-cos first (CD-5/CD-6)
-    hard = sorted([x for s in ("CD-5", "CD-6") for x in free(s, "b55") if x._cos >= 0.60],
+    # 2) cross-language positives: lowest measured cos first (window
+    #    members enter the quota naturally). Quota taken BEFORE the hard
+    #    floor so the ratified cross quota (36) stays exact and the floor
+    #    counts window positives without double-counting.
+    cpos = sorted([x for s in ("CD-6", "CD-1", "CD-2") for x in free(s) if x.cross_lang],
                   key=lambda x: (x._cos, x.scenario_id))
-    if len(hard) < FLOOR_HARD_POS:
-        die(f"floor hard-pos: only {len(hard)} candidates in [0.60,0.70)")
-    for x in hard[:FLOOR_HARD_POS]:
-        take(x)
-    # 3) cross-language positives (CD-1/CD-2 cross)
-    cpos = sorted([x for s in ("CD-1", "CD-2") for x in free(s) if x.cross_lang],
-                  key=lambda x: (x.stratum, x.scenario_id))
     if len(cpos) < cross_pos:
         die(f"cross-lang positives: only {len(cpos)}")
     for x in cpos[:cross_pos]:
         take(x)
+    # 3) hard-positive floor in [0.60,0.70): ratified sources are
+    #    CD-5/CD-6 + CD-1-paraphrase (ADDENDUM-1 B); cross positives taken
+    #    above already count; top up from remaining same-lang CD-5/CD-6
+    #    (fail-closed)
+    win_taken = [x for s in ("CD-1", "CD-5", "CD-6") for x in chosen[s]
+                 if 0.60 <= x._cos < 0.70]
+    need = FLOOR_HARD_POS - len(win_taken)
+    if need > 0:
+        hard = sorted([x for s in ("CD-5", "CD-6") for x in free(s, "b55")
+                       if x._cos >= 0.60 and not x.cross_lang],
+                      key=lambda x: (x._cos, x.scenario_id))
+        if len(hard) < need:
+            die(f"floor hard-pos: only {len(win_taken) + len(hard)} candidates in "
+                f"[0.60,0.70) (need {FLOOR_HARD_POS}); see "
+                f"data/conflict-detector/measure/window-census.json")
+        for x in hard[:need]:
+            take(x)
     # 4) cross-language negatives (NC-5 cross, prefer lowest bands)
     cneg = sorted([x for x in free("NC-5") if x.cross_lang],
                   key=lambda x: (x._cos, x.scenario_id))
@@ -442,9 +485,11 @@ def cmd_measure() -> int:
         seal_ids += alloc_ho["ids"][s][:k]
     seal_ids = seal_ids[:HOLD_SEAL]
 
-    hard_pos = sum(1 for s in ("CD-5", "CD-6") for x in train_pool
-                   if x.scenario_id in set(alloc_tr["ids"][s])
-                   and x._band == "b55" and x._cos >= 0.60)
+    hard_ids = set()
+    for s in ("CD-1", "CD-5", "CD-6"):
+        hard_ids |= set(alloc_tr["ids"][s])
+    hard_pos = sum(1 for x in train_pool
+                   if x.scenario_id in hard_ids and 0.60 <= x._cos < 0.70)
     razor_total = sum(c.get("razor", 0) for c in alloc_tr["cells"].values())
     ok = True
     print(f"\ntrain band totals: " + str({b: sum(alloc_tr['cells'][s].get(b, 0) for s in ORDER)
@@ -555,7 +600,7 @@ def cmd_build() -> int:
         bins["0" if c < 0.97 else ("1" if c < 0.985 else "2")] += 0
         if x.label != "contradicts":
             bins["0" if c < 0.97 else ("1" if c < 0.985 else "2")] += 1
-    hard_pos = sum(1 for x in tr_sel if x.stratum in ("CD-5", "CD-6")
+    hard_pos = sum(1 for x in tr_sel if x.stratum in ("CD-1", "CD-5", "CD-6")
                    and 0.60 <= x._cos < 0.70)
     ok_b = (razor >= FLOOR_RAZOR and rz_neg >= rz_pos
             and min(bins.values()) >= 30 if bins else False)

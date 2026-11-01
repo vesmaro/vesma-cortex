@@ -198,6 +198,17 @@ INSERT_RU = [
     "Также настроена отправка метрик в общий мониторинг.",
     "Отдельным каналом включены уведомления в командный чат.",
 ]
+#: Extended superset-addition pool (same INSERT class: conjunction stays
+#: satisfiable). Needed so the insert-count dial can reach the razor bin
+#: [0.95, 0.97) — three short inserts keep NC-1 at 0.97+ (measured).
+EXTRA_INSERTS = [
+    "Отдельно ведётся выгрузка отчётных форм в архив за прошлые периоды.",
+    "Настройки уведомлений дублируются в профиль пользователя автоматически.",
+    "Поддерживается импорт справочников из файлов обмена по расписанию.",
+    "Журнал операций доступен выгрузкой по запросу администратора.",
+    "Дополнительно включён экспорт событий во внешнюю систему хранения.",
+]
+INSERT_POOL = INSERT_RU + EXTRA_INSERTS
 DATE_ALT_RU = "Релиз {gen} запланирован на {v}."
 DATE_ALT_EN = "The release of the component is planned for {v}."
 INSERT_EN = [
@@ -222,6 +233,121 @@ REFINE_EN = {
 VERSION_RU = "Текущая версия {gen} — {v}."
 VERSION_EN = "The current version is {v}."
 VERSIONS = ["v1.2.0", "v1.3.0", "v2.0.0"]
+
+#: Subject-specific sentences (NC-5 short bodies; CD-5/CD-6 divergent
+#: short bodies). These are deliberately NOT translations of each other:
+#: the generic BASE_RU/BASE_EN pair is mutually translated and keeps
+#: cross-language pairs above 0.7 (measured); specific content dives to
+#: the instrument floor (0.486 measured).
+SPEC: dict[str, tuple[str, str, str, str]] = {
+    "s3conn":  ("Многосоставные загрузки собираются в манифест и проверяются контрольными суммами.",
+                "Расписание выгрузок подстраивается под окна низкой нагрузки.",
+                "Multipart uploads are assembled into a manifest and verified with checksums.",
+                "Download windows shift toward low-traffic hours automatically."),
+    "retry":   ("Очередь повторов ограничивает число попыток и помечает безнадёжные запросы.",
+                "Задержки между попытками растут экспоненциально с джиттером.",
+                "The retry queue caps attempts and flags hopeless requests.",
+                "Backoff delays grow exponentially with jitter."),
+    "sched":   ("Ночные джобы запускаются последовательно, чтобы не спорить за ресурсы.",
+                "Пропущенные запуски компенсируются при следующем пробуждении.",
+                "Night jobs run sequentially to avoid resource contention.",
+                "Missed runs are compensated on the next wake-up."),
+    "cache":   ("Профили пользователей держатся в памяти и высвобождаются по TTL.",
+                "Холодные записи вытесняются по правилу LRU.",
+                "Session profiles live in memory and expire by TTL.",
+                "Cold entries are evicted by an LRU rule."),
+    "export":  ("Крупные отчёты собираются в фоне и доставляются ссылкой.",
+                "Шаблоны выгрузок версионируются вместе с формами.",
+                "Large reports are assembled in the background and delivered as links.",
+                "Export templates are versioned together with the forms."),
+    "recs":    ("Ранжирование предложений учитывает свежесть и обратную связь.",
+                "Холодный старт новых пользователей закрывается популярным.",
+                "Ranking blends freshness with the feedback signal.",
+                "New users start from a popularity fallback."),
+    "pay":     ("Платёжные формы токенизируют данные карты до отправки.",
+                "Ошибки проведения дублируются в журнал финансового контроля.",
+                "Payment forms tokenize card data before submission.",
+                "Settlement failures are mirrored into the finance log."),
+    "logs":    ("Разбор access-логов извлекает метрики запросов на лету.",
+                "Кривые форматы журналов нормализуются перед разбором.",
+                "Access-log parsing extracts request metrics on the fly.",
+                "Odd log formats are normalized before parsing."),
+    "auth":    ("Сессии подтверждаются короткоживущими токенами обмена.",
+                "Подозрительные входы проходят второй фактор.",
+                "Sessions rely on short-lived exchange tokens.",
+                "Suspicious sign-ins face a second factor."),
+    "queue":   ("Письма и пуши доставляются через общий шлюз с ретраями.",
+                "Приоритетные уведомления обгоняют массовые рассылки.",
+                "Mail and push delivery share one gateway with retries.",
+                "Priority notifications overtake bulk campaigns."),
+    "mlpipe":  ("Переобучение запускается по расписанию на свежей разметке.",
+                "Качество моделей сравнивается на замороженном тесте.",
+                "Retraining runs on a schedule over fresh labels.",
+                "Model quality is compared on a frozen test split."),
+    "bill":    ("Тарификация собирает счётчики_usage в конце суток.",
+                "Спорные списания проходят ручную модерацию.",
+                "Metering aggregates usage counters at day end.",
+                "Contested charges go through manual review."),
+    "cook":    ("Свёклу томят до мягкости, чтобы сохранился цвет.",
+                "Заправку вводят после снятия с огня.",
+                "Beetroot is simmered until soft to keep the color.",
+                "Dressing goes in after the pot leaves the heat."),
+    "fit":     ("Силовые дни чередуются с лёгким кардио для восстановления.",
+                "Прогресс фиксируется по рабочим весам и объёму.",
+                "Strength days alternate with easy cardio for recovery.",
+                "Progress is tracked by working weights and volume."),
+    "weather": ("Атмосферное давление падает перед фронтом дождя.",
+                "Ночные заморозки вероятны в низинах.",
+                "Pressure drops ahead of the rain front.",
+                "Night frosts are likely in the lowlands."),
+    "music":   ("Инструментальные треки идут первыми, чтобы не отвлекать текстом.",
+                "Громкость выравнивается между треками по нормализации.",
+                "Instrumental tracks come first to avoid lyric distraction.",
+                "Loudness is evened out across tracks by normalization."),
+    "travel":  ("Маршрут начинается от набережной и заканчивается в парке.",
+                "Пересадки на автобус занимают не больше десяти минут.",
+                "The route starts at the embankment and ends in the park.",
+                "Bus transfers take no more than ten minutes."),
+    "books":   ("В этом месяце клуб обсуждает роман о тихой провинции.",
+                "Встреча проходит в четверг в малом зале библиотеки.",
+                "This month the club discusses a quiet provincial novel.",
+                "The meeting is on Thursday in the library small hall."),
+}
+
+EN_POLAR = [
+    ("pl1", "The component fails under peak load.",
+            "The component holds peak load steadily.",
+            "The component fails under peak load."),
+    ("pl2", "The component slowed the system down.",
+            "The component gives a noticeable speed-up.",
+            "The component slowed the system down."),
+    ("pl3", "The component increased service latency.",
+            "The component reduced service latency.",
+            "The component increased service latency."),
+]
+#: Deviant negative-polarity EN surfaces per polar slot (index 0 = the
+#: literal translation above). Lexically divergent, polarity EXACT —
+#: spread the cross-language CD-6 pairs across the lower bands instead
+#: of clustering at 0.75-0.90 (surface-grid probe, 2026-11-02).
+EN_NEG_SURFACES = {
+    "pl1": ["The component fails under peak load.",
+            "Peak traffic brings the service down.",
+            "Under heavy load the service crashes.",
+            "At peak times the system falls over."],
+    "pl2": ["The component slowed the system down.",
+            "After the rollout everything got sluggish.",
+            "The change made requests crawl.",
+            "Latency regressed across the board."],
+    "pl3": ["The component increased service latency.",
+            "Responses now take visibly longer.",
+            "The service got slower for every caller.",
+            "Waiting times went up after the change."],
+}
+EN_COND = [
+    ("cd1", "multipart", "splits large files into parts", "split large files into parts"),
+    ("cd2", "priority", "puts jobs into the priority queue", "put jobs into the priority queue"),
+    ("cd3", "compression", "compresses responses on the fly", "compress responses on the fly"),
+]
 
 #: Paraphrase maps (deterministic substitutions; ordered, first-match).
 PARA_RU = [
@@ -468,14 +594,40 @@ def new_sid(prefix: str, rng: random.Random) -> str:
 def build_scenario(sid: str, stratum: str, subj: str, lang: str, slot_def,
                    v1, v2, *, fillers: int = 1, para_b: int = 0,
                    cross: bool = False, insert_sent: str | None = None,
-                   polar: tuple | None = None, refine: tuple | None = None,
+                   polar: tuple | None = None, polar_en: tuple | None = None,
+                   refine: tuple | None = None,
                    version_pair: tuple | None = None,
                    meta_delta: str | None = None, sibling_subj: str | None = None,
                    rng: random.Random | None = None) -> Scenario:
     rng = rng or random.Random(0)
+    if cross and stratum == "CD-6":
+        # translation-negation conflict: RU affirmative vs EN negation,
+        # STANDALONE short sentences (spec prefix keeps pairs at 0.85+;
+        # short standalone pairs measure 0.68-0.75 and feed the
+        # [0.60,0.70) hard window)
+        pe = polar_en or EN_POLAR[0]
+        body_a = polar[2]
+        body_b = pe[3]
+        side_a = make_side("ru", subj, body_a)
+        side_b = make_side("en", subj, body_b)
+        return Scenario(
+            scenario_id=sid, stratum=stratum, side_a=side_a, side_b=side_b,
+            label="contradicts",
+            slots=[{"slot_id": pe[0], "axis": "semantic", "value_a": polar[2][:60],
+                    "value_b": pe[3], "op": "replace", "is_version_token": False,
+                    "span_chars": len(pe[3])}],
+            subject_a=subj, subject_b=subj, polar_op=pe[3], refine_ok=None,
+            scaffold_id=f"CD-6x:{subj}:{polar[0]}", cross_lang=True,
+            length_channel=channel_for(body_a), both_null=False)
     if cross:
-        body_a = " ".join([BASE_RU[0]] + ([slot_def[1].format(v=v1)] if slot_def else []))
-        body_b = " ".join([BASE_EN[0]] + ([slot_def[2].format(v=v2)] if slot_def else []))
+        subj_fmt = {"gen": SUBJECTS[subj][2], "dat": SUBJECTS[subj][3],
+                    "cap": SUBJECTS[subj][0]}
+        body_a = " ".join([BASE_RU[0]]
+                          + ([slot_def[1].format(v=v1, **subj_fmt)] if slot_def else []))
+        body_b = " ".join([BASE_EN[0]]
+                          + ([slot_def[2].format(v=v2)] if slot_def else []))
+        if para_b:
+            body_b = para(body_b, para_b, "en", rng)
         side_a = make_side("ru", subj, body_a)
         side_b = make_side("en", subj, body_b)
         subjects = (subj, subj)
@@ -483,9 +635,18 @@ def build_scenario(sid: str, stratum: str, subj: str, lang: str, slot_def,
             side_b = make_side("en", sibling_subj, base_body(sibling_subj, "en", 1))
             subjects = (subj, sibling_subj)
     elif stratum == "NC-5":
-        lang_b = "ru"
-        side_a = make_side(lang, subj, base_body(subj, lang, 1))
-        side_b = make_side(lang_b, sibling_subj, base_body(sibling_subj, lang_b, 1))
+        # spec-based short bodies: generic BASE pairs are mutual
+        # translations and keep cross-language pairs above 0.7 (measured);
+        # specific content reaches the instrument floor
+        spec_a = SPEC[subj]
+        side_a = make_side(lang, subj, spec_a[0] if cross else spec_a[0] + " " + spec_a[1])
+        if cross:
+            side_b = make_side("en", sibling_subj, SPEC[sibling_subj][2])
+            lang_b = "en"
+        else:
+            lang_b = "ru"
+            side_b = make_side("ru", sibling_subj,
+                               SPEC[sibling_subj][0] + " " + SPEC[sibling_subj][1])
         subjects = (subj, sibling_subj)
         return Scenario(
             scenario_id=sid, stratum=stratum, side_a=side_a, side_b=side_b,
@@ -495,6 +656,22 @@ def build_scenario(sid: str, stratum: str, subj: str, lang: str, slot_def,
             cross_lang=(lang != lang_b),
             length_channel=channel_for(side_a.body + side_b.body),
             both_null=False)
+    elif stratum in ("CD-5", "CD-6"):
+        # short divergent bodies: SPEC sentence + the polar/conditional
+        # sentence (same-subject cos floor is ~0.68; only short bodies
+        # reach the hard zone)
+        spec_line = SPEC[subj][0]
+        if stratum == "CD-6":
+            body_a = spec_line + " " + polar[2]
+            body_b = spec_line + " " + polar[3]
+        else:
+            entry = next(c for c in COND_SLOTS if c[2] == v1)
+            flag = entry[1]
+            body_a = spec_line + " " + f"При включённом флаге {flag} модуль {v1}."
+            body_b = spec_line + " " + f"Модуль никогда не {v2}, независимо от флага {flag}."
+        side_a = make_side(lang, subj, body_a)
+        side_b = make_side(lang, subj, body_b)
+        subjects = (subj, subj)
     else:
         body = base_body(subj, lang, fillers)
         if stratum == "NC-4":
@@ -502,14 +679,6 @@ def build_scenario(sid: str, stratum: str, subj: str, lang: str, slot_def,
         elif stratum == "NC-1":
             body_a = body
             body_b = body + " " + insert_sent
-        elif stratum == "CD-6":
-            body_a = body + " " + polar[2]
-            body_b = body + " " + polar[3]
-        elif stratum == "CD-5":
-            entry = next(c for c in COND_SLOTS if c[2] == v1)
-            flag = entry[1]
-            body_a = body + " " + f"При включённом флаге {flag} модуль {v1}."
-            body_b = body + " " + f"Модуль никогда не {v2}, независимо от флага {flag}."
         elif stratum == "NC-2":
             c_sent, v_sent, check = REFINE_RU[refine[0]]
             subj_fmt = {"gen": SUBJECTS[subj][2], "dat": SUBJECTS[subj][3]}
