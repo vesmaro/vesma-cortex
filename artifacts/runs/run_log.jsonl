@@ -950,3 +950,51 @@
 {"ts": "2026-11-01T21:59:51.353789+00:00", "event": "build_stop", "slice": "conflict-detector-corpus-build", "reason": "floor hard-pos: only 1 candidates in [0.60,0.70) (need 30); see data/conflict-detector/measure/window-census.json"}
 {"ts": "2026-11-01T22:01:29.153728+00:00", "event": "build_stop", "slice": "conflict-detector-corpus-build", "reason": "floor hard-pos: only 6 candidates in [0.60,0.70) (need 30); see data/conflict-detector/measure/window-census.json"}
 {"ts": "2026-11-01T22:01:43.176123+00:00", "event": "measure_stop2_enriched_pool", "slice": "conflict-detector-corpus-build", "verdict": "STOP - ratified hard-pos floor [0.60,0.70) >=30 unfillable on instrument with ratified envelope convention", "window_census": {"pool": 1974, "positives": 1080, "cross_positives": 576, "win_060_070_all_CD": 17, "win_060_070_ratified_sources_CD5_CD6_CD1": 6, "floor": 30, "win_070_075_positives": 194, "win_070_075_NC5_negatives": 114, "win_070_080_positives": 463, "win_070_080_NC5_negatives": 146, "min_pos_cos_same_lang": 0.9449, "min_pos_cos_cross": 0.6636, "razor_bin_095_097_negatives_pool": 93, "b40_NC5_below_060_pool": 10, "corpus_floor_envelope": 0.527}, "root_cause": "measure probes (0.6851-0.6985 evidence for ADDENDUM-1) measured RAW text without envelope; corpus convention n1(title)+\\n+n1(body)+\\n+n1(tags) lifts same-subject pairs +0.08-0.12", "evidence": "data/conflict-detector/measure/window-census.json"}
+{"ts": "2026-11-01T22:09:07.871286+00:00", "event": "preflight_done", "slice": "conflict-detector-corpus-build", "ok": true}
+{"ts": "2026-11-01T22:11:03.246667+00:00", "event": "build_stop", "slice": "conflict-detector-corpus-build", "reason": "pool exhausted for NC-2: 48/72"}
+{"ts": "2026-11-01T22:11:57.263110+00:00", "event": "preflight_done", "slice": "conflict-detector-corpus-build", "ok": true}
+{"ts": "2026-11-01T22:12:36.360366+00:00", "event": "measure_pinned", "slice": "conflict-detector-corpus-build", "ok": true, "razor": 396, "hard_pos": 30, "floor": 0.527, "pin_sha": "22f26f37f49c07a2"}
+{"ts": "2026-11-01T22:16:55.026024+00:00", "event": "measure_pinned", "slice": "conflict-detector-corpus-build", "ok": true, "razor": 322, "hard_pos": 30, "floor": 0.527, "pin_sha": "5faec731d9a1e34d"}
+{"ts": "2026-11-01T22:28:23.769982+00:00", "event": "preflight_done", "slice": "conflict-detector-corpus-build", "ok": true}
+{"ts": "2026-11-01T22:29:33.748410+00:00", "event": "preflight_done", "slice": "conflict-detector-corpus-build", "ok": true}
+{"ts": "2026-11-01T22:30:27.667179+00:00", "event": "measure_pinned", "slice": "conflict-detector-corpus-build", "ok": true, "razor": 396, "hard_pos": 34, "floor": 0.527, "pin_sha": "d351692f52f2bd10"}
+{"ts": "2026-11-01T22:30:34.898615+00:00", "event": "build_start", "slice": "conflict-detector-corpus-build", "pin_sha": "d351692f52f2bd10"}
+{"ts": "2026-11-01T22:31:55.151174+00:00", "event": "build_start", "slice": "conflict-detector-corpus-build", "pin_sha": "d351692f52f2bd10"}
+{"ts": "2026-11-01T22:32:48.158171+00:00", "event": "build_done", "slice": "conflict-detector-corpus-build", "ok": false, "train_sha": "7cfc0122c9230604", "hold_sha": "cb34b29185dcdacf", "seal": "33a7577044cbfa2f", "elapsed_s": 53.0}
+{"ts": "2026-11-01T22:39:14.612109+00:00", "event": "preflight_done", "slice": "conflict-detector-corpus-build", "ok": true}
+{"ts": "2026-11-01T22:40:06.633776+00:00", "event": "build_stop", "slice": "conflict-detector-corpus-build", "reason": "seal disjointness: CD-1 exhausted (20/22 after culling)"}
+{"ts": "2026-11-01T22:41:09.078721+00:00", "event": "build_stop", "slice": "conflict-detector-corpus-build", "reason": "seal disjointness: CD-1 exhausted (20/22 after culling)"}
+{"ts": "2026-11-01T22:41:14.189227+00:00", "event": "build_start", "slice": "conflict-detector-corpus-build", "pin_sha": "d351692f52f2bd10"}
+{"ts": "2026-11-01T22:42:07.427149+00:00", "event": "build_done", "slice": "conflict-detector-corpus-build", "ok": false, "train_sha": "7cfc0122c9230604", "hold_sha": "cb34b29185dcdacf", "seal": "28af126ac8f2c03f", "elapsed_s": 53.2}
+{"ts": "2026-11-01T22:44:04.047341+00:00", "event": "build_stop", "slice": "conflict-detector-corpus-build", "reason": "seal disjointness: CD-1 exhausted (20/22 after culling)"}
+{"ts": "2026-11-01T22:48:44.902851+00:00", "event": "preflight_done", "slice": "conflict-detector-corpus-build", "ok": true}
+{"ts": "2026-11-01T22:50:11.848648+00:00", "event": "build_stop", "slice": "conflict-detector-corpus-build", "reason": "seal disjointness: NC-1 exhausted (3/27 after culling)"}
+{"ts": "2026-11-01T22:52:57.737167+00:00", "event": "measure_pinned", "slice": "conflict-detector-corpus-build", "ok": true, "razor": 448, "hard_pos": 34, "floor": 0.5181, "pin_sha": "169c58128696a2a9"}
+{"ts": "2026-11-01T22:53:08.822150+00:00", "event": "build_start", "slice": "conflict-detector-corpus-build", "pin_sha": "169c58128696a2a9"}
+{"ts": "2026-11-01T22:54:40.959835+00:00", "event": "build_done", "slice": "conflict-detector-corpus-build", "ok": false, "train_sha": "28f2843ac1b78780", "hold_sha": "98661a125a8fd929", "seal": "d9bc4e9b993d7b1a", "elapsed_s": 92.1}
+{"ts": "2026-11-01T22:57:07.186881+00:00", "event": "preflight_done", "slice": "conflict-detector-corpus-build", "ok": true}
+{"ts": "2026-11-01T22:58:42.498533+00:00", "event": "measure_pinned", "slice": "conflict-detector-corpus-build", "ok": true, "razor": 448, "hard_pos": 35, "floor": 0.5181, "pin_sha": "093ef19c06e7d57e"}
+{"ts": "2026-11-01T22:58:46.924510+00:00", "event": "build_start", "slice": "conflict-detector-corpus-build", "pin_sha": "093ef19c06e7d57e"}
+{"ts": "2026-11-01T23:00:21.734535+00:00", "event": "build_done", "slice": "conflict-detector-corpus-build", "ok": false, "train_sha": "1b1ce5792faf6d7b", "hold_sha": "9e899e5653549666", "seal": "1a80afe1eda3cc5a", "elapsed_s": 94.8}
+{"ts": "2026-11-01T23:04:43.328473+00:00", "event": "preflight_done", "slice": "conflict-detector-corpus-build", "ok": true}
+{"ts": "2026-11-01T23:06:25.653429+00:00", "event": "measure_pinned", "slice": "conflict-detector-corpus-build", "ok": true, "razor": 448, "hard_pos": 35, "floor": 0.5181, "pin_sha": "3b5e52e8e6edfa7b"}
+{"ts": "2026-11-01T23:06:25.785416+00:00", "event": "build_start", "slice": "conflict-detector-corpus-build", "pin_sha": "3b5e52e8e6edfa7b"}
+{"ts": "2026-11-01T23:07:58.464165+00:00", "event": "build_done", "slice": "conflict-detector-corpus-build", "ok": false, "train_sha": "0b515d5852866c3e", "hold_sha": "578ff4178636cb5b", "seal": "e8b7f0f0f0a4a0a6", "elapsed_s": 92.7}
+{"ts": "2026-11-01T23:08:27.967972+00:00", "event": "preflight_done", "slice": "conflict-detector-corpus-build", "ok": true}
+{"ts": "2026-11-01T23:10:00.003504+00:00", "event": "measure_pinned", "slice": "conflict-detector-corpus-build", "ok": true, "razor": 448, "hard_pos": 35, "floor": 0.5181, "pin_sha": "079b75075d199bf6"}
+{"ts": "2026-11-01T23:10:05.276660+00:00", "event": "build_start", "slice": "conflict-detector-corpus-build", "pin_sha": "079b75075d199bf6"}
+{"ts": "2026-11-01T23:11:41.695135+00:00", "event": "build_done", "slice": "conflict-detector-corpus-build", "ok": false, "train_sha": "71406ed1fc4dfeba", "hold_sha": "d76b2a1c2ecdce01", "seal": "97bfe9582edfdeaf", "elapsed_s": 96.4}
+{"ts": "2026-11-01T23:12:15.199358+00:00", "event": "preflight_done", "slice": "conflict-detector-corpus-build", "ok": true}
+{"ts": "2026-11-01T23:13:47.220361+00:00", "event": "measure_pinned", "slice": "conflict-detector-corpus-build", "ok": true, "razor": 448, "hard_pos": 35, "floor": 0.5181, "pin_sha": "1f467f26353cd680"}
+{"ts": "2026-11-01T23:13:47.358306+00:00", "event": "build_start", "slice": "conflict-detector-corpus-build", "pin_sha": "1f467f26353cd680"}
+{"ts": "2026-11-01T23:15:20.637533+00:00", "event": "build_done", "slice": "conflict-detector-corpus-build", "ok": false, "train_sha": "0be52dd220c79281", "hold_sha": "d76b2a1c2ecdce01", "seal": "3c9cc0538533bd29", "elapsed_s": 93.3}
+{"ts": "2026-11-01T23:16:47.435117+00:00", "event": "preflight_done", "slice": "conflict-detector-corpus-build", "ok": true}
+{"ts": "2026-11-01T23:18:26.854343+00:00", "event": "measure_pinned", "slice": "conflict-detector-corpus-build", "ok": true, "razor": 448, "hard_pos": 35, "floor": 0.5181, "pin_sha": "f4cd283de628b940"}
+{"ts": "2026-11-01T23:18:27.000933+00:00", "event": "build_start", "slice": "conflict-detector-corpus-build", "pin_sha": "f4cd283de628b940"}
+{"ts": "2026-11-01T23:20:00.129673+00:00", "event": "build_done", "slice": "conflict-detector-corpus-build", "ok": true, "train_sha": "0be52dd220c79281", "hold_sha": "e8adfec9625b0f72", "seal": "ff098ce66dd3a85e", "elapsed_s": 93.1}
+{"ts": "2026-11-01T23:20:14.064062+00:00", "event": "sheet_frozen", "slice": "conflict-detector-corpus-build", "n": 48, "fp": "fb7f8e634c2a830de98af5c56802a548596c18c486cb12a635bfe7bf2cd0f14c"}
+{"ts": "2026-11-01T23:20:14.121670+00:00", "event": "card_written", "slice": "conflict-detector-corpus-build", "path": "docs/experiments/conflict-detector-corpus-card.md"}
+{"ts": "2026-11-01T23:20:34.200078+00:00", "event": "build_start", "slice": "conflict-detector-corpus-build", "pin_sha": "f4cd283de628b940"}
+{"ts": "2026-11-01T23:22:12.107769+00:00", "event": "build_done", "slice": "conflict-detector-corpus-build", "ok": true, "train_sha": "0be52dd220c79281", "hold_sha": "e8adfec9625b0f72", "seal": "1f676613de08fcdd", "elapsed_s": 97.9}
+{"ts": "2026-11-01T23:22:12.261020+00:00", "event": "sheet_frozen", "slice": "conflict-detector-corpus-build", "n": 48, "fp": "3cf995028de31a30712bd142cbf37a097303eec9f8fa11aa38ebf2a7a6225888"}
+{"ts": "2026-11-01T23:22:12.318361+00:00", "event": "card_written", "slice": "conflict-detector-corpus-build", "path": "docs/experiments/conflict-detector-corpus-card.md"}
