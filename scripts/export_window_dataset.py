@@ -49,13 +49,13 @@ Derived fields (ADR 0007 §2), per block row:
   ``injection_blocks``).
 
 Labels (prereg §2), per block row — separate columns, composed
-post-hoc:
+post-hoc over the GLOBAL assembly stream (ts, id order):
 - ``l0_dead`` — no usage signal within the deadness window
-  T = 3 subsequent assemblies or 30 minutes (whichever first),
-  scoped to the window, never a single assembly; ``null`` when the
-  window is censored at the data edge;
+  T = 3 subsequent assemblies or 30 minutes (whichever first);
+  the scope of deadness is the window, never a single assembly;
+  ``null`` when the window is censored at the data edge;
 - ``l1_survival`` — the block's memory was re-injected in >= 3
-  subsequent assemblies of the session (free default label);
+  subsequent assemblies (free default label);
 - ``re_requested`` — same memory re-requested (re-injected) within
   30 minutes after the deadness window closed;
 - ``l3_quote`` / ``l2_action`` — NOT collectable from Plane A (the
@@ -367,13 +367,17 @@ def compose_labels(session_seq: list[dict], blocks_by_assembly,
                    touched_by_assembly: dict[int, set[str]]) -> dict[str, dict]:
     """Per-block labels over the deadness window (prereg §2).
 
-    Signal semantics: a usage report can only name blocks of its own
-    assembly, so a signal FOR a block is its own id touched by its
-    assembly's report, propagated to the same MEMORY inside the window —
-    re-injected copies carry the entity forward (the alternative would
-    call a cited memory dead whenever the citation hit a later copy).
-    The origin assembly's own report counts: it arrives seconds after
-    injection, inside T by construction.
+    The sequence is the GLOBAL assembly stream (ts, id order): T = the
+    next 3 assemblies or 30 minutes, whichever first — the prereg scopes
+    deadness by the window, never by a single assembly, and a
+    session-local window would censor every block of a session that
+    happened to contain one assembly (a session artifact, not deadness).
+    A signal is usage_report contact with the block's id, propagated to
+    the same MEMORY inside the window (a report can only name blocks of
+    its own assembly; re-injected copies carry the entity forward — the
+    alternative would call a cited memory dead whenever the citation hit
+    a later copy). The origin assembly's own report counts: it arrives
+    seconds after injection, inside T by construction.
     """
     # memory → touched, per assembly (from that assembly's own reports)
     touched_mem_by_assembly: dict[int, dict[str, bool]] = {}
@@ -450,9 +454,12 @@ def in_cache_proxy(session_seq: list[dict], blocks_by_assembly) -> dict[str, boo
 def build_rows(assemblies, blocks_by_assembly, usage_by_assembly, memory_facts,
                session_sequences, touched_by_assembly) -> tuple[list[dict], list[dict]]:
     block_rows, assembly_rows = [], []
+    # Deadness/survival windows run over the GLOBAL stream (ts, id);
+    # the cache-prefix proxy stays session-scoped (KV cache is a
+    # per-conversation concept).
+    labels = compose_labels(assemblies, blocks_by_assembly, touched_by_assembly)
     for session, sequence in session_sequences.items():
         cache_flags = in_cache_proxy(sequence, blocks_by_assembly)
-        labels = compose_labels(sequence, blocks_by_assembly, touched_by_assembly)
         for assembly in sequence:
             mid = assembly["metrics_id"]
             usage = usage_by_assembly.get(mid, {"reports": 0, "tokens_out": 0, "wrong_tool": False})
@@ -648,10 +655,11 @@ def write_freeze(out_dir: Path, block_rows, assembly_rows, summary, args, source
             "in_cache_prefix": IN_CACHE_METHOD,
             "redactions_gt0": "inherited from parent assembly (engine persists per-assembly)",
             "wrong_tool_flag": "anti-proxy, inherited from the assembly's usage_reports",
-            "l0_dead": "no usage signal within T=3 subsequent assemblies / 30 min, "
-                       "session-scoped; null = censored at data edge",
-            "l1_survival": "memory re-injected in >=3 subsequent session assemblies; "
-                           "null when fewer than 3 subsequent assemblies exist",
+            "l0_dead": "no usage signal within T=3 subsequent assemblies / 30 min "
+                       "over the global assembly stream (ts, id); null = censored "
+                       "at data edge",
+            "l1_survival": "memory re-injected in >=3 subsequent assemblies of the "
+                           "global stream; null when fewer than 3 subsequent exist",
             "re_requested": "memory re-injected within 30 min after window close; "
                             "entity proxy = memory_id (slot-level not persisted)",
             "l3_quote": "not collected (harness does not feed model output back)",
