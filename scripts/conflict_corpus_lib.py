@@ -55,13 +55,14 @@ def n1(text: str) -> str:
 
 def pair_char5_jaccard(side_a: Side, side_b: Side, cos: float) -> float:
     """Frozen 5-gram feature through cortex.features.pair (no reimpl):
-    the pair's char5_jaccard at the frozen contract position (index 3);
-    cos comes from the pinned embedder (features() takes it as input)."""
+    the pair's char5_jaccard; cos comes from the pinned embedder
+    (features() takes it as input)."""
     rec_a = RecordLike(title=side_a.title, body=side_a.body, tags=tuple(side_a.tags),
                        language=side_a.language, record_type=side_a.record_type)
     rec_b = RecordLike(title=side_b.title, body=side_b.body, tags=tuple(side_b.tags),
                        language=side_b.language, record_type=side_b.record_type)
-    return float(features(rec_a, rec_b, cos)[3])
+    vec = features(rec_a, rec_b, cos)
+    return float(vec.values[vec.names.index("char5_jaccard")])
 
 
 def sha(text: str) -> str:
@@ -221,7 +222,9 @@ REFINE_RU = {
              "Лимит запросов к {dat} — {v} в минуту.", lambda v, c: v <= c),
     "upd":  ("Обновление {gen} намечено на октябрь.",
              "Обновление {gen} назначено на {v}.",
-             lambda v, c: "октябрь" in v),
+             lambda v, c: "октябр" in v),
+    "timo": ("Таймаут операций {dat} — не более {c} секунд.",
+             "Таймаут операций {dat} — {v} секунд.", lambda v, c: v <= c),
 }
 REFINE_EN = {
     "lim":  ("The request rate limit is at most {c} per minute.",
@@ -229,6 +232,8 @@ REFINE_EN = {
     "upd":  ("The update is scheduled for October.",
              "The update is scheduled for {v}.",
              lambda v, c: "October" in v),
+    "timo": ("The operation timeout is at most {c} seconds.",
+             "The operation timeout is {v} seconds.", lambda v, c: v <= c),
 }
 VERSION_RU = "Текущая версия {gen} — {v}."
 VERSION_EN = "The current version is {v}."
@@ -504,8 +509,11 @@ def _sym_contains(value_b: str, region: str) -> bool:
     """Fail-closed content match, either direction: the declared value
     contains the region fragment, or the region contains the declared
     value (a one-token razor edit yields region == fragment; a
-    sentence-level edit yields region == the full declared sentence)."""
-    nb, nr = norm1(value_b), norm1(region)
+    sentence-level edit yields region == the full declared sentence).
+    Trailing sentence punctuation on the difflib region is stripped —
+    declared values never carry it (st2-style statuses share a leading
+    word with the a-side, so the region starts inside the phrase)."""
+    nb, nr = norm1(value_b), norm1(region).rstrip(".")
     if not nb or not nr:
         return False
     return nb in nr or nr in nb
@@ -573,9 +581,17 @@ def make_side(lang: str, subj: str, body: str, *, para_k: int = 0,
 def base_body(subj: str, lang: str, fillers: int) -> str:
     base = BASE_RU if lang == "ru" else BASE_EN
     fill = FILLERS_RU if lang == "ru" else FILLERS_EN
-    parts = list(base[:2])
+    # fillers == 0 -> single-sentence base (short channel, ~120 chars);
+    # fillers >= 3 on slot families is the long channel (>= 2000 chars)
+    parts = list(base[:1] if fillers == 0 else base[:2])
     parts += [fill[i % len(fill)] for i in range(fillers)]
     return " ".join(parts)
+
+
+def filler_block(lang: str, k: int) -> str:
+    """Shared boilerplate block (length channel / template filler)."""
+    fill = FILLERS_RU if lang == "ru" else FILLERS_EN
+    return " ".join(fill[i % len(fill)] for i in range(k))
 
 
 def channel_for(body: str) -> str:
@@ -598,6 +614,7 @@ def build_scenario(sid: str, stratum: str, subj: str, lang: str, slot_def,
                    refine: tuple | None = None,
                    version_pair: tuple | None = None,
                    meta_delta: str | None = None, sibling_subj: str | None = None,
+                   scaffold_tag: str | None = None,
                    rng: random.Random | None = None) -> Scenario:
     rng = rng or random.Random(0)
     if cross and stratum == "CD-6":
@@ -617,7 +634,8 @@ def build_scenario(sid: str, stratum: str, subj: str, lang: str, slot_def,
                     "value_b": pe[3], "op": "replace", "is_version_token": False,
                     "span_chars": len(pe[3])}],
             subject_a=subj, subject_b=subj, polar_op=pe[3], refine_ok=None,
-            scaffold_id=f"CD-6x:{subj}:{polar[0]}", cross_lang=True,
+            scaffold_id=f"CD-6x:{subj}:{scaffold_tag or polar[0]}",
+            cross_lang=True,
             length_channel=channel_for(body_a), both_null=False)
     if cross:
         subj_fmt = {"gen": SUBJECTS[subj][2], "dat": SUBJECTS[subj][3],
@@ -635,31 +653,39 @@ def build_scenario(sid: str, stratum: str, subj: str, lang: str, slot_def,
             side_b = make_side("en", sibling_subj, base_body(sibling_subj, "en", 1))
             subjects = (subj, sibling_subj)
     elif stratum == "NC-5":
-        # spec-based short bodies: generic BASE pairs are mutual
-        # translations and keep cross-language pairs above 0.7 (measured);
-        # specific content reaches the instrument floor
+        # spec-based short bodies; fillers > 2 adds a SHARED boilerplate
+        # block to both sides (long channel, stays same-language — a
+        # divergent long block would break the b40/b55 carrier and the
+        # pinned corpus floor)
         spec_a = SPEC[subj]
-        side_a = make_side(lang, subj, spec_a[0] if cross else spec_a[0] + " " + spec_a[1])
+        body_a = spec_a[0] if cross else spec_a[0] + " " + spec_a[1]
+        if fillers and fillers > 2 and not cross:
+            blk = filler_block("ru", fillers)
+            body_a = body_a + " " + blk
+        side_a = make_side(lang, subj, body_a)
         if cross:
             side_b = make_side("en", sibling_subj, SPEC[sibling_subj][2])
             lang_b = "en"
         else:
             lang_b = "ru"
-            side_b = make_side("ru", sibling_subj,
-                               SPEC[sibling_subj][0] + " " + SPEC[sibling_subj][1])
+            body_b = SPEC[sibling_subj][0] + " " + SPEC[sibling_subj][1]
+            if fillers and fillers > 2:
+                body_b = body_b + " " + blk
+            side_b = make_side("ru", sibling_subj, body_b)
         subjects = (subj, sibling_subj)
         return Scenario(
             scenario_id=sid, stratum=stratum, side_a=side_a, side_b=side_b,
             label="not-contradicts", slots=[], subject_a=subjects[0],
             subject_b=subjects[1], polar_op=None, refine_ok=None,
-            scaffold_id=f"nc5:{subj}:{sibling_subj}",
+            scaffold_id=f"nc5:{subj}:{sibling_subj}"
+                        + (f":{scaffold_tag}" if scaffold_tag else ""),
             cross_lang=(lang != lang_b),
             length_channel=channel_for(side_a.body + side_b.body),
             both_null=False)
     elif stratum in ("CD-5", "CD-6"):
         # short divergent bodies: SPEC sentence + the polar/conditional
-        # sentence (same-subject cos floor is ~0.68; only short bodies
-        # reach the hard zone)
+        # sentence; fillers > 2 appends a shared boilerplate block (long
+        # channel, both sides — cos stays razor)
         spec_line = SPEC[subj][0]
         if stratum == "CD-6":
             body_a = spec_line + " " + polar[2]
@@ -669,6 +695,10 @@ def build_scenario(sid: str, stratum: str, subj: str, lang: str, slot_def,
             flag = entry[1]
             body_a = spec_line + " " + f"При включённом флаге {flag} модуль {v1}."
             body_b = spec_line + " " + f"Модуль никогда не {v2}, независимо от флага {flag}."
+        if fillers and fillers > 2:
+            blk = filler_block(lang, fillers)
+            body_a = body_a + " " + blk
+            body_b = body_b + " " + blk
         side_a = make_side(lang, subj, body_a)
         side_b = make_side(lang, subj, body_b)
         subjects = (subj, subj)
@@ -746,7 +776,9 @@ def build_scenario(sid: str, stratum: str, subj: str, lang: str, slot_def,
         label=("contradicts" if stratum.startswith("CD") else "not-contradicts"),
         slots=slots, subject_a=subjects[0], subject_b=subjects[1],
         polar_op=polar_op, refine_ok=refine_ok,
-        scaffold_id=f"{stratum}:{subj}:{slot_def[0] if slot_def else (polar[0] if polar else refine[0] if refine else (version_pair[0] if version_pair else meta_delta or 'sib'))}",
+        scaffold_id=(f"nc5:{subjects[0]}:{subjects[1]}" if stratum == "NC-5" else
+                     f"{stratum}:{subj}:{slot_def[0] if slot_def else (polar[0] if polar else refine[0] if refine else (version_pair[0] if version_pair else meta_delta or 'sib'))}")
+                    + (f":{scaffold_tag}" if scaffold_tag else ""),
         cross_lang=cross, length_channel=channel_for(side_a.body),
         both_null=False)
     return sc

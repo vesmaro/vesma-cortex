@@ -4,8 +4,9 @@
 Subcommands (the ratified lane order):
   preflight  П3 fixture cells — one per class, mechanical map + guard
   measure    dry pools: wide candidates, measured cos (pinned nano),
-             joint allocation honoring exact strata quotas + ADDENDUM-1
-             floors, write pin file (activation assert for build)
+             joint allocation honoring exact strata quotas + ADDENDUM-1/2
+             floors (hard window [0.70,0.75) per ADDENDUM-2), write pin
+             file (activation assert for build)
   build      regenerate identical pools, select per pin, emit
              train.jsonl (600 pairs x 2 orientations) + holdout pool 600
              -> seal 180 (CD-holdout-v1), full assert map (design 5.3),
@@ -49,15 +50,30 @@ BANDS = [("razor", 0.95, 1.01), ("b85", 0.85, 0.95), ("b70", 0.70, 0.85),
 BAND_TARGETS = {"razor": 180, "b85": 110, "b70": 130, "b55": 125, "b40": 45}
 FLOOR_RAZOR = 162
 FLOOR_HARD_POS = 30
+# ADDENDUM-2 §A: the hard window is a POPULATION CONSTRAINT inside the
+# b70 band [0.70,0.85) — no separate allocation cell.
+HARD_WIN_LO, HARD_WIN_HI = 0.70, 0.75
+# §4.3 razor bins: >=30 negatives each; continuity <=0.005 inside razor
+RAZOR_BINS = [(0.95, 0.97), (0.97, 0.985), (0.985, 1.01)]
+RAZOR_BIN_FLOOR = 30
+RAZOR_MAX_GAP = 0.005
 CORNER_MIN = 10
 CROSS_NEG_CAP = 45
 CROSS_POS_QUOTA = 36
 NULL_P = 1.0 / 3.0
+# §4.4 length channels ~1/3 each: long-channel reservation per stratum
+# (sum 190/600 = 0.317)
+LONG_RESERVE = {"CD-1": 24, "CD-2": 12, "CD-3": 12, "CD-4": 12, "CD-5": 8,
+                "CD-6": 12, "NC-1": 20, "NC-2": 24, "NC-3": 18, "NC-4": 12,
+                "NC-5": 36}
 STRATA_QUOTA = {"CD-1": 72, "CD-2": 36, "CD-3": 36, "CD-4": 36, "CD-5": 24,
                 "CD-6": 36, "NC-1": 90, "NC-2": 72, "NC-3": 54, "NC-4": 36,
                 "NC-5": 108}
 ORDER = ["CD-1", "CD-2", "CD-3", "CD-4", "CD-5", "CD-6",
          "NC-1", "NC-2", "NC-3", "NC-4", "NC-5"]
+# §4.5 scaffold cap: max pairs of a stratum on one scaffold across
+# train+seal (5% of the projected union, floor 1)
+SCAFFOLD_CAP = {s: max(1, int(0.065 * STRATA_QUOTA[s])) for s in ORDER}
 
 
 def now() -> str:
@@ -108,9 +124,34 @@ def band_of(cos: float) -> str | None:
 
 # --- pools -------------------------------------------------------------------
 
+def _sents(body: str) -> list[str]:
+    return [s for s in re.split(r"(?<=\.)\s+", body.strip()) if s]
+
+
+def rotate_pair(a_body: str, b_body: str, seed: int) -> tuple[str, str]:
+    """Seed-dependent sentence-order rotation (A-disjoint surface jitter):
+    the train/holdout pools share fixed-text families (cross templates,
+    SPEC bodies, long boilerplate) whose texts would be byte-identical
+    across seeds. BOTH sides rotate by the SAME offset k (1 <= k < base
+    length), so the base block stays contiguous inside the b-side and the
+    mechanical region map survives (NC-1 stays all-insert, NC-4 stays
+    identity-body). Single-sentence sides pass through unchanged."""
+    sa, sb = _sents(a_body), _sents(b_body)
+    if len(sa) >= 2:
+        k = 1 + (seed % (len(sa) - 1))
+        return (" ".join(sa[k:] + sa[:k]),
+                " ".join(sb[k:] + sb[:k]) if len(sb) >= 2 else b_body)
+    if len(sb) >= 2:
+        k = 1 + (seed % (len(sb) - 1))
+        return (a_body, " ".join(sb[k:] + sb[:k]))
+    return a_body, b_body
+
+
 def gen_pool(seed: int, prefix: str) -> list[lib.Scenario]:
     """Wide candidate pool per stratum (multi-intensity); deterministic
-    per-candidate rng streams — regenerate == reproduce, byte-identical."""
+    per-candidate rng streams — regenerate == reproduce, byte-identical.
+    The holdout pool (seed != SEED_TRAIN) rotates sentence order so its
+    texts never collide with train texts (A-disjoint §5.3)."""
     out: list[lib.Scenario] = []
     n = [0]
     rng_root = random.Random(seed)
@@ -120,12 +161,17 @@ def gen_pool(seed: int, prefix: str) -> list[lib.Scenario]:
         return f"{prefix}-{stratum}-{n[0]:05d}"
 
     def add(sc: lib.Scenario, r: random.Random, force_nn: bool = False):
+        if seed != SEED_TRAIN:
+            sc.side_a.body, sc.side_b.body = rotate_pair(
+                sc.side_a.body, sc.side_b.body, seed)
         out.append(lib.finish_pair(sc, r, NULL_P, force_nn))
 
     tech = lib.TECH
     allsubj = list(lib.SUBJECTS)
-    date_slots = [(lib.DATE_SLOT[0], lib.DATE_SLOT[1], lib.DATE_SLOT[2], lib.DATE_SLOT[3]),
-                  ("upd2", lib.DATE_ALT_RU, lib.DATE_ALT_EN, lib.DATE_SLOT[3])]
+    date_slots = [(lib.DATE_SLOT[0], lib.DATE_SLOT[1], lib.DATE_SLOT[2],
+                   lib.DATE_SLOT[3], lib.DATE_SLOT[4]),
+                  ("upd2", lib.DATE_ALT_RU, lib.DATE_ALT_EN,
+                   lib.DATE_SLOT[3], lib.DATE_SLOT[4])]
     for subj in tech:
         for si in range(len(lib.NUM_SLOTS)):
             vals = lib.NUM_SLOTS[si][3]
@@ -138,7 +184,7 @@ def gen_pool(seed: int, prefix: str) -> list[lib.Scenario]:
                             r = random.Random(f"{seed}:CD1:{subj}:{si}:{vi}:{vj}:{para_b}:{cross}")
                             add(lib.build_scenario(
                                 sid("CD-1"), "CD-1", subj, "ru", lib.NUM_SLOTS[si],
-                                vals[vi], vals[vj], fillers=r.choice([1, 2]),
+                                vals[vi], vals[vj], fillers=r.choice([0, 1, 2]),
                                 para_b=para_b, cross=cross, rng=r), r)
                     # ratified hard-floor source family "CD-1-paraphrase"
                     # (design 4.3 / ADDENDUM-1 B): cross pairs with the
@@ -149,34 +195,58 @@ def gen_pool(seed: int, prefix: str) -> list[lib.Scenario]:
                             sid("CD-1"), "CD-1", subj, "ru", lib.NUM_SLOTS[si],
                             vals[vi], vals[vj], fillers=r.choice([1, 2]),
                             para_b=para_b, cross=True, rng=r), r)
-        for key, ru, en, vals in date_slots:
-            for vi in range(len(vals)):
-                for vj in range(len(vals)):
+                    # long channel (fillers=35 -> >=2000 chars, same-lang
+                    # only: long cross bodies would dive out of their bands)
+                    r = random.Random(f"{seed}:CD1L:{subj}:{si}:{vi}:{vj}")
+                    add(lib.build_scenario(
+                        sid("CD-1"), "CD-1", subj, "ru", lib.NUM_SLOTS[si],
+                        vals[vi], vals[vj], fillers=35, rng=r), r)
+        for key, ru, en, vals_ru, vals_en in date_slots:
+            for vi in range(len(vals_ru)):
+                for vj in range(len(vals_ru)):
                     if vi >= vj:
                         continue
                     for cross in (False, True):
+                        vals = vals_en if cross else vals_ru
                         r = random.Random(f"{seed}:CD2:{subj}:{key}:{vi}:{vj}:{cross}")
                         add(lib.build_scenario(
                             sid("CD-2"), "CD-2", subj, "ru", (key, ru, en),
-                            vals[vi], vals[vj], fillers=r.choice([1, 2]),
-                            cross=cross, rng=r), r)
+                            vals[vi], vals[vj], fillers=r.choice([0, 1, 2]),
+                            cross=cross, rng=r,
+                            scaffold_tag="x" if cross else "s"), r)
+                    r = random.Random(f"{seed}:CD2L:{subj}:{key}:{vi}:{vj}")
+                    add(lib.build_scenario(
+                        sid("CD-2"), "CD-2", subj, "ru", (key, ru, en),
+                        vals_ru[vi], vals_ru[vj], fillers=35, rng=r,
+                        scaffold_tag="L"), r)
         for stratum, slots in (("CD-3", lib.STATUS_SLOTS), ("CD-4", lib.MODAL_SLOTS)):
             for sd in slots:
                 for fl in (0, 1, 2):
                     r = random.Random(f"{seed}:{stratum}:{subj}:{sd[0]}:{fl}")
                     add(lib.build_scenario(sid(stratum), stratum, subj, "ru", sd,
-                                           None, None, fillers=fl, rng=r), r)
+                                           None, None, fillers=fl, rng=r,
+                                           scaffold_tag=f"f{fl}"), r)
+                r = random.Random(f"{seed}:{stratum}L:{subj}:{sd[0]}")
+                add(lib.build_scenario(sid(stratum), stratum, subj, "ru", sd,
+                                       None, None, fillers=35, rng=r,
+                                       scaffold_tag="L"), r)
         for c in lib.COND_SLOTS:
             for fl in (0, 1):
                 r = random.Random(f"{seed}:CD-5:{subj}:{c[0]}:{fl}")
                 add(lib.build_scenario(sid("CD-5"), "CD-5", subj, "ru", None,
-                                       c[2], c[3], fillers=fl, rng=r), r)
+                                       c[2], c[3], fillers=fl, rng=r,
+                                       scaffold_tag=f"{c[0]}f{fl}"), r)
+            r = random.Random(f"{seed}:CD-5L:{subj}:{c[0]}")
+            add(lib.build_scenario(sid("CD-5"), "CD-5", subj, "ru", None,
+                                   c[2], c[3], fillers=35, rng=r,
+                                   scaffold_tag=f"{c[0]}L"), r)
         for pl in lib.POLAR_SLOTS:
             pe0 = next(e for e in lib.EN_POLAR if e[0] == pl[0])
             for fl in (0, 1):
                 r = random.Random(f"{seed}:CD-6:{subj}:{pl[0]}:{fl}")
                 add(lib.build_scenario(sid("CD-6"), "CD-6", subj, "ru", None, None,
-                                       None, polar=pl, fillers=fl, rng=r), r)
+                                       None, polar=pl, fillers=fl, rng=r,
+                                       scaffold_tag=f"{pl[0]}f{fl}"), r)
                 # deviant EN surface chosen deterministically per cell:
                 # spreads CD-6x across the lower bands (surface probe)
                 surfaces = lib.EN_NEG_SURFACES[pl[0]]
@@ -187,7 +257,12 @@ def gen_pool(seed: int, prefix: str) -> list[lib.Scenario]:
                 r2 = random.Random(f"{seed}:CD-6xr:{subj}:{pl[0]}:{fl}")
                 add(lib.build_scenario(sid("CD-6"), "CD-6", subj, "ru", None, None,
                                        None, polar=pl, polar_en=pe,
-                                       cross=True, rng=r2), r2)
+                                       cross=True, rng=r2,
+                                       scaffold_tag=f"x{pl[0]}v{vi}"), r2)
+            r = random.Random(f"{seed}:CD-6L:{subj}:{pl[0]}")
+            add(lib.build_scenario(sid("CD-6"), "CD-6", subj, "ru", None, None,
+                                   None, polar=pl, fillers=35, rng=r,
+                                   scaffold_tag=f"{pl[0]}L"), r)
         ins_pool = lib.INSERT_POOL
         n_ins = len(ins_pool)
         for combo_idx, combo in enumerate(
@@ -201,22 +276,48 @@ def gen_pool(seed: int, prefix: str) -> list[lib.Scenario]:
                 r = random.Random(f"{seed}:NC-1:{subj}:{combo_idx}:{fl}")
                 ins = " ".join(ins_pool[i] for i in combo)
                 add(lib.build_scenario(sid("NC-1"), "NC-1", subj, "ru", None, None,
-                                       None, insert_sent=ins, fillers=fl, rng=r), r)
-        for axis, c, v in (("lim", 1000, 800), ("lim", 1000, 500),
-                           ("upd", "октябрь", "5 октября"), ("upd", "октябрь", "15 октября")):
+                                       None, insert_sent=ins, fillers=fl, rng=r,
+                                       scaffold_tag=f"c{combo_idx}"), r)
+        for li in range(2):  # long channel: 30 inserts -> >=2000 chars, b85
+            combo = tuple(i % n_ins for i in range(li * 3, li * 3 + 30))
+            r = random.Random(f"{seed}:NC-1L:{subj}:{li}")
+            ins = " ".join(ins_pool[i] for i in combo)
+            add(lib.build_scenario(sid("NC-1"), "NC-1", subj, "ru", None, None,
+                                   None, insert_sent=ins, fillers=1, rng=r,
+                                   scaffold_tag=f"L{li}"), r)
+        for axis, c, v in (("lim", 1000, 800), ("lim", 1000, 500), ("lim", 1000, 200),
+                           ("upd", "октябрь", "5 октября"), ("upd", "октябрь", "15 октября"),
+                           ("timo", 120, 60), ("timo", 120, 90)):
             r = random.Random(f"{seed}:NC-2:{subj}:{axis}:{c}:{v}")
             add(lib.build_scenario(sid("NC-2"), "NC-2", subj, "ru", None, v, None,
-                                   refine=(axis, c), fillers=1, rng=r), r)
-        for vp in (("v1.2.0", "v1.3.0"), ("v1.3.0", "v2.0.0")):
+                                   refine=(axis, c), fillers=r.choice([0, 1]), rng=r), r)
+            r = random.Random(f"{seed}:NC-2L:{subj}:{axis}:{c}:{v}")
+            add(lib.build_scenario(sid("NC-2"), "NC-2", subj, "ru", None, v, None,
+                                   refine=(axis, c), fillers=35, rng=r,
+                                   scaffold_tag="L"), r)
+        for vp in (("v1.2.0", "v1.3.0"), ("v1.3.0", "v2.0.0"), ("v1.2.0", "v2.0.0")):
             for fl in (0, 1):
                 r = random.Random(f"{seed}:NC-3:{subj}:{vp[0]}:{fl}")
                 add(lib.build_scenario(sid("NC-3"), "NC-3", subj, "ru", None, None,
-                                       None, version_pair=vp, fillers=fl, rng=r), r)
+                                       None, version_pair=vp, fillers=fl, rng=r,
+                                       scaffold_tag=vp[1]), r)
+            r = random.Random(f"{seed}:NC-3L:{subj}:{vp[0]}")
+            add(lib.build_scenario(sid("NC-3"), "NC-3", subj, "ru", None, None,
+                                   None, version_pair=vp, fillers=35, rng=r,
+                                   scaffold_tag=vp[1] + "L"), r)
         for delta in ("tags", "lang", "type"):
+            # type/lang deltas live in envelope fields that both-null
+            # nulling would erase on BOTH sides (degenerate identity pair)
+            # — same scoped exemption as the corner twins
             r = random.Random(f"{seed}:NC-4:{subj}:{delta}")
             add(lib.build_scenario(sid("NC-4"), "NC-4", subj, "ru", None, None, None,
                                    meta_delta=delta, fillers=1, rng=r),
-                r, force_nn=(delta == "type"))
+                r, force_nn=(delta in ("type", "lang")))
+            r = random.Random(f"{seed}:NC-4L:{subj}:{delta}")
+            add(lib.build_scenario(sid("NC-4"), "NC-4", subj, "ru", None, None, None,
+                                   meta_delta=delta, fillers=35, rng=r,
+                                   scaffold_tag="L"),
+                r, force_nn=(delta in ("type", "lang")))
     for i, sa in enumerate(allsubj):
         for sb in allsubj:
             if sa == sb:
@@ -230,6 +331,12 @@ def gen_pool(seed: int, prefix: str) -> list[lib.Scenario]:
                 r = random.Random(f"{seed}:NC-5:{sa}:{sb}:{cross}")
                 add(lib.build_scenario(sid("NC-5"), "NC-5", sa, "ru", None, None,
                                        None, sibling_subj=sb, cross=cross, rng=r), r)
+            # long channel: same-language cross-domain pairs with a SHARED
+            # boilerplate block (razor-safe: probe 0.988-0.993)
+            if tech_a != tech_b:
+                r = random.Random(f"{seed}:NC-5L:{sa}:{sb}")
+                add(lib.build_scenario(sid("NC-5"), "NC-5", sa, "ru", None, None,
+                                       None, sibling_subj=sb, fillers=35, rng=r), r)
     return out
 
 
@@ -240,9 +347,15 @@ def measure_all(pool: list[lib.Scenario], cos: Cos) -> None:
 
 
 def select_cells(pool: list[lib.Scenario], n_total: int, *,
-                 cross_pos: int, cross_neg: int, corner: int) -> dict:
+                 cross_pos: int, cross_neg: int, corner: int,
+                 prior_scaf: dict[str, int] | None = None) -> dict:
     """Deterministic joint allocation: exact strata quotas; band totals
-    derived; ADDENDUM-1 floors enforced by construction order."""
+    derived; ADDENDUM-1/2 floors enforced by construction order;
+    scaffold-cap + channel-balanced picking (§4.4/§4.5).
+
+    prior_scaf: scaffold counts from the TRAIN allocation — the holdout
+    call honors the union scaffold cap (§4.5 is computed on train+seal).
+    """
     by_s: dict[str, list] = {s: [] for s in ORDER}
     for sc in pool:
         by_s[sc.stratum].append(sc)
@@ -251,10 +364,38 @@ def select_cells(pool: list[lib.Scenario], n_total: int, *,
 
     chosen: dict[str, list] = {s: [] for s in ORDER}
     used: set[str] = set()
+    scaf: dict[str, int] = dict(prior_scaf or {})
+    ch_cnt: dict[str, int] = {"short": 0, "medium": 0, "long": 0}
 
     def take(sc: lib.Scenario):
         chosen[sc.stratum].append(sc)
         used.add(sc.scenario_id)
+        scaf[sc.scaffold_id] = scaf.get(sc.scaffold_id, 0) + 1
+        ch_cnt[x_key(sc)] = ch_cnt.get(x_key(sc), 0) + 1
+
+    def x_key(sc: lib.Scenario) -> str:
+        return sc.length_channel if sc.length_channel in ("short", "medium", "long") \
+            else "medium"
+
+    def cap_ok(sc: lib.Scenario) -> bool:
+        return scaf.get(sc.scaffold_id, 0) < SCAFFOLD_CAP[sc.stratum]
+
+    def take_spread(cands: list[lib.Scenario], k: int,
+                    key=lambda x: (x._cos, x.scenario_id)) -> int:
+        """Take up to k candidates minimizing scaffold concentration
+        first, then by `key`; skips scaffold-capped candidates. Returns
+        the number taken (fail-closed callers check it)."""
+        rest = sorted(cands, key=key)
+        out = 0
+        for _ in range(k):
+            feasible = [x for x in rest if cap_ok(x)]
+            if not feasible:
+                break
+            best = min(feasible, key=lambda x: (scaf.get(x.scaffold_id, 0),) + key(x))
+            rest.remove(best)
+            take(best)
+            out += 1
+        return out
 
     def free(stratum: str, band: str | None = None, **pred):
         cands = [x for x in by_s[stratum]
@@ -263,74 +404,141 @@ def select_cells(pool: list[lib.Scenario], n_total: int, *,
                  and all(x.__dict__.get(k) == v for k, v in pred.items())]
         return cands
 
+    def pick_one(cands: list[lib.Scenario],
+                 key=lambda x: (-x._cos, x.scenario_id)):
+        """Least-filled channel, then scaffold spread, then `key`;
+        scaffold-capped candidates are NOT eligible (hard cap, §4.5)."""
+        feasible = [x for x in cands if cap_ok(x)]
+        if not feasible:
+            return None
+        return min(feasible,
+                   key=lambda x: (ch_cnt.get(x_key(x), 0),
+                                  scaf.get(x.scaffold_id, 0)) + key(x))
+
+    def cross_quota_left() -> tuple[int, int]:
+        xp = sum(1 for s in ORDER for x in chosen[s]
+                 if x.cross_lang and x.label == "contradicts")
+        xn = sum(1 for s in ORDER for x in chosen[s]
+                 if x.cross_lang and x.label != "contradicts")
+        return max(cross_pos - xp, 0), max(cross_neg - xn, 0)
+
     # 1) corner twins (NC-4 type delta, non-null, cos ~1.0)
     corner_c = [x for x in by_s["NC-4"] if x.side_a.record_type != x.side_b.record_type]
-    for x in corner_c[:corner]:
-        take(x)
-    # 2) cross-language positives: lowest measured cos first (window
-    #    members enter the quota naturally). Quota taken BEFORE the hard
-    #    floor so the ratified cross quota (36) stays exact and the floor
-    #    counts window positives without double-counting.
-    cpos = sorted([x for s in ("CD-6", "CD-1", "CD-2") for x in free(s) if x.cross_lang],
-                  key=lambda x: (x._cos, x.scenario_id))
-    if len(cpos) < cross_pos:
-        die(f"cross-lang positives: only {len(cpos)}")
-    for x in cpos[:cross_pos]:
-        take(x)
-    # 3) hard-positive floor in [0.60,0.70): ratified sources are
-    #    CD-5/CD-6 + CD-1-paraphrase (ADDENDUM-1 B); cross positives taken
-    #    above already count; top up from remaining same-lang CD-5/CD-6
-    #    (fail-closed)
-    win_taken = [x for s in ("CD-1", "CD-5", "CD-6") for x in chosen[s]
-                 if 0.60 <= x._cos < 0.70]
-    need = FLOOR_HARD_POS - len(win_taken)
-    if need > 0:
-        hard = sorted([x for s in ("CD-5", "CD-6") for x in free(s, "b55")
-                       if x._cos >= 0.60 and not x.cross_lang],
-                      key=lambda x: (x._cos, x.scenario_id))
-        if len(hard) < need:
-            die(f"floor hard-pos: only {len(win_taken) + len(hard)} candidates in "
-                f"[0.60,0.70) (need {FLOOR_HARD_POS}); see "
-                f"data/conflict-detector/measure/window-census.json")
-        for x in hard[:need]:
+    if take_spread(corner_c, corner, key=lambda x: (x.scenario_id,)) < corner:
+        die(f"corner twins: only {len(corner_c)} candidates")
+    # 2) razor-bin negative reservations (§4.3: >=30 negatives per bin,
+    #    continuity <=0.005 inside [0.95,1.0]): spread evenly over each
+    #    bin so no empty stretch opens at the zone edges
+    for lo, hi in RAZOR_BINS:
+        cands = [x for s in ORDER for x in free(s)
+                 if x.label != "contradicts" and lo <= x._cos < hi]
+        if len(cands) < RAZOR_BIN_FLOOR:
+            die(f"razor bin [{lo},{hi}): only {len(cands)} negatives")
+        step = (len(cands) - 1) / (RAZOR_BIN_FLOOR - 1)
+        idx = [round(i * step) for i in range(RAZOR_BIN_FLOOR)]
+        taken = 0
+        seen = set()
+        # even-spread positions first, then the rest; the scaffold cap is
+        # re-checked at take time (candidates on one scaffold sit adjacent)
+        order = [i for i in idx if i not in seen and not seen.add(i)]
+        order += [i for i in range(len(cands)) if i not in seen]
+        for i in order:
+            if taken >= RAZOR_BIN_FLOOR:
+                break
+            if cap_ok(cands[i]):
+                take(cands[i])
+                taken += 1
+        if taken < RAZOR_BIN_FLOOR:
+            die(f"razor bin [{lo},{hi}): scaffold cap leaves {taken}/{RAZOR_BIN_FLOOR}")
+    # 2b) long-channel reservation (§4.4: three length channels ~1/3
+    #     each; long variants are scarce and would be outcompeted)
+    for s in ORDER:
+        cands = sorted([x for x in free(s) if x.length_channel == "long"],
+                       key=lambda x: (x.scenario_id,))
+        k = 0
+        for x in cands:
+            if k >= LONG_RESERVE[s]:
+                break
+            if cap_ok(x):
+                take(x)
+                k += 1
+    # 2c) b40 carrier reservation (ADDENDUM-2 §B: the thin known-uncovered
+    #     floor evidence — every free NC-5 pair below 0.60 is taken; they
+    #     are scarce and would otherwise be outcompeted by the b55/b70
+    #     fills inside the NC-5 quota)
+    for x in sorted([x for x in free("NC-5") if x._band == "b40"],
+                    key=lambda x: (x._cos, x.scenario_id)):
+        if cap_ok(x):
             take(x)
+    # 3) hard-pos floor in [0.70,0.75) (ADDENDUM-2 §A: population
+    #    constraint inside the b70 band) + the cross-positive quota:
+    #    the floor's 30 window positives are taken first, the quota is
+    #    completed with the LOWEST-cos remaining cross positives
+    #    (hardest first) — quota total stays exact (36)
+    if cross_pos < FLOOR_HARD_POS:
+        die("cross quota smaller than the hard floor")
+    win = [x for s in ("CD-1", "CD-2", "CD-5", "CD-6")
+           for x in free(s) if x.cross_lang
+           and HARD_WIN_LO <= x._cos < HARD_WIN_HI]
+    if len(win) < FLOOR_HARD_POS:
+        die(f"floor hard-pos: only {len(win)} positives in "
+            f"[{HARD_WIN_LO},{HARD_WIN_HI}) (need {FLOOR_HARD_POS}); see "
+            f"data/conflict-detector/measure/window-census.json")
+    if take_spread(win, FLOOR_HARD_POS) < FLOOR_HARD_POS:
+        die("floor hard-pos: scaffold cap leaves no feasible window picks")
+    rest = [x for s in ("CD-1", "CD-2", "CD-5", "CD-6")
+            for x in free(s) if x.cross_lang]
+    need_rest = cross_pos - FLOOR_HARD_POS
+    if len(rest) < need_rest:
+        die(f"cross-lang positives: only {len(rest) + FLOOR_HARD_POS}")
+    take_spread(rest, need_rest)
     # 4) cross-language negatives (NC-5 cross, prefer lowest bands)
-    cneg = sorted([x for x in free("NC-5") if x.cross_lang],
-                  key=lambda x: (x._cos, x.scenario_id))
+    cneg = [x for x in free("NC-5") if x.cross_lang]
     if len(cneg) < cross_neg:
         die(f"cross-lang negatives: only {len(cneg)}")
-    for x in cneg[:cross_neg]:
-        take(x)
-    # 5) band-guided fill toward targets, then stratum completion
+    take_spread(cneg, cross_neg)
+    # 5) band-guided fill toward targets, scarce bands first (ascending
+    #    target); cross-language quotas stay closed after their steps
     def counts():
         c = {b: 0 for b, _, _ in BANDS}
         for s in ORDER:
             for x in chosen[s]:
-                c[x._band] += 1
+                if x._band is not None:
+                    c[x._band] += 1
         return c
 
-    for band, _, _ in sorted(BANDS, key=lambda b: -BAND_TARGETS[b[0]]):
+    for band in sorted(BANDS, key=lambda b: BAND_TARGETS[b[0]]):
         bname = band[0]
         while counts()[bname] < BAND_TARGETS[bname]:
-            # strata with free candidates in this band, prefer tech CD/NC balance
+            xp_left, xn_left = cross_quota_left()
             pick = None
             for s in ORDER:
                 if len(chosen[s]) >= STRATA_QUOTA[s]:
                     continue
-                cands = free(s, bname)
+                cands = [x for x in free(s, bname)
+                         if not (x.cross_lang and x.label == "contradicts" and xp_left == 0)
+                         and not (x.cross_lang and x.label != "contradicts" and xn_left == 0)]
                 if cands:
-                    pick = cands[0]
-                    break
+                    pick = pick_one(cands)
+                    if pick is not None:
+                        break
             if pick is None:
                 break
             take(pick)
     # 6) complete strata quotas from leftovers (any band)
     for s in ORDER:
         while len(chosen[s]) < STRATA_QUOTA[s]:
-            cands = free(s)
+            xp_left, xn_left = cross_quota_left()
+            cands = [x for x in free(s)
+                     if not (x.cross_lang and x.label == "contradicts" and xp_left == 0)
+                     and not (x.cross_lang and x.label != "contradicts" and xn_left == 0)]
             if not cands:
                 die(f"pool exhausted for {s}: {len(chosen[s])}/{STRATA_QUOTA[s]}")
-            take(cands[0])
+            pick = pick_one(cands, key=lambda x: (x._cos, x.scenario_id))
+            if pick is None:
+                die(f"scaffold cap exhausted for {s}: every remaining scaffold "
+                    f"already at {SCAFFOLD_CAP[s]} pairs (train+seal union)")
+            take(pick)
     # overflow check: never exceed quota
     for s in ORDER:
         assert len(chosen[s]) == STRATA_QUOTA[s], s
@@ -338,7 +546,8 @@ def select_cells(pool: list[lib.Scenario], n_total: int, *,
     for s in ORDER:
         for x in chosen[s]:
             cells[s][x._band] = cells[s].get(x._band, 0) + 1
-    return {"cells": cells, "ids": {s: [x.scenario_id for x in chosen[s]] for s in ORDER}}
+    return {"cells": cells, "ids": {s: [x.scenario_id for x in chosen[s]] for s in ORDER},
+            "scaf": dict(scaf)}
 
 
 # --- rows --------------------------------------------------------------------
@@ -474,28 +683,76 @@ def cmd_measure() -> int:
                             cross_pos=CROSS_POS_QUOTA, cross_neg=CROSS_NEG_CAP,
                             corner=12)
     print("== allocation: holdout pool (600 registered -> 180 seal) ==")
-    # holdout: same procedure; the registered pool = first 600 by cell fill,
-    # the seal = stratified 180 of them
+    # holdout: same procedure under the UNION scaffold cap (§4.5 is
+    # computed on train+seal); the registered pool = the allocation, the
+    # seal = stratified 180 by largest remainder (§4.2 rule), CULLED for
+    # train-text disjointness (A-disjoint §5.3: 0 shared text hashes)
     alloc_ho = select_cells(hold_pool, HOLD_POOL,
-                            cross_pos=36, cross_neg=45, corner=12)
+                            cross_pos=36, cross_neg=45, corner=12,
+                            prior_scaf=alloc_tr["scaf"])
     ho_ids = [i for s in ORDER for i in alloc_ho["ids"][s]][:HOLD_POOL]
-    seal_ids = []
-    for s in ORDER:
-        k = round(STRATA_QUOTA[s] * HOLD_SEAL / TRAIN_PAIRS)
-        seal_ids += alloc_ho["ids"][s][:k]
-    seal_ids = seal_ids[:HOLD_SEAL]
 
-    hard_ids = set()
-    for s in ("CD-1", "CD-5", "CD-6"):
-        hard_ids |= set(alloc_tr["ids"][s])
+    tr_by_id = {x.scenario_id: x for x in train_pool}
+    tr_texts = set()
+    for s in ORDER:
+        for i in alloc_tr["ids"][s]:
+            x = tr_by_id[i]
+            tr_texts.add(lib.sha(x.text_a()))
+            tr_texts.add(lib.sha(x.text_b()))
+    ho_by_id = {x.scenario_id: x for x in hold_pool}
+
+    # largest-remainder seal shares (§4.2: holdout = доли × 180)
+    raw = {s: STRATA_QUOTA[s] * HOLD_SEAL / TRAIN_PAIRS for s in ORDER}
+    shares = {s: int(raw[s]) for s in ORDER}
+    leftovers = HOLD_SEAL - sum(shares.values())
+    for s in sorted(ORDER, key=lambda s: (-(raw[s] - int(raw[s])), ORDER.index(s))):
+        if leftovers <= 0:
+            break
+        shares[s] += 1
+        leftovers -= 1
+
+    train_ids = {i for s in ORDER for i in alloc_tr["ids"][s]}
+    seal_ids = []
+    culled = 0
+    for s in ORDER:
+        got = 0
+        for i in alloc_ho["ids"][s]:
+            if got >= shares[s]:
+                break
+            if i in train_ids:
+                culled += 1
+                continue
+            x = ho_by_id[i]
+            if lib.sha(x.text_a()) in tr_texts or lib.sha(x.text_b()) in tr_texts:
+                culled += 1
+                continue
+            seal_ids.append(i)
+            got += 1
+        if got < shares[s]:
+            die(f"seal disjointness: {s} exhausted ({got}/{shares[s]} after culling)")
+    assert len(seal_ids) == HOLD_SEAL
+    print(f"seal: {len(seal_ids)} pairs, {culled} candidates culled for "
+          f"train-text collisions")
+
+    sel_ids = set()
+    for s in ORDER:
+        sel_ids |= set(alloc_tr["ids"][s])
     hard_pos = sum(1 for x in train_pool
-                   if x.scenario_id in hard_ids and 0.60 <= x._cos < 0.70)
+                   if x.scenario_id in sel_ids and x.label == "contradicts"
+                   and HARD_WIN_LO <= x._cos < HARD_WIN_HI)
+    rz_sel = [x for x in train_pool
+              if x.scenario_id in sel_ids and x._band == "razor"]
+    razor_pos_quota = sum(1 for x in rz_sel if x.label == "contradicts")
     razor_total = sum(c.get("razor", 0) for c in alloc_tr["cells"].values())
+    # measured corpus floor over the EMITTED corpus (train + seal), not
+    # the unused remainder — known-uncovered documents the corpus itself
+    corpus_floor = min([x._cos for x in train_pool if x.scenario_id in sel_ids]
+                       + [ho_by_id[i]._cos for i in seal_ids])
     ok = True
     print(f"\ntrain band totals: " + str({b: sum(alloc_tr['cells'][s].get(b, 0) for s in ORDER)
                                           for b, _, _ in BANDS}))
     print(f"floors: razor {razor_total} (>= {FLOOR_RAZOR}), "
-          f"hard-pos {hard_pos} (>= {FLOOR_HARD_POS})")
+          f"hard-pos [{HARD_WIN_LO},{HARD_WIN_HI}) {hard_pos} (>= {FLOOR_HARD_POS})")
     if razor_total < FLOOR_RAZOR:
         print("RED: razor floor"); ok = False
     if hard_pos < FLOOR_HARD_POS:
@@ -503,8 +760,10 @@ def cmd_measure() -> int:
 
     pin = {
         "ts": now(), "instrument": {"pin": lib.EMBEDDER_PIN, "guard_version": lib.GUARD_VERSION},
-        "measured_corpus_floor": floor_min,
+        "measured_corpus_floor": corpus_floor,
         "seeds": {"train": SEED_TRAIN, "hold": SEED_HOLD, "sheet": SEED_SHEET},
+        "hard_window": [HARD_WIN_LO, HARD_WIN_HI],
+        "razor_pos_quota": razor_pos_quota,
         "train": alloc_tr, "holdout_pool_ids": ho_ids, "seal_ids": seal_ids,
         "floors": {"razor_total": razor_total, "hard_pos": hard_pos, "ok": ok},
     }
@@ -560,13 +819,25 @@ def cmd_build() -> int:
         print(f"{'PASS' if ok else 'RED'}  {name}: {detail}")
         return ok
 
-    # A-count
+    # A-count: train == exact strata quota (§4.2); seal == the share
+    # table of §4.1/MLC-9 п.11 (quota × 180/600, largest remainder) —
+    # the seal is ADDITIONAL fresh material, not part of the 600
     from collections import Counter
-    cnt = Counter(x.stratum for x in all_sc if x.scenario_id not in set())
+    cnt = Counter(x.stratum for x in all_sc)
     tr_cnt = Counter(x.stratum for x in tr_sel)
     ho_cnt = Counter(x.stratum for x in ho_sel)
-    rec("A-count", all(tr_cnt[s] + ho_cnt[s] == STRATA_QUOTA[s] for s in ORDER),
-        {s: tr_cnt[s] + ho_cnt[s] for s in ORDER})
+    raw = {s: STRATA_QUOTA[s] * HOLD_SEAL / TRAIN_PAIRS for s in ORDER}
+    exp_seal = {s: int(raw[s]) for s in ORDER}
+    left = HOLD_SEAL - sum(exp_seal.values())
+    for s in sorted(ORDER, key=lambda s: (-(raw[s] - int(raw[s])), ORDER.index(s))):
+        if left <= 0:
+            break
+        exp_seal[s] += 1
+        left -= 1
+    rec("A-count", all(tr_cnt[s] == STRATA_QUOTA[s] and ho_cnt[s] == exp_seal[s]
+                       for s in ORDER),
+        {"train": {s: tr_cnt[s] for s in ORDER},
+         "seal": {s: ho_cnt[s] for s in ORDER}})
     # A-silver: mechanical map on EVERY pair
     bad = [x.scenario_id for x in all_sc if not lib.mechanical_ok(x)]
     rec("A-silver", not bad, f"{len(all_sc)-len(bad)}/{len(all_sc)} pass" + (f"; bad={bad[:5]}" if bad else ""))
@@ -577,11 +848,12 @@ def cmd_build() -> int:
     # A-symmetry: 2 rows per pair, swapped
     n_rows = len(rows) + len(rows_h)
     rec("A-symmetry", n_rows == 2 * len(all_sc), f"{n_rows} rows == 2x{len(all_sc)}")
-    # A-guard: NC-3 100%, CD 0% (full manifest)
+    # A-guard: NC-3 100%, CD 0% on the FULL manifest (train+seal, §5.3)
     g_nc3 = sum(1 for x in all_sc if x.stratum == "NC-3" and lib.version_guard(x))
     g_cd = sum(1 for x in all_sc if x.stratum.startswith("CD") and lib.version_guard(x))
-    rec("A-guard", g_nc3 == STRATA_QUOTA["NC-3"] and g_cd == 0,
-        f"nc3 {g_nc3}/54, cd {g_cd}/240")
+    n_nc3 = sum(1 for x in all_sc if x.stratum == "NC-3")
+    rec("A-guard", g_nc3 == n_nc3 and g_cd == 0,
+        f"nc3 {g_nc3}/{n_nc3}, cd {g_cd}/0")
     # A-corner
     corner = [x for x in all_sc if x._cos >= 0.999
               and lib.pair_char5_jaccard(x.side_a, x.side_b, x._cos) == 1.0]
@@ -596,16 +868,23 @@ def cmd_build() -> int:
     rz_neg = len(rz) - rz_pos
     bins = Counter()
     for x in rz:
-        c = x._cos
-        bins["0" if c < 0.97 else ("1" if c < 0.985 else "2")] += 0
         if x.label != "contradicts":
+            c = x._cos
             bins["0" if c < 0.97 else ("1" if c < 0.985 else "2")] += 1
-    hard_pos = sum(1 for x in tr_sel if x.stratum in ("CD-1", "CD-5", "CD-6")
-                   and 0.60 <= x._cos < 0.70)
+    raz_sorted = sorted(x._cos for x in rz)
+    max_gap = max((b - a for a, b in zip(raz_sorted, raz_sorted[1:])), default=0.0)
+    hard_pos = sum(1 for x in tr_sel if x.label == "contradicts"
+                   and HARD_WIN_LO <= x._cos < HARD_WIN_HI)
+    quota_pin = pin.get("razor_pos_quota", 0)
     ok_b = (razor >= FLOOR_RAZOR and rz_neg >= rz_pos
-            and min(bins.values()) >= 30 if bins else False)
-    rec("A-band-coverage", bool(ok_b and hard_pos >= FLOOR_HARD_POS),
-        f"razor {razor} (pos {rz_pos}/neg {rz_neg}), bins {dict(bins)}, hard-pos {hard_pos}")
+            and min(bins.values()) >= RAZOR_BIN_FLOOR
+            and max_gap <= RAZOR_MAX_GAP
+            and rz_pos >= quota_pin
+            and hard_pos >= FLOOR_HARD_POS)
+    rec("A-band-coverage", bool(ok_b),
+        f"razor {razor} (pos {rz_pos}/neg {rz_neg}, pos-quota pin {quota_pin}), "
+        f"bins {dict(bins)}, max-gap {max_gap:.4f}, "
+        f"hard-pos [{HARD_WIN_LO},{HARD_WIN_HI}) {hard_pos}")
     # A-disjoint
     tr_ids = {x.scenario_id for x in tr_sel}
     ho_ids_s = {x.scenario_id for x in ho_sel}
@@ -681,7 +960,9 @@ def cmd_build() -> int:
         "instrument": {"provider": "vesma.embeddings.NanoProvider", "nano_pin": lib.EMBEDDER_PIN},
         "design": ["docs/experiments/conflict-detector-corpus-design.md (RATIFIED MLC-9)",
                    "docs/experiments/conflict-detector-corpus-design-ADDENDUM-1.md",
-                   "docs/experiments/conflict-detector-corpus-measure-2026-11-01.md"],
+                   "docs/experiments/conflict-detector-corpus-design-ADDENDUM-2.md",
+                   "docs/experiments/conflict-detector-corpus-measure-2026-11-01.md",
+                   "docs/experiments/conflict-detector-corpus-measure2-2026-11-02.md"],
         "pin_sha256": lib.sha(pin_path.read_text(encoding="utf-8")),
         "share_pin_note": "доли запинены ПОСЛЕ замера (measure->fix, fail-closed)",
         "seeds": pin["seeds"],
@@ -693,7 +974,7 @@ def cmd_build() -> int:
         "fingerprints": {"train.jsonl": fp_train, "holdout.jsonl": fp_hold,
                          "holdout-pool.jsonl": fp_pool, "seal": fp_seal},
         "known_uncovered": {"cos_below": pin["measured_corpus_floor"],
-                            "note": "measured corpus floor (ADDENDUM-1 §A); B4 ADDENDUM-6 §2 errata cross-ref"},
+                            "note": "measured corpus floor over the emitted corpus, conventional surface (ADDENDUM-2 §B); B4 ADDENDUM-6 §2 errata cross-ref"},
         "null_exemption": "NC-4 corner twins are both-null exempt (label semantics require the visible metadata delta)",
         "remainder_unused_ids": sorted(remainder)[:50] + ["…"] if len(remainder) > 50 else sorted(remainder),
         "regime": "synthetic-only; no store texts; no LLM; labels by construction",
@@ -783,8 +1064,10 @@ def cmd_card() -> int:
 
 - **Линия:** ADR 0002 duty №6 (conflict-detector, Noul), фаза D.
 - **Дизайн:** RATIFIED MLC-9 (`1acd88f`) + ADDENDUM-1 (`0917181`,
-  перекройка лестницы по измеренному пределу прибора) + measure-отчёт
-  (`87a248e`). Манифест: `data/conflict-detector/corpus-v1/build-manifest.json`
+  перекройка лестницы по измеренному пределу прибора) + ADDENDUM-2
+  (`8c756a0`, трудное окно [0.70, 0.75) как ограничение населения банда,
+  конвенционные замеры) + measure-отчёты (`87a248e`, `deb440b`).
+  Манифест: `data/conflict-detector/corpus-v1/build-manifest.json`
   (sha256 `{m['fingerprints']['train.jsonl'][:16]}…` — см. fingerprints ниже).
 - **Прибор:** {m['instrument']['provider']}, пин nano `{m['instrument']['nano_pin'][:16]}…`;
   guard `{m['guard_version']}`. known-uncovered: cos < {m['known_uncovered']['cos_below']}
