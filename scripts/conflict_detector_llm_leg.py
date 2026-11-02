@@ -102,7 +102,7 @@ def main() -> int:
                     urllib.request.Request(
                         ENDPOINT, data=payload,
                         headers={"Content-Type": "application/json"}),
-                    timeout=600,
+                    timeout=1800,
                 ) as resp:
                     answer = json.loads(resp.read())["response"]
                 parsed = json.loads(answer)
