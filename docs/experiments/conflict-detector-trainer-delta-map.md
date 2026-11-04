@@ -18,12 +18,15 @@
 | Paths + env pins (P2 fail-closed) | 119–166 | пин эмбеддера nano `3b752e06…` уже в pin.json; wrong provider refuses loudly (A-frozen) |
 | InstrumentAbort + run-log append-only | 341–395 | log/sha256_file/sha256_text/find_doc_for — как есть; run-log: `docs/experiments/conflict-detector-train-runlog.md` |
 | Prologue (ML-STD-0003 П1–П6, П9) | 446–565 | дисциплина одноразового holdout + seal-сверка перед чтением + событие чтения в run-log |
-| Машина полов | 1462–1686 | cmd_floor_seed/_pooled_acc/_parse_seeds — формула ML-STD-0004 §1/П2 (max-pairwise); floor_seed ≥10, floor_inv/perm/q ≥3 |
+| Машина полов | 1462–1686 + 2618–2993 | cmd_floor_seed 1515 + **полы v2 (ML-STD-0004 declared floor): cmd_floors_v2 2642**, floor_perm-механика 2548–2572 — фикс `2a45f28` (РАЗЛИЧНЫЕ перестановки на сид) в этих блоках, подтверждено grep+git show 04.11 |
 | fit_booster / predict_scores | 1176–1187 | LightGBM-нога как есть (цикл 57–78 c, <2 ГБ — прецедент B4) |
 | Проверка базлайнов против манифеста | 1404–1462 | паттерн check_baselines_vs_manifest — переадаптировать на BL-band 0.49 / BL-digit 0.57 / BL-digit+guard 0.66 |
 | Производственный контур (концепт) | 1686–1743 | arbitrate_production = «кодовые ноги + модельная нога»; для №6: ЕДИНСТВЕННАЯ кодовая нога = version-guard |
 | Sanity через производственный контур | 1743–1840 | run_model_sanity_suite — зеркалить на 7 проб §6.3 (ниже) |
-| Freeze артефакта | 1835+ | bundle-формат зеркалить на vesma-cortex-merge-v2 (60d1fe73), не на onnx-бандл v1 |
+| Freeze артефакта | 1835–1986 (freeze_artifact_v2 2156) | bundle-формат зеркалить на vesma-cortex-merge-v2 (60d1fe73), не на onnx-бандл v1 |
+| **Sealed holdout + single-shot гейт** | 3430–4057: cmd_gate 3430, **_read_holdout_sealed 3740**, _eval_gates_on_holdout 3904 | машина одноразового чтения (seal-сверка, событие в run-log) и конъюнкции гейтов — зеркало почти дословно; prior_single_shot 3435 |
+| Guard-off образец | _zone_off_probe 3140 (в _prelaunch_v2 3207) | зеркалить как guard-off пробу постратно (минимум NC-3), число честности |
+| Sanity-сабкоманд | cmd_sanity 3412 | раннер по замороженному артефакту — держать тот же интерфейс |
 
 ## 2. Меняется (дельты arbiter → conflict)
 
@@ -34,9 +37,12 @@
    (pair_id, orientation). **Тренер holdout НЕ загружает** — holdout
    открывает только раннер гейтов (одно чтение).
 2. **Фичи:** Choice v2-блок (835–1147: VecLeg, e_cos/zeps, zone metrics)
-   **ВЫКИНУТЬ** — это прибор другой задачи. Фичи = замороженные 13
-   `cortex.features.pair` (gate_contract FEATURE_NAMES, включая
-   cos_target); 0 реимплементаций (#480); конвенция поверхности
+   **ВЫКИНУТЬ** — это прибор другой задачи. Фичи = замороженные **CORE-13**
+   `cortex.features.pair` (gate_contract FEATURE_NAMES, включая cos_target;
+   подтверждено импортом 04.11: ровно 13 имен, порядок == gate_contract).
+   **FIELD_COSINE_FEATURES — ablation-расширение pair.py, в контур №6 НЕ
+   входит** (pair.py:85: core ИЛИ core+field-cosine — берём core только).
+   0 реимплементаций (#480); конвенция поверхности
    `n1(title)+\n+n1(body)+\n+n1(tags)`, усечение 4096.
    `is_version_token` и `declaration` — construction-only, в модель не
    едут (read-on-inference запрещён, §2.3.2 пакета).
@@ -57,10 +63,13 @@
    version-сосед NOT (проба 4+5 = двусторонний certify) · stability-
    лестница (3 ступени) инвариантна · translation-твин — оба вердикта.
    Каждая — через ПРОИЗВОДСТВЕННЫЙ контур (guard+model). Источник
-   фикстур: мерные пробы `data/conflict-detector/measure/measure-probes.json`
-   (19 пар с семьями/cos) как сырьё + фикстурный режим генератора
-   (`build_conflict_detector_corpus.py` — ячейка на каждый класс);
-   точный выбор фиксирует run-log ДО прогона.
+   фикстур — ПЕРВИЧНО префлайт-режим генератора
+   (`build_conflict_detector_corpus.py`, «П3 preflight: one fixture cell
+   per class», ~стр. 589): по ячейке на каждый класс. `measure-probes.json`
+   (семейства far/hard-neg/hard-pos/razor) — только контекст лестницы cos:
+   **translation-семейства там НЕТ** (проверено 04.11) — пробу 7 брать из
+   кросс-языковой страты генератора. Точный выбор фиксирует run-log ДО
+   прогона.
 7. **Гейты §6.2:** гейтуют ПАЙПЛАЙН (примечание 1 брифа); агрегаты с
    эксклюзией razor-коллизионных ячеек (примечание 2); policy-константные
    g_nc3_exact/g_razor/g_self/g_far/g_disj без пола; guard-off проба

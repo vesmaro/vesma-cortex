@@ -96,9 +96,11 @@ max(BL) = 0.66.
 
 ## 5. После ADOPT — авто-минт contradicts (advisory; санкционирован, без владельца)
 
-1. Локальный чекаут движка: `git fetch` + merge --ff-only на origin/main
-   (`4c417d2+`). ff-only красный или HEAD ≠ main или есть tracked-изменения
-   → стоп + чекпоинт. Untracked-хвосты движка не трогать.
+1. Локальный чекаут движка (проверено 04.11: HEAD = `release/6.6.0`,
+   локальных коммитов 0, позади origin/main на 94): `git switch main` →
+   `git merge --ff-only origin/main` (цель `4c417d2+`). Крас `switch`
+   (tracked-изменения) или ff-only → стоп + чекпоинт. Untracked-хвосты
+   движка не трогать.
 2. Раннер минта через `manager.mint_contradicts_edge` (движок):
    **сначала DRY-RUN** — число предложений по стратам, счёт
    NC-3-suppression; числа в отчёт. Аномалии → стоп ДО записи.
