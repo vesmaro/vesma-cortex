@@ -44,7 +44,9 @@
 ## 3. Порядок работ (строго)
 
 1. **Тренер-зеркало:** `scripts/train_conflict_detector.py` по образцу
-   `merge_arbiter_train.py`. Фичи ТОЛЬКО через `cortex.features.pair`
+   `merge_arbiter_train.py`. **Дельта-карта (что переиспользовать/что
+   менять): `docs/experiments/conflict-detector-trainer-delta-map.md` —
+   обязательна к прочтению до реализации.** Фичи ТОЛЬКО через `cortex.features.pair`
    (0 реимплементаций, урок #480); конвенция поверхности
    `n1(title)+\n+n1(body)+\n+n1(tags)`, усечение 4096; пин эмбеддера nano
    `3b752e06…` (A-frozen: wrong provider refuses loudly);
