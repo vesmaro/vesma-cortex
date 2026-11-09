@@ -407,7 +407,9 @@ def prologue(slice_name: str) -> dict:
     # П6: activation assert — ratified design doc at HEAD + wave commits
     # in ancestry (corpus built, gold closed).
     spec_text = SPEC.read_text(encoding="utf-8")
-    ratified = bool(re.search(r"RATIFIED,\s*MLC-9", spec_text))
+    ratified = bool(
+        re.search(r"\*\*Статус:\*\*\s*RATIFIED\s*\(2026-11-01\):\s*MLC-9", spec_text)
+    )
     ancestry = {}
     for name, commit in (
         ("dispatch-brief", "9706158"),
@@ -632,7 +634,7 @@ def baselines_table(rows: list[dict]) -> dict:
     published with the table."""
     n = len(rows)
     out: dict[str, float] = {}
-    for name in (0, 1):  # two band directions
+    for name in (0, 1):  # both band directions, published as characterization
         acc = sum(
             1
             for r in rows
@@ -640,8 +642,13 @@ def baselines_table(rows: list[dict]) -> dict:
             == (r["label"] == "contradicts")
         ) / n
         out[f"BL-band-dir{name}"] = round(acc, 4)
-    band_dir = max((0, 1), key=lambda d: out[f"BL-band-dir{d}"])
-    out["BL-band"] = out[f"BL-band-dir{band_dir}"]
+    # BL-band direction pinned to the BUILD-manifest convention (razor band
+    # [0.95, 1.0] => contradicts — the §6.1 "conflicts live in the razor
+    # band" hypothesis; the manifest is the ratified measure->fix
+    # publication). The complement direction stays published as a
+    # diagnostic; flipping the baseline direction silently is threshold
+    # fitting, not a train-only choice.
+    out["BL-band"] = out["BL-band-dir0"]
     out["BL-digit"] = round(
         sum(
             1
@@ -816,6 +823,30 @@ def _export_onnx(booster: lgb.Booster, trained_at: str, corpus_fp: str) -> dict:
         initial_types=[("features_in", FloatTensorType([None, len(FEATURE_NAMES)]))],
         target_opset=15,
     )
+    # Typed-output contract (dispatch §7): replace the default ZipMap tail
+    # with the RAW probabilities tensor (d_boost rebuilt the graph tail for
+    # the same reason — a clean float tensor, no seq(map) container).
+    from onnx import TensorProto
+
+    zipmap = next(
+        (n for n in converted.graph.node if n.op_type == "ZipMap"), None
+    )
+    if zipmap is not None:
+        prob_name = zipmap.input[0]
+        converted.graph.node.remove(zipmap)
+        # rename the producing tensor too (graph-scope consistency)
+        for n in converted.graph.node:
+            for i, oname in enumerate(n.output):
+                if oname == prob_name:
+                    n.output[i] = "probabilities"
+        for o in converted.graph.output:
+            if o.name == zipmap.output[0]:
+                o.name = "probabilities"
+                o.type.tensor_type.elem_type = TensorProto.FLOAT
+                # shape [None, 2]
+                while len(o.type.tensor_type.shape.dim) < 2:
+                    o.type.tensor_type.shape.dim.add()
+                o.type.tensor_type.shape.dim[1].dim_value = 2
     from cortex.artifacts import set_onnx_metadata, features_digest
 
     props = {
