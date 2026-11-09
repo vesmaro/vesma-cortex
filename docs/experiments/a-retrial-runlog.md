@@ -115,3 +115,17 @@ Executor: gcw-ml-engineer (Phase 0 preflight — light lane: read-only + numeric
   - **Артефакты:** `data/a-retrial/b-leg/artifacts/fusion-ranker-b-v1/{model.onnx 35 294 B sha256 45b16fb6…, booster_fusion.txt, booster_ablated.txt, manifest.json (feature_set_sha256 2882c4bd…, пин эмбеддера nano:sha256:3b752e06… наследован ассертом, собственный sha в манифесте), gates.json, spotcheck_n20.json}` + `data/a-retrial/b-leg/{train_rows.jsonl, val_rows.jsonl, funnel.json, gspec_pairs.json, build_report.json, floors.json, selection.json}` (всё — gitignored data/; numbers-only копии отчётов — docs/experiments/).
   - **Бюджет лайна:** суммарно ≈ минуты CPU на все пять стадий (surfaces < 1 мин, train+export ~15 с машинного времени моделей + конвертация, characterize 5.1 с на 3 retrain-розыгрыша, single-shot ~40 с с загрузкой контекста) — сильно внутри ≤1 CPU-дня; RAM-пик < 1 GB; своп-канон не тронут; строго последовательно.
   - **K7-хвост (открытый вопрос рамки, не закрыт этим прогоном):** полы characterization на этом фуннеле делают floor-ноги гейтов (mrr/nharm-класса) вакуумными — null-ранкер активно вредит (−0.24 recall), tol = 2×пол уходит за смысловую полосу. Вопрос нормализации полов (отдельный ноль для «вреда безсигнального ранжирования» vs «шум») — ТЛ/MLC, в этот прогон не вмешивался.
+
+## 2026-11-04 → чтение исполнено 2026-11-09
+
+- **TEMPORAL-МОНИТОР: чтение D1-окна — ОКНО ОТКРЫТО** (исполнение TL вручную
+  2026-11-09T17:06Z — крон automation-e1199f80 сработал 04.11 23:39 MSK и погиб
+  молча без артефактов; окно закрыто в прошлом, стор append-only, валидность
+  ретроспективного чтения подтверждена реконструкцией D0 = 1953 == снапшот
+  `252b9d5a…`; рецепт + отчёт: `docs/experiments/d1-monitor-read-recipe.py`,
+  `d1-monitor-reading-2026-11-04.md`). Числа: **711 рёбер в (D0, D1] ≥ 30**
+  (~102/день), заморозка edge_kind PASS (relates_to оба среза), **cn(D0)=0 у
+  всех 711** — весь набор в страте «нет граф-эвиденса» (report-only: структурно
+  = masked-лег, ценность в проверке прод-lift на живом потоке). Продления
+  D2/D3/D4 не активируются. Firewall в силе (темпоральный материал не бэчится
+  в тренинг, вердикт v1 не трогает). Печати не читались.
