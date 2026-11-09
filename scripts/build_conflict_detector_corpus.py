@@ -2219,7 +2219,7 @@ def n2_mirror_of(n1_sc: lib.Scenario, c: object, v: object,
     subj_fmt = {"gen": lib.SUBJECTS[n1_sc.subject_a][2],
                 "dat": lib.SUBJECTS[n1_sc.subject_a][3]}
     body_a = lib.benign_prefix_of(n1_sc, "a") + " " + c_sent.format(c=c, **subj_fmt)
-    body_b = lib.benign_prefix_of(n1_sc, "b") + " " + v_sent.format(v=v)
+    body_b = lib.benign_prefix_of(n1_sc, "b") + " " + v_sent.format(v=v, **subj_fmt)
     side_a = lib.Side(title=n1_sc.side_a.title, body=body_a,
                       tags=list(n1_sc.side_a.tags), language="ru",
                       record_type=n1_sc.side_a.record_type,
@@ -2413,22 +2413,35 @@ def cmd_gold2() -> int:
     if not lib.mechanical_ok(sc4):
         die("gold2: CD-4 N1 block fails mechanical map")
     blocks.append({"row": n1_cd4, "role": "n1-host-cover", "sc": sc4})
-    # N3 x3: numeric + date + numeric (different slots), mechanical-checked
+    # N3 x2 (numeric + date — the two distinct axes the census carries) +
+    # 1 classic CD-2 block (old-class generator drift control; E10 brief:
+    # remainder "1-2 N3 blocks AND old classes"). Mechanical-checked.
     n3_sorted = sorted(by_carrier["N3"], key=lambda r: r["pair_id"])
     n3_picked: list[dict] = []
     seen_axes: set[str] = set()
     for r in n3_sorted:
         ax = r["declaration"]["slots"][0]["axis"]
-        if ax in seen_axes or len(n3_picked) >= 3:
+        if ax in seen_axes or len(n3_picked) >= 2:
             continue
         seen_axes.add(ax)
         sc = row_to_sc(r)
         if not lib.mechanical_ok(sc):
             die(f"gold2: N3 block {r['pair_id']} fails mechanical map")
         n3_picked.append({"row": r, "role": "n3", "sc": sc})
-    if len(n3_picked) < 3:
-        die(f"gold2: only {len(n3_picked)} N3 blocks")
+    if len(n3_picked) != 2:
+        die(f"gold2: only {len(n3_picked)} N3 blocks (want 2)")
     blocks += n3_picked
+    classic_cands = sorted((r for r in a_rows if not r.get("carrier")
+                            and r["stratum"] == "CD-2"
+                            and r["pair_id"] not in used),
+                           key=lambda r: r["pair_id"])
+    if not classic_cands:
+        die("gold2: no classic CD-2 candidate for drift control")
+    cl = classic_cands[0]
+    scl = row_to_sc(cl)
+    if not lib.mechanical_ok(scl):
+        die(f"gold2: classic block {cl['pair_id']} fails mechanical map")
+    blocks.append({"row": cl, "role": "classic-drift", "sc": scl})
     if len(blocks) != 12:
         die(f"gold2: {len(blocks)} blocks != 12")
     twins = sum(1 for b in blocks if b["role"] == "n2-mirror")
@@ -2463,6 +2476,16 @@ def cmd_gold2() -> int:
         lines.append(f"  пример: {example}")
         lines.append(f"  вердикт: {verdict} (основание: {basis})")
         lines.append("")
+    lines += ["ПРАВИЛА ЛИСТА — как в GOLD SHEET CD-v1:",
+              "  вердикт на блок: CONTRADICTS / NO-CONFLICT + слот-основание.",
+              "  CONTRADICTS: несовместимые числа/даты одного слота, статусы,",
+              "  модальность allow vs require, безусловное отрицание условия,",
+              "  полярные оценки одного эффекта.",
+              "  NO-CONFLICT: добавка, уточнение в границе, версия-сосед,",
+              "  тождественные тела при дельте метаданных, разные предметы,",
+              "  перевод с тем же фактом.",
+              "  Длину текста, позицию и оформление не использовать как",
+              "  аргумент — только факт-слоты.", ""]
     lines += ["=" * 72, "СКОРИРУЕМЫЕ БЛОКИ (12):", ""]
     meta = []
     for i, idx in enumerate(order):
@@ -2494,7 +2517,7 @@ def cmd_gold2() -> int:
                      "len_channel": ch})
     SHEET_DIR.mkdir(parents=True, exist_ok=True)
     V2_SHEET = SHEET_DIR  # same dir; v2 names
-    render_path = V2_SHEET / "gold-sheet-render-v2.txt"
+    render_path = V2_SHEET / "gold-sheet-v2-delta.txt"
     render_path.write_text("\n".join(lines), encoding="utf-8")
     labels_ok = {"contradicts", "not-contradicts"} == {m["label"] for m in meta}
     sheet_json = {"ts": now(), "n": len(meta),
@@ -2502,14 +2525,14 @@ def cmd_gold2() -> int:
                                   "n1_hosts": sorted(hosts),
                                   "red_form": "CD-2 upd k=1 razor "
                                               f"(cos {red_cos})",
-                                  "n3": 3},
+                                  "n3": 2, "classic_drift": 1},
                   "provenance": "N1/N3 blocks are train cells; N2 twin mirrors are "
                                 "purpose-built from the SAME prefix+substitutions "
                                 "(slot sentences swapped to a satisfiable refinement); "
                                 "each block mechanical-verified",
                   "render_sha256": lib.sha(render_path.read_text(encoding="utf-8")),
                   "blocks": meta}
-    sp = V2_SHEET / "gold-sheet-v2.json"
+    sp = V2_SHEET / "gold-sheet-v2-delta.json"
     sp.write_text(json.dumps(sheet_json, ensure_ascii=False, indent=2),
                   encoding="utf-8")
     key = {"kind": "gold-sheet-key", "sheet": "CD-v2-delta",
@@ -2530,7 +2553,8 @@ def cmd_gold2() -> int:
         path=str(key_path.relative_to(REPO)))
     log_md("gold_v2_render", n=len(meta), twins=twins,
            n1_hosts=sorted(hosts), red_form=f"CD-2 k=1 razor cos {red_cos}",
-           render="data/conflict-detector/sheet/gold-sheet-render-v2.txt",
+           n3=2, classic_drift=1,
+           render="data/conflict-detector/sheet/gold-sheet-v2-delta.txt",
            key_fp=fp_key, legs="LLM+DE now; TL+ML separately after DE report")
     print(f"GOLD2: {len(meta)} blocks (twins {twins}, hosts {sorted(hosts)}), "
           f"render {render_path}")
