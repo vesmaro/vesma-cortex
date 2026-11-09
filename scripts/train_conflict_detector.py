@@ -1719,9 +1719,10 @@ def build_fixtures() -> dict:
     return sc
 
 
-def sc_row(sc, orientation: str = "a>b") -> dict:
+def sc_row(fx: dict, key: str, orientation: str = "a>b") -> dict:
     """A fixture pair as a row dict (cb.side_dict + measured by NanoLeg)."""
-    nano = sc["_nano"]
+    sc = fx[key]
+    nano = fx["_nano"]
     cos = round(nano.pair_cos(sc.side_a, sc.side_b), 4)
     return {
         "pair_id": sc.scenario_id,
@@ -1757,23 +1758,24 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
     is NOT read (class 'instrument', П6 ML-STD-0002)."""
     sc = build_fixtures()
     sc["_nano"] = NanoLeg()
-    fx = {k: v for k, v in sc.items() if not k.startswith("_")}
+    fx = dict(sc)  # includes "_nano" (the embedder leg for sc_row cos)
     results = []
     all_ok = True
 
     def run_pair(row_a: dict, name: str, expect: str, check, note: str = "") -> dict:
         nonlocal all_ok
         rec_a, rec_b = row_records(row_a)
-        res = decide_pipeline(rec_a, rec_b, float(row_a["measured"]["cos_target"]), booster)
+        cos = float(row_a["measured"]["cos_target"])
+        res = decide_pipeline(rec_a, rec_b, cos, booster)
         # order invariance: the swapped presentation must not change the verdict
         row_b = orientation_swap(row_a)
         rec_a2, rec_b2 = row_records(row_b)
-        res2 = decide_pipeline(rec_a2, rec_b2, float(row_a["measured"]["cos_target"]), booster)
+        res2 = decide_pipeline(rec_a2, rec_b2, cos, booster)
         inv = res["verdict"] == res2["verdict"]
         ok = bool(check(res)) and inv
         all_ok = all_ok and ok
         if log_it:
-            probe_result(name, expect, ok, res, inv)
+            probe_result(name, expect, ok, {**res, "cos_target": round(cos, 4)}, inv)
         results.append(
             {"probe": name, "ok": ok, "order_invariant": inv, "result": res,
              "result_rev": res2, "expectation": expect, "note": note}
@@ -1797,7 +1799,7 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
     )
 
     # 2 — cosmetic twin: NOT, decision invariant (case/whitespace)
-    r = sc_row(fx["NC-2"])
+    r = sc_row(fx, "NC-2")
     cos2 = r["measured"]["cos_target"]
     rng2 = random.Random(7)
     row = {
@@ -1819,7 +1821,7 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
     )
 
     # 3 — envelope variant (whitelist §8.1 deltas): NOT contradicts
-    r3 = sc_row(fx["NC-4-tags"])
+    r3 = sc_row(fx, "NC-4-tags")
     row3 = dict(r3)
     row3["pair_id"] = "fx-envelope"
     row3["envelope_a"] = dict(r3["envelope_a"], created_at="2026-08-01T10:15:00Z")
@@ -1832,7 +1834,7 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
     )
 
     # 4 — razor CD-1: contradicts, P >= 0.5 (positive leg of g_razor)
-    r4 = sc_row(fx["CD-1"])
+    r4 = sc_row(fx, "CD-1")
     run_pair(
         r4, "4-razor-cd1", "contradicts, P >= 0.5 (leg model)",
         lambda res: res["verdict"] == "contradicts" and res["leg"] == "model"
@@ -1842,7 +1844,7 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
     )
 
     # 5 — version neighbor: NOT via the guard leg (negative leg of g_razor)
-    r5 = sc_row(fx["NC-3"])
+    r5 = sc_row(fx, "NC-3")
     run_pair(
         r5, "5-version-neighbor", "NOT contradicts (leg guard, exact)",
         lambda res: res["verdict"] == "not-contradicts" and res["leg"] == "guard",
@@ -1853,7 +1855,7 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
     # 6 — stability ladder: one conflict through raw / cosmetic / paraphrase,
     # verdict invariant across all 3 steps
     ladder = []
-    base6 = sc_row(fx["CD-2"])
+    base6 = sc_row(fx, "CD-2")
     rng6 = random.Random(11)
     steps = [
         ("raw", base6["envelope_b"]["body"]),
@@ -1889,7 +1891,7 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
 
     # 7 — translation twin: identity translation (NC-4 lang delta) NOT +
     # translation with changed fact (CD-1 cross) contradicts
-    r7n = sc_row(fx["NC-4-lang"])
+    r7n = sc_row(fx, "NC-4-lang")
     r7n = dict(r7n, pair_id="fx-trans-ok")
     res7n = run_pair(
         r7n, "7-translation-twin-not", "NOT contradicts (correct translation)",
@@ -1899,7 +1901,7 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
         "is different-subject siblings; identity translation is the "
         "generator-native correct-translation surface, 8 train rows)",
     )
-    r7p = sc_row(fx["CD-1-cross"])
+    r7p = sc_row(fx, "CD-1-cross")
     run_pair(
         r7p, "7-translation-fact-changed", "contradicts (changed-fact translation)",
         lambda res: res["verdict"] == "contradicts",
@@ -1909,7 +1911,7 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
 
     # diagnostic (published, NOT a probe, off-support honesty number):
     # the TRUE correct translation (cross CD-1, equal values)
-    r7d = sc_row(fx["CD-1-cross-eq"])
+    r7d = sc_row(fx, "CD-1-cross-eq")
     rec_a, rec_b = row_records(r7d)
     res7d = decide_pipeline(rec_a, rec_b, float(r7d["measured"]["cos_target"]), booster)
     log(
@@ -2212,7 +2214,7 @@ def _eval_gates_on_holdout(
     # MODEL leg (policy-constant; the probe-1 number)
     sc = build_fixtures()
     sc["_nano"] = nano
-    fx = {k: v for k, v in sc.items() if not k.startswith("_")}
+    fx = dict(sc)  # includes "_nano" (the embedder leg for sc_row cos)
     self_row = {
         "pair_id": "fx-self",
         "stratum": "self",
@@ -2366,9 +2368,9 @@ def _eval_gates_on_holdout(
     }
     # g_razor: re-run probes 4+5 through the contour right here (both legs exact)
     nano2 = NanoLeg()
-    r4 = sc_row(fx["CD-1"])
+    r4 = sc_row(fx, "CD-1")
     d4 = decide_pipeline(*(row_records(r4)), float(r4["measured"]["cos_target"]), booster)
-    r5 = sc_row(fx["NC-3"])
+    r5 = sc_row(fx, "NC-3")
     d5 = decide_pipeline(*(row_records(r5)), float(r5["measured"]["cos_target"]), booster)
     razor_ok = (
         d4["verdict"] == "contradicts"
