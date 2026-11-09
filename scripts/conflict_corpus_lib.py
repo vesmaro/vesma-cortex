@@ -396,6 +396,193 @@ def fmt_en(slot_sentence: str, v) -> str:
     return slot_sentence.format(v=v)
 
 
+# --- v2 carrier machinery (ADDENDUM-3 E2-E5) --------------------------------
+
+#: FACT_ALPHA — the fact-token alphabet of every slot family that can host
+#: a benign substitution carrier (CD-1 numeric / CD-2 date / CD-3 status /
+#: CD-4 modal / CD-5 conditional flag / NC-2 refine values). E2 level 1:
+#: the pinned substitution dictionaries must be disjoint from this
+#: alphabet (substring containment checked BOTH directions, normalized) —
+#: asserted statically at import; a dictionary change is a corpus version
+#: change (sha256 goes into the manifest).
+_DATE_RU, _DATE_EN = DATE_SLOT[3], DATE_SLOT[4]
+_REFINE_VALUES = ["октябрь", "October"]  # constraint-side values of NC-2 upd
+FACT_ALPHA: frozenset[str] = frozenset(
+    norm1(x) for x in
+    [str(v) for _, _, _, vs in NUM_SLOTS for v in vs]
+    + list(_DATE_RU) + list(_DATE_EN) + _REFINE_VALUES
+    + [t[1] for t in STATUS_SLOTS] + [t[2] for t in STATUS_SLOTS]
+    + [t[1] for t in MODAL_SLOTS] + [t[2] for t in MODAL_SLOTS]
+    + [c[1] for c in COND_SLOTS]
+)
+
+
+def _para_disjoint_from_fact_alpha() -> None:
+    """Static E2 whitelist: no PARA token (either side, either language)
+    may contain a digit, nor overlap FACT_ALPHA by substring either
+    direction. Fail-closed at IMPORT — a violating dictionary cannot even
+    start a build."""
+    for table in (PARA_RU, PARA_EN):
+        for a, b in table:
+            for tok in (a, b):
+                nt = norm1(tok)
+                if any(ch.isdigit() for ch in nt):
+                    raise AssertionError(f"PARA token {tok!r} contains a digit")
+                for f in FACT_ALPHA:
+                    if nt in f or f in nt:
+                        raise AssertionError(
+                            f"PARA token {tok!r} overlaps fact value {f!r}")
+
+
+_para_disjoint_from_fact_alpha()
+
+
+def json_dumps_sorted(obj) -> str:
+    import json as _json
+    return _json.dumps(obj, ensure_ascii=False, sort_keys=True)
+
+
+PARA_DICT_SHA = {
+    lang: hashlib.sha256(
+        json_dumps_sorted(table).encode("utf-8")).hexdigest()
+    for lang, table in (("ru", PARA_RU), ("en", PARA_EN))
+}
+
+
+def benign_substitute(body: str, k: int, lang: str, rng: random.Random):
+    """E2/E3 benign paraphrase dial: apply exactly k substitutions from the
+    PINNED per-language dictionary to the base/filler PREFIX of the body
+    (every host family carries its slot sentence LAST). Returns
+    (new_body, applied, touched_sentences) where touched_sentences are the
+    post-substitution sentence texts (the declared benign areas, E3).
+    Fail-closed: raises ValueError when the dictionary cannot supply k
+    distinct applicable substitutions — the caller treats the candidate
+    as unfit (deterministic, so regenerate == reproduce)."""
+    table = PARA_RU if lang == "ru" else PARA_EN
+    sents = [s for s in re.split(r"(?<=\.)\s+", body.strip()) if s]
+    if len(sents) < 2:
+        raise ValueError("no benign prefix: slot sentence is the only one")
+    prefix, slot_sent = list(sents[:-1]), sents[-1]
+    sent_order = list(range(len(prefix)))
+    rng.shuffle(sent_order)
+    applied: list[tuple[str, str]] = []
+    entries: list[dict] = []   # one entry PER substitution (E3 declared areas)
+    for j in sent_order:
+        if len(applied) >= k:
+            break
+        keys = list(range(len(table)))
+        rng.shuffle(keys)
+        for ki in keys:
+            a, b = table[ki]
+            if a in prefix[j] and all(a != pa for pa, _ in applied):
+                prefix[j] = prefix[j].replace(a, b, 1)
+                applied.append((a, b))
+                # one substitution per sentence: benign regions stay
+                # sentence-separated (a second sub in the same sentence
+                # risks a GAP-merge and is never attempted)
+                entries.append({"applied": [a, b], "sent": prefix[j]})
+                break
+    if len(applied) < k:
+        raise ValueError(f"dictionary supplies only {len(applied)}/{k} substitutions")
+    return " ".join(prefix + [slot_sent]), applied, entries
+
+
+def apply_benign(sc_in: Scenario, side: str, k: int, rng: random.Random) -> Scenario:
+    """Build the N1/N2 carrier variant: substitute k benign tokens into the
+    PREFIX of one randomized side (E7 side randomization), inherit the
+    donor scaffold_id (E6 — CV grouping keeps donor and variant in one
+    fold), declare the benign areas explicitly (E3)."""
+    tgt = sc_in.side_a if side == "a" else sc_in.side_b
+    lang = tgt.language or "ru"
+    new_body, _applied, entries = benign_substitute(tgt.body, k, lang, rng)
+    new_side = Side(title=tgt.title, body=new_body, tags=list(tgt.tags),
+                    language=tgt.language, record_type=tgt.record_type,
+                    created_at=tgt.created_at)
+    sc = Scenario(
+        scenario_id=sc_in.scenario_id, stratum=sc_in.stratum,
+        side_a=sc_in.side_a, side_b=sc_in.side_b,
+        label=sc_in.label, slots=[dict(s) for s in sc_in.slots],
+        subject_a=sc_in.subject_a, subject_b=sc_in.subject_b,
+        polar_op=sc_in.polar_op, refine_ok=sc_in.refine_ok,
+        scaffold_id=sc_in.scaffold_id, cross_lang=sc_in.cross_lang,
+        length_channel=sc_in.length_channel, both_null=sc_in.both_null,
+        carrier=sc_in.carrier, para_b=sc_in.para_b)
+    if side == "a":
+        sc.side_a = new_side
+    else:
+        sc.side_b = new_side
+    # regions() reports b-side content: when the substituted side is A,
+    # the declared area must carry the (original) b-side sentence text
+    def _declared(e: dict) -> str:
+        a, b = e["applied"]
+        return e["sent"].replace(b, a, 1) if side == "a" else e["sent"]
+    sc.benign = [{"side": side, "k": k, "applied": list(e["applied"]),
+                  "sent": _declared(e)} for e in entries]
+    sc.length_channel = channel_for(sc.side_a.body)
+    return sc
+
+
+#: canonical date map RU->EN by list index (DATE_SLOT order); anything
+#: outside the declared vocabulary has NO canonical form -> fail-closed.
+_CANON_DATE = {norm1(ru): norm1(en) for ru, en in zip(_DATE_RU, _DATE_EN)}
+
+
+def canon_form(value: str, axis: str) -> str | None:
+    """Canonical slot-value form (E5: canonical equality, not byte —
+    '5 октября' == 'October 5')."""
+    v = norm1(str(value))
+    if axis == "numeric":
+        try:
+            return f"num:{float(v):g}"
+        except ValueError:
+            return None
+    if axis == "date":
+        return f"date:{_CANON_DATE.get(v, v)}"
+    return f"txt:{v}"
+
+
+def build_n3(sid: str, subj: str, slot_def, canon_i: int, *,
+             fillers: int = 1, scaffold_tag: str | None = None) -> Scenario:
+    """N3 carrier (ADDENDUM-3 E5): true translation — cross-language pair,
+    SAME subject, canonical equality of every declared slot value
+    ('5 октября' == 'October 5'), 0 non-equal slot regions (every slot
+    declared op='none'). Stratum NC-5 subclass; the mechanical predicate
+    is the dedicated n3_ok branch (the classic NC-5 anchor-disjointness
+    predicate would fail every N3 pair by construction)."""
+    key, ru_sent, en_sent = slot_def[0], slot_def[1], slot_def[2]
+    axis = "numeric" if key not in {"upd", "upd2"} else "date"
+    subj_fmt = {"gen": SUBJECTS[subj][2], "dat": SUBJECTS[subj][3],
+                "cap": SUBJECTS[subj][0]}
+    if axis == "numeric":
+        v_a = v_b = str(slot_def[3][canon_i])
+        ru_txt = ru_sent.format(v=v_a, **subj_fmt)
+        en_txt = en_sent.format(v=v_b)
+    else:
+        v_a, v_b = slot_def[3][canon_i], slot_def[4][canon_i]
+        ru_txt = ru_sent.format(v=v_a, **subj_fmt)
+        en_txt = en_sent.format(v=v_b)
+    body_a = " ".join([BASE_RU[0]] + ([ru_txt]))
+    body_b = " ".join([BASE_EN[0]] + ([en_txt]))
+    if fillers > 2:
+        blk = filler_block("ru", fillers)
+        body_a = body_a + " " + blk
+        body_b = body_b + " " + filler_block("en", fillers)
+    slots = [{"slot_id": key, "axis": axis, "value_a": str(v_a),
+              "value_b": str(v_b), "op": "none", "is_version_token": False,
+              "span_chars": max(len(str(v_a)), len(str(v_b))),
+              "canon_a": canon_form(str(v_a), axis),
+              "canon_b": canon_form(str(v_b), axis)}]
+    side_a = make_side("ru", subj, body_a)
+    side_b = make_side("en", subj, body_b)
+    return Scenario(
+        scenario_id=sid, stratum="NC-5", side_a=side_a, side_b=side_b,
+        label="not-contradicts", slots=slots, subject_a=subj, subject_b=subj,
+        polar_op=None, refine_ok=None,
+        scaffold_id=f"n3:{subj}:{key}" + (f":{scaffold_tag}" if scaffold_tag else ""),
+        cross_lang=True, length_channel=channel_for(side_a.body),
+        both_null=False, carrier="N3", benign=[], para_b=0)
+
+
 # --- scenario model --------------------------------------------------------
 
 @dataclass
@@ -424,6 +611,10 @@ class Scenario:
     cross_lang: bool
     length_channel: str     # short | medium | long
     both_null: bool
+    # --- v2 carrier fields (ADDENDUM-3 E5/E7; None = classic cell) ---
+    carrier: str | None = None      # "N1" | "N2" | "N3" | None
+    benign: list = field(default_factory=list)  # declared benign areas (E3)
+    para_b: int = 0                 # v1 paraphrase dial (E8 iii canary)
 
     def text_a(self) -> str:
         return embed_text(self.side_a)
@@ -532,9 +723,89 @@ def slot_bijection_ok(sc: Scenario) -> bool:
     return True
 
 
+def benign_pair_ok(sc: Scenario) -> bool:
+    """N1/N2 carrier predicate (ADDENDUM-3 §3, E2/E3/E4): declared benign
+    areas (i) exist, (ii) contain not a single declared fact token (level-2
+    per-pair guarantee: no digits, no FACT_ALPHA member), (iii) total
+    region count == slots + benign, (iv) the trailing slot regions pass the
+    classic slot bijection. Benign regions precede slot regions (the slot
+    sentence is last in every host family)."""
+    n_ben = len(sc.benign)
+    if n_ben == 0:
+        return False
+    regs = regions(sc.side_a.body, sc.side_b.body)
+    if len(regs) != len(sc.slots) + n_ben:
+        return False
+    ben_regs, slot_regs = regs[:n_ben], regs[n_ben:]
+    declared = sorted(sc.benign, key=lambda d: d["sent"])
+    for d, (_, text, _i1, _i2) in zip(declared, ben_regs):
+        if not _sym_contains(d["sent"], text):
+            return False
+        nt = norm1(text)
+        if any(ch.isdigit() for ch in nt):
+            return False
+        for f in FACT_ALPHA:
+            if f and f in nt:
+                return False
+    for slot, (_, text, _i1, _i2) in zip(sc.slots, slot_regs):
+        if not _sym_contains(str(slot["value_b"]), text):
+            return False
+    return True
+
+
+def len_channel_ok(sc: Scenario) -> bool:
+    """E4 fail-closed: declared length channel == channel of the FINAL
+    a-side body (a benign substitution must not push a cell across a
+    channel boundary)."""
+    return sc.length_channel == channel_for(sc.side_a.body)
+
+
+def benign_prefix_of(sc: Scenario, side: str) -> str:
+    """The base/filler prefix of one side's body (everything BEFORE the
+    final slot-carrying sentence) — used by the E10 twin-mirror builder."""
+    body = (sc.side_a if side == "a" else sc.side_b).body
+    sents = [s for s in re.split(r"(?<=\.)\s+", body.strip()) if s]
+    return " ".join(sents[:-1]) if len(sents) >= 2 else body
+
+
+def n3_ok(sc: Scenario) -> bool:
+    """N3 carrier predicate (E5): languages differ, same subject, every
+    declared slot canonically equal with op='none' (0 non-equal slot
+    regions by declaration; difflib is not meaningful across languages,
+    so the predicate is declaration-level + committee audit, per the
+    ratified map line)."""
+    if sc.carrier != "N3":
+        return False
+    if (sc.side_a.language or "") == (sc.side_b.language or ""):
+        return False
+    if sc.subject_a != sc.subject_b:
+        return False
+    if not sc.slots:
+        return False
+    for slot in sc.slots:
+        if slot.get("op") != "none":
+            return False
+        ca = slot.get("canon_a") or canon_form(str(slot["value_a"]), slot["axis"])
+        cb = slot.get("canon_b") or canon_form(str(slot["value_b"]), slot["axis"])
+        if ca is None or cb is None or ca != cb:
+            return False
+    return True
+
+
 def mechanical_ok(sc: Scenario) -> bool:
-    """Per-class mechanical predicate, fail-closed (design 3.2.1)."""
+    """Per-class mechanical predicate, fail-closed (design 3.2.1 +
+    ADDENDUM-3 map lines: N1/N2 benign-pair predicate, N3 declaration
+    branch — the classic NC-5 anchor-disjointness line would fail every
+    N3 pair, hence the explicit carrier dispatch BEFORE the NC-5 line)."""
     s = sc.stratum
+    if sc.carrier == "N1":
+        return (s in {"CD-1", "CD-2", "CD-4"} and sc.label == "contradicts"
+                and benign_pair_ok(sc))
+    if sc.carrier == "N2":
+        return (s == "NC-2" and sc.label == "not-contradicts"
+                and bool(sc.refine_ok) and benign_pair_ok(sc))
+    if sc.carrier == "N3":
+        return s == "NC-5" and sc.label == "not-contradicts" and n3_ok(sc)
     if s in {"CD-1", "CD-2", "CD-3", "CD-4", "CD-5"}:
         return slot_bijection_ok(sc)
     if s == "CD-6":
@@ -615,6 +886,7 @@ def build_scenario(sid: str, stratum: str, subj: str, lang: str, slot_def,
                    version_pair: tuple | None = None,
                    meta_delta: str | None = None, sibling_subj: str | None = None,
                    scaffold_tag: str | None = None,
+                   carrier: str | None = None, benign: list | None = None,
                    rng: random.Random | None = None) -> Scenario:
     rng = rng or random.Random(0)
     if cross and stratum == "CD-6":
@@ -636,7 +908,8 @@ def build_scenario(sid: str, stratum: str, subj: str, lang: str, slot_def,
             subject_a=subj, subject_b=subj, polar_op=pe[3], refine_ok=None,
             scaffold_id=f"CD-6x:{subj}:{scaffold_tag or polar[0]}",
             cross_lang=True,
-            length_channel=channel_for(body_a), both_null=False)
+            length_channel=channel_for(body_a), both_null=False,
+            carrier=carrier, benign=benign or [], para_b=para_b)
     if cross:
         subj_fmt = {"gen": SUBJECTS[subj][2], "dat": SUBJECTS[subj][3],
                     "cap": SUBJECTS[subj][0]}
@@ -681,7 +954,8 @@ def build_scenario(sid: str, stratum: str, subj: str, lang: str, slot_def,
                         + (f":{scaffold_tag}" if scaffold_tag else ""),
             cross_lang=(lang != lang_b),
             length_channel=channel_for(side_a.body + side_b.body),
-            both_null=False)
+            both_null=False, carrier=carrier, benign=benign or [],
+            para_b=para_b)
     elif stratum in ("CD-5", "CD-6"):
         # short divergent bodies: SPEC sentence + the polar/conditional
         # sentence; fillers > 2 appends a shared boilerplate block (long
@@ -774,13 +1048,14 @@ def build_scenario(sid: str, stratum: str, subj: str, lang: str, slot_def,
     sc = Scenario(
         scenario_id=sid, stratum=stratum, side_a=side_a, side_b=side_b,
         label=("contradicts" if stratum.startswith("CD") else "not-contradicts"),
-        slots=slots, subject_a=subjects[0], subject_b=subjects[1],
-        polar_op=polar_op, refine_ok=refine_ok,
+        slots=slots, subject_a=subjects[0],
+        subject_b=subjects[1], polar_op=polar_op, refine_ok=refine_ok,
         scaffold_id=(f"nc5:{subjects[0]}:{subjects[1]}" if stratum == "NC-5" else
                      f"{stratum}:{subj}:{slot_def[0] if slot_def else (polar[0] if polar else refine[0] if refine else (version_pair[0] if version_pair else meta_delta or 'sib'))}")
                     + (f":{scaffold_tag}" if scaffold_tag else ""),
         cross_lang=cross, length_channel=channel_for(side_a.body),
-        both_null=False)
+        both_null=False, carrier=carrier, benign=benign or [],
+        para_b=para_b)
     return sc
 
 

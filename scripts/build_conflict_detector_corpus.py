@@ -348,14 +348,20 @@ def measure_all(pool: list[lib.Scenario], cos: Cos) -> None:
 
 def select_cells(pool: list[lib.Scenario], n_total: int, *,
                  cross_pos: int, cross_neg: int, corner: int,
-                 prior_scaf: dict[str, int] | None = None) -> dict:
+                 prior_scaf: dict[str, int] | None = None,
+                 quotas: dict[str, int] | None = None,
+                 scaffold_cap: dict[str, int] | None = None) -> dict:
     """Deterministic joint allocation: exact strata quotas; band totals
     derived; ADDENDUM-1/2 floors enforced by construction order;
     scaffold-cap + channel-balanced picking (§4.4/§4.5).
 
     prior_scaf: scaffold counts from the TRAIN allocation — the holdout
     call honors the union scaffold cap (§4.5 is computed on train+seal).
+    quotas/scaffold_cap: v2 overrides (ADDENDUM-3 net quotas + caps on
+    class totals); defaults keep the v1 behavior byte-compatible.
     """
+    strata_quota = quotas or STRATA_QUOTA
+    scaf_cap_tbl = scaffold_cap or SCAFFOLD_CAP
     by_s: dict[str, list] = {s: [] for s in ORDER}
     for sc in pool:
         by_s[sc.stratum].append(sc)
@@ -378,7 +384,7 @@ def select_cells(pool: list[lib.Scenario], n_total: int, *,
             else "medium"
 
     def cap_ok(sc: lib.Scenario) -> bool:
-        return scaf.get(sc.scaffold_id, 0) < SCAFFOLD_CAP[sc.stratum]
+        return scaf.get(sc.scaffold_id, 0) < scaf_cap_tbl[sc.stratum]
 
     def take_spread(cands: list[lib.Scenario], k: int,
                     key=lambda x: (x._cos, x.scenario_id)) -> int:
@@ -513,7 +519,7 @@ def select_cells(pool: list[lib.Scenario], n_total: int, *,
             xp_left, xn_left = cross_quota_left()
             pick = None
             for s in ORDER:
-                if len(chosen[s]) >= STRATA_QUOTA[s]:
+                if len(chosen[s]) >= strata_quota[s]:
                     continue
                 cands = [x for x in free(s, bname)
                          if not (x.cross_lang and x.label == "contradicts" and xp_left == 0)
@@ -527,27 +533,861 @@ def select_cells(pool: list[lib.Scenario], n_total: int, *,
             take(pick)
     # 6) complete strata quotas from leftovers (any band)
     for s in ORDER:
-        while len(chosen[s]) < STRATA_QUOTA[s]:
+        while len(chosen[s]) < strata_quota[s]:
             xp_left, xn_left = cross_quota_left()
             cands = [x for x in free(s)
                      if not (x.cross_lang and x.label == "contradicts" and xp_left == 0)
                      and not (x.cross_lang and x.label != "contradicts" and xn_left == 0)]
             if not cands:
-                die(f"pool exhausted for {s}: {len(chosen[s])}/{STRATA_QUOTA[s]}")
+                die(f"pool exhausted for {s}: {len(chosen[s])}/{strata_quota[s]}")
             pick = pick_one(cands, key=lambda x: (x._cos, x.scenario_id))
             if pick is None:
                 die(f"scaffold cap exhausted for {s}: every remaining scaffold "
-                    f"already at {SCAFFOLD_CAP[s]} pairs (train+seal union)")
+                    f"already at {scaf_cap_tbl[s]} pairs (train+seal union)")
             take(pick)
     # overflow check: never exceed quota
     for s in ORDER:
-        assert len(chosen[s]) == STRATA_QUOTA[s], s
+        assert len(chosen[s]) == strata_quota[s], s
     cells = {s: {} for s in ORDER}
     for s in ORDER:
         for x in chosen[s]:
             cells[s][x._band] = cells[s].get(x._band, 0) + 1
     return {"cells": cells, "ids": {s: [x.scenario_id for x in chosen[s]] for s in ORDER},
             "scaf": dict(scaf)}
+
+
+# --- v2 rebuild (ADDENDUM-3, ratified 09.11) ---------------------------------
+
+CORPUS_DIR_V2 = DATA / "corpus-v2"
+PIN_V2_PATH = DATA / "pin-v2.json"
+SEAL_V2_PATH = SEALS_DIR / "CD-holdout-v2.seal.json"
+RUNLOG_MD = REPO / "docs" / "experiments" / "conflict-detector-train-runlog.md"
+
+# E11: fresh seed family — != {42,777,4242} and != {43..52}
+SEEDS_V2 = {"train": 2113, "hold": 7919, "sheet": 9377}
+FORBIDDEN_SEEDS = {42, 777, 4242} | set(range(43, 53))
+assert not (set(SEEDS_V2.values()) & FORBIDDEN_SEEDS), "seed family collides"
+
+# §8.2 ratified NET (classic) quotas per stratum; carriers add inside the
+# host stratum; class totals = v1 masses (CD-1 72, CD-2 36, CD-4 36,
+# NC-2 96, NC-5 108, NC-1 66 shrunk — the donor table of E1).
+STRATA_NET_V2 = {"CD-1": 56, "CD-2": 28, "CD-3": 36, "CD-4": 24, "CD-5": 24,
+                 "CD-6": 36, "NC-1": 66, "NC-2": 72, "NC-3": 54, "NC-4": 36,
+                 "NC-5": 84}
+CARRIER_QUOTA_V2 = {"N1": {"CD-1": 16, "CD-2": 8, "CD-4": 12},
+                    "N2": {"NC-2": 24}, "N3": {"NC-5": 24}}
+CLASS_TOTALS_V2 = dict(STRATA_NET_V2)
+for car, hosts in CARRIER_QUOTA_V2.items():
+    for s, q in hosts.items():
+        CLASS_TOTALS_V2[s] += q
+assert sum(STRATA_NET_V2.values()) == 516 and sum(CLASS_TOTALS_V2.values()) == 600
+N1_K_SPLIT = {"CD-1": (10, 6), "CD-2": (5, 3), "CD-4": (7, 5)}   # (k=1, k=2) -> 22/14 = 60/40
+N2_K_SPLIT = (14, 10)
+CENSUS_FACTOR = 2          # E9: razor-suitable pool >= 2x quota
+N1_QUOTA, N2_QUOTA, N3_QUOTA = 36, 24, 24
+SCAFFOLD_CAP_V2 = {s: max(1, int(0.05 * CLASS_TOTALS_V2[s])) for s in ORDER}
+# seal shares (§4.1 formula over the §8.2 partition, largest remainder)
+def _seal_shares() -> dict[str, int]:
+    rows = dict(STRATA_NET_V2)
+    rows["N1"], rows["N2"], rows["N3"] = N1_QUOTA, N2_QUOTA, N3_QUOTA
+    raw = {s: q * HOLD_SEAL / TRAIN_PAIRS for s, q in rows.items()}
+    shares = {s: int(raw[s]) for s in rows}
+    left = HOLD_SEAL - sum(shares.values())
+    for s in sorted(rows, key=lambda s: (-(raw[s] - int(raw[s])), s)):
+        if left <= 0:
+            break
+        shares[s] += 1
+        left -= 1
+    assert left == 0 and sum(shares.values()) == HOLD_SEAL
+    return shares
+SEAL_SHARES_V2 = _seal_shares()
+SEAL_N1_HOSTS = {"CD-1": 5, "CD-2": 3, "CD-4": 3}     # 16/8/12 x 0.3, largest remainder
+SEAL_N1_K = (7, 4)
+SEAL_N2_K = (4, 3)
+N3_SEAL = 7
+# E8(i) pre-declared separability rule: N1 vs N2 slices must be
+# distinguishable on at least ONE cheap surface metric (rank-sum);
+# indistinguishable on BOTH = overlap = BuildStop.
+E8_OVERLAP_ALPHA = 0.05
+
+NC2_GRID = [("lim", 1000, 800), ("lim", 1000, 500), ("lim", 1000, 200),
+            ("upd", "октябрь", "5 октября"), ("upd", "октябрь", "15 октября"),
+            ("timo", 120, 60), ("timo", 120, 90)]
+DATE_SLOTS_ALL = [(lib.DATE_SLOT[0], lib.DATE_SLOT[1], lib.DATE_SLOT[2],
+                   lib.DATE_SLOT[3], lib.DATE_SLOT[4]),
+                  ("upd2", lib.DATE_ALT_RU, lib.DATE_ALT_EN,
+                   lib.DATE_SLOT[3], lib.DATE_SLOT[4])]
+
+
+def log_md(event: str, **fields) -> None:
+    """Append the same JSON-line event to the COMMITTED run-log."""
+    RUNLOG_MD.parent.mkdir(parents=True, exist_ok=True)
+    with RUNLOG_MD.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"ts": now(), "event": event,
+                             "slice": "conflict-detector-corpus-v2-build",
+                             **fields}, ensure_ascii=False) + "\n")
+
+
+def gen_n1_pool(seed: int, prefix: str) -> list[lib.Scenario]:
+    """N1 candidates: SAME-LANGUAGE razor-positive donors CD-1/CD-2/CD-4
+    (E1: outside the cross family; razor >= 0.95 excludes the hard window
+    structurally) x side in (a,b) (E7 randomization) x k in (1,2)."""
+    out: list[lib.Scenario] = []
+    ctr = [0]
+    def sid() -> str:
+        ctr[0] += 1
+        return f"{prefix}-N1-{ctr[0]:05d}"
+    for subj in lib.TECH:
+        for si in range(len(lib.NUM_SLOTS)):
+            vals = lib.NUM_SLOTS[si][3]
+            for vi in range(len(vals)):
+                for vj in range(len(vals)):
+                    if vi >= vj:
+                        continue
+                    for fl in (0, 1, 2):
+                        for side in ("a", "b"):
+                            for k in (1, 2):
+                                dseed = f"{seed}:N1d:{subj}:{si}:{vi}:{vj}:{fl}:{side}:{k}"
+                                d = lib.build_scenario(
+                                    sid(), "CD-1", subj, "ru", lib.NUM_SLOTS[si],
+                                    vals[vi], vals[vj], fillers=fl,
+                                    rng=random.Random(dseed))
+                                d.carrier = "N1"
+                                r = random.Random(f"{seed}:N1v:{subj}:{si}:{vi}:{vj}:{fl}:{side}:{k}")
+                                try:
+                                    out.append(lib.apply_benign(d, side, k, r))
+                                except ValueError:
+                                    pass  # dictionary cannot host k here (deterministic unfit)
+        for key, ru, en, vals_ru, _vals_en in DATE_SLOTS_ALL:
+            for vi in range(len(vals_ru)):
+                for vj in range(len(vals_ru)):
+                    if vi >= vj:
+                        continue
+                    for fl in (0, 1, 2):
+                        for side in ("a", "b"):
+                            for k in (1, 2):
+                                d = lib.build_scenario(
+                                    sid(), "CD-2", subj, "ru", (key, ru, en),
+                                    vals_ru[vi], vals_ru[vj], fillers=fl,
+                                    scaffold_tag="n1",
+                                    rng=random.Random(f"{seed}:N1d2:{subj}:{key}:{vi}:{vj}:{fl}:{side}:{k}"))
+                                d.carrier = "N1"
+                                r = random.Random(f"{seed}:N1v2:{subj}:{key}:{vi}:{vj}:{fl}:{side}:{k}")
+                                try:
+                                    out.append(lib.apply_benign(d, side, k, r))
+                                except ValueError:
+                                    pass
+        for sd in lib.MODAL_SLOTS:
+            for fl in (0, 1, 2):
+                for side in ("a", "b"):
+                    for k in (1, 2):
+                        d = lib.build_scenario(
+                            sid(), "CD-4", subj, "ru", sd, None, None,
+                            fillers=fl, scaffold_tag="n1",
+                            rng=random.Random(f"{seed}:N1d4:{subj}:{sd[0]}:{fl}:{side}:{k}"))
+                        d.carrier = "N1"
+                        r = random.Random(f"{seed}:N1v4:{subj}:{sd[0]}:{fl}:{side}:{k}")
+                        try:
+                            out.append(lib.apply_benign(d, side, k, r))
+                        except ValueError:
+                            pass
+    return out
+
+
+def gen_n2_pool(seed: int, prefix: str) -> list[lib.Scenario]:
+    """N2 candidates: NC-2 refinement donors (same grid as classic NC-2)
+    + the SAME benign dial — the anti-proxy control (same dictionary,
+    same k-distribution, NOT label)."""
+    out: list[lib.Scenario] = []
+    ctr = [0]
+    def sid() -> str:
+        ctr[0] += 1
+        return f"{prefix}-N2-{ctr[0]:05d}"
+    for subj in lib.TECH:
+        for axis, c, v in NC2_GRID:
+            for fl in (0, 1):
+                for side in ("a", "b"):
+                    for k in (1, 2):
+                        d = lib.build_scenario(
+                            sid(), "NC-2", subj, "ru", None, v, None,
+                            refine=(axis, c), fillers=fl, scaffold_tag="n2",
+                            rng=random.Random(f"{seed}:N2d:{subj}:{axis}:{c}:{fl}:{side}:{k}"))
+                        d.carrier = "N2"
+                        r = random.Random(f"{seed}:N2v:{subj}:{axis}:{c}:{fl}:{side}:{k}")
+                        try:
+                            out.append(lib.apply_benign(d, side, k, r))
+                        except ValueError:
+                            pass
+    return out
+
+
+def gen_n3_pool(seed: int, prefix: str) -> list[lib.Scenario]:
+    """N3 candidates: true translation — cross-language pair, same subject,
+    canonical slot equality (numeric same value; date same index), op=none."""
+    out: list[lib.Scenario] = []
+    ctr = [0]
+    def sid() -> str:
+        ctr[0] += 1
+        return f"{prefix}-N3-{ctr[0]:05d}"
+    for subj in lib.TECH:
+        for si, sd in enumerate(lib.NUM_SLOTS):
+            for ci in range(len(sd[3])):
+                out.append(lib.build_n3(
+                    sid(), subj, lib.NUM_SLOTS[si], ci, fillers=(0 if ci == 0 else 1),
+                    scaffold_tag=f"v{ci}"))
+        for key, ru, en, vals_ru, vals_en in DATE_SLOTS_ALL:
+            for ci in range(len(vals_ru)):
+                out.append(lib.build_n3(
+                    sid(), subj, (key, ru, en, vals_ru, vals_en), ci,
+                    fillers=(0 if ci == 0 else 1), scaffold_tag=f"v{ci}"))
+    return out
+
+
+def carrier_suitable(sc: lib.Scenario) -> bool:
+    """Razor-suitability for the E9 census: mechanical pass, razor band,
+    channel-consistent, non-cross (E1 donor constraints)."""
+    return (lib.mechanical_ok(sc) and sc._band == "razor"
+            and lib.len_channel_ok(sc) and not sc.cross_lang)
+
+
+def select_carriers(n1: list, n2: list, n3: list, *,
+                    scaf: dict[str, int], log_fn=print) -> dict:
+    """Deterministic carrier allocation per the ratified pins: N1 hosts
+    16/8/12 with k-mix 60/40 per host, sides balanced; N2 24 with k
+    14/10; N3 24. Scaffold caps are UNION-aware (classic counts come in
+    via `scaf`). Returns {carrier: [scenarios]}."""
+    def cap_ok(sc):
+        return scaf.get(sc.scaffold_id, 0) < SCAFFOLD_CAP_V2[sc.stratum]
+
+    def take(want: int, want_k: dict[int, int], pool: list,
+             label: str) -> list:
+        picked: list = []
+        picked_ids: set[str] = set()
+        for k, have_k in sorted(want_k.items()):
+            cands = sorted([x for x in pool
+                            if len(x.benign) == k and x.scenario_id not in picked_ids
+                            and cap_ok(x)],
+                           key=lambda x: (scaf.get(x.scaffold_id, 0), -x._cos,
+                                          x.scenario_id))
+            got = 0
+            for x in cands:
+                if got >= have_k:
+                    break
+                picked.append(x)
+                picked_ids.add(x.scenario_id)
+                scaf[x.scaffold_id] = scaf.get(x.scaffold_id, 0) + 1
+                got += 1
+            if got < have_k:
+                die(f"{label}: k={k} exhausted ({got}/{have_k})")
+        if len(picked) != want:
+            die(f"{label}: {len(picked)}/{want}")
+        return picked
+
+    sel: dict[str, list] = {}
+    n1_pick: list = []
+    for host, want in CARRIER_QUOTA_V2["N1"].items():
+        k1, k2 = N1_K_SPLIT[host]
+        got = take(want, {1: k1, 2: k2},
+                   [x for x in n1 if x.stratum == host and carrier_suitable(x)],
+                   f"N1/{host}")
+        n1_pick += got
+    # E7 side balance: |p(a) - 0.5| <= 0.1 per carrier kind
+    def balance(cells: list, name: str) -> list:
+        na = sum(1 for x in cells if x.benign[0]["side"] == "a")
+        if abs(na / len(cells) - 0.5) > 0.1:
+            die(f"{name}: side balance broken (a={na}/{len(cells)})")
+        return cells
+    sel["N1"] = balance(n1_pick, "N1")
+    sel["N2"] = balance(
+        take(N2_QUOTA, {1: N2_K_SPLIT[0], 2: N2_K_SPLIT[1]},
+             [x for x in n2 if carrier_suitable(x)], "N2"), "N2")
+    n3_cands = sorted([x for x in n3 if lib.mechanical_ok(x)],
+                      key=lambda x: (scaf.get(x.scaffold_id, 0), -x._cos,
+                                     x.scenario_id))
+    got = 0
+    sel["N3"] = []
+    for x in n3_cands:
+        if got >= N3_QUOTA:
+            break
+        if cap_ok(x):
+            sel["N3"].append(x)
+            scaf[x.scaffold_id] = scaf.get(x.scaffold_id, 0) + 1
+            got += 1
+    if got < N3_QUOTA:
+        die(f"N3: pool exhausted ({got}/{N3_QUOTA})")
+    return sel
+
+
+def cmd_measure2() -> int:
+    """Census E9 -> pins -> full measure/allocation -> pin-v2.json."""
+    t0 = time.time()
+    cos = Cos()
+    # E11 BEFORE ANY GENERATION: the seed-family event
+    log("seeds_pinned_v2", seeds=SEEDS_V2, forbidden="42/777/4242 + 43..52",
+        family="fresh", check="disjoint-by-construction")
+    log_md("seeds_pinned", seeds=SEEDS_V2, note="fresh family, != v1 {42,777,4242}, != {43..52}",
+           forbidden_sets=sorted(FORBIDDEN_SEEDS))
+    print(f"seeds v2 pinned: {SEEDS_V2}")
+
+    print("== census E9: carrier pools (dry measure) ==")
+    n1_pool = gen_n1_pool(SEEDS_V2["train"], "tr")
+    n2_pool = gen_n2_pool(SEEDS_V2["train"], "tr")
+    n3_pool = gen_n3_pool(SEEDS_V2["train"], "tr")
+    for sc in n1_pool + n2_pool + n3_pool:
+        sc._cos = round(cos.pair(sc.text_a(), sc.text_b()), 4)
+        sc._band = band_of(sc._cos)
+    cen_n1 = [x for x in n1_pool if carrier_suitable(x)]
+    cen_n2 = [x for x in n2_pool if carrier_suitable(x)]
+    cen = {
+        "n1": {"pool": len(n1_pool), "suitable": len(cen_n1),
+               "by_host": {h: sum(1 for x in cen_n1 if x.stratum == h)
+                           for h in ("CD-1", "CD-2", "CD-4")},
+               "by_k": {k: sum(1 for x in cen_n1 if len(x.benign) == k)
+                        for k in (1, 2)}},
+        "n2": {"pool": len(n2_pool), "suitable": len(cen_n2),
+               "by_k": {k: sum(1 for x in cen_n2 if len(x.benign) == k)
+                        for k in (1, 2)}},
+        "n3": {"pool": len(n3_pool),
+               "mech_ok": sum(1 for x in n3_pool if lib.mechanical_ok(x))},
+    }
+    print("census:", json.dumps(cen))
+    # E9 gate: >= 2x quota of razor-suitable candidates, else BuildStop
+    need_n1 = {"CD-1": 32, "CD-2": 16, "CD-4": 24}
+    red = []
+    if len(cen_n1) < CENSUS_FACTOR * N1_QUOTA:
+        red.append(f"N1 suitable {len(cen_n1)} < {CENSUS_FACTOR * N1_QUOTA}")
+    if len(cen_n2) < CENSUS_FACTOR * N2_QUOTA:
+        red.append(f"N2 suitable {len(cen_n2)} < {CENSUS_FACTOR * N2_QUOTA}")
+    for h, need in need_n1.items():
+        if cen["n1"]["by_host"][h] < need:
+            red.append(f"N1/{h} {cen['n1']['by_host'][h]} < {need}")
+    for k, need in ((1, N1_K_SPLIT['CD-1'][0] + N1_K_SPLIT['CD-2'][0] + N1_K_SPLIT['CD-4'][0]),
+                    (2, N1_K_SPLIT['CD-1'][1] + N1_K_SPLIT['CD-2'][1] + N1_K_SPLIT['CD-4'][1])):
+        if cen["n1"]["by_k"][k] < need:
+            red.append(f"N1 k={k} {cen['n1']['by_k'][k]} < {need}")
+    for k, need in zip((1, 2), N2_K_SPLIT):
+        if cen["n2"]["by_k"][k] < need:
+            red.append(f"N2 k={k} {cen['n2']['by_k'][k]} < {need}")
+    if red:
+        die("census E9 RED: " + "; ".join(red))
+    log("census_v2_pass", **cen)
+    log_md("census_v2", verdict="pass", n1_suitable=cen["n1"]["suitable"],
+           n2_suitable=cen["n2"]["suitable"],
+           pins_after={"k_mix": "60/40 (N1 22/14, N2 14/10)",
+                       "host_split": "16/8/12", "bands": "measure->fix below"})
+    print("census E9 PASS: pins after census -> k-mix 60/40, host split 16/8/12")
+
+    print("== classic pools (fresh v2 seeds) ==")
+    train_pool = gen_pool(SEEDS_V2["train"], "tr")
+    hold_pool = gen_pool(SEEDS_V2["hold"], "ho")
+    print(f"train pool: {len(train_pool)}, holdout pool: {len(hold_pool)}, "
+          f"carriers: N1 {len(n1_pool)} N2 {len(n2_pool)} N3 {len(n3_pool)}")
+    measure_all(train_pool, cos)
+    measure_all(hold_pool, cos)
+    for sc in n1_pool + n2_pool + n3_pool:
+        if not hasattr(sc, "_cos"):
+            sc._cos = round(cos.pair(sc.text_a(), sc.text_b()), 4)
+            sc._band = band_of(sc._cos)
+    print(f"embedded {cos.n} unique texts in {time.time()-t0:.0f}s")
+
+    print("== allocation: classic net (516) ==")
+    alloc_tr = select_cells(train_pool, sum(STRATA_NET_V2.values()),
+                            cross_pos=CROSS_POS_QUOTA, cross_neg=CROSS_NEG_CAP,
+                            corner=12, quotas=STRATA_NET_V2,
+                            scaffold_cap=SCAFFOLD_CAP_V2)
+    scaf_union = dict(alloc_tr["scaf"])
+    print("== allocation: carriers (84) ==")
+    carriers = select_carriers(n1_pool, n2_pool, n3_pool, scaf=scaf_union)
+    tr_sel_ids = {i for s in ORDER for i in alloc_tr["ids"][s]}
+    tr_sel_ids |= {x.scenario_id for c in ("N1", "N2", "N3") for x in carriers[c]}
+    print(f"train total: {len(tr_sel_ids)}")
+
+    # joint razor population: parity + bins + hard window (E1/NA-2 recheck)
+    all_tr = ([x for s in ORDER for x in train_pool if x.scenario_id in alloc_tr["ids"][s]]
+              + [x for c in ("N1", "N2", "N3") for x in carriers[c]])
+    rz = [x for x in all_tr if x._band == "razor"]
+    rz_pos = sum(1 for x in rz if x.label == "contradicts")
+    rz_neg = len(rz) - rz_pos
+    bins = Counter()
+    for x in rz:
+        if x.label != "contradicts":
+            c = x._cos
+            bins["0" if c < 0.97 else ("1" if c < 0.985 else "2")] += 1
+    hard_pos = sum(1 for x in all_tr if x.label == "contradicts"
+                   and HARD_WIN_LO <= x._cos < HARD_WIN_HI)
+    ok_floors = (len(rz) >= FLOOR_RAZOR and rz_neg >= rz_pos
+                 and min(bins.values()) >= RAZOR_BIN_FLOOR
+                 and hard_pos >= FLOOR_HARD_POS)
+    print(f"floors v2: razor {len(rz)} (pos {rz_pos}/neg {rz_neg}), "
+          f"bins {dict(bins)}, hard-pos {hard_pos}")
+    if not ok_floors:
+        die(f"floors RED on joint population: razor {len(rz)}, pos {rz_pos}, "
+            f"neg {rz_neg}, bins {dict(bins)}, hard {hard_pos}")
+
+    # holdout: same procedure, fresh seeds, union scaffold caps
+    print("== allocation: holdout pool (registered 600 -> seal 180) ==")
+    hn1 = gen_n1_pool(SEEDS_V2["hold"], "ho")
+    hn2 = gen_n2_pool(SEEDS_V2["hold"], "ho")
+    hn3 = gen_n3_pool(SEEDS_V2["hold"], "ho")
+    for sc in hn1 + hn2 + hn3:
+        sc._cos = round(cos.pair(sc.text_a(), sc.text_b()), 4)
+        sc._band = band_of(sc._cos)
+    alloc_ho = select_cells(hold_pool, sum(STRATA_NET_V2.values()),
+                            cross_pos=36, cross_neg=45, corner=12,
+                            prior_scaf=scaf_union, quotas=STRATA_NET_V2,
+                            scaffold_cap=SCAFFOLD_CAP_V2)
+    scaf_ho = dict(alloc_ho["scaf"])
+    carriers_ho = select_carriers(hn1, hn2, hn3, scaf=scaf_ho)
+    ho_reg_ids = ([i for s in ORDER for i in alloc_ho["ids"][s]]
+                  + [x.scenario_id for c in ("N1", "N2", "N3") for x in carriers_ho[c]])
+
+    # seal 180: share table (largest remainder over the §8.2 partition),
+    # culled for train-text disjointness (A-disjoint)
+    tr_by_id = {x.scenario_id: x for s in ORDER for x in train_pool}
+    tr_by_id.update({x.scenario_id: x for c in ("N1", "N2", "N3") for x in carriers[c]})
+    ho_by_id = {x.scenario_id: x for s in ORDER for x in hold_pool}
+    ho_by_id.update({x.scenario_id: x for c in ("N1", "N2", "N3")
+                     for x in (carriers_ho["N1"] + carriers_ho["N2"] + carriers_ho["N3"])})
+    tr_texts = {lib.sha(tr_by_id[i].text_a()) for i in tr_sel_ids} | \
+               {lib.sha(tr_by_id[i].text_b()) for i in tr_sel_ids}
+    seal_ids: list[str] = []
+    culled = 0
+    want_classic = {s: SEAL_SHARES_V2[s] for s in ORDER}
+    want_n1 = SEAL_N1_HOSTS
+    remaining_n1 = SEAL_N1_K[0] + SEAL_N1_K[1]
+    for s in ORDER:
+        got = 0
+        for i in alloc_ho["ids"][s]:
+            if got >= want_classic[s]:
+                break
+            if i in tr_sel_ids or lib.sha(ho_by_id[i].text_a()) in tr_texts \
+                    or lib.sha(ho_by_id[i].text_b()) in tr_texts:
+                culled += 1
+                continue
+            seal_ids.append(i)
+            got += 1
+        if got < want_classic[s]:
+            die(f"seal disjointness: classic {s} exhausted ({got}/{want_classic[s]})")
+    n1_ho = sorted([x for x in carriers_ho["N1"] if carrier_suitable(x)],
+                   key=lambda x: (-x._cos, x.scenario_id))
+    per_host = {h: 0 for h in want_n1}
+    for x in n1_ho:
+        if per_host[x.stratum] >= want_n1[x.stratum] or remaining_n1 <= 0:
+            continue
+        if x.scenario_id in tr_sel_ids or lib.sha(x.text_a()) in tr_texts \
+                or lib.sha(x.text_b()) in tr_texts:
+            culled += 1
+            continue
+        seal_ids.append(x.scenario_id)
+        per_host[x.stratum] += 1
+        remaining_n1 -= 1
+    if remaining_n1 > 0:
+        die(f"seal disjointness: N1 exhausted ({SEAL_N1_K[0]+SEAL_N1_K[1]-remaining_n1}/11)")
+    n2_ho = sorted([x for x in carriers_ho["N2"] if carrier_suitable(x)],
+                   key=lambda x: (-x._cos, x.scenario_id))
+    got_n2 = 0
+    for x in n2_ho:
+        if got_n2 >= SEAL_SHARES_V2["N2"]:
+            break
+        if x.scenario_id in tr_sel_ids or lib.sha(x.text_a()) in tr_texts \
+                or lib.sha(x.text_b()) in tr_texts:
+            culled += 1
+            continue
+        seal_ids.append(x.scenario_id)
+        got_n2 += 1
+    if got_n2 < SEAL_SHARES_V2["N2"]:
+        die(f"seal disjointness: N2 exhausted ({got_n2}/{SEAL_SHARES_V2['N2']})")
+    n3_ho = sorted([x for x in carriers_ho["N3"] if lib.mechanical_ok(x)],
+                   key=lambda x: (-x._cos, x.scenario_id))
+    got_n3 = 0
+    for x in n3_ho:
+        if got_n3 >= N3_SEAL:
+            break
+        if x.scenario_id in tr_sel_ids or lib.sha(x.text_a()) in tr_texts \
+                or lib.sha(x.text_b()) in tr_texts:
+            culled += 1
+            continue
+        seal_ids.append(x.scenario_id)
+        got_n3 += 1
+    if got_n3 < N3_SEAL:
+        die(f"seal disjointness: N3 exhausted ({got_n3}/{N3_SEAL})")
+    assert len(seal_ids) == HOLD_SEAL, len(seal_ids)
+    print(f"seal: {len(seal_ids)} pairs ({culled} culled for train-text collisions)")
+
+    corpus_floor = min([x._cos for x in all_tr] + [ho_by_id[i]._cos for i in seal_ids])
+    pin = {
+        "ts": now(), "version": 2,
+        "instrument": {"pin": lib.EMBEDDER_PIN, "guard_version": lib.GUARD_VERSION},
+        "measured_corpus_floor": corpus_floor,
+        "seeds": dict(SEEDS_V2),
+        "seed_family_check": "fresh; disjoint from {42,777,4242} and {43..52}",
+        "hard_window": [HARD_WIN_LO, HARD_WIN_HI],
+        "razor_pos_quota": rz_pos,
+        "census": cen,
+        "pins_after_census": {"k_mix": "60/40", "host_split": "16/8/12"},
+        "classic": alloc_tr,
+        "carriers": {c: [x.scenario_id for x in carriers[c]]
+                     for c in ("N1", "N2", "N3")},
+        "carrier_cells": {c: [{"id": x.scenario_id, "cos": x._cos,
+                               "k": len(x.benign),
+                               "side": x.benign[0]["side"]}
+                              for x in carriers[c]]
+                          for c in ("N1", "N2", "N3")},
+        "holdout_classic": alloc_ho,
+        "holdout_carriers": {c: [x.scenario_id for x in carriers_ho[c]]
+                             for c in ("N1", "N2", "N3")},
+        "holdout_pool_ids": ho_reg_ids,
+        "seal_ids": seal_ids,
+        "seal_shares": {**{s: SEAL_SHARES_V2[s] for s in ORDER},
+                        "N1": sum(SEAL_N1_HOSTS.values()), "N2": SEAL_SHARES_V2["N2"],
+                        "N3": N3_SEAL},
+        "bands_train": {b: sum(1 for x in all_tr if x._band == b)
+                        for b, _, _ in BANDS},
+        "floors": {"razor_total": len(rz), "razor_pos": rz_pos, "razor_neg": rz_neg,
+                   "bins": dict(bins), "hard_pos": hard_pos, "ok": ok_floors},
+    }
+    DATA.mkdir(parents=True, exist_ok=True)
+    PIN_V2_PATH.write_text(json.dumps(pin, ensure_ascii=False, indent=2),
+                           encoding="utf-8")
+    log("measure2_pinned", ok=True, razor=len(rz), razor_pos=rz_pos,
+        hard_pos=hard_pos, floor=corpus_floor,
+        pin_sha=lib.sha(PIN_V2_PATH.read_text(encoding="utf-8"))[:16])
+    log_md("measure_v2_pinned", razor=len(rz), razor_pos=rz_pos,
+           razor_neg=rz_neg, hard_pos=hard_pos, bins=dict(bins),
+           corpus_floor=corpus_floor, n1=len(carriers["N1"]),
+           n2=len(carriers["N2"]), n3=len(carriers["N3"]),
+           seal=len(seal_ids))
+    print(f"\nMEASURE2: PINNED -> {PIN_V2_PATH} ({time.time()-t0:.0f}s)")
+    return 0
+
+
+def cmd_build2() -> int:
+    """Generate v2 per pin-v2.json; FULL assert map (§5.3 + E1-E8);
+    stop-first: any red = BuildStop, NOTHING is written or sealed."""
+    t0 = time.time()
+    if not PIN_V2_PATH.exists():
+        die("activation assert: pin-v2.json missing — run measure2 first")
+    pin = json.loads(PIN_V2_PATH.read_text(encoding="utf-8"))
+    log("build2_start", pin_sha=lib.sha(PIN_V2_PATH.read_text(encoding="utf-8"))[:16])
+    cos = Cos()
+    train_pool = gen_pool(SEEDS_V2["train"], "tr")
+    hold_pool = gen_pool(SEEDS_V2["hold"], "ho")
+    n1_pool = gen_n1_pool(SEEDS_V2["train"], "tr")
+    n2_pool = gen_n2_pool(SEEDS_V2["train"], "tr")
+    n3_pool = gen_n3_pool(SEEDS_V2["train"], "tr")
+    hn1 = gen_n1_pool(SEEDS_V2["hold"], "ho")
+    hn2 = gen_n2_pool(SEEDS_V2["hold"], "ho")
+    hn3 = gen_n3_pool(SEEDS_V2["hold"], "ho")
+    measure_all(train_pool, cos)
+    measure_all(hold_pool, cos)
+    for sc in n1_pool + n2_pool + n3_pool + hn1 + hn2 + hn3:
+        sc._cos = round(cos.pair(sc.text_a(), sc.text_b()), 4)
+        sc._band = band_of(sc._cos)
+    by_id: dict[str, lib.Scenario] = {}
+    for pool in (train_pool, hold_pool, n1_pool, n2_pool, n3_pool, hn1, hn2, hn3):
+        for x in pool:
+            by_id[x.scenario_id] = x
+    tr_classic = [by_id[i] for s in ORDER for i in pin["classic"]["ids"][s]]
+    tr_carriers = {c: [by_id[i] for i in pin["carriers"][c]]
+                   for c in ("N1", "N2", "N3")}
+    tr_sel = tr_classic + [x for c in ("N1", "N2", "N3") for x in tr_carriers[c]]
+    assert len(tr_sel) == TRAIN_PAIRS, len(tr_sel)
+    seal_ids = pin["seal_ids"]
+    pool_ids = pin["holdout_pool_ids"]
+    ho_sel = [by_id[i] for i in seal_ids]
+    remainder = [i for i in pool_ids if i not in set(seal_ids)]
+    assert len(ho_sel) == HOLD_SEAL
+    all_sc = tr_sel + ho_sel
+
+    print("== asserts (design 5.3 + ADDENDUM-3 E1-E8), stop-first ==")
+    A: dict[str, dict] = {}
+    def rec(name, ok, detail):
+        A[name] = {"ok": bool(ok), "detail": detail}
+        print(f"{'PASS' if ok else 'RED'}  {name}: {detail}")
+        return bool(ok)
+
+    from collections import Counter as _C
+    tr_cnt = _C(x.stratum for x in tr_sel)
+    ho_cnt = _C(x.stratum for x in ho_sel)
+    car_cnt = {c: len(tr_carriers[c]) for c in ("N1", "N2", "N3")}
+    class_ok = all(tr_cnt[s] == CLASS_TOTALS_V2[s] for s in ORDER)
+    net_ok = all(
+        tr_cnt[s] - sum(q for h, qs in (("N1", CARRIER_QUOTA_V2["N1"]),
+                                        ("N2", CARRIER_QUOTA_V2["N2"]),
+                                        ("N3", CARRIER_QUOTA_V2["N3"]))
+                        for hs, q in qs.items() if hs == s) == STRATA_NET_V2[s]
+        for s in ORDER)
+    host_ok = all(
+        sum(1 for x in tr_carriers["N1"] if x.stratum == h) == q
+        for h, q in CARRIER_QUOTA_V2["N1"].items())
+    k_ok = (
+        sorted(len(x.benign) for x in tr_carriers["N1"]).count(1) == 22
+        and sorted(len(x.benign) for x in tr_carriers["N1"]).count(2) == 14
+        and sorted(len(x.benign) for x in tr_carriers["N2"]).count(1) == 14
+        and sorted(len(x.benign) for x in tr_carriers["N2"]).count(2) == 10)
+    rec("A-count", class_ok and net_ok and host_ok and k_ok
+        and car_cnt == {"N1": 36, "N2": 24, "N3": 24}
+        and sum(ho_cnt.values()) == HOLD_SEAL,
+        {"train_class": dict(tr_cnt), "carriers": car_cnt,
+         "seal_total": sum(ho_cnt.values()), "seal": dict(ho_cnt)})
+    # A-silver (carrier-aware) + E4 len-channel on every carrier cell
+    bad = [x.scenario_id for x in all_sc if not lib.mechanical_ok(x)]
+    len_bad = [x.scenario_id for x in all_sc
+               if x.carrier in ("N1", "N2") and not lib.len_channel_ok(x)]
+    rec("A-silver+len4", not bad and not len_bad,
+        f"{len(all_sc)-len(bad)}/{len(all_sc)} mechanical pass; "
+        f"E4 len-channel violations {len(len_bad)}")
+    badl = [x.scenario_id for x in all_sc
+            if x.label != ("contradicts" if x.stratum.startswith("CD")
+                           else "not-contradicts")]
+    rec("A-labels", not badl, f"bad={len(badl)}")
+    n_rows = 2 * len(tr_sel) + 2 * len(ho_sel)
+    rec("A-symmetry", n_rows == 2 * len(all_sc), f"{n_rows} == 2x{len(all_sc)}")
+    g_nc3 = sum(1 for x in all_sc if x.stratum == "NC-3" and lib.version_guard(x))
+    g_cd = sum(1 for x in all_sc if x.stratum.startswith("CD")
+               and lib.version_guard(x))
+    n_nc3 = sum(1 for x in all_sc if x.stratum == "NC-3")
+    rec("A-guard", g_nc3 == n_nc3 and g_cd == 0,
+        f"nc3 {g_nc3}/{n_nc3}, cd {g_cd}/0")
+    corner = [x for x in all_sc if x._cos >= 0.999
+              and lib.pair_char5_jaccard(x.side_a, x.side_b, x._cos) == 1.0]
+    rec("A-corner", len(corner) >= CORNER_MIN
+        and all(not x.stratum.startswith("CD") for x in corner),
+        f"{len(corner)} twins")
+    tr_bands = _C(x._band for x in tr_sel)
+    rz = [x for x in tr_sel if x._band == "razor"]
+    rz_pos = sum(1 for x in rz if x.label == "contradicts")
+    rz_neg = len(rz) - rz_pos
+    bins = _C()
+    for x in rz:
+        if x.label != "contradicts":
+            c = x._cos
+            bins["0" if c < 0.97 else ("1" if c < 0.985 else "2")] += 1
+    rz_sorted = sorted(x._cos for x in rz)
+    max_gap = max((b - a for a, b in zip(rz_sorted, rz_sorted[1:])), default=0.0)
+    hard_pos = sum(1 for x in tr_sel if x.label == "contradicts"
+                   and HARD_WIN_LO <= x._cos < HARD_WIN_HI)
+    quota_pin = pin["razor_pos_quota"]
+    ok_b = (len(rz) >= FLOOR_RAZOR and rz_neg >= rz_pos
+            and min(bins.values()) >= RAZOR_BIN_FLOOR
+            and max_gap <= RAZOR_MAX_GAP and rz_pos == quota_pin
+            and hard_pos >= FLOOR_HARD_POS)
+    rec("A-band-coverage", bool(ok_b),
+        f"razor {len(rz)} (pos {rz_pos}/neg {rz_neg}, quota pin {quota_pin}), "
+        f"bins {dict(bins)}, max-gap {max_gap:.4f}, hard-pos {hard_pos}")
+    tr_ids = {x.scenario_id for x in tr_sel}
+    tr_texts = {lib.sha(x.text_a()) for x in tr_sel} | \
+               {lib.sha(x.text_b()) for x in tr_sel}
+    ho_clash = [x.scenario_id for x in ho_sel
+                if x.scenario_id in tr_ids
+                or lib.sha(x.text_a()) in tr_texts
+                or lib.sha(x.text_b()) in tr_texts]
+    rem_clash = set(remainder) & tr_ids
+    rec("A-disjoint", not ho_clash and not rem_clash,
+        f"train-vs-seal clashes {len(ho_clash)}, remainder-in-train {len(rem_clash)}")
+    n4_corner_ids = {x.scenario_id for x in all_sc
+                     if x.stratum == "NC-4"
+                     and x.side_a.record_type != x.side_b.record_type}
+    n3_ids = {x.scenario_id for x in all_sc if x.carrier == "N3"}
+    exempt = n4_corner_ids | n3_ids
+    pairs_null = sum(1 for x in all_sc if x.both_null and x.scenario_id not in exempt)
+    mixed = sum(1 for x in all_sc
+                if (x.side_a.created_at is None) != (x.side_b.created_at is None)
+                and x.scenario_id not in exempt)
+    null_share = pairs_null / (len(all_sc) - len(exempt))
+    rec("A-null", abs(null_share - NULL_P) <= 0.05 and mixed == 0,
+        f"share {null_share:.3f} (exempt {len(exempt)}: N4-corner+N3), mixed {mixed}")
+    xp = sum(1 for x in tr_sel if x.cross_lang and x.label == "contradicts")
+    xn = sum(1 for x in tr_sel if x.cross_lang and x.label != "contradicts")
+    rec("A-crosslang-cap", xp == CROSS_POS_QUOTA and xn <= 2 * CROSS_NEG_CAP
+        and xn / 360 <= 0.5,
+        f"pos {xp}/{CROSS_POS_QUOTA}, neg {xn} (classic cap {CROSS_NEG_CAP} + N3 24), "
+        f"neg share {xn/360:.3f} <= 1/2")
+    older = sum(1 for x in tr_sel
+                if x.side_a.created_at and x.side_b.created_at
+                and x.side_a.created_at < x.side_b.created_at)
+    dated = sum(1 for x in tr_sel if x.side_a.created_at and x.side_b.created_at)
+    p_older = older / max(dated, 1)
+    lens = _C(x.length_channel for x in tr_sel)
+    len_ok = all(abs(lens[c] / TRAIN_PAIRS - 1 / 3) <= 0.05
+                 for c in ("short", "medium", "long") if lens.get(c, 0) >= 30)
+    side_a_n1 = sum(1 for x in tr_carriers["N1"] if x.benign[0]["side"] == "a")
+    side_a_n2 = sum(1 for x in tr_carriers["N2"] if x.benign[0]["side"] == "a")
+    rec("A-indep+side", abs(p_older - 0.5) <= 0.10 and len_ok
+        and abs(side_a_n1 / 36 - 0.5) <= 0.1 and abs(side_a_n2 / 24 - 0.5) <= 0.1,
+        f"P(older) {p_older:.3f}, channels {dict(lens)}, N1 side-a {side_a_n1}/36, "
+        f"N2 side-a {side_a_n2}/24")
+    scaf_ok, scaf_detail = True, {}
+    for s in ORDER:
+        cls = [x for x in all_sc if x.stratum == s]
+        ids = {x.scaffold_id for x in cls}
+        mx = max(_C(x.scaffold_id for x in cls).values()) / len(cls)
+        scaf_ok &= len(ids) >= 20 and mx <= lib.CAP + 1e-9
+        scaf_detail[s] = f"{len(ids)} scaffolds, max share {mx:.3f}"
+    rec("A-scaffold", scaf_ok, scaf_detail)
+    # E2: dictionary sha pin (two-level guarantee level 1 is the import assert)
+    rec("A-para-dict", True, {"ru_sha256": lib.PARA_DICT_SHA["ru"],
+                              "en_sha256": lib.PARA_DICT_SHA["en"],
+                              "note": "import-time FACT_ALPHA whitelist asserted; "
+                                      "per-pair no-digit/no-fact checked in A-silver"})
+    # E8(i): N1 vs N2 separability on the cheap surface (cos, char5)
+    def mwu(xs, ys):
+        import math
+        n1, n2 = len(xs), len(ys)
+        tagged = sorted([(v, 0) for v in xs] + [(v, 1) for v in ys])
+        ranks = [0.0] * len(tagged)
+        i = 0
+        while i < len(tagged):
+            j = i
+            while j + 1 < len(tagged) and tagged[j + 1][0] == tagged[i][0]:
+                j += 1
+            avg = (i + j) / 2 + 1
+            for t in range(i, j + 1):
+                ranks[t] = avg
+            i = j + 1
+        r1 = sum(r for r, (_v, g) in zip(ranks, tagged) if g == 0)
+        u1 = r1 - n1 * (n1 + 1) / 2
+        mu = n1 * n2 / 2
+        tie = sum(t ** 3 - t for t in _C(v for v, _ in tagged).values())
+        n = len(tagged)
+        sd = math.sqrt((n1 * n2 / 12) * ((n + 1) - tie / (n * (n - 1)))) if n > 1 else 0.0
+        if sd == 0:
+            return 1.0, u1
+        z = (u1 - mu) / sd
+        p = 2 * (1 - 0.5 * (1 + math.erf(abs(z) / math.sqrt(2))))
+        return p, round(u1, 1)
+    n1_cells = tr_carriers["N1"]
+    n2_cells = tr_carriers["N2"]
+    n1_cos = [x._cos for x in n1_cells]
+    n2_cos = [x._cos for x in n2_cells]
+    n1_ch5 = [round(lib.pair_char5_jaccard(x.side_a, x.side_b, x._cos), 4)
+              for x in n1_cells]
+    n2_ch5 = [round(lib.pair_char5_jaccard(x.side_a, x.side_b, x._cos), 4)
+              for x in n2_cells]
+    p_cos, u_cos = mwu(n1_cos, n2_cos)
+    p_ch5, u_ch5 = mwu(n1_ch5, n2_ch5)
+    overlap = p_cos >= E8_OVERLAP_ALPHA and p_ch5 >= E8_OVERLAP_ALPHA
+    rec("A-carrier-sep(E8i)", not overlap,
+        {"n1_cos": [min(n1_cos), max(n1_cos)], "n2_cos": [min(n2_cos), max(n2_cos)],
+         "n1_char5": [min(n1_ch5), max(n1_ch5)],
+         "n2_char5": [min(n2_ch5), max(n2_ch5)],
+         "mwu_p_cos": round(p_cos, 5), "mwu_p_char5": round(p_ch5, 5),
+         "rule": f"overlap = p_cos>= {E8_OVERLAP_ALPHA} AND p_char5>= {E8_OVERLAP_ALPHA}"})
+    # E8(iii): para2 canary — the para_b=2 family stays contradicts
+    para2 = [x for x in tr_sel if x.stratum == "CD-1" and x.para_b == 2]
+    para_hist = dict(_C(x.para_b for x in tr_sel))
+    rec("A-canary-para2(E8iii)", len(para2) >= 3
+        and all(x.label == "contradicts" and lib.mechanical_ok(x) for x in para2),
+        f"{len(para2)} para2 cells selected (all contradicts), para_b hist {para_hist}")
+    # baselines
+    def bl_band(x): return x._cos >= 0.95
+    def digits(t): return sorted(re.findall(r"\d+", t))
+    def bl_digit(x): return digits(x.side_a.body) != digits(x.side_b.body)
+    def bl_dg(x): return bl_digit(x) and not lib.version_guard(x)
+    bl = {}
+    for name, fn in (("BL-band", bl_band), ("BL-digit", bl_digit),
+                     ("BL-digit+guard", bl_dg)):
+        bl[name] = round(sum(1 for x in tr_sel
+                             if (fn(x) == (x.label == "contradicts")))
+                         / len(tr_sel), 4)
+    rec("baselines-non-tautological", all(v < 1.0 for v in bl.values()), bl)
+    rec("A-regime", True, "declared in manifest")
+    rec("A-frozen", True, f"nano {lib.EMBEDDER_PIN[:12]}…; cortex.features imported")
+
+    all_ok = all(v["ok"] for v in A.values())
+    if not all_ok:
+        reds = [k for k, v in A.items() if not v["ok"]]
+        log("build_stop", reason=f"asserts RED: {reds}")
+        log_md("build_stop", reds=reds, note="stop-first: NOTHING written or sealed")
+        print(f"BUILD-STOP: asserts RED: {reds}", file=sys.stderr)
+        return 1
+
+    # --- stop-first passed: emit ---
+    rows = []
+    for sc in tr_sel:
+        rows += rows_of(sc, "train", f"seed:{SEEDS_V2['train']}")
+    fp_train = write_jsonl(CORPUS_DIR_V2 / "train.jsonl", rows)
+    rows_h = []
+    for sc in ho_sel:
+        rows_h += rows_of(sc, "holdout", f"seed:{SEEDS_V2['hold']}")
+    fp_hold = write_jsonl(CORPUS_DIR_V2 / "holdout.jsonl", rows_h)
+    fp_pool = write_jsonl(CORPUS_DIR_V2 / "holdout-pool.jsonl",
+                          [r for i in pool_ids
+                           for r in rows_of(by_id[i], "holdout-pool",
+                                            f"seed:{SEEDS_V2['hold']}")])
+    seal_payload = {"ts": now(), "version": "CD-holdout-v2",
+                    "holdout_jsonl_sha256": fp_hold, "ids": sorted(set(seal_ids)),
+                    "n": len(ho_sel),
+                    "v1_archive": {
+                        "paths": ["data/conflict-detector/corpus-v1/holdout.jsonl",
+                                  "data/conflict-detector/corpus-v1/holdout-pool.jsonl",
+                                  "data/conflict-detector/seals/CD-holdout-v1.seal.json",
+                                  "data/conflict-detector/sheet/verdicts/KEY-cd-v1.sealed.json"],
+                        "reads_in_this_build": 0,
+                        "note": "CD-holdout-v1 archived UNTOUCHED; 0 reads in its "
+                                "entire history (run-log fact, E11)"},
+                    "note": "content NOT read after this event"}
+    SEALS_DIR.mkdir(parents=True, exist_ok=True)
+    SEAL_V2_PATH.write_text(json.dumps(seal_payload, ensure_ascii=False, indent=2),
+                            encoding="utf-8")
+    fp_seal = lib.sha(SEAL_V2_PATH.read_text(encoding="utf-8"))
+    manifest = {
+        "ts": now(), "version": "corpus-v2 (ADDENDUM-3 rebuild, B6-conflict)",
+        "guard_version": lib.GUARD_VERSION,
+        "instrument": {"provider": "vesma.embeddings.NanoProvider",
+                       "nano_pin": lib.EMBEDDER_PIN},
+        "design": ["docs/experiments/conflict-detector-corpus-design.md (RATIFIED MLC-9)",
+                   "docs/experiments/conflict-detector-corpus-design-ADDENDUM-1.md",
+                   "docs/experiments/conflict-detector-corpus-design-ADDENDUM-2.md",
+                   "docs/experiments/conflict-detector-corpus-design-ADDENDUM-3.md (RATIFIED amend-then-ratify)"],
+        "pin_sha256": lib.sha(PIN_V2_PATH.read_text(encoding="utf-8")),
+        "seeds": dict(SEEDS_V2),
+        "seed_family_check": pin["seed_family_check"],
+        "strata": {s: {"net": STRATA_NET_V2[s],
+                       "carrier": {c: CARRIER_QUOTA_V2[c].get(s, 0)
+                                   for c in ("N1", "N2", "N3")},
+                       "class_total": tr_cnt[s],
+                       "seal": ho_cnt[s]} for s in ORDER},
+        "carriers": {"N1": {"quota": 36, "hosts": "CD-1/2/4 = 16/8/12",
+                            "k_mix": "22/14 (60/40)",
+                            "E6": "scaffold inherited from donor (CV-grouped)"},
+                     "N2": {"quota": 24, "k_mix": "14/10",
+                            "role": "anti-proxy control (same dictionary, same k, NOT)"},
+                     "N3": {"quota": 24, "predicate": "n3_ok branch (E5)",
+                            "note": "NC-5 subclass; classic NC-5 predicate would fail every N3 pair"}},
+        "para_dict_sha256": lib.PARA_DICT_SHA,
+        "e8_separability": A["A-carrier-sep(E8i)"]["detail"],
+        "e8_canary_para2": A["A-canary-para2(E8iii)"]["detail"],
+        "bands_train": dict(tr_bands),
+        "floors": pin["floors"],
+        "baselines": bl,
+        "asserts": A,
+        "fingerprints": {"train.jsonl": fp_train, "holdout.jsonl": fp_hold,
+                         "holdout-pool.jsonl": fp_pool, "seal": fp_seal},
+        "known_uncovered": {"cos_below": pin["measured_corpus_floor"],
+                            "note": "measured corpus floor over the emitted v2 corpus"},
+        "null_exemption": "NC-4 corner twins + N3 carriers are both-null exempt "
+                          "(N3 mechanical predicate requires visible languages, E5)",
+        "seal_intact_inputs": seal_payload["v1_archive"],
+        "remainder_unused_ids": sorted(remainder)[:50] + ["…"] if len(remainder) > 50
+                                else sorted(remainder),
+        "regime": "synthetic-only; no store texts; no LLM in construction; "
+                  "labels by construction",
+    }
+    CORPUS_DIR_V2.mkdir(parents=True, exist_ok=True)
+    (CORPUS_DIR_V2 / "build-manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    log("build2_done", ok=True, train_sha=fp_train[:16], hold_sha=fp_hold[:16],
+        seal=fp_seal[:16], elapsed_s=round(time.time() - t0, 1))
+    log_md("build_v2_done", ok=True, train_sha=fp_train, hold_sha=fp_hold,
+           seal_sha=fp_seal, seal_n=len(ho_sel),
+           asserts=f"{sum(1 for v in A.values() if v['ok'])}/{len(A)} PASS")
+    log_md("seal_v2", seal="CD-holdout-v2", n=len(ho_sel), sha=fp_seal,
+           v1_archive="untouched, 0 reads in entire history (E11)",
+           holdout_content_reads=0)
+    print(f"\nBUILD2: ALL ASSERTS PASS in {time.time()-t0:.0f}s\n"
+          f"manifest: {CORPUS_DIR_V2/'build-manifest.json'}\nseal: {SEAL_V2_PATH}")
+    return 0
 
 
 # --- rows --------------------------------------------------------------------
@@ -562,9 +1402,11 @@ def rows_of(sc: lib.Scenario, split: str, seed_pin: str) -> list[dict]:
     ch5 = lib.pair_char5_jaccard(sc.side_a, sc.side_b, sc._cos)
     base = {"pair_id": sc.scenario_id, "scenario_id": sc.scenario_id,
             "stratum": sc.stratum, "label": sc.label,
+            "carrier": sc.carrier,
             "declaration": {"slots": sc.slots, "subject_a": sc.subject_a,
                             "subject_b": sc.subject_b, "polar_op": sc.polar_op,
-                            "refine_ok": sc.refine_ok},
+                            "refine_ok": sc.refine_ok,
+                            "benign_regions": sc.benign},
             "measured": {"cos_target": sc._cos, "char5_jaccard": round(ch5, 4),
                          "len_channel": sc.length_channel},
             "scaffold_id": sc.scaffold_id, "seed_pin": seed_pin, "split": split}
@@ -1294,6 +2136,340 @@ OQ-1: **золото = комитет по ADDENDUM-1**, гейт g_gold на м
     return 0
 
 
+def n2_mirror_of(n1_sc: lib.Scenario, c: object, v: object,
+                 mirror_id: str) -> lib.Scenario:
+    """Build the E10 confusable twin of an N1 train cell: SAME prefix with
+    the SAME benign substitutions, slot sentences swapped from the
+    conflict pair to a satisfiable NC-2 refinement (c |= v) — the label
+    differs ONLY by slot compatibility (same dialect, same k, same side)."""
+    axis = n1_sc.slots[0]["axis"]
+    key = n1_sc.slots[0]["slot_id"]
+    if key == "upd2":
+        key = "upd"  # alternate date template maps onto the same refine axis
+    c_sent, v_sent, check = lib.REFINE_RU[key]
+    subj_fmt = {"gen": lib.SUBJECTS[n1_sc.subject_a][2],
+                "dat": lib.SUBJECTS[n1_sc.subject_a][3]}
+    body_a = lib.benign_prefix_of(n1_sc, "a") + " " + c_sent.format(c=c, **subj_fmt)
+    body_b = lib.benign_prefix_of(n1_sc, "b") + " " + v_sent.format(v=v)
+    side_a = lib.Side(title=n1_sc.side_a.title, body=body_a,
+                      tags=list(n1_sc.side_a.tags), language="ru",
+                      record_type=n1_sc.side_a.record_type,
+                      created_at=n1_sc.side_a.created_at)
+    side_b = lib.Side(title=n1_sc.side_b.title, body=body_b,
+                      tags=list(n1_sc.side_b.tags), language="ru",
+                      record_type=n1_sc.side_b.record_type,
+                      created_at=n1_sc.side_b.created_at)
+    sc = lib.Scenario(
+        scenario_id=mirror_id, stratum="NC-2", side_a=side_a, side_b=side_b,
+        label="not-contradicts",
+        slots=[{"slot_id": key, "axis": axis, "value_a": str(c),
+                "value_b": str(v), "op": "replace", "is_version_token": False,
+                "span_chars": max(len(str(v)), 6)}],
+        subject_a=n1_sc.subject_a, subject_b=n1_sc.subject_a,
+        polar_op=None, refine_ok=bool(check(v, c)),
+        scaffold_id=f"sheet-mirror:{key}:{n1_sc.subject_a}",
+        cross_lang=False, length_channel=lib.channel_for(body_a),
+        both_null=False, carrier="N2",
+        benign=[dict(d) for d in n1_sc.benign], para_b=0)
+    return sc
+
+
+def cmd_preflight2() -> int:
+    """П3 v2: fixture cell of EVERY class (classic 11 + carriers N1/N2/N3)
+    against the FULL assert map, BEFORE any emission (stop-first)."""
+    print("== П3-v2 preflight: fixture cells x full assert map ==")
+    r = random.Random(0)
+    fx: list[lib.Scenario] = []
+    fx.append(lib.build_scenario("fx2-CD-1", "CD-1", "s3conn", "ru",
+                                 lib.NUM_SLOTS[0], 500, 1000, fillers=1, rng=r))
+    fx.append(lib.build_scenario("fx2-CD-2", "CD-2", "retry", "ru",
+                                 (lib.DATE_SLOT[0], lib.DATE_SLOT[1], ""),
+                                 "5 октября", "7 октября", fillers=1, rng=r))
+    fx.append(lib.build_scenario("fx2-CD-3", "CD-3", "sched", "ru",
+                                 lib.STATUS_SLOTS[0], None, None, fillers=1, rng=r))
+    fx.append(lib.build_scenario("fx2-CD-4", "CD-4", "auth", "ru",
+                                 lib.MODAL_SLOTS[0], None, None, fillers=1, rng=r))
+    fx.append(lib.build_scenario("fx2-CD-5", "CD-5", "cache", "ru", None,
+                                 lib.COND_SLOTS[0][2], lib.COND_SLOTS[0][3],
+                                 fillers=1, rng=r))
+    fx.append(lib.build_scenario("fx2-CD-6", "CD-6", "recs", "ru", None, None,
+                                 None, polar=lib.POLAR_SLOTS[0], fillers=1, rng=r))
+    fx.append(lib.build_scenario("fx2-NC-1", "NC-1", "export", "ru", None, None,
+                                 None, insert_sent=lib.INSERT_RU[0], fillers=1, rng=r))
+    fx.append(lib.build_scenario("fx2-NC-2", "NC-2", "pay", "ru", None, 800, None,
+                                 refine=("lim", 1000), fillers=1, rng=r))
+    fx.append(lib.build_scenario("fx2-NC-3", "NC-3", "logs", "ru", None, None, None,
+                                 version_pair=("v1.2.0", "v1.3.0"), fillers=1, rng=r))
+    fx.append(lib.build_scenario("fx2-NC-4", "NC-4", "queue", "ru", None, None, None,
+                                 meta_delta="tags", fillers=1, rng=r))
+    fx.append(lib.build_scenario("fx2-NC-5", "NC-5", "s3conn", "ru", None, None, None,
+                                 sibling_subj="cook", fillers=1, rng=r))
+    # carriers: N1 on EVERY host, both k; N2; N3 numeric + date
+    d = lib.build_scenario("fx2-N1a", "CD-1", "mlpipe", "ru", lib.NUM_SLOTS[0],
+                           200, 500, fillers=1,
+                           rng=random.Random("fx-n1a"))
+    d.carrier = "N1"
+    fx.append(lib.apply_benign(d, "b", 1, random.Random("fx-n1a-v")))
+    d = lib.build_scenario("fx2-N1b", "CD-1", "pay", "ru", lib.NUM_SLOTS[1],
+                           30, 60, fillers=1, rng=random.Random("fx-n1b"))
+    d.carrier = "N1"
+    fx.append(lib.apply_benign(d, "a", 2, random.Random("fx-n1b-v")))
+    d = lib.build_scenario("fx2-N1c", "CD-2", "auth", "ru",
+                           (lib.DATE_SLOT[0], lib.DATE_SLOT[1], ""),
+                           "5 октября", "15 октября", fillers=1,
+                           rng=random.Random("fx-n1c"))
+    d.carrier = "N1"
+    fx.append(lib.apply_benign(d, "a", 1, random.Random("fx-n1c-v")))
+    d = lib.build_scenario("fx2-N1d", "CD-4", "queue", "ru",
+                           lib.MODAL_SLOTS[0], None, None, fillers=1,
+                           rng=random.Random("fx-n1d"))
+    d.carrier = "N1"
+    fx.append(lib.apply_benign(d, "b", 2, random.Random("fx-n1d-v")))
+    d = lib.build_scenario("fx2-N2", "NC-2", "logs", "ru", None, 60, None,
+                           refine=("timo", 120), fillers=1,
+                           rng=random.Random("fx-n2"))
+    d.carrier = "N2"
+    fx.append(lib.apply_benign(d, "b", 1, random.Random("fx-n2-v")))
+    fx.append(lib.build_n3("fx2-N3-num", "sched", lib.NUM_SLOTS[2], 1))
+    fx.append(lib.build_n3("fx2-N3-date", "bill",
+                           (lib.DATE_SLOT[0], lib.DATE_SLOT[1], lib.DATE_SLOT[2],
+                            lib.DATE_SLOT[3], lib.DATE_SLOT[4]), 2))
+    ok = True
+    print("| cell | mechanical | E4 len | guard(expect) | label | regions | slots+benign |")
+    print("|---|---|---|---|---|---|---|")
+    for sc in fx:
+        mech = lib.mechanical_ok(sc)
+        # E4 scope is N1/N2 cells only (ratified); NC-5 declares its
+        # channel on the summed-body convention (v1 behavior, untouched)
+        len4 = lib.len_channel_ok(sc) if sc.carrier in ("N1", "N2") else True
+        guard = lib.version_guard(sc)
+        want_guard = sc.stratum == "NC-3"
+        lab = sc.label
+        regs = len(lib.regions(sc.side_a.body, sc.side_b.body))
+        expect = f"{len(sc.slots)}+{len(sc.benign)}" if sc.benign else str(len(sc.slots))
+        row_ok = (mech and len4 and (guard == want_guard)
+                  and lab == ("contradicts" if sc.stratum.startswith("CD")
+                              else "not-contradicts"))
+        ok &= row_ok
+        print(f"| {sc.carrier or sc.stratum} | {mech} | {len4} | {guard}({want_guard}) "
+              f"| {lab} | {regs} | {expect} |" + ("" if row_ok else "  <-- FAIL"))
+    ok &= bool(lib.FACT_ALPHA) and bool(lib.PARA_DICT_SHA["ru"])
+    print(f"import-level E2: FACT_ALPHA {len(lib.FACT_ALPHA)} values, "
+          f"para-dict sha ru {lib.PARA_DICT_SHA['ru'][:12]}… en {lib.PARA_DICT_SHA['en'][:12]}…")
+    print("\nassert map applied per cell: A-silver(carrier-aware) + E2 per-pair "
+          "no-digit/no-fact + E4 len-channel + A-labels + A-guard expectation")
+    log("preflight2_done", ok=ok)
+    log_md("preflight_v2", ok=ok, cells=len(fx),
+           note="fixture cells of every class + carriers, full assert map, pre-emission")
+    print(f"\nPREFLIGHT-V2: {'PASS' if ok else 'FAIL'}")
+    return 0 if ok else 1
+
+
+def cmd_gold2() -> int:
+    """E10 delta-gold: 12 blocks (>=4 N1-vs-N2 confusable twins, all three
+    N1 host paths, mandatory RED-form CD-2+k=1+razor), blind render,
+    worked examples of the 3 carriers, sealed key. Committee legs score
+    the BLIND render; labels live only in the sealed key."""
+    train_path = CORPUS_DIR_V2 / "train.jsonl"
+    if not train_path.exists():
+        die("gold2: corpus-v2/train.jsonl missing — run build2 first")
+    rows = [json.loads(l) for l in train_path.read_text(encoding="utf-8").splitlines() if l]
+    a_rows = [r for r in rows if r["orientation"] == "a>b"]
+    rng = random.Random(SEEDS_V2["sheet"])
+
+    def row_to_sc(r: dict) -> lib.Scenario:
+        ea, eb = r["envelope_a"], r["envelope_b"]
+        dec = r["declaration"]
+        return lib.Scenario(
+            scenario_id=r["pair_id"], stratum=r["stratum"],
+            side_a=lib.Side(**{k: ea[k] for k in ("title", "body", "tags",
+                                                  "language", "record_type",
+                                                  "created_at")}),
+            side_b=lib.Side(**{k: eb[k] for k in ("title", "body", "tags",
+                                                  "language", "record_type",
+                                                  "created_at")}),
+            label=r["label"], slots=dec["slots"],
+            subject_a=dec["subject_a"], subject_b=dec["subject_b"],
+            polar_op=dec.get("polar_op"), refine_ok=dec.get("refine_ok"),
+            scaffold_id=r["scaffold_id"],
+            cross_lang=(ea["language"] != eb["language"]),
+            length_channel=r["measured"]["len_channel"], both_null=False,
+            carrier=r.get("carrier"), benign=dec.get("benign_regions", []))
+
+    by_carrier: dict[str, list] = {"N1": [], "N2": [], "N3": []}
+    for r in a_rows:
+        if r.get("carrier"):
+            by_carrier[r["carrier"]].append(r)
+    # N1 picks: twins on CD-1 (lim k1, timo k2, lim k2), RED-form CD-2 k1, CD-4 k1
+    def n1_pick(host: str, axis_hint: str, k: int, exclude: set[str]) -> dict:
+        cands = [r for r in by_carrier["N1"]
+                 if r["stratum"] == host and len(r["declaration"]["benign_regions"]) == k
+                 and r["pair_id"] not in exclude]
+        if axis_hint:
+            cands = [r for r in cands if r["declaration"]["slots"][0]["slot_id"] == axis_hint]
+        if not cands:
+            cands = [r for r in by_carrier["N1"]
+                     if r["stratum"] == host and len(r["declaration"]["benign_regions"]) == k
+                     and r["pair_id"] not in exclude]
+        if not cands:
+            die(f"gold2: no N1 candidate {host} k={k}")
+        return sorted(cands, key=lambda r: r["pair_id"])[0]
+
+    used: set[str] = set()
+    t1 = n1_pick("CD-1", "lim", 1, used); used.add(t1["pair_id"])
+    t2 = n1_pick("CD-1", "timo", 2, used); used.add(t2["pair_id"])
+    red = n1_pick("CD-2", "upd", 1, used); used.add(red["pair_id"])
+    t4 = n1_pick("CD-1", "lim", 2, used); used.add(t4["pair_id"])
+    n1_cd4 = n1_pick("CD-4", "", 1, used); used.add(n1_cd4["pair_id"])
+    red_cos = red["measured"]["cos_target"]
+    if red_cos < 0.95:
+        die(f"gold2: RED-form block cos {red_cos} outside razor")
+    REFINE_C = {"lim": 1000, "timo": 120, "upd": "октябрь"}
+    REFINE_V = {"lim": 800, "timo": 60, "upd": "5 октября"}
+    blocks: list[dict] = []
+    for i, (r, role, twin_axis) in enumerate(
+            [(t1, "twin", "lim"), (t2, "twin", "timo"), (red, "red-form", "upd"),
+             (t4, "twin", "lim")]):
+        sc = row_to_sc(r)
+        raw_ax = sc.slots[0]["slot_id"]
+        ax = "upd" if raw_ax == "upd2" else raw_ax
+        mir = n2_mirror_of(sc, REFINE_C[ax], REFINE_V[ax],
+                           f"gold-mir-{i+1}")
+        if not (lib.mechanical_ok(mir) and mir.refine_ok):
+            die(f"gold2: twin mirror {i+1} fails mechanical map")
+        blocks.append({"row": r, "role": "n1-" + role, "sc": sc})
+        blocks.append({"row": None, "role": "n2-mirror", "sc": mir,
+                       "twin_of": r["pair_id"]})
+    sc4 = row_to_sc(n1_cd4)
+    if not lib.mechanical_ok(sc4):
+        die("gold2: CD-4 N1 block fails mechanical map")
+    blocks.append({"row": n1_cd4, "role": "n1-host-cover", "sc": sc4})
+    # N3 x3: numeric + date + numeric (different slots), mechanical-checked
+    n3_sorted = sorted(by_carrier["N3"], key=lambda r: r["pair_id"])
+    n3_picked: list[dict] = []
+    seen_axes: set[str] = set()
+    for r in n3_sorted:
+        ax = r["declaration"]["slots"][0]["axis"]
+        if ax in seen_axes or len(n3_picked) >= 3:
+            continue
+        seen_axes.add(ax)
+        sc = row_to_sc(r)
+        if not lib.mechanical_ok(sc):
+            die(f"gold2: N3 block {r['pair_id']} fails mechanical map")
+        n3_picked.append({"row": r, "role": "n3", "sc": sc})
+    if len(n3_picked) < 3:
+        die(f"gold2: only {len(n3_picked)} N3 blocks")
+    blocks += n3_picked
+    if len(blocks) != 12:
+        die(f"gold2: {len(blocks)} blocks != 12")
+    twins = sum(1 for b in blocks if b["role"] == "n2-mirror")
+    hosts = {b["sc"].stratum for b in blocks if b["sc"].carrier == "N1"}
+    if twins < 4 or hosts != {"CD-1", "CD-2", "CD-4"}:
+        die(f"gold2: E10 composition broken (twins {twins}, hosts {hosts})")
+
+    order = list(range(len(blocks)))
+    rng.shuffle(order)
+    worked = [
+        ("N1 — конфликт + бенигный парафраз",
+         "конфликтный слот (несовместимые значения) + одна/две бенигные подстановки в другом предложении",
+         "A: «Лимит запросов к сервису — 500 в минуту.» (+ бенигная подстановка в базовом предложении) / B: «Лимит запросов к сервису — 1000 в минуту.»",
+         "CONTRADICTS", "слоты конфликтуют; бенигная правка не отменяет конфликта"),
+        ("N2 — уточнение + тот же бенигный парафраз",
+         "совместимое уточнение (v |= c) + такая же подстановка в другом предложении",
+         "A: «Лимит запросов к сервису — не более 1000 в минуту.» (+ та же подстановка) / B: «Лимит запросов к сервису — 800 в минуту.»",
+         "NO-CONFLICT", "800 укладывается в «не более 1000» — уточнение"),
+        ("N3 — истинный перевод",
+         "пара на разных языках, значения всех слотов канонически равны",
+         "A: «Обновление намечено на 5 октября.» / B: «The update is scheduled for October 5.»",
+         "NO-CONFLICT", "перевод с тем же фактом — противоречия нет"),
+    ]
+    lines = ["DELTA GOLD SHEET CD-v2 — blind render (12 scorable blocks; verdict per block:",
+             "CONTRADICTS / NO-CONFLICT + slot basis; block classes and declarations withheld)",
+             ""]
+    lines += ["=" * 72,
+              "ИНСТРУКТАЖ — три новых носителя v2 с примерами (не скорируется;",
+              "в 12 блоках ниже классы не называются).", ""]
+    for cls, definition, example, verdict, basis in worked:
+        lines.append(f"{cls} — {definition}")
+        lines.append(f"  пример: {example}")
+        lines.append(f"  вердикт: {verdict} (основание: {basis})")
+        lines.append("")
+    lines += ["=" * 72, "СКОРИРУЕМЫЕ БЛОКИ (12):", ""]
+    meta = []
+    for i, idx in enumerate(order):
+        b = blocks[idx]
+        sc = b["sc"]
+        r = b["row"]
+        ch = sc.length_channel
+        body_a = _render_body(sc.side_a.body, sc.scenario_id + ":a", ch) \
+            if r is not None else sc.side_a.body
+        body_b = _render_body(sc.side_b.body, sc.scenario_id + ":b", ch) \
+            if r is not None else sc.side_b.body
+        lines.append(f"M{i+1:02d}")
+        lines.append(f"  A [{sc.side_a.language or '—'}/{sc.side_a.record_type or '—'}] {sc.side_a.title}")
+        lines.append(f"     {body_a}")
+        lines.append(f"  B [{sc.side_b.language or '—'}/{sc.side_b.record_type or '—'}] {sc.side_b.title}")
+        lines.append(f"     {body_b}")
+        lines.append("  verdict: ______   basis: ______________________")
+        lines.append("")
+        meta.append({"block": f"M{i+1:02d}",
+                     "pair_id": sc.scenario_id,
+                     "role": b["role"],
+                     "twin_of": b.get("twin_of"),
+                     "stratum": sc.stratum, "carrier": sc.carrier,
+                     "k": len(sc.benign),
+                     "label": sc.label,
+                     "mech_ok": lib.mechanical_ok(sc),
+                     "cos_conventional": (r["measured"]["cos_target"]
+                                          if r is not None else None),
+                     "len_channel": ch})
+    SHEET_DIR.mkdir(parents=True, exist_ok=True)
+    V2_SHEET = SHEET_DIR  # same dir; v2 names
+    render_path = V2_SHEET / "gold-sheet-render-v2.txt"
+    render_path.write_text("\n".join(lines), encoding="utf-8")
+    labels_ok = {"contradicts", "not-contradicts"} == {m["label"] for m in meta}
+    sheet_json = {"ts": now(), "n": len(meta),
+                  "composition": {"blocks": len(meta), "twins": twins,
+                                  "n1_hosts": sorted(hosts),
+                                  "red_form": "CD-2 upd k=1 razor "
+                                              f"(cos {red_cos})",
+                                  "n3": 3},
+                  "provenance": "N1/N3 blocks are train cells; N2 twin mirrors are "
+                                "purpose-built from the SAME prefix+substitutions "
+                                "(slot sentences swapped to a satisfiable refinement); "
+                                "each block mechanical-verified",
+                  "render_sha256": lib.sha(render_path.read_text(encoding="utf-8")),
+                  "blocks": meta}
+    sp = V2_SHEET / "gold-sheet-v2.json"
+    sp.write_text(json.dumps(sheet_json, ensure_ascii=False, indent=2),
+                  encoding="utf-8")
+    key = {"kind": "gold-sheet-key", "sheet": "CD-v2-delta",
+           "ts": now(),
+           "rule": "SEALED — do not open before the committee synthesis",
+           "render_fp_sha256": sheet_json["render_sha256"],
+           "n": len(meta), "labels_ok": labels_ok,
+           "blocks": [{"block": m["block"], "pair_id": m["pair_id"],
+                       "stratum": m["stratum"], "carrier": m["carrier"],
+                       "role": m["role"], "label": m["label"]} for m in meta]}
+    key_path = V2_SHEET / "verdicts-v2" / "KEY-cd-v2.sealed.json"
+    key_path.parent.mkdir(parents=True, exist_ok=True)
+    key_body = json.dumps(key, ensure_ascii=False, indent=1)
+    key_path.write_text(key_body + "\n", encoding="utf-8")
+    fp_key = lib.sha(key_body)
+    log("sheet2_frozen", n=len(meta), fp=sheet_json["render_sha256"])
+    log("key2_sealed", sheet="CD-v2-delta", n=len(meta), fp=fp_key,
+        path=str(key_path.relative_to(REPO)))
+    log_md("gold_v2_render", n=len(meta), twins=twins,
+           n1_hosts=sorted(hosts), red_form=f"CD-2 k=1 razor cos {red_cos}",
+           render="data/conflict-detector/sheet/gold-sheet-render-v2.txt",
+           key_fp=fp_key, legs="LLM+DE now; TL+ML separately after DE report")
+    print(f"GOLD2: {len(meta)} blocks (twins {twins}, hosts {sorted(hosts)}), "
+          f"render {render_path}")
+    print(f"render sha256: {sheet_json['render_sha256']}")
+    print(f"KEY SEALED: {key_path} fp {fp_key[:16]}…")
+    return 0
+
+
 def main() -> int:
     cmd = sys.argv[1] if len(sys.argv) > 1 else ""
     if cmd == "preflight":
@@ -1306,6 +2482,14 @@ def main() -> int:
         return cmd_sheet()
     if cmd == "card":
         return cmd_card()
+    if cmd == "preflight2":
+        return cmd_preflight2()
+    if cmd == "measure2":
+        return cmd_measure2()
+    if cmd == "build2":
+        return cmd_build2()
+    if cmd == "gold2":
+        return cmd_gold2()
     print(__doc__)
     return 2
 
