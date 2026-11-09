@@ -28,6 +28,7 @@ import random
 import re
 import sys
 import time
+from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -147,21 +148,26 @@ def rotate_pair(a_body: str, b_body: str, seed: int) -> tuple[str, str]:
     return a_body, b_body
 
 
-def gen_pool(seed: int, prefix: str) -> list[lib.Scenario]:
+def gen_pool(seed: int, prefix: str, rotate: bool | None = None) -> list[lib.Scenario]:
     """Wide candidate pool per stratum (multi-intensity); deterministic
     per-candidate rng streams — regenerate == reproduce, byte-identical.
-    The holdout pool (seed != SEED_TRAIN) rotates sentence order so its
-    texts never collide with train texts (A-disjoint §5.3)."""
+    The holdout pool rotates sentence order so its texts never collide
+    with train texts (A-disjoint §5.3). rotate: None keeps the v1
+    behavior (rotate iff seed != SEED_TRAIN); v2 passes it EXPLICITLY —
+    the v1 seed-equality guard breaks under a fresh train seed (the v2
+    train seed != 42 would rotate the train pool too, with the same
+    k for equal sentence counts, producing literal text twins)."""
     out: list[lib.Scenario] = []
     n = [0]
     rng_root = random.Random(seed)
+    do_rotate = (seed != SEED_TRAIN) if rotate is None else rotate
 
     def sid(stratum: str) -> str:
         n[0] += 1
         return f"{prefix}-{stratum}-{n[0]:05d}"
 
     def add(sc: lib.Scenario, r: random.Random, force_nn: bool = False):
-        if seed != SEED_TRAIN:
+        if do_rotate:
             sc.side_a.body, sc.side_b.body = rotate_pair(
                 sc.side_a.body, sc.side_b.body, seed)
         out.append(lib.finish_pair(sc, r, NULL_P, force_nn))
@@ -350,7 +356,8 @@ def select_cells(pool: list[lib.Scenario], n_total: int, *,
                  cross_pos: int, cross_neg: int, corner: int,
                  prior_scaf: dict[str, int] | None = None,
                  quotas: dict[str, int] | None = None,
-                 scaffold_cap: dict[str, int] | None = None) -> dict:
+                 scaffold_cap: dict[str, int] | None = None,
+                 long_reserve: dict[str, int] | None = None) -> dict:
     """Deterministic joint allocation: exact strata quotas; band totals
     derived; ADDENDUM-1/2 floors enforced by construction order;
     scaffold-cap + channel-balanced picking (§4.4/§4.5).
@@ -362,6 +369,7 @@ def select_cells(pool: list[lib.Scenario], n_total: int, *,
     """
     strata_quota = quotas or STRATA_QUOTA
     scaf_cap_tbl = scaffold_cap or SCAFFOLD_CAP
+    long_tbl = long_reserve or LONG_RESERVE
     by_s: dict[str, list] = {s: [] for s in ORDER}
     for sc in pool:
         by_s[sc.stratum].append(sc)
@@ -463,7 +471,7 @@ def select_cells(pool: list[lib.Scenario], n_total: int, *,
                        key=lambda x: (x.scenario_id,))
         k = 0
         for x in cands:
-            if k >= LONG_RESERVE[s]:
+            if k >= long_tbl[s]:
                 break
             if cap_ok(x):
                 take(x)
@@ -585,7 +593,21 @@ N1_K_SPLIT = {"CD-1": (10, 6), "CD-2": (5, 3), "CD-4": (7, 5)}   # (k=1, k=2) ->
 N2_K_SPLIT = (14, 10)
 CENSUS_FACTOR = 2          # E9: razor-suitable pool >= 2x quota
 N1_QUOTA, N2_QUOTA, N3_QUOTA = 36, 24, 24
-SCAFFOLD_CAP_V2 = {s: max(1, int(0.05 * CLASS_TOTALS_V2[s])) for s in ORDER}
+# long-channel reservation scaled to the NET (donor-cut) quotas — the v1
+# table is sized for the v1 quotas and would force-allocate past the NC-5
+# net quota (36+10+45=91 > 84). Same share of the stratum, floor 1.
+LONG_RESERVE_V2 = {s: max(1, int(LONG_RESERVE[s] * STRATA_NET_V2[s]
+                                 / STRATA_QUOTA[s])) for s in ORDER}
+# channel rebalance (A-indep 1/3 ± 0.05): the scaled reserve under-fills
+# long once carriers (mostly short) join the population — medium drifted
+# to 0.392 in the first build2 dry-run; +10 long reservations pull the
+# channels back inside the tube
+LONG_RESERVE_V2["NC-1"] += 3
+LONG_RESERVE_V2["NC-2"] += 3
+LONG_RESERVE_V2["NC-3"] += 2
+LONG_RESERVE_V2["NC-4"] += 2
+LONG_RESERVE_V2["CD-2"] += 1
+LONG_RESERVE_V2["CD-6"] += 1
 # seal shares (§4.1 formula over the §8.2 partition, largest remainder)
 def _seal_shares() -> dict[str, int]:
     rows = dict(STRATA_NET_V2)
@@ -605,6 +627,18 @@ SEAL_N1_HOSTS = {"CD-1": 5, "CD-2": 3, "CD-4": 3}     # 16/8/12 x 0.3, largest r
 SEAL_N1_K = (7, 4)
 SEAL_N2_K = (4, 3)
 N3_SEAL = 7
+# scaffold allocation caps sized on the TRAIN+SEAL projected population
+# per stratum (§4.5 union rule; the A-scaffold assert allows 0.05 of the
+# union — cap 1 would starve the holdout corner/long legs on NC-4)
+_SEAL_CARRIER_IN_STRATUM = {"CD-1": SEAL_N1_HOSTS["CD-1"],
+                            "CD-2": SEAL_N1_HOSTS["CD-2"],
+                            "CD-4": SEAL_N1_HOSTS["CD-4"],
+                            "NC-2": SEAL_SHARES_V2["N2"],
+                            "NC-5": N3_SEAL}
+SCAFFOLD_CAP_V2 = {s: max(1, int(0.05 * (CLASS_TOTALS_V2[s]
+                                         + SEAL_SHARES_V2[s]
+                                         + _SEAL_CARRIER_IN_STRATUM.get(s, 0))))
+                   for s in ORDER}
 # E8(i) pre-declared separability rule: N1 vs N2 slices must be
 # distinguishable on at least ONE cheap surface metric (rank-sum);
 # indistinguishable on BOTH = overlap = BuildStop.
@@ -764,21 +798,30 @@ def select_carriers(n1: list, n2: list, n3: list, *,
         picked: list = []
         picked_ids: set[str] = set()
         for k, have_k in sorted(want_k.items()):
-            cands = sorted([x for x in pool
-                            if len(x.benign) == k and x.scenario_id not in picked_ids
-                            and cap_ok(x)],
-                           key=lambda x: (scaf.get(x.scaffold_id, 0), -x._cos,
-                                          x.scenario_id))
-            got = 0
-            for x in cands:
-                if got >= have_k:
-                    break
-                picked.append(x)
-                picked_ids.add(x.scenario_id)
-                scaf[x.scaffold_id] = scaf.get(x.scaffold_id, 0) + 1
-                got += 1
-            if got < have_k:
-                die(f"{label}: k={k} exhausted ({got}/{have_k})")
+            # E7 side randomization with a deterministic 50/50 plan per
+            # host-k cell: the top-of-list bias would otherwise drift the
+            # sides (pool ids interleave a-then-b at equal cos)
+            want_a = (have_k + 1) // 2
+            want_b = have_k - want_a
+            for side, quota_side in (("a", want_a), ("b", want_b)):
+                cands = sorted([x for x in pool
+                                if len(x.benign) == k
+                                and x.benign[0]["side"] == side
+                                and x.scenario_id not in picked_ids],
+                               key=lambda x: (scaf.get(x.scaffold_id, 0), -x._cos,
+                                              x.scenario_id))
+                got = 0
+                for x in cands:
+                    if got >= quota_side:
+                        break
+                    if not cap_ok(x):   # re-check: counts move mid-list
+                        continue
+                    picked.append(x)
+                    picked_ids.add(x.scenario_id)
+                    scaf[x.scaffold_id] = scaf.get(x.scaffold_id, 0) + 1
+                    got += 1
+                if got < quota_side:
+                    die(f"{label}: k={k} side-{side} exhausted ({got}/{quota_side})")
         if len(picked) != want:
             die(f"{label}: {len(picked)}/{want}")
         return picked
@@ -878,8 +921,8 @@ def cmd_measure2() -> int:
     print("census E9 PASS: pins after census -> k-mix 60/40, host split 16/8/12")
 
     print("== classic pools (fresh v2 seeds) ==")
-    train_pool = gen_pool(SEEDS_V2["train"], "tr")
-    hold_pool = gen_pool(SEEDS_V2["hold"], "ho")
+    train_pool = gen_pool(SEEDS_V2["train"], "tr", rotate=False)
+    hold_pool = gen_pool(SEEDS_V2["hold"], "ho", rotate=True)
     print(f"train pool: {len(train_pool)}, holdout pool: {len(hold_pool)}, "
           f"carriers: N1 {len(n1_pool)} N2 {len(n2_pool)} N3 {len(n3_pool)}")
     measure_all(train_pool, cos)
@@ -894,7 +937,8 @@ def cmd_measure2() -> int:
     alloc_tr = select_cells(train_pool, sum(STRATA_NET_V2.values()),
                             cross_pos=CROSS_POS_QUOTA, cross_neg=CROSS_NEG_CAP,
                             corner=12, quotas=STRATA_NET_V2,
-                            scaffold_cap=SCAFFOLD_CAP_V2)
+                            scaffold_cap=SCAFFOLD_CAP_V2,
+                            long_reserve=LONG_RESERVE_V2)
     scaf_union = dict(alloc_tr["scaf"])
     print("== allocation: carriers (84) ==")
     carriers = select_carriers(n1_pool, n2_pool, n3_pool, scaf=scaf_union)
@@ -935,7 +979,8 @@ def cmd_measure2() -> int:
     alloc_ho = select_cells(hold_pool, sum(STRATA_NET_V2.values()),
                             cross_pos=36, cross_neg=45, corner=12,
                             prior_scaf=scaf_union, quotas=STRATA_NET_V2,
-                            scaffold_cap=SCAFFOLD_CAP_V2)
+                            scaffold_cap=SCAFFOLD_CAP_V2,
+                            long_reserve=LONG_RESERVE_V2)
     scaf_ho = dict(alloc_ho["scaf"])
     carriers_ho = select_carriers(hn1, hn2, hn3, scaf=scaf_ho)
     ho_reg_ids = ([i for s in ORDER for i in alloc_ho["ids"][s]]
@@ -950,8 +995,13 @@ def cmd_measure2() -> int:
                      for x in (carriers_ho["N1"] + carriers_ho["N2"] + carriers_ho["N3"])})
     tr_texts = {lib.sha(tr_by_id[i].text_a()) for i in tr_sel_ids} | \
                {lib.sha(tr_by_id[i].text_b()) for i in tr_sel_ids}
+    tr_hash_owner: dict[str, str] = {}
+    for i in tr_sel_ids:
+        tr_hash_owner.setdefault(lib.sha(tr_by_id[i].text_a()), i)
+        tr_hash_owner.setdefault(lib.sha(tr_by_id[i].text_b()), i)
     seal_ids: list[str] = []
     culled = 0
+    cull_diag: dict[str, str] = {}
     want_classic = {s: SEAL_SHARES_V2[s] for s in ORDER}
     want_n1 = SEAL_N1_HOSTS
     remaining_n1 = SEAL_N1_K[0] + SEAL_N1_K[1]
@@ -960,25 +1010,38 @@ def cmd_measure2() -> int:
         for i in alloc_ho["ids"][s]:
             if got >= want_classic[s]:
                 break
-            if i in tr_sel_ids or lib.sha(ho_by_id[i].text_a()) in tr_texts \
-                    or lib.sha(ho_by_id[i].text_b()) in tr_texts:
+            if i in tr_sel_ids:
+                cull_diag.setdefault(i, "scenario_id in train")
+                culled += 1
+                continue
+            ha, hb = lib.sha(ho_by_id[i].text_a()), lib.sha(ho_by_id[i].text_b())
+            if ha in tr_texts or hb in tr_texts:
+                cull_diag.setdefault(i, f"text == {tr_hash_owner.get(ha) or tr_hash_owner.get(hb)}")
                 culled += 1
                 continue
             seal_ids.append(i)
             got += 1
         if got < want_classic[s]:
-            die(f"seal disjointness: classic {s} exhausted ({got}/{want_classic[s]})")
+            examples = {k: cull_diag[k] for k in list(cull_diag)[:5]}
+            comp = Counter(len(_sents(ho_by_id[i].side_a.body))
+                           for i in alloc_ho["ids"][s])
+            die(f"seal disjointness: classic {s} exhausted ({got}/{want_classic[s]}); "
+                f"registered a-side sentence-count hist {dict(comp)}; "
+                f"cull examples {examples}")
     n1_ho = sorted([x for x in carriers_ho["N1"] if carrier_suitable(x)],
                    key=lambda x: (-x._cos, x.scenario_id))
     per_host = {h: 0 for h in want_n1}
     for x in n1_ho:
         if per_host[x.stratum] >= want_n1[x.stratum] or remaining_n1 <= 0:
             continue
+        if scaf_ho.get(x.scaffold_id, 0) >= SCAFFOLD_CAP_V2[x.stratum]:
+            continue
         if x.scenario_id in tr_sel_ids or lib.sha(x.text_a()) in tr_texts \
                 or lib.sha(x.text_b()) in tr_texts:
             culled += 1
             continue
         seal_ids.append(x.scenario_id)
+        scaf_ho[x.scaffold_id] = scaf_ho.get(x.scaffold_id, 0) + 1
         per_host[x.stratum] += 1
         remaining_n1 -= 1
     if remaining_n1 > 0:
@@ -989,11 +1052,14 @@ def cmd_measure2() -> int:
     for x in n2_ho:
         if got_n2 >= SEAL_SHARES_V2["N2"]:
             break
+        if scaf_ho.get(x.scaffold_id, 0) >= SCAFFOLD_CAP_V2[x.stratum]:
+            continue
         if x.scenario_id in tr_sel_ids or lib.sha(x.text_a()) in tr_texts \
                 or lib.sha(x.text_b()) in tr_texts:
             culled += 1
             continue
         seal_ids.append(x.scenario_id)
+        scaf_ho[x.scaffold_id] = scaf_ho.get(x.scaffold_id, 0) + 1
         got_n2 += 1
     if got_n2 < SEAL_SHARES_V2["N2"]:
         die(f"seal disjointness: N2 exhausted ({got_n2}/{SEAL_SHARES_V2['N2']})")
@@ -1003,11 +1069,14 @@ def cmd_measure2() -> int:
     for x in n3_ho:
         if got_n3 >= N3_SEAL:
             break
+        if scaf_ho.get(x.scaffold_id, 0) >= SCAFFOLD_CAP_V2[x.stratum]:
+            continue
         if x.scenario_id in tr_sel_ids or lib.sha(x.text_a()) in tr_texts \
                 or lib.sha(x.text_b()) in tr_texts:
             culled += 1
             continue
         seal_ids.append(x.scenario_id)
+        scaf_ho[x.scaffold_id] = scaf_ho.get(x.scaffold_id, 0) + 1
         got_n3 += 1
     if got_n3 < N3_SEAL:
         die(f"seal disjointness: N3 exhausted ({got_n3}/{N3_SEAL})")
@@ -1030,7 +1099,7 @@ def cmd_measure2() -> int:
                      for c in ("N1", "N2", "N3")},
         "carrier_cells": {c: [{"id": x.scenario_id, "cos": x._cos,
                                "k": len(x.benign),
-                               "side": x.benign[0]["side"]}
+                               "side": (x.benign[0]["side"] if x.benign else None)}
                               for x in carriers[c]]
                           for c in ("N1", "N2", "N3")},
         "holdout_classic": alloc_ho,
@@ -1070,8 +1139,8 @@ def cmd_build2() -> int:
     pin = json.loads(PIN_V2_PATH.read_text(encoding="utf-8"))
     log("build2_start", pin_sha=lib.sha(PIN_V2_PATH.read_text(encoding="utf-8"))[:16])
     cos = Cos()
-    train_pool = gen_pool(SEEDS_V2["train"], "tr")
-    hold_pool = gen_pool(SEEDS_V2["hold"], "ho")
+    train_pool = gen_pool(SEEDS_V2["train"], "tr", rotate=False)
+    hold_pool = gen_pool(SEEDS_V2["hold"], "ho", rotate=True)
     n1_pool = gen_n1_pool(SEEDS_V2["train"], "tr")
     n2_pool = gen_n2_pool(SEEDS_V2["train"], "tr")
     n3_pool = gen_n3_pool(SEEDS_V2["train"], "tr")
