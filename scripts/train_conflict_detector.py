@@ -15,6 +15,10 @@ PHASE-1 DISCIPLINE (hard, enforced structurally):
 - Order (dispatch §3): trainer -> floors (ML-STD-0001/0004, train-only,
   published BEFORE gate_start) -> sanity §6.3 (7 probes through the
   PRODUCTION circuit) -> gate (implemented, NOT executed in phase 1).
+- Suite amendment (ADDENDUM-4 @ 0971639, ratified MLC 10.11): probe 7 runs
+  ONE-LEG on frozen-13 — leg-2 (translation-fact-changed) is known-uncovered
+  (feature-blind zone), its verdict is PUBLISHED but NOT asserted; suite
+  count is "6/7 legs + 1 known-uncovered" (bare "7/7" = fabrication, E3).
 
 Reuse map (0 reimplementations, lesson #480):
 - features        : frozen ``cortex.features.pair`` CORE-13 (exact order).
@@ -1954,6 +1958,112 @@ def cmd_floors(args: argparse.Namespace) -> int:
     return 0
 
 
+# --- ADDENDUM-4 suite amendment (ratified MLC 10.11; §9 E1-E10) ---------------
+
+
+#: Amendment identity: docs/experiments/conflict-detector-corpus-design-ADDENDUM-4.md
+#: (draft f9586f1 -> ratified 0971639); arbiter script that produced the L2
+#: evidence: docs/experiments/b6_conflict_cross_cell_analysis.py @ 45737d2.
+AMENDMENT4_COMMIT = "09716392fdf17692930d5289bcdf1fde85f58b2f"
+AMENDMENT4_SHORT = "0971639"
+AMENDMENT4_DOC = REPO / "docs" / "experiments" / "conflict-detector-corpus-design-ADDENDUM-4.md"
+AMENDMENT4_ARBITER_COMMIT = "45737d2"
+#: Byte-stable disclosure marker (ADDENDUM-4 E8). MUST ride the SAME log
+#: line / table cell as every probe-7 number it qualifies (a distant
+#: footnote = hidden degradation per E8). While this stands, the suite is
+#: NEVER counted as bare "7/7" — the convention is "6/7 legs + 1
+#: known-uncovered" (E3); a bare "7/7" after the amendment = fabrication.
+KNOWN_UNCOVERED_MARKER = (
+    "probe 7 = 1-leg; leg-2 known-uncovered — слепая зона frozen-13, "
+    f"ADDENDUM-4 @ {AMENDMENT4_SHORT}; возврат в OQ-3"
+)
+
+#: E2 numeric-form declaration of the known-uncovered verdict (ADDENDUM-4
+#: §9.2 E2, with fact corrections K1-K3). Zone class per E1: this is a
+#: FEATURE-blind zone (label semantically unambiguous, the frozen-13
+#: surface carries no separating coordinate for the two legs) — explicit
+#: extension of the §10.2 zone principle beyond policy-двузначных зон;
+#: future declarations owe the same form. Facts mechanically verified by
+#: the arbiter script (ML reproduced L2 independently: 1.0003 exact,
+#: NN 4.2428/7.6158).
+KNOWN_UNCOVERED_LEG2 = {
+    "zone_class": "feature-blind zone (E1: extension of the §10.2 zone "
+    "principle from policy-двузначных зон to feature-слепые зоны)",
+    "probe": "7-translation-fact-changed",
+    "leg": 2,
+    "surface": "frozen-13 CORE-13 (manifest feature_set_sha256 "
+    "dd86228f8c634f28…, v2 bundle 2534fcbe)",
+    "amendment": "ADDENDUM-4",
+    "amendment_commit": AMENDMENT4_COMMIT,
+    "arbiter_script": "docs/experiments/b6_conflict_cross_cell_analysis.py",
+    "arbiter_script_commit": AMENDMENT4_ARBITER_COMMIT,
+    #: E2 pinned triple: legs mutual distance / Δ of the live coordinate /
+    #: distance to the nearest train support (margin ≈4x).
+    "numeric_form": {
+        "legs_mutual_distance_l2": 1.0003,
+        "live_coordinate_delta": 0.001,
+        "nearest_train_support_l2_min": 4.243,
+        "margin": "≈4x",
+    },
+    #: Per-coordinate disclosure (K1 exact form): cos_target is the ONLY
+    #: coordinate with SEPARATED class intervals; Δcos between the legs
+    #: (0.001) is not label-tied — cos position is a function of wording,
+    #: not of the fact.
+    "separating_coordinates": {
+        "cos_target": {
+            "pos": [0.7002, 0.7458],
+            "neg": [0.7980, 0.8289],
+            "legs_delta": 0.001,
+            "note": "the only coordinate with separated class intervals "
+            "(K1); ceiling 0.7458 = sampled seed-family artifact, not "
+            "embedder physics (K3) — cos ≥0.75 is reachable (probe-7 "
+            "fixture itself measures 0.7738)",
+        },
+    },
+    #: Dead coordinates (no variance / ≈0 on the cross-cell): the verdict
+    #: rests on L2/Δcos/dead coordinates — construction-stable, NOT on
+    #: ceiling attribution (K3).
+    "dead_coordinates": [
+        "char3_jaccard", "char4_jaccard", "char5_jaccard",
+        "char3_containment", "char4_containment", "char5_containment",
+        "tag_jaccard", "type_match", "lang_match",
+    ],
+    "dead_coordinate_note": "char3/4/5 (jaccard+containment) ≈ 0 across "
+    "different alphabets; tag/type/lang — constants in the cross-cell",
+    #: Live but NOT separating (K1): len-deltas keep class intervals
+    #: overlapping.
+    "live_non_separating": {
+        "coordinates": ["title_len_delta", "body_len_delta", "tag_count_delta"],
+        "intervals": {"pos": [5, 30], "neg": [3, 29]},
+        "note": "live but OVERLAPPING class intervals — not separating (K1)",
+    },
+    #: E4 side door: while the declaration stands, no NEW probe may assert
+    #: on the declared dead-coordinate set.
+    "side_door": "E4: while this declaration stands, NO new probe asserts "
+    "on the declared dead-coordinate set",
+    #: E5 blindness ceiling — enforced in run_sanity_suite (fail-closed).
+    "blindness_ceiling": "E5: >1 simultaneous known-uncovered leg on one "
+    "frozen surface = full surface verdict (line stop, OQ-3 escalation); "
+    "corpus amend-once (E13) and suite-amendment budgets are separate; "
+    "corpus v2 untouched",
+    #: E6 review trigger + DE-3 return mechanics (MODEL_CARD carrier).
+    "review_trigger": "E6: opening of OQ-3 or N ratified waves — whichever "
+    "first (N is not pinned by the addendum; set at the TL gate before Ф2)",
+    "return_mechanics": "DE-3: fresh fixtures through the FROZEN generator "
+    "+ repeat cross-cell analysis (arbiter script) BEFORE any new gates + "
+    "seal-virginity assert for the whole deferral period in the ADOPT report",
+    #: E10: the missing feature is named — numeric-set intersection (digits
+    #: survive letter-normalization: eq 500=500 vs fact 500≠1000 would give
+    #: Δ≈1 on a semantic coordinate); strengthens reversibility (iv).
+    "oq3_missing_feature": "numeric-set intersection (E10)",
+    "support_argument": "E9: band [0.75,0.80) holds 0 train rows of either "
+    "class => no split is induced there (gain=0 on an empty region); any "
+    "learnable leg-discrimination scheme would be fixture memoization "
+    "(Δcos 0.001 ≪ paraphrase jitter: para1 moves char5 0.966→0.912) — "
+    "no learnable scheme exists on frozen-13 in principle",
+}
+
+
 # --- sanity fixtures (§6.3; source = the P3 preflight cells of the generator) ---
 
 
@@ -2039,8 +2149,12 @@ def probe_result(name: str, expect: str, ok: bool, res: dict, inv: bool) -> None
 
 def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
     """7 probes §6.3 on fixture cells THROUGH the production circuit
-    (guard+model). Red on ANY probe = InstrumentAbort — the sealed holdout
-    is NOT read (class 'instrument', П6 ML-STD-0002)."""
+    (guard+model), per ADDENDUM-4 @ 0971639 probe 7 runs ONE-LEG: leg-2
+    (translation-fact-changed) is known-uncovered — published with the
+    E8 marker, NOT asserted. Red on any ASSERT leg = InstrumentAbort —
+    the sealed holdout is NOT read (class 'instrument', П6 ML-STD-0002).
+    Count convention (E3): "6/7 legs + 1 known-uncovered" — a bare "7/7"
+    after the amendment is fabrication."""
     sc = build_fixtures()
     sc["_nano"] = NanoLeg()
     fx = dict(sc)  # includes "_nano" (the embedder leg for sc_row cos)
@@ -2174,8 +2288,10 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
          "expectation": "contradicts on all 3 steps (raw/cosmetic/para1)"}
     )
 
-    # 7 — translation twin: identity translation (NC-4 lang delta) NOT +
-    # translation with changed fact (CD-1 cross) contradicts
+    # 7 — translation twin (ADDENDUM-4: ONE-LEG probe). leg-1: identity
+    # translation (NC-4 lang delta) NOT — the remaining assert. leg-2:
+    # translation-fact-changed (CD-1 cross) — known-uncovered, published
+    # below without assertion.
     r7n = sc_row(fx, "NC-4-lang")
     r7n = dict(r7n, pair_id="fx-trans-ok")
     res7n = run_pair(
@@ -2186,12 +2302,51 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
         "is different-subject siblings; identity translation is the "
         "generator-native correct-translation surface, 8 train rows)",
     )
+    # leg-2 — known-uncovered (E1 feature-blind zone): stays in the suite
+    # (E3), verdict PUBLISHED with the byte-stable marker in the SAME line
+    # (E8), NOT asserted, does not fold into all_ok.
     r7p = sc_row(fx, "CD-1-cross")
-    run_pair(
-        r7p, "7-translation-fact-changed", "contradicts (changed-fact translation)",
-        lambda res: res["verdict"] == "contradicts",
-        note="fixture: §4.4 cross positive — RU sentence vs EN translation "
-        "with one changed factual reference (12 train rows)",
+    rec7_a, rec7_b = row_records(r7p)
+    cos7 = float(r7p["measured"]["cos_target"])
+    res7p = decide_pipeline(rec7_a, rec7_b, cos7, booster)
+    r7p_swap = orientation_swap(r7p)
+    rec7_a2, rec7_b2 = row_records(r7p_swap)
+    res7p_rev = decide_pipeline(rec7_a2, rec7_b2, cos7, booster)
+    inv7p = res7p["verdict"] == res7p_rev["verdict"]
+    if log_it:
+        log(
+            "sanity_probe",
+            probe="7-translation-fact-changed",
+            expectation="known-uncovered (ADDENDUM-4): verdict PUBLISHED, "
+            "NOT asserted — no pass/fail on this leg",
+            known_uncovered=True,
+            covered=False,
+            ok=None,
+            order_invariant=inv7p,
+            verdict=res7p.get("verdict"),
+            verdict_rev=res7p_rev.get("verdict"),
+            leg=res7p.get("leg"),
+            p=res7p.get("p"),
+            cos_target=round(cos7, 4),
+            marker=KNOWN_UNCOVERED_MARKER,
+            amendment=f"ADDENDUM-4 @ {AMENDMENT4_SHORT}",
+            declaration=KNOWN_UNCOVERED_LEG2,
+            note="fixture: §4.4 cross positive — RU sentence vs EN "
+            "translation with one changed factual reference; v1 called it "
+            "contradicts p≈1 in force of EMPTY negative support, v2 with "
+            "real N3 cross-negatives calls it not-contradicts — each "
+            "model wrong on exactly one side (K2); the legs sit one point "
+            "apart on every separating coordinate (L2 1.0003, §1)",
+        )
+    results.append(
+        {"probe": "7-translation-fact-changed", "known_uncovered": True,
+         "covered": False, "ok": None, "order_invariant": inv7p,
+         "result": res7p, "result_rev": res7p_rev,
+         "expectation": "known-uncovered (ADDENDUM-4): published, "
+         "not asserted",
+         "note": "E3: the leg stays in the suite with the known-uncovered "
+         "tag + amendment SHA; E8: marker rides the same line as the "
+         "verdict/p/cos number"}
     )
 
     # diagnostic (published, NOT a probe, off-support honesty number):
@@ -2305,12 +2460,45 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
                 "diagnostic cannot be published"
             )
 
+    # --- E5 blindness ceiling: >1 simultaneous known-uncovered leg on
+    # --- one frozen surface = full surface verdict (stop, OQ-3 escalation)
+    ku_legs = [r for r in results if r.get("known_uncovered")]
+    if len(ku_legs) > 1:
+        raise InstrumentAbort(
+            "E5 blindness ceiling exceeded: "
+            f"{len(ku_legs)} known-uncovered legs on one frozen surface "
+            f"({[r['probe'] for r in ku_legs]}) — full surface verdict: "
+            "line stop + OQ-3 escalation (ADDENDUM-4 E5)"
+        )
+
+    # Count convention (ADDENDUM-4 E3): 6 = probes 1-6 (full asserts),
+    # denominator 7 = the §6.3 suite; probe 7 counts as the known-uncovered
+    # unit (leg-2), its leg-1 assert stays green and is published beside.
+    legs_green = sum(
+        1 for r in results
+        if r.get("ok") is True
+        and not r.get("known_uncovered")
+        and not str(r["probe"]).startswith("7-")
+    )
+    probe7_leg1_ok = next(
+        (r["ok"] for r in results if r["probe"] == "7-translation-twin-not"),
+        None,
+    )
     log(
         "sanity_suite_done",
         ok=all_ok,
-        probes=len(results),
-        expectation="7/7 probes green + order invariance (v2: + E8-iii "
-        "canary); red => holdout NOT read (instrument abort)",
+        count=f"{legs_green}/7 legs + {len(ku_legs)} known-uncovered",
+        legs_total=7,
+        legs_green=legs_green,
+        known_uncovered_legs=len(ku_legs),
+        probe7_mode="1-leg",
+        probe7_leg1_assert_ok=probe7_leg1_ok,
+        marker=KNOWN_UNCOVERED_MARKER,
+        amendment=f"ADDENDUM-4 @ {AMENDMENT4_SHORT}",
+        expectation="6/7 legs green + 1 known-uncovered + order invariance "
+        "(v2: + E8-iii canary); bare '7/7' after the amendment = "
+        "fabrication (ADDENDUM-4 E3); leg-1 of probe 7 remains a green "
+        "assert; red ASSERT leg => holdout NOT read (instrument abort)",
     )
     if not all_ok:
         raise InstrumentAbort(
@@ -2329,7 +2517,8 @@ def cmd_sanity(args: argparse.Namespace) -> int:
         expected_cycle_s=60,
         expected_peak_ram_gb=1.0,
         lane="sanity lane: 7 fixture probes through the production circuit "
-        "(pinned nano embedder, ~30 embeds)",
+        "(pinned nano embedder, ~30 embeds); ADDENDUM-4: probe 7 ONE-LEG "
+        "(leg-2 known-uncovered, published not asserted)",
     )
     # fixture choice fixed BEFORE the run (delta map item 6)
     fx = build_fixtures()
@@ -2346,8 +2535,32 @@ def cmd_sanity(args: argparse.Namespace) -> int:
     booster, _manifest = load_frozen()
     pro = prologue(SLICE_SANITY)
     _ = pro
+    # ADDENDUM-4 suite amendment applied to THIS run (E8/E3 disclosure):
+    # after the activation asserts, in the same slice as the amended suite.
+    add_text = AMENDMENT4_DOC.read_text(encoding="utf-8")
+    add_ratified = "РАТИФИЦИРОВАНО" in add_text
+    log(
+        "suite_amendment_applied",
+        amendment="ADDENDUM-4",
+        amendment_commit=AMENDMENT4_COMMIT,
+        amendment_doc="docs/experiments/conflict-detector-corpus-design-ADDENDUM-4.md",
+        amendment_sha256=sha256_text(add_text),
+        ratified_marker_present=add_ratified,
+        arbiter_script_commit=AMENDMENT4_ARBITER_COMMIT,
+        probe7_mode="1-leg",
+        known_uncovered_probe="7-translation-fact-changed",
+        asserted_probe7_leg="7-translation-twin-not",
+        count_convention="6/7 legs + 1 known-uncovered (E3; bare 7/7 = fabrication)",
+        marker=KNOWN_UNCOVERED_MARKER,
+        declaration=KNOWN_UNCOVERED_LEG2,
+    )
+    if not add_ratified:
+        raise InstrumentAbort(
+            "ADDENDUM-4 ratified marker missing at HEAD — refusing to run "
+            "the amended suite unratified (fail-closed)"
+        )
     run_sanity_suite(booster)
-    log("sanity_cmd_done", status="GREEN", artifact=manifest["sha256"][:16])
+    log("sanity_cmd_done", status="GREEN", artifact=_manifest["sha256"][:16])
     return 0
 
 
