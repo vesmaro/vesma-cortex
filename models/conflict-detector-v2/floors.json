@@ -1,0 +1,213 @@
+{
+ "standard": "ML-STD-0001 (tolerance noise floors) + ML-STD-0004 (declared floor, stage 2)",
+ "formula": "delta_acc = max(p95 - p5; 0.10)",
+ "artifact_sha256": "2534fcbec2b7872a196838ffb4df6c2167d98d3d2404f2c7fe470153c956cde0",
+ "measured_at": "2026-11-09T22:43:27.453+00:00",
+ "remeasure_after_single_shot": "FORBIDDEN",
+ "floor_seed": {
+  "seeds": [
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   50,
+   51,
+   52
+  ],
+  "per_seed": [
+   {
+    "seed": 43,
+    "n_rows": 200,
+    "acc_model": 0.84,
+    "acc_baseline_max": 0.62,
+    "delta": 0.22,
+    "contradicts_rate": 0.28
+   },
+   {
+    "seed": 44,
+    "n_rows": 200,
+    "acc_model": 0.86,
+    "acc_baseline_max": 0.62,
+    "delta": 0.24,
+    "contradicts_rate": 0.3
+   },
+   {
+    "seed": 45,
+    "n_rows": 200,
+    "acc_model": 0.87,
+    "acc_baseline_max": 0.62,
+    "delta": 0.25,
+    "contradicts_rate": 0.31
+   },
+   {
+    "seed": 46,
+    "n_rows": 200,
+    "acc_model": 0.87,
+    "acc_baseline_max": 0.62,
+    "delta": 0.25,
+    "contradicts_rate": 0.31
+   },
+   {
+    "seed": 47,
+    "n_rows": 200,
+    "acc_model": 0.87,
+    "acc_baseline_max": 0.62,
+    "delta": 0.25,
+    "contradicts_rate": 0.31
+   },
+   {
+    "seed": 48,
+    "n_rows": 200,
+    "acc_model": 0.85,
+    "acc_baseline_max": 0.62,
+    "delta": 0.23,
+    "contradicts_rate": 0.29
+   },
+   {
+    "seed": 49,
+    "n_rows": 200,
+    "acc_model": 0.87,
+    "acc_baseline_max": 0.62,
+    "delta": 0.25,
+    "contradicts_rate": 0.31
+   },
+   {
+    "seed": 50,
+    "n_rows": 200,
+    "acc_model": 0.86,
+    "acc_baseline_max": 0.62,
+    "delta": 0.24,
+    "contradicts_rate": 0.3
+   },
+   {
+    "seed": 51,
+    "n_rows": 200,
+    "acc_model": 0.86,
+    "acc_baseline_max": 0.62,
+    "delta": 0.24,
+    "contradicts_rate": 0.3
+   },
+   {
+    "seed": 52,
+    "n_rows": 200,
+    "acc_model": 0.89,
+    "acc_baseline_max": 0.62,
+    "delta": 0.27,
+    "contradicts_rate": 0.33
+   }
+  ],
+  "distribution": {
+   "n": 10,
+   "median": 0.245,
+   "p5": 0.2245,
+   "p95": 0.261,
+   "max_pairwise": 0.05,
+   "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+  },
+  "delta_acc_declared": 0.1,
+  "delta_acc_recheck": 0.1,
+  "formula": "delta_acc = max(p95 - p5; 0.10)"
+ },
+ "floor_q": {
+  "seeds": [
+   53,
+   54,
+   55
+  ],
+  "rates": [
+   0.29,
+   0.32,
+   0.31
+  ],
+  "distribution": {
+   "n": 3,
+   "median": 0.31,
+   "p5": 0.292,
+   "p95": 0.319,
+   "max_pairwise": 0.03,
+   "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+  },
+  "floor": 0.03
+ },
+ "floor_inv": {
+  "draws": [
+   901,
+   902,
+   903
+  ],
+  "disagreement_rates": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "distribution": {
+   "n": 3,
+   "median": 0.0,
+   "p5": 0.0,
+   "p95": 0.0,
+   "max_pairwise": 0.0,
+   "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+  },
+  "floor": 0.0,
+  "delta_inv": 0.0,
+  "formula": "delta_inv := 2*floor_inv",
+  "fix_set": {
+   "exclude_carriers": [
+    "N1"
+   ],
+   "eligible_rows": 1128,
+   "total_train_rows": 1200
+  },
+  "gate_e12": "floor_inv(v2) <= floor_inv(v1 measured) (v2 preset)",
+  "transform": "case-only cosmetic variant (surface-invariant by construction, machine-asserted per row); whitespace-len perturbation is NOT cosmetic on this surface (body_len_delta is raw) — see floor_fixture_defect in the run-log",
+  "ws_len_diagnostic_rates": [
+   0.075,
+   0.0125,
+   0.075
+  ]
+ },
+ "floor_perm": {
+  "perms": [
+   951,
+   952,
+   953
+  ],
+  "delta_rates": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "distribution": {
+   "n": 3,
+   "median": 0.0,
+   "p5": 0.0,
+   "p95": 0.0,
+   "max_pairwise": 0.0,
+   "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+  },
+  "floor": 0.0,
+  "fix": "2a45f28 distinct permutation per seed"
+ },
+ "draw_recipe": {
+  "quota": {
+   "CD-1": 12,
+   "CD-2": 6,
+   "CD-3": 6,
+   "CD-4": 6,
+   "CD-5": 4,
+   "CD-6": 6,
+   "NC-1": 11,
+   "NC-2": 16,
+   "NC-3": 9,
+   "NC-4": 6,
+   "NC-5": 18
+  },
+  "pairs_per_draw": 100,
+  "prefix": "cdf",
+  "recipe": "cb.gen_pool + cb.rows_of (frozen build code path); rotate_pair makes floor texts byte-differ from train",
+  "disjointness": "draw ids vs train ids = 0 (asserted per draw)"
+ }
+}
