@@ -1,0 +1,205 @@
+{
+ "standard": "ML-STD-0001 (tolerance noise floors) + ML-STD-0004 (declared floor, stage 2)",
+ "formula": "delta_acc = max(p95 - p5; 0.10)",
+ "artifact_sha256": "0f8b6916b9fa45dbf376323e770958864faac018fc6ee8761a312d89816276ef",
+ "measured_at": "2026-11-09T17:31:12.947+00:00",
+ "remeasure_after_single_shot": "FORBIDDEN",
+ "floor_seed": {
+  "seeds": [
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   50,
+   51,
+   52
+  ],
+  "per_seed": [
+   {
+    "seed": 43,
+    "n_rows": 200,
+    "acc_model": 0.92,
+    "acc_baseline_max": 0.66,
+    "delta": 0.26,
+    "contradicts_rate": 0.36
+   },
+   {
+    "seed": 44,
+    "n_rows": 200,
+    "acc_model": 0.95,
+    "acc_baseline_max": 0.66,
+    "delta": 0.29,
+    "contradicts_rate": 0.39
+   },
+   {
+    "seed": 45,
+    "n_rows": 200,
+    "acc_model": 0.95,
+    "acc_baseline_max": 0.66,
+    "delta": 0.29,
+    "contradicts_rate": 0.39
+   },
+   {
+    "seed": 46,
+    "n_rows": 200,
+    "acc_model": 0.91,
+    "acc_baseline_max": 0.66,
+    "delta": 0.25,
+    "contradicts_rate": 0.35
+   },
+   {
+    "seed": 47,
+    "n_rows": 200,
+    "acc_model": 0.94,
+    "acc_baseline_max": 0.66,
+    "delta": 0.28,
+    "contradicts_rate": 0.38
+   },
+   {
+    "seed": 48,
+    "n_rows": 200,
+    "acc_model": 0.93,
+    "acc_baseline_max": 0.66,
+    "delta": 0.27,
+    "contradicts_rate": 0.37
+   },
+   {
+    "seed": 49,
+    "n_rows": 200,
+    "acc_model": 0.94,
+    "acc_baseline_max": 0.66,
+    "delta": 0.28,
+    "contradicts_rate": 0.38
+   },
+   {
+    "seed": 50,
+    "n_rows": 200,
+    "acc_model": 0.92,
+    "acc_baseline_max": 0.66,
+    "delta": 0.26,
+    "contradicts_rate": 0.36
+   },
+   {
+    "seed": 51,
+    "n_rows": 200,
+    "acc_model": 0.93,
+    "acc_baseline_max": 0.66,
+    "delta": 0.27,
+    "contradicts_rate": 0.37
+   },
+   {
+    "seed": 52,
+    "n_rows": 200,
+    "acc_model": 0.94,
+    "acc_baseline_max": 0.66,
+    "delta": 0.28,
+    "contradicts_rate": 0.38
+   }
+  ],
+  "distribution": {
+   "n": 10,
+   "median": 0.275,
+   "p5": 0.2545,
+   "p95": 0.29,
+   "max_pairwise": 0.04,
+   "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+  },
+  "delta_acc_declared": 0.1,
+  "delta_acc_recheck": 0.1,
+  "formula": "delta_acc = max(p95 - p5; 0.10)"
+ },
+ "floor_q": {
+  "seeds": [
+   53,
+   54,
+   55
+  ],
+  "rates": [
+   0.38,
+   0.37,
+   0.36
+  ],
+  "distribution": {
+   "n": 3,
+   "median": 0.37,
+   "p5": 0.361,
+   "p95": 0.379,
+   "max_pairwise": 0.02,
+   "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+  },
+  "floor": 0.02
+ },
+ "floor_inv": {
+  "draws": [
+   901,
+   902,
+   903
+  ],
+  "disagreement_rates": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "distribution": {
+   "n": 3,
+   "median": 0.0,
+   "p5": 0.0,
+   "p95": 0.0,
+   "max_pairwise": 0.0,
+   "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+  },
+  "floor": 0.0,
+  "delta_inv": 0.0,
+  "formula": "delta_inv := 2*floor_inv",
+  "transform": "case-only cosmetic variant (surface-invariant by construction, machine-asserted per row); whitespace-len perturbation is NOT cosmetic on this surface (body_len_delta is raw) — see floor_fixture_defect in the run-log",
+  "ws_len_diagnostic_rates": [
+   0.1125,
+   0.1,
+   0.0625
+  ]
+ },
+ "floor_perm": {
+  "perms": [
+   951,
+   952,
+   953
+  ],
+  "delta_rates": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "distribution": {
+   "n": 3,
+   "median": 0.0,
+   "p5": 0.0,
+   "p95": 0.0,
+   "max_pairwise": 0.0,
+   "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+  },
+  "floor": 0.0,
+  "fix": "2a45f28 distinct permutation per seed"
+ },
+ "draw_recipe": {
+  "quota": {
+   "CD-1": 12,
+   "CD-2": 6,
+   "CD-3": 6,
+   "CD-4": 6,
+   "CD-5": 4,
+   "CD-6": 6,
+   "NC-1": 15,
+   "NC-2": 12,
+   "NC-3": 9,
+   "NC-4": 6,
+   "NC-5": 18
+  },
+  "pairs_per_draw": 100,
+  "prefix": "cdf",
+  "recipe": "cb.gen_pool + cb.rows_of (frozen build code path); rotate_pair makes floor texts byte-differ from train",
+  "disjointness": "draw ids vs train ids = 0 (asserted per draw)"
+ }
+}

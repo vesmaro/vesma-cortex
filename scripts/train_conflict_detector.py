@@ -1119,9 +1119,15 @@ def guard_off_probe(rows: list[dict], booster: lgb.Booster) -> dict:
 
 
 def cosmetic_variant(text: str, rng: random.Random) -> str:
-    """Cosmetic corruption (case + whitespace only): invisible to the whole
-    frozen surface (norm1 lower+collapse everywhere: features, guard
-    regions, embed_text) — the П1 'заведомо-нулевое условие' for floor_inv."""
+    """Cosmetic corruption: CASE flips ONLY.
+
+    Invariant on the whole frozen surface BY CONSTRUCTION: pair.py
+    normalizes text (lower + whitespace-collapse), the guard regions run
+    on norm1, embed_text runs n1 — a case flip is invisible to all of
+    them AND keeps the raw lengths (so *_len_delta stays untouched).
+    Whitespace additions are NOT cosmetic on this surface (body_len_delta
+    is a raw char-length delta — see the floor_fixture_defect run-log
+    event): they ride the published whitespace-len diagnostic instead."""
     words = text.split(" ")
     out = []
     for w in words:
@@ -1131,12 +1137,38 @@ def cosmetic_variant(text: str, rng: random.Random) -> str:
         elif r < 0.30 and w:
             w = w.capitalize()
         out.append(w)
-    s = " ".join(out)
-    if rng.random() < 0.5:
-        s = s + "  "
-    if rng.random() < 0.5:
-        s = " " + s
-    return s
+    return " ".join(out)
+
+
+def ws_len_variant(text: str) -> str:
+    """Whitespace-length perturbation — DIAGNOSTIC surface (not cosmetic):
+    adds trailing whitespace, visible to body_len_delta by design."""
+    return text + "  "
+
+
+def assert_cosmetic_surface_invariance(row: dict, rng: random.Random) -> None:
+    """Machine proof that the cosmetic transform is surface-invariant:
+    identical CORE-13 vector, identical embed_text, identical guard."""
+    rec_a, rec_b = row_records(row)
+    pert = row_with_body(row, "envelope_b", cosmetic_variant(row["envelope_b"]["body"], rng))
+    prec_a, prec_b = row_records(pert)
+    cos = float(row["measured"]["cos_target"])
+    v1 = pair_vector(rec_a, rec_b, cos)
+    v2 = pair_vector(prec_a, prec_b, cos)
+    if not np.array_equal(v1, v2):
+        raise InstrumentAbort(
+            "cosmetic surface-invariance RED: features changed under a "
+            "case-only variant"
+        )
+    t1 = lib.embed_text(type("S", (), {"title": rec_b.title, "body": rec_b.body,
+                                        "tags": list(rec_b.tags)})())
+    t2 = lib.embed_text(type("S", (), {"title": prec_b.title, "body": prec_b.body,
+                                        "tags": list(prec_b.tags)})())
+    if t1 != t2:
+        raise InstrumentAbort(
+            "cosmetic surface-invariance RED: embed_text changed under a "
+            "case-only variant"
+        )
 
 
 def row_with_body(row: dict, side: str, body: str) -> dict:
@@ -1480,11 +1512,14 @@ def cmd_floors(args: argparse.Namespace) -> int:
     eligible = train_rows  # all 1200 rows are fold-eligible material
     inv_seeds = FLOOR_INV_SEEDS
     inv_disagreements = []
+    ws_diagnostic = []
     for draw_seed in inv_seeds:
         rng = random.Random(draw_seed)
         sample = rng.sample(eligible, min(80, len(eligible)))
         dis = 0
+        ws_dis = 0
         for r in sample:
+            assert_cosmetic_surface_invariance(r, rng)
             rec_a, rec_b = row_records(r)
             base = decide_pipeline(
                 rec_a, rec_b, float(r["measured"]["cos_target"]), booster
@@ -1493,12 +1528,16 @@ def cmd_floors(args: argparse.Namespace) -> int:
                 r, "envelope_b", cosmetic_variant(r["envelope_b"]["body"], rng)
             )
             prec_a, prec_b = row_records(pert)
-            # cosmetic variants keep the corpus cos (the surface is
-            # normalization-invariant; asserted by the identity of the
-            # embedded text below via the same convention string)
             alt = decide_pipeline(prec_a, prec_b, float(r["measured"]["cos_target"]), booster)
             dis += int(base["verdict"] != alt["verdict"])
+            # published diagnostic (NOT a floor): whitespace-len variant is
+            # VISIBLE to body_len_delta — measures that sensitivity only
+            wsp = row_with_body(r, "envelope_b", ws_len_variant(r["envelope_b"]["body"]))
+            wpa, wpb = row_records(wsp)
+            walt = decide_pipeline(wpa, wpb, float(r["measured"]["cos_target"]), booster)
+            ws_dis += int(base["verdict"] != walt["verdict"])
         inv_disagreements.append(round(dis / len(sample), 4))
+        ws_diagnostic.append(round(ws_dis / len(sample), 4))
     dist_inv = _dist([float(v) for v in inv_disagreements])
     floor_inv = max(inv_disagreements) if inv_disagreements else 0.0
     log(
@@ -1510,8 +1549,12 @@ def cmd_floors(args: argparse.Namespace) -> int:
         delta_inv=round(2 * floor_inv, 4),
         delta_inv_formula="delta_inv := 2*floor_inv (enters g_stab "
         "threshold 1 - 2*floor_inv)",
-        note="structurally 0 expected: the whole frozen surface "
-        "(features, guard regions, embed_text) is normalization-invariant",
+        ws_len_diagnostic_rates=ws_diagnostic,
+        note="structurally 0 by construction, machine-asserted per row "
+        "(case-only cosmetic variant: features, guard regions and "
+        "embed_text are normalization-invariant and lengths unchanged; "
+        "see the floor_fixture_defect event — whitespace-len variants are "
+        "a published diagnostic, never a floor)",
     )
 
     # --- floor_perm: orientation permutation on train pairs, 3 seeds -------
@@ -1578,6 +1621,11 @@ def cmd_floors(args: argparse.Namespace) -> int:
             "floor": floor_inv,
             "delta_inv": round(2 * floor_inv, 4),
             "formula": "delta_inv := 2*floor_inv",
+            "transform": "case-only cosmetic variant (surface-invariant by "
+            "construction, machine-asserted per row); whitespace-len "
+            "perturbation is NOT cosmetic on this surface (body_len_delta "
+            "is raw) — see floor_fixture_defect in the run-log",
+            "ws_len_diagnostic_rates": ws_diagnostic,
         },
         "floor_perm": {
             "perms": perm_seeds,
@@ -1764,8 +1812,10 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
     run_pair(
         row, "2-cosmetic-twin", "NOT contradicts, invariant",
         lambda res: res["verdict"] == "not-contradicts",
-        note="cos rides the corpus-measured convention (the surface is "
-        "normalization-invariant, so the variant embeds identically)",
+        note="cosmetic transform = CASE-only (surface-invariant by "
+        "construction: normalization lowercases, lengths unchanged; "
+        "whitespace-len perturbations are a published diagnostic, see "
+        "floor_fixture_defect) — the variant embeds identically",
     )
 
     # 3 — envelope variant (whitelist §8.1 deltas): NOT contradicts
