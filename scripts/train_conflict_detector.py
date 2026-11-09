@@ -84,6 +84,8 @@ SPEC = REPO / "docs" / "experiments" / "conflict-detector-corpus-design.md"
 
 #: The sealed surface is not even hashed in phase 1 — the byte pin comes
 #: from the BUILD manifest fingerprints + the seal json (both metadata).
+#: v1 DEFAULTS (byte-identical to the F1 run); ``apply_input_params``
+#: rebinds them per the resolved input preset.
 TRAIN_SHA_PIN = "0be52dd220c792810420c10921f30329ba6d903bfda5c02f9900ffdb8295e4aa"
 HOLDOUT_SHA_PIN = "e8adfec9625b0f72ac001ed6024da2e3fd3bb5170169b6d93f26afde521b2567"
 
@@ -91,6 +93,7 @@ SLICE_TRAIN = "conflict-detector-v1-train"
 SLICE_FLOOR = "conflict-detector-v1-floors"
 SLICE_SANITY = "conflict-detector-v1-sanity"
 SLICE_GATE = "conflict-detector-v1-gate"
+SLICE_OOF = "conflict-detector-v1-oof-carriers"
 
 _SLICE = SLICE_TRAIN
 
@@ -161,6 +164,193 @@ EXPECTED_HOLDOUT_PAIRS = {
 }
 #: Baselines pinned in the BUILD manifest (g_ba target max(BL) = 0.66).
 EXPECTED_BASELINES = {"BL-band": 0.49, "BL-digit": 0.57, "BL-digit+guard": 0.66}
+SEAL_N_META = 180  # seal ids count (metadata; asserted vs seal json)
+
+# --- input presets (B6 v2 re-run; CLI input plumbing ONLY, semantics
+# --- unchanged: features / guard / cut 0.5 / production circuit untouched) ----
+#
+# The v1 tables above are byte-identical to the F1 run. The v2 preset pins the
+# NEW v2 bytes (ADDENDUM-3 §8, ratified E1-E13): train.jsonl a549dc0c…,
+# pin-v2.json dcb3536d…, seal CD-holdout-v2 (holdout content sha c92a2caa…,
+# metadata only, n=180). Table values come from the v2 BUILD manifest
+# METADATA (asserts.A-count.detail / baselines / strata.class_total) — no
+# sealed surface is read anywhere. Unknown corpus dirs are a fail-closed
+# instrument abort: no pins, no run.
+
+V2_EXPECTED_TRAIN_ROW_COUNTS = {
+    "CD-1": 144, "CD-2": 72, "CD-3": 72, "CD-4": 72, "CD-5": 48, "CD-6": 72,
+    "NC-1": 132, "NC-2": 192, "NC-3": 108, "NC-4": 72, "NC-5": 216,
+}
+V2_EXPECTED_HOLDOUT_PAIRS = {
+    "CD-1": 22, "CD-2": 11, "CD-3": 11, "CD-4": 10, "CD-5": 7, "CD-6": 11,
+    "NC-1": 20, "NC-2": 29, "NC-3": 16, "NC-4": 11, "NC-5": 32,
+}
+V2_EXPECTED_BASELINES = {"BL-band": 0.465, "BL-digit": 0.53, "BL-digit+guard": 0.62}
+#: Floor draw composition = v2 class_total // 6 (== 100 pairs per draw; the
+#: ML-STD-0004 formula on the v2 strata table — cross-checked against the
+#: build manifest strata metadata at floors start).
+V2_FLOOR_DRAW_QUOTA = {
+    "CD-1": 12, "CD-2": 6, "CD-3": 6, "CD-4": 6, "CD-5": 4, "CD-6": 6,
+    "NC-1": 11, "NC-2": 16, "NC-3": 9, "NC-4": 6, "NC-5": 18,
+}
+_V1_LINEAGE = (
+    "mirror of merge_arbiter_train.py per "
+    "docs/experiments/conflict-detector-trainer-delta-map.md; "
+    "dispatch docs/experiments/conflict-detector-train-dispatch-2026-11-06.md"
+)
+
+INPUT_PRESETS = {
+    "v1": {
+        "corpus_dir": REPO / "data" / "conflict-detector" / "corpus-v1",
+        "pin": REPO / "data" / "conflict-detector" / "pin.json",
+        "seal": REPO / "data" / "conflict-detector" / "seals" / "CD-holdout-v1.seal.json",
+        "artifact_dir": REPO / "models" / "conflict-detector-v1",
+        "train_sha256": "0be52dd220c792810420c10921f30329ba6d903bfda5c02f9900ffdb8295e4aa",
+        "holdout_sha256": "e8adfec9625b0f72ac001ed6024da2e3fd3bb5170169b6d93f26afde521b2567",
+        "pin_sha256": None,  # v1 tripwire keeps its exact F1 shape
+        "seal_sha256": None,
+        "expected_train_rows": EXPECTED_TRAIN_ROW_COUNTS,
+        "expected_holdout_pairs": EXPECTED_HOLDOUT_PAIRS,
+        "expected_baselines": EXPECTED_BASELINES,
+        "floor_draw_quota": None,  # module default: cb.STRATA_QUOTA // 6
+        "floor_inv_exclude_carriers": (),  # E12 scoping is a v2 ratification
+        "canary_para2": None,  # E8-iii is a v2 ratification
+        "para_sweep_words": 0,  # E8-iv is a v2 ratification
+        "activation_extra": None,
+        "lineage": _V1_LINEAGE,
+    },
+    "v2": {
+        "corpus_dir": REPO / "data" / "conflict-detector" / "corpus-v2",
+        "pin": REPO / "data" / "conflict-detector" / "pin-v2.json",
+        "seal": REPO / "data" / "conflict-detector" / "seals" / "CD-holdout-v2.seal.json",
+        "artifact_dir": REPO / "models" / "conflict-detector-v2",
+        "train_sha256": "a549dc0c2a32fe0ff6cc4035f95c8c9e888813e24430b67ac71f272ea06ec115",
+        "holdout_sha256": "c92a2caa283869ce9a7a28baa34c06f8a67de89a4b47b4f6266b0a0383d4b4c2",
+        "pin_sha256": "dcb3536d899fe3545a31f0aaaf349863ae3d10eab507448600c96e326b429d8f",
+        "seal_sha256": "5b95bfd7f2a2be8eecca09b0c98f2deea8806b37ca05924a74f72dfcf21bf909",
+        "expected_train_rows": V2_EXPECTED_TRAIN_ROW_COUNTS,
+        "expected_holdout_pairs": V2_EXPECTED_HOLDOUT_PAIRS,
+        "expected_baselines": V2_EXPECTED_BASELINES,
+        "floor_draw_quota": V2_FLOOR_DRAW_QUOTA,
+        "floor_inv_exclude_carriers": ("N1",),  # E12: N1 cells NOT in the floor fix-set
+        "canary_para2": {
+            # the build's own canary selection (build driver E8(iii) block):
+            # CD-1 para_b=2 cross cells; regenerate the v2 train pool with the
+            # EXACT build call (rotate=False explicit) and intersect ids with
+            # train pair ids -> the 7 SELECTED cells.
+            "seed": 2113,
+            "prefix": "tr",
+            "rotate": False,
+            "expect_count": 7,
+            "expect_verdict": "contradicts",
+        },
+        "para_sweep_words": 5,  # E8-iv: sweep >=3 applicable PARA_RU words
+        "activation_extra": {
+            "addendum": REPO / "docs" / "experiments"
+            / "conflict-detector-corpus-design-ADDENDUM-3.md",
+            "marker": "РАТИФИЦИРОВАНО (amend-then-ratify)",
+            "corpus_v2_build_commit": "2d9ce88",
+        },
+        "lineage": _V1_LINEAGE
+        + "; corpus v2 per "
+        "docs/experiments/conflict-detector-corpus-design-ADDENDUM-3.md §8 "
+        "(ratified amend-then-ratify, E1-E13); trainer input params via CLI "
+        "(--corpus-dir/--pin/--seal/--artifact-dir), semantics unchanged",
+    },
+}
+
+#: Active preset (set by apply_input_params from the CLI input args).
+_INPUT_PRESET_VERSION = "v1"
+_INPUT_PRESET = INPUT_PRESETS["v1"]
+FLOOR_INV_EXCLUDE_CARRIERS: tuple[str, ...] = ()
+CANARY_PARA2: dict | None = None
+PARA_SWEEP_WORDS = 0
+
+
+def apply_input_params(args: argparse.Namespace) -> None:
+    """Resolve the input preset from the CLI input args and rebind the
+    module-level path/pin/table constants.
+
+    INPUT PLUMBING ONLY — no decision-semantics surface is touched here:
+    the feature contract, the guard leg, the cut-0.5 rule and the
+    production circuit are the same code for v1 and v2. Default
+    invocation (no args) resolves to the v1 preset, i.e. byte-identical
+    behavior to the F1 run."""
+    global CORPUS_DIR, TRAIN_JSONL, BUILD_MANIFEST, PIN_JSON, HOLDOUT_JSONL
+    global SEAL_JSON, ART_DIR, FLOORS_DOC, MODEL_CARD, ONNX_PATH, MANIFEST_PATH
+    global TRAIN_SHA_PIN, HOLDOUT_SHA_PIN
+    global EXPECTED_TRAIN_ROW_COUNTS, EXPECTED_HOLDOUT_PAIRS, EXPECTED_BASELINES
+    global FLOOR_DRAW_QUOTA, FLOOR_DRAW_PAIRS
+    global FLOOR_INV_EXCLUDE_CARRIERS, CANARY_PARA2, PARA_SWEEP_WORDS
+    global SLICE_TRAIN, SLICE_FLOOR, SLICE_SANITY, SLICE_GATE, SLICE_OOF, _SLICE
+    global _INPUT_PRESET, _INPUT_PRESET_VERSION, SEAL_N_META
+
+    corpus_dir = Path(args.corpus_dir) if args.corpus_dir else None
+    if corpus_dir is None:
+        version = "v1"
+    else:
+        corpus_dir = corpus_dir if corpus_dir.is_absolute() else (REPO / corpus_dir)
+        known = {str(p["corpus_dir"]): k for k, p in INPUT_PRESETS.items()}
+        if str(corpus_dir) not in known:
+            raise InstrumentAbort(
+                f"unknown corpus dir {corpus_dir} — no ratified pin set "
+                f"exists for it (known: {sorted(known)}); refusing to run "
+                "unpinned (fail-closed)"
+            )
+        version = known[str(corpus_dir)]
+    preset = INPUT_PRESETS[version]
+    _INPUT_PRESET_VERSION = version
+    _INPUT_PRESET = preset
+
+    CORPUS_DIR = corpus_dir if corpus_dir is not None else preset["corpus_dir"]
+    PIN_JSON = Path(args.pin) if args.pin else preset["pin"]
+    SEAL_JSON = Path(args.seal) if args.seal else preset["seal"]
+    ART_DIR = Path(args.artifact_dir) if args.artifact_dir else preset["artifact_dir"]
+    TRAIN_JSONL = CORPUS_DIR / "train.jsonl"
+    BUILD_MANIFEST = CORPUS_DIR / "build-manifest.json"
+    HOLDOUT_JSONL = CORPUS_DIR / "holdout.jsonl"
+    FLOORS_DOC = ART_DIR / "floors.json"
+    MODEL_CARD = ART_DIR / "MODEL_CARD.md"
+    ONNX_PATH = ART_DIR / "model.onnx"
+    MANIFEST_PATH = ART_DIR / "manifest.json"
+
+    TRAIN_SHA_PIN = preset["train_sha256"]
+    HOLDOUT_SHA_PIN = preset["holdout_sha256"]
+    EXPECTED_TRAIN_ROW_COUNTS = preset["expected_train_rows"]
+    EXPECTED_HOLDOUT_PAIRS = preset["expected_holdout_pairs"]
+    EXPECTED_BASELINES = preset["expected_baselines"]
+    FLOOR_DRAW_QUOTA = (
+        dict(preset["floor_draw_quota"])
+        if preset["floor_draw_quota"] is not None
+        else {s: cb.STRATA_QUOTA[s] // 6 for s in ORDER}
+    )
+    FLOOR_DRAW_PAIRS = sum(FLOOR_DRAW_QUOTA.values())
+    FLOOR_INV_EXCLUDE_CARRIERS = tuple(preset["floor_inv_exclude_carriers"])
+    CANARY_PARA2 = preset["canary_para2"]
+    PARA_SWEEP_WORDS = preset["para_sweep_words"]
+
+    #: artifact identity: derived from the artifact dir NAME (input plumbing);
+    #: v1 resolves to the exact F1 strings.
+    global ART_PREFIX, ART_VERSION_SUFFIX, SEAL_NAME
+    ART_PREFIX = ART_DIR.name
+    ART_VERSION_SUFFIX = (
+        ART_PREFIX.rsplit("-v", 1)[1].lstrip("v") if "-v" in ART_PREFIX else "1"
+    )
+    SEAL_NAME = SEAL_JSON.name[: -len("".join(SEAL_JSON.suffixes))] or SEAL_JSON.stem
+    # "CD-holdout-v1" / "CD-holdout-v2" (all suffixes stripped)
+
+    SLICE_TRAIN = f"{ART_PREFIX}-train"
+    SLICE_FLOOR = f"{ART_PREFIX}-floors"
+    SLICE_SANITY = f"{ART_PREFIX}-sanity"
+    SLICE_GATE = f"{ART_PREFIX}-gate"
+    SLICE_OOF = f"{ART_PREFIX}-oof-carriers"
+    _SLICE = {
+        "train": SLICE_TRAIN,
+        "floors": SLICE_FLOOR,
+        "sanity": SLICE_SANITY,
+        "gate": SLICE_GATE,
+        "oof-carriers": SLICE_OOF,
+    }.get(getattr(args, "cmd", ""), _SLICE)
 
 # --- floors config (ML-STD-0001 + ML-STD-0004; train-only, П3) ----------------
 
@@ -390,12 +580,38 @@ def prologue(slice_name: str) -> dict:
     if TRAIN_SHA_PIN != manifest["fingerprints"]["train.jsonl"]:
         seal_mism.append("train_pin_vs_dispatch")
     pins["seal_n_ids"] = seal["n"]
+    # v2 preset (ADDENDUM-3 E11): the NEW v2 pins are hard — the pin-v2 file
+    # bytes and the seal FILE bytes are pinned against the preset and the v2
+    # build manifest. The v1 tripwire keeps its exact F1 shape.
+    v2_tripwire = {}
+    if _INPUT_PRESET_VERSION == "v2":
+        if pins["pin_json_sha256"] != _INPUT_PRESET["pin_sha256"]:
+            seal_mism.append("pin_v2_vs_preset_sha")
+        if pins["pin_json_sha256"] != manifest["pin_sha256"]:
+            seal_mism.append("pin_v2_vs_build_manifest")
+        if TRAIN_SHA_PIN != pins["train_jsonl_sha256"]:
+            seal_mism.append("train_pin_vs_bytes")
+        seal_file_sha = sha256_file(SEAL_JSON)
+        if seal_file_sha != _INPUT_PRESET["seal_sha256"]:
+            seal_mism.append("seal_file_vs_preset_sha")
+        if seal_file_sha != manifest["fingerprints"].get("seal"):
+            seal_mism.append("seal_file_vs_build_manifest")
+        if seal["n"] != SEAL_N_META:
+            seal_mism.append("seal_n_vs_preset")
+        v2_tripwire = {
+            "preset": "v2",
+            "pin_sha256_pinned": _INPUT_PRESET["pin_sha256"],
+            "seal_sha256_pinned": _INPUT_PRESET["seal_sha256"],
+            "seal_file_sha256": seal_file_sha,
+            "holdout_sha_metadata_pin": HOLDOUT_SHA_PIN,
+        }
     log(
         "byte_tripwire",
         pins=pins,
         expected_hard=want,
         mismatch_hard=hard_mism,
         seal_metadata_mismatch=seal_mism,
+        v2_preset_pins=v2_tripwire,
         sealed_file_opened=False,
         note="holdout.jsonl NOT hashed/opened — metadata pins only",
     )
@@ -423,12 +639,36 @@ def prologue(slice_name: str) -> dict:
             capture_output=True,
         )
         ancestry[name] = {"commit": commit, "is_ancestor": r.returncode == 0}
-    ok = ratified and all(v["is_ancestor"] for v in ancestry.values())
+    # v2 preset: the corpus-v2 ratification (ADDENDUM-3 §8, amend-then-ratify)
+    # and the corpus-v2 build commit join the activation assert.
+    activation_extra = {}
+    ratified_effective = ratified
+    if _INPUT_PRESET_VERSION == "v2":
+        extra = _INPUT_PRESET["activation_extra"]
+        add_text = extra["addendum"].read_text(encoding="utf-8")
+        add_ratified = extra["marker"] in add_text
+        r2 = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", extra["corpus_v2_build_commit"], "HEAD"],
+            cwd=REPO,
+            capture_output=True,
+        )
+        ancestry["corpus-v2-build"] = {
+            "commit": extra["corpus_v2_build_commit"],
+            "is_ancestor": r2.returncode == 0,
+        }
+        activation_extra = {
+            "addendum": extra["addendum"].name,
+            "addendum_sha256": sha256_text(add_text),
+            "ratified_marker_present": add_ratified,
+        }
+        ratified_effective = ratified and add_ratified and r2.returncode == 0
+    ok = ratified_effective and all(v["is_ancestor"] for v in ancestry.values())
     log(
         "activation",
         spec_sha256=sha256_text(spec_text),
         ratified_marker_present=ratified,
         commits=ancestry,
+        activation_extra=activation_extra,
         ok=ok,
     )
     if not ok:
@@ -851,11 +1091,11 @@ def _export_onnx(booster: lgb.Booster, trained_at: str, corpus_fp: str) -> dict:
 
     props = {
         "name": "conflict-detector",
-        "version": "1",
+        "version": ART_VERSION_SUFFIX,
         "embedder_pin": "nano:sha256:" + lib.EMBEDDER_PIN,
         "corpus_fingerprint": corpus_fp,
         "trained_at": trained_at,
-        "candidate": "conflict-detector-v1",
+        "candidate": ART_PREFIX,
         "features": "\n".join(FEATURE_NAMES),
         "feature_set_sha256": features_digest(FEATURE_NAMES),
         "guard_version": lib.GUARD_VERSION,
@@ -913,10 +1153,12 @@ def freeze_artifact(
     guard_off: dict,
     in_sample: dict,
 ) -> str:
-    """Freeze models/conflict-detector-v1/ (dispatch §7 bundle; the CONTENT
-    sections mirror the merge-v2 committed-doc discipline per the delta
-    map §8: thresholds/rule, guard section with pinned constants, corpus
-    pins, baselines, cv characterization, env pins, convention)."""
+    """Freeze the artifact bundle under ART_DIR (dispatch §7 bundle; the
+    CONTENT sections mirror the merge-v2 committed-doc discipline per the
+    delta map §8: thresholds/rule, guard section with pinned constants,
+    corpus pins, baselines, cv characterization, env pins, convention).
+    The artifact identity (name/version) derives from the resolved
+    ART_DIR — input plumbing, not decision semantics."""
     if ART_DIR.exists() and any(ART_DIR.iterdir()):
         raise InstrumentAbort(
             f"artifact dir already populated: {ART_DIR} — refreeze over "
@@ -929,12 +1171,10 @@ def freeze_artifact(
 
     manifest = {
         "manifest_schema": 2,
-        "name": "conflict-detector-v1",
-        "version": "1",
+        "name": ART_PREFIX,
+        "version": ART_VERSION_SUFFIX,
         "wave": "b6-conflict",
-        "artifact_lineage": "mirror of merge_arbiter_train.py per "
-        "docs/experiments/conflict-detector-trainer-delta-map.md; "
-        "dispatch docs/experiments/conflict-detector-train-dispatch-2026-11-06.md",
+        "artifact_lineage": _INPUT_PRESET["lineage"],
         "sha256": onnx_info["sha256"],
         "size_bytes": ONNX_PATH.stat().st_size,
         "embedder_pin": lib.EMBEDDER_PIN,
@@ -980,7 +1220,7 @@ def freeze_artifact(
             "build_manifest_sha256": pins["build_manifest_sha256"],
             "pin_json_sha256": pins["pin_json_sha256"],
             "holdout_jsonl_sha256_metadata_pin": HOLDOUT_SHA_PIN,
-            "seal_n_ids_metadata": 180,
+            "seal_n_ids_metadata": SEAL_N_META,
             "regime": "synthetic-only; no store texts; no LLM; labels by "
             "construction",
         },
@@ -1011,7 +1251,7 @@ def write_model_card(manifest: dict) -> None:
     pointer (design §5.2: глоссарий обязателен)."""
     b = manifest["baselines_train"]
     lines = [
-        "# MODEL CARD — conflict-detector-v1",
+        f"# MODEL CARD — {ART_PREFIX}",
         "",
         f"- Trained: {manifest['trained_at']} (host {EXPECTED_HOST}, seed {SEED})",
         "- Task: binary contradicts/not-contradicts on memory record PAIRS "
@@ -1025,16 +1265,16 @@ def write_model_card(manifest: dict) -> None:
         "n1(title)\\n+n1(body)\\n+n1(tags) [:4096]",
         f"- Corpus: 600 pairs x 2 orientations = 1200 rows "
         f"(sha256 {manifest['corpus']['train_jsonl_sha256'][:16]}…); "
-        "holdout CD-holdout-v1 SEALED (180 pairs), read exactly once by the "
+        f"holdout {SEAL_NAME} SEALED (180 pairs), read exactly once by the "
         "gate runner",
         f"- Baselines (train): BL-band {b['BL-band']} / BL-digit "
         f"{b['BL-digit']} / BL-digit+guard {b['BL-digit+guard']} "
-        "(target max(BL) = 0.66)",
+        f"(target max(BL) = {max(EXPECTED_BASELINES.values())})",
         f"- CV characterization (honesty, no selection): OOF acc "
         f"{manifest['cv_characterization']['oof_acc']}, OOF brier "
         f"{manifest['cv_characterization']['oof_brier']} "
         f"({manifest['cv_characterization']['folds']} folds by scaffold)",
-        "- Floors: models/conflict-detector-v1/floors.json (ML-STD-0001/0004; "
+        f"- Floors: {FLOORS_DOC} (ML-STD-0001/0004; "
         "published BEFORE gate_start; re-measure after single-shot forbidden)",
         "- Gates §6.2: verdict = conjunction; ADOPT/DECLINE by the single-shot "
         "gate runner (implemented, executed only on the explicit TL command)",
@@ -1401,6 +1641,31 @@ def cmd_floors(args: argparse.Namespace) -> int:
     _ = manifest
     pro = prologue(SLICE_FLOOR)
     _ = pro
+    if _INPUT_PRESET_VERSION == "v2":
+        # v2 floor quota cross-check against the build manifest strata
+        # metadata (ADDENDUM-3 §8.2 class_total // 6 == 100 pairs/draw).
+        bm_strata = pro["build_manifest"]["strata"]
+        quota_mism = {
+            s: {
+                "quota": FLOOR_DRAW_QUOTA[s],
+                "manifest_class_total_div_6": bm_strata[s]["class_total"] // 6,
+            }
+            for s in ORDER
+            if FLOOR_DRAW_QUOTA[s] != bm_strata[s]["class_total"] // 6
+        }
+        log(
+            "floor_quota_vs_build_manifest_v2",
+            quota=FLOOR_DRAW_QUOTA,
+            draw_pairs=FLOOR_DRAW_PAIRS,
+            mismatch=quota_mism,
+            ok=not quota_mism,
+            source="v2 build manifest strata.class_total (metadata; "
+            "ADDENDUM-3 §8.2)",
+        )
+        if quota_mism:
+            raise InstrumentAbort(
+                f"floor draw quota diverges from the v2 build manifest: {quota_mism}"
+            )
     if FLOORS_DOC.exists():
         raise InstrumentAbort(
             f"floors doc already exists: {FLOORS_DOC} — re-measuring is "
@@ -1509,7 +1774,13 @@ def cmd_floors(args: argparse.Namespace) -> int:
     )
 
     # --- floor_inv: cosmetic variation on train pairs, 3 draws -------------
-    eligible = train_rows  # all 1200 rows are fold-eligible material
+    # v1: all 1200 rows are fold-eligible material (F1 shape). E12 (v2):
+    # N1 carrier cells are NOT in the floor fix-set — the inv sample rides
+    # the carrier-free host rows, keeping the floor_inv(v2) <= floor_inv(v1)
+    # gate comparable across corpora.
+    eligible = [
+        r for r in train_rows if r.get("carrier") not in FLOOR_INV_EXCLUDE_CARRIERS
+    ]
     inv_seeds = FLOOR_INV_SEEDS
     inv_disagreements = []
     ws_diagnostic = []
@@ -1550,6 +1821,14 @@ def cmd_floors(args: argparse.Namespace) -> int:
         delta_inv_formula="delta_inv := 2*floor_inv (enters g_stab "
         "threshold 1 - 2*floor_inv)",
         ws_len_diagnostic_rates=ws_diagnostic,
+        fix_set={
+            "exclude_carriers": list(FLOOR_INV_EXCLUDE_CARRIERS),
+            "eligible_rows": len(eligible),
+            "total_train_rows": len(train_rows),
+            "rule": "cosmetic-twin scope (probes 2/3 surface); E12: "
+            "N1 carrier cells not in the floor fix-set (v2)",
+        },
+        gate="E12: floor_inv(v2) <= floor_inv(v1 measured) (v2 preset)",
         note="structurally 0 by construction, machine-asserted per row "
         "(case-only cosmetic variant: features, guard regions and "
         "embed_text are normalization-invariant and lengths unchanged; "
@@ -1621,6 +1900,12 @@ def cmd_floors(args: argparse.Namespace) -> int:
             "floor": floor_inv,
             "delta_inv": round(2 * floor_inv, 4),
             "formula": "delta_inv := 2*floor_inv",
+            "fix_set": {
+                "exclude_carriers": list(FLOOR_INV_EXCLUDE_CARRIERS),
+                "eligible_rows": len(eligible),
+                "total_train_rows": len(train_rows),
+            },
+            "gate_e12": "floor_inv(v2) <= floor_inv(v1 measured) (v2 preset)",
             "transform": "case-only cosmetic variant (surface-invariant by "
             "construction, machine-asserted per row); whitespace-len "
             "perturbation is NOT cosmetic on this surface (body_len_delta "
@@ -1926,12 +2211,106 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
         "number for the owner/MLC, never a gate or a probe",
     )
 
+    # --- E8-iii canary (v2 preset only): the build's para_b=2 CD-1 cells
+    # --- must STAY contradicts through the production circuit --------------
+    if CANARY_PARA2:
+        rows_by_id = {r["pair_id"]: r for r in load_train()}
+        pool = cb.gen_pool(
+            CANARY_PARA2["seed"], CANARY_PARA2["prefix"], rotate=CANARY_PARA2["rotate"]
+        )
+        para2_pool = {
+            sc.scenario_id for sc in pool if sc.stratum == "CD-1" and sc.para_b == 2
+        }
+        ids = sorted(para2_pool & set(rows_by_id))
+        log(
+            "e8_iii_canary_para2_start",
+            pool_cd1_para2_cells=len(para2_pool),
+            selected_in_train=len(ids),
+            expected=CANARY_PARA2["expect_count"],
+            recipe=f"cb.gen_pool({CANARY_PARA2['seed']}, '{CANARY_PARA2['prefix']}', "
+            f"rotate={CANARY_PARA2['rotate']}) — the exact v2 build call; ids "
+            "∩ train pair_ids; no sealed surface touched",
+        )
+        if len(ids) != CANARY_PARA2["expect_count"]:
+            raise InstrumentAbort(
+                f"canary para2 set mismatch: regenerated pool ∩ train gives "
+                f"{len(ids)} cells, build manifest recorded "
+                f"{CANARY_PARA2['expect_count']} — trainer/build divergence"
+            )
+        canary_cells = []
+        canary_ok = True
+        for pid in ids:
+            r = rows_by_id[pid]
+            rec_a, rec_b = row_records(r)
+            res = decide_pipeline(rec_a, rec_b, float(r["measured"]["cos_target"]), booster)
+            rsw = orientation_swap(r)
+            rec2_a, rec2_b = row_records(rsw)
+            res2 = decide_pipeline(rec2_a, rec2_b, float(r["measured"]["cos_target"]), booster)
+            ok_c = (
+                res["verdict"] == CANARY_PARA2["expect_verdict"]
+                and res2["verdict"] == CANARY_PARA2["expect_verdict"]
+            )
+            canary_ok = canary_ok and ok_c
+            canary_cells.append(
+                {"pair_id": pid, "verdict": res["verdict"], "verdict_rev": res2["verdict"],
+                 "p": res.get("p"), "cos_target": round(float(r["measured"]["cos_target"]), 4),
+                 "ok": ok_c}
+            )
+        log(
+            "e8_iii_canary_para2",
+            cells=canary_cells,
+            expectation="all 7 para_b=2 CD-1 cells stay contradicts (E8-iii), "
+            "both orientations",
+            ok=canary_ok,
+        )
+        all_ok = all_ok and canary_ok
+
+    # --- E8-iv para1 sweep (v2 preset only): >=3 PARA_RU words on the
+    # --- probe-6 fixture — PUBLISHED DIAGNOSTIC, never a gate --------------
+    if PARA_SWEEP_WORDS:
+        base6 = sc_row(fx, "CD-2")
+        body6 = base6["envelope_b"]["body"]
+        cos6 = float(base6["measured"]["cos_target"])
+        applicable = [(a, b) for a, b in lib.PARA_RU if a in body6]
+        sweep = []
+        for a, b in applicable[:PARA_SWEEP_WORDS]:
+            row6 = dict(base6, pair_id=f"fx-para1-sweep-{a}")
+            row6["envelope_b"] = dict(base6["envelope_b"], body=body6.replace(a, b, 1))
+            rec_a, rec_b = row_records(row6)
+            res = decide_pipeline(rec_a, rec_b, cos6, booster)
+            sweep.append(
+                {"word": a, "sub": b, "verdict": res["verdict"], "p": res.get("p"),
+                 "leg": res.get("leg")}
+            )
+        log(
+            "e8_iv_para1_sweep",
+            para_dict_words_total=len(lib.PARA_RU),
+            applicable_on_fixture=len(applicable),
+            swept=len(sweep),
+            words=[w["word"] for w in sweep],
+            results=sweep,
+            cos_target=round(cos6, 4),
+            published_diagnostic=True,
+            not_a_gate=True,
+            note="E8-iv: one-word para1 substitutions from the PINNED "
+            "PARA_RU dictionary (sha256 ru "
+            f"{lib.PARA_DICT_SHA['ru'][:16]}…) on the probe-6 fixture, "
+            "probe-6 cos convention; published diagnostics — no abort on "
+            "verdict",
+        )
+        if len(sweep) < 3:
+            raise InstrumentAbort(
+                f"E8-iv sweep under-supported: only {len(sweep)} applicable "
+                "PARA_RU words on the probe-6 fixture (<3) — the ratified "
+                "diagnostic cannot be published"
+            )
+
     log(
         "sanity_suite_done",
         ok=all_ok,
         probes=len(results),
-        expectation="7/7 probes green + order invariance; red => holdout "
-        "NOT read (instrument abort)",
+        expectation="7/7 probes green + order invariance (v2: + E8-iii "
+        "canary); red => holdout NOT read (instrument abort)",
     )
     if not all_ok:
         raise InstrumentAbort(
@@ -1969,6 +2348,139 @@ def cmd_sanity(args: argparse.Namespace) -> int:
     _ = pro
     run_sanity_suite(booster)
     log("sanity_cmd_done", status="GREEN", artifact=manifest["sha256"][:16])
+    return 0
+
+
+# --- subcommand: oof-carriers (E8-ii sliced OOF; v2 pre-gate characterization) --
+
+
+#: E8-ii: post-train sliced OOF on the N1∪N2 carrier rows, scaffold-grouped,
+#: Wilson 95% CI; STOP-SIGNAL: acc < 0.75 BEFORE the gate = instrument-class
+#: stop (not a red gate; ADDENDUM-3 §8 E8-ii). Characterization only — the
+#: ratified decision rule stays cut 0.5, no threshold search.
+OOF_CARRIER_SLICE = ("N1", "N2")
+OOF_STOP_SIGNAL = 0.75
+OOF_WILSON_Z = 1.959963985  # two-sided 95%
+
+
+def _wilson_ci(k: int, n: int, z: float = OOF_WILSON_Z) -> list[float]:
+    """Wilson score interval on k/n (E8-ii mandates the Wilson CI)."""
+    p = k / n
+    denom = 1 + z * z / n
+    center = (p + z * z / (2 * n)) / denom
+    half = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / denom
+    return [round(center - half, 4), round(center + half, 4)]
+
+
+def cmd_oof_carriers(args: argparse.Namespace) -> int:
+    global _SLICE
+    _SLICE = SLICE_OOF
+    log(
+        "cost_declaration",
+        expected_prolog_s=3,
+        expected_cycle_s=120,
+        expected_peak_ram_gb=1.0,
+        lane="oof-carriers lane: 5 scaffold-grouped refits on the train "
+        "matrix + sliced OOF readout on the N1∪N2 carrier rows (no embeds; "
+        "no sealed surface)",
+    )
+    if _INPUT_PRESET_VERSION != "v2":
+        raise InstrumentAbort(
+            "oof-carriers is the E8-ii v2 instrument — run it with the v2 "
+            "input preset (--corpus-dir .../corpus-v2)"
+        )
+    booster, manifest = load_frozen()
+    pro = prologue(SLICE_OOF)
+    _ = pro
+    rows = load_train()
+
+    # carrier tags: the machine-visible per-row tags (E7), cross-checked
+    # against the build-manifest carrier quotas before anything is computed.
+    pairs_by_carrier: dict[str | None, set[str]] = {}
+    for r in rows:
+        pairs_by_carrier.setdefault(r.get("carrier"), set()).add(r["pair_id"])
+    want = {
+        c: pro["build_manifest"]["carriers"][c]["quota"] for c in ("N1", "N2", "N3")
+    }
+    mism = {
+        c: {"got_pairs": len(pairs_by_carrier.get(c, ())), "want_pairs": q}
+        for c, q in want.items()
+        if len(pairs_by_carrier.get(c, ())) != q
+    }
+    log(
+        "carrier_tag_crosscheck",
+        got_pairs={str(k): len(v) for k, v in sorted(pairs_by_carrier.items(), key=lambda x: str(x[0]))},
+        want_pairs=want,
+        mismatch=mism,
+        ok=not mism,
+        source="train row 'carrier' tags vs build-manifest carriers quotas (E7)",
+    )
+    if mism:
+        raise InstrumentAbort(f"carrier tag cross-check RED: {mism}")
+
+    x, y, meta = build_matrix(rows)
+    groups = np.asarray([_pair_scaffold(m["pair_id"]) for m in meta])
+    from sklearn.model_selection import GroupKFold
+
+    oof = np.zeros(len(y), dtype=np.float64)
+    gkf = GroupKFold(n_splits=CV_K)
+    for tr_i, te_i in gkf.split(x, y, groups):
+        b = fit_booster(x[tr_i], y[tr_i])
+        oof[te_i] = b.predict(x[te_i])
+    pred = (oof >= DECISION_CUT).astype(np.float64)
+
+    slice_mask = np.asarray([r.get("carrier") in OOF_CARRIER_SLICE for r in rows])
+    hits = int((pred[slice_mask] == y[slice_mask]).sum())
+    n_slice = int(slice_mask.sum())
+    acc = hits / n_slice
+    lo, hi = _wilson_ci(hits, n_slice)
+    per_carrier: dict[str, dict[str, int]] = {}
+    per_stratum: dict[str, dict[str, int]] = {}
+    for r, hit in zip(rows, (pred == y)[slice_mask]):
+        c = r.get("carrier")
+        st = per_carrier.setdefault(c, {"rows": 0, "hits": 0})
+        st["rows"] += 1
+        st["hits"] += int(hit)
+        stt = per_stratum.setdefault(r["stratum"], {"rows": 0, "hits": 0})
+        stt["rows"] += 1
+        stt["hits"] += int(hit)
+    slice_pairs = {r["pair_id"] for r in rows if r.get("carrier") in OOF_CARRIER_SLICE}
+    slice_scaffolds = {_pair_scaffold(p) for p in slice_pairs}
+    log(
+        "oof_carriers_slice",
+        carriers=list(OOF_CARRIER_SLICE),
+        rows=n_slice,
+        pairs=len(slice_pairs),
+        distinct_scaffolds=len(slice_scaffolds),
+        folds=CV_K,
+        grouping="scaffold_id GroupKFold (E6: N1 scaffold inherited from the "
+        "donor — donor↔variant never split across folds, leak-free by "
+        "grouping)",
+        cut=DECISION_CUT,
+        hits=hits,
+        oof_acc=round(acc, 4),
+        wilson95=[lo, hi],
+        per_carrier=per_carrier,
+        per_stratum=per_stratum,
+        stop_signal=OOF_STOP_SIGNAL,
+        artifact_sha256=manifest["sha256"],
+        note="E8-ii sliced OOF — characterization instrument BEFORE the "
+        "gate; NOT a threshold search (ratified cut 0.5)",
+    )
+    ok = acc >= OOF_STOP_SIGNAL
+    log(
+        "oof_carriers_done",
+        status="GREEN" if ok else "STOP",
+        oof_acc=round(acc, 4),
+        stop_signal=OOF_STOP_SIGNAL,
+        note="E8-ii: acc < 0.75 BEFORE the gate = instrument-class stop "
+        "(not a red gate); the sealed holdout is NOT read in either case",
+    )
+    if not ok:
+        raise InstrumentAbort(
+            f"E8-ii stop-signal RED: sliced OOF N1∪N2 acc {acc:.4f} < "
+            f"{OOF_STOP_SIGNAL} — gate stays closed; STOP + report to TL"
+        )
     return 0
 
 
@@ -2393,19 +2905,53 @@ def _eval_gates_on_holdout(
 # --- CLI -----------------------------------------------------------------------
 
 
+def _add_input_args(p: argparse.ArgumentParser) -> None:
+    """B6 v2 re-run input plumbing (semantics unchanged): the four input
+    locations, defaults resolving to the ratified v1 preset."""
+    p.add_argument(
+        "--corpus-dir",
+        default=None,
+        help="corpus dir, e.g. data/conflict-detector/corpus-v2 "
+        "(default: the ratified v1 corpus; unknown dirs abort fail-closed)",
+    )
+    p.add_argument("--pin", default=None, help="pin json (default: per corpus preset)")
+    p.add_argument(
+        "--seal",
+        default=None,
+        help="seal json — METADATA only, never opened here "
+        "(default: per corpus preset)",
+    )
+    p.add_argument(
+        "--artifact-dir",
+        default=None,
+        help="artifact dir (default: per corpus preset)",
+    )
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    p = sub.add_parser("train", help="train + freeze models/conflict-detector-v1")
+    p = sub.add_parser("train", help="train + freeze the resolved artifact dir")
     p.add_argument("--run-tag", default="phase1")
+    _add_input_args(p)
     p.set_defaults(fn=cmd_train)
 
     p = sub.add_parser("floors", help="ML-STD-0001/0004 floors (train-only)")
+    _add_input_args(p)
     p.set_defaults(fn=cmd_floors)
 
     p = sub.add_parser("sanity", help="sanity suite §6.3 through the circuit")
+    _add_input_args(p)
     p.set_defaults(fn=cmd_sanity)
+
+    p = sub.add_parser(
+        "oof-carriers",
+        help="E8-ii sliced OOF on N1∪N2 (scaffold-grouped, Wilson CI; "
+        "v2 pre-gate characterization, stop-signal < 0.75)",
+    )
+    _add_input_args(p)
+    p.set_defaults(fn=cmd_oof_carriers)
 
     p = sub.add_parser("gate", help="single-shot gate §6.2 (sealed holdout)")
     p.add_argument(
@@ -2413,9 +2959,45 @@ def main() -> int:
         action="store_true",
         help="the ONLY way to unseal the holdout read (dispatch §1)",
     )
+    _add_input_args(p)
     p.set_defaults(fn=cmd_gate)
 
     args = ap.parse_args()
+    apply_input_params(args)
+    log(
+        "trainer_input_params",
+        preset=_INPUT_PRESET_VERSION,
+        corpus_dir=str(CORPUS_DIR),
+        pin=str(PIN_JSON),
+        seal=str(SEAL_JSON),
+        seal_opened=False,
+        artifact_dir=str(ART_DIR),
+        artifact_prefix=ART_PREFIX,
+        slices={
+            "train": SLICE_TRAIN,
+            "floors": SLICE_FLOOR,
+            "sanity": SLICE_SANITY,
+            "oof_carriers": SLICE_OOF,
+            "gate": SLICE_GATE,
+        },
+        byte_pins={
+            "train_sha256": TRAIN_SHA_PIN,
+            "holdout_sha256_metadata": HOLDOUT_SHA_PIN,
+            "pin_sha256": _INPUT_PRESET["pin_sha256"],
+            "seal_sha256": _INPUT_PRESET["seal_sha256"],
+        },
+        tables={
+            "expected_train_rows": EXPECTED_TRAIN_ROW_COUNTS,
+            "expected_holdout_pairs": EXPECTED_HOLDOUT_PAIRS,
+            "expected_baselines": EXPECTED_BASELINES,
+            "floor_draw_quota": FLOOR_DRAW_QUOTA,
+        },
+        cmd=args.cmd,
+        note=f"trainer input-params for {_INPUT_PRESET_VERSION}, semantics "
+        "unchanged — features/guard/cut 0.5/production circuit are the same "
+        "code path for every preset; only input locations, byte pins and "
+        "per-corpus tables resolve via CLI",
+    )
     try:
         return args.fn(args)
     except InstrumentAbort as exc:
