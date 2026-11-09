@@ -1181,7 +1181,7 @@ def freeze_artifact(
         "embedder_pin_engine": "nano:sha256:" + lib.EMBEDDER_PIN,
         "corpus_fingerprint_blake2b_256": corpus_fp,
         "trained_at": trained_at,
-        "candidate": "conflict-detector-v1",
+        "candidate": ART_PREFIX,
         "features": list(FEATURE_NAMES),
         "feature_set_sha256": onnx_info["metadata_props"]["feature_set_sha256"],
         "decision_rule": {
@@ -1228,7 +1228,7 @@ def freeze_artifact(
         "env": dict(EXPECTED_ENV),
         "seed": SEED,
         "gates_state": "sealed — single-shot NOT executed at freeze time "
-        "(dispatch §3; holdout v1 reads exactly once at the gate)",
+        f"(dispatch §3; holdout {SEAL_NAME} reads exactly once at the gate)",
     }
     MANIFEST_PATH.write_text(
         json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8"
