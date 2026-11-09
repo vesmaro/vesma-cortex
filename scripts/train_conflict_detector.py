@@ -2430,13 +2430,17 @@ def cmd_oof_carriers(args: argparse.Namespace) -> int:
     pred = (oof >= DECISION_CUT).astype(np.float64)
 
     slice_mask = np.asarray([r.get("carrier") in OOF_CARRIER_SLICE for r in rows])
+    slice_rows = [r for r in rows if r.get("carrier") in OOF_CARRIER_SLICE]
     hits = int((pred[slice_mask] == y[slice_mask]).sum())
     n_slice = int(slice_mask.sum())
     acc = hits / n_slice
     lo, hi = _wilson_ci(hits, n_slice)
     per_carrier: dict[str, dict[str, int]] = {}
     per_stratum: dict[str, dict[str, int]] = {}
-    for r, hit in zip(rows, (pred == y)[slice_mask]):
+    # aligned pairing: slice_rows (rows order preserved by the mask) with the
+    # masked hit vector — a plain zip(rows, …) would misalign (defect fixed
+    # before reporting; the headline acc never used this pairing)
+    for r, hit in zip(slice_rows, (pred == y)[slice_mask]):
         c = r.get("carrier")
         st = per_carrier.setdefault(c, {"rows": 0, "hits": 0})
         st["rows"] += 1
