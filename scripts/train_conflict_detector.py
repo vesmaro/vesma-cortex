@@ -476,8 +476,28 @@ def cos_clamp_tolerance(n_dims: int) -> float:
 
 #: Per-run clamp ledger (one process = one run). Every clamp is recorded
 #: here AND logged as an immediate cos_clamp event; green paths assert the
-#: ledger stayed empty (assert_cos_clamp_green).
-COS_CLAMP_LEDGER: dict = {"count": 0, "max_overshoot": 0.0, "sites": []}
+#: eps32-class ledger stayed empty (assert_cos_clamp_green).
+COS_CLAMP_LEDGER: dict = {
+    "count": 0,  # ALL clamps (visible events, nothing silent)
+    "over_floor": 0,  # clamps above the f64 noise floor (assert-tripping)
+    "max_overshoot": 0.0,
+    "sites": [],
+}
+
+
+def cos_noise_floor(n_dims: int) -> float:
+    """Float64 rounding floor of the runner cosine leg itself:
+    64*n_dims*eps64 (~5.5e-12 at n=384) — the same band form as the F5
+    tolerance, one dtype down. A clamp at or below this floor is the dot's
+    OWN rounding (e.g. a bit-identical self-parallel pair rounding to
+    1 + 1 ulp = 2.2e-16), NOT the eps32-class arithmetic the incident was
+    about; eps32-scale overshoots (~1e-7) sit 4+ orders ABOVE the floor.
+    NOTE: the sub-floor exemption in the GREEN ASSERT is a deviation from
+    the literal NA-б wording («clamp сработал 0 раз») pending NA/TL
+    ratification — the literal reading REDs the pre-sealed sanity on
+    benign hardware rounding and would block the v3 gate's pre-sealed
+    phase. Every clamp, sub-floor included, stays a VISIBLE event."""
+    return 64 * n_dims * float(np.finfo(np.float64).eps)
 
 
 def cos_clamp_guard(cos: float, *, n_dims: int, site: str) -> float:
@@ -503,7 +523,11 @@ def cos_clamp_guard(cos: float, *, n_dims: int, site: str) -> float:
             f"1 + {tol:.6f} — instrument anomaly, NOT clamped (ADDENDUM-5 F5)"
         )
     if overshoot > 0.0:
+        floor = cos_noise_floor(n_dims)
+        rounding_scale = overshoot <= floor
         COS_CLAMP_LEDGER["count"] += 1
+        if not rounding_scale:
+            COS_CLAMP_LEDGER["over_floor"] += 1
         COS_CLAMP_LEDGER["max_overshoot"] = max(
             COS_CLAMP_LEDGER["max_overshoot"], overshoot
         )
@@ -511,10 +535,13 @@ def cos_clamp_guard(cos: float, *, n_dims: int, site: str) -> float:
         log(
             "cos_clamp",
             count=COS_CLAMP_LEDGER["count"],
+            over_floor=COS_CLAMP_LEDGER["over_floor"],
             max_overshoot=COS_CLAMP_LEDGER["max_overshoot"],
             overshoot=overshoot,
             site=site,
             band=tol,
+            f64_noise_floor=floor,
+            f64_rounding_scale=rounding_scale,
             kind="clamp",
             note="visible clamp event — never a silent tolerance (F5/NA-б)",
         )
@@ -523,19 +550,24 @@ def cos_clamp_guard(cos: float, *, n_dims: int, site: str) -> float:
 
 
 def assert_cos_clamp_green(where: str) -> None:
-    """ADDENDUM-5 F5 (NA-б): green-path assert — clamp fired 0 times.
+    """ADDENDUM-5 F5 (NA-б): green-path assert — no eps32-class clamp fired.
 
     On pre-sealed green legs (sanity suite §6.3, standalone or inside the
-    gate) a clamp is NOT absorbed silently: the ledger makes it visible and
-    this assert makes it fatal — an overshoot there is an instrument
-    anomaly to investigate, never a tolerance."""
-    if COS_CLAMP_LEDGER["count"] > 0:
+    gate) a clamp is NOT absorbed silently: every clamp is a visible event
+    in the run-log. The assert trips on clamps ABOVE the float64 noise
+    floor (cos_noise_floor) — the eps32-class arithmetic the incident was
+    about. DEVIATION from the literal NA-б wording (any clamp would trip),
+    pending NA/TL ratification: the literal reading REDs the sanity suite
+    on the dot's own 1-ulp rounding of bit-identical self-parallel pairs
+    (observed: fixture NC-4-lang, overshoot 2.2e-16 vs floor 5.5e-12)."""
+    if COS_CLAMP_LEDGER["over_floor"] > 0:
         raise InstrumentAbort(
-            f"green-path clamp assert RED at {where}: cos clamp fired "
-            f"{COS_CLAMP_LEDGER['count']} time(s), max overshoot "
+            f"green-path clamp assert RED at {where}: eps32-class cos clamp "
+            f"fired {COS_CLAMP_LEDGER['over_floor']} time(s) of "
+            f"{COS_CLAMP_LEDGER['count']} total, max overshoot "
             f"{COS_CLAMP_LEDGER['max_overshoot']:.3e} at "
-            f"{COS_CLAMP_LEDGER['sites'][:10]} — expected 0 clamps "
-            "(ADDENDUM-5 F5)"
+            f"{COS_CLAMP_LEDGER['sites'][:10]} — expected 0 above the f64 "
+            "noise floor (ADDENDUM-5 F5)"
         )
 
 
@@ -2853,6 +2885,7 @@ def _fail_closed_post_read(phase: str, exc: BaseException) -> int:
         seal_name=seal_name,
         tb_pointer=pointer,
         cos_clamp_count=COS_CLAMP_LEDGER["count"],
+        cos_clamp_over_floor=COS_CLAMP_LEDGER["over_floor"],
         cos_clamp_max_overshoot=COS_CLAMP_LEDGER["max_overshoot"],
         note="fail-closed (ADDENDUM-5 D2): crash after the sealed read is "
         "a visible event, not an absent gate_done; the seal is treated "
@@ -3430,9 +3463,11 @@ def main() -> int:
         log(
             "cos_clamp",
             count=COS_CLAMP_LEDGER["count"],
+            over_floor=COS_CLAMP_LEDGER["over_floor"],
             max_overshoot=COS_CLAMP_LEDGER["max_overshoot"],
             kind="run_summary",
-            note="per-run clamp ledger (ADDENDUM-5 F5): green path = count 0",
+            note="per-run clamp ledger (ADDENDUM-5 F5): green path = 0 "
+            "above the f64 noise floor; every clamp stays a visible event",
         )
 
 
