@@ -1,0 +1,756 @@
+{
+  "ts": "2026-11-10T02:20:06.236176+00:00",
+  "slice": "conflict-detector-corpus-v2-seal3",
+  "seal": "CD-holdout-v3",
+  "n": 180,
+  "sha256": {
+    "seal": "8e90729cf66005f7859b6150abb73c8cdb4a2acdb6c256a056a173d14ad5bed2",
+    "holdout.jsonl": "548eae2a9655c57f482255da8f40fbf947b57ed3f589ecdbe6c6762611d05377",
+    "holdout-pool.jsonl": "fe896ee6aad8e353b81b3a59b9a66e30c0c3ebbe177ab9b9c0eff33691329ff5",
+    "pin-v3.json": "6a91d73c166ad08edca8f6aacad49592cf421526b1fddc5e4ccb31895e3dc5a6"
+  },
+  "seal_payload": {
+    "ts": "2026-11-10T02:20:06.236176+00:00",
+    "version": "CD-holdout-v3",
+    "holdout_jsonl_sha256": "548eae2a9655c57f482255da8f40fbf947b57ed3f589ecdbe6c6762611d05377",
+    "ids": [
+      "ho-CD-1-00035",
+      "ho-CD-1-00365",
+      "ho-CD-1-00405",
+      "ho-CD-1-00570",
+      "ho-CD-1-00745",
+      "ho-CD-1-00925",
+      "ho-CD-1-01070",
+      "ho-CD-1-01090",
+      "ho-CD-1-01100",
+      "ho-CD-1-01240",
+      "ho-CD-1-01270",
+      "ho-CD-1-01430",
+      "ho-CD-1-01445",
+      "ho-CD-1-01630",
+      "ho-CD-1-01785",
+      "ho-CD-1-01935",
+      "ho-CD-1-01965",
+      "ho-CD-2-00597",
+      "ho-CD-2-00775",
+      "ho-CD-2-00947",
+      "ho-CD-2-01463",
+      "ho-CD-2-01816",
+      "ho-CD-2-01825",
+      "ho-CD-2-01988",
+      "ho-CD-2-01997",
+      "ho-CD-3-00086",
+      "ho-CD-3-00257",
+      "ho-CD-3-00607",
+      "ho-CD-3-00782",
+      "ho-CD-3-00957",
+      "ho-CD-3-01132",
+      "ho-CD-3-01307",
+      "ho-CD-3-01482",
+      "ho-CD-3-01486",
+      "ho-CD-3-01832",
+      "ho-CD-3-02007",
+      "ho-CD-4-00790",
+      "ho-CD-4-00965",
+      "ho-CD-4-01140",
+      "ho-CD-4-01319",
+      "ho-CD-4-01490",
+      "ho-CD-4-01494",
+      "ho-CD-4-01844",
+      "ho-CD-5-00628",
+      "ho-CD-5-00800",
+      "ho-CD-5-01147",
+      "ho-CD-5-01497",
+      "ho-CD-5-01500",
+      "ho-CD-5-01675",
+      "ho-CD-5-01853",
+      "ho-CD-6-00118",
+      "ho-CD-6-00293",
+      "ho-CD-6-00468",
+      "ho-CD-6-00643",
+      "ho-CD-6-00818",
+      "ho-CD-6-01168",
+      "ho-CD-6-01343",
+      "ho-CD-6-01518",
+      "ho-CD-6-01693",
+      "ho-CD-6-01868",
+      "ho-CD-6-02043",
+      "ho-N1-00214",
+      "ho-N1-00369",
+      "ho-N1-00525",
+      "ho-N1-00621",
+      "ho-N1-00706",
+      "ho-N1-01185",
+      "ho-N1-01222",
+      "ho-N1-01605",
+      "ho-N1-02553",
+      "ho-N1-02625",
+      "ho-N1-02760",
+      "ho-N2-00143",
+      "ho-N2-00230",
+      "ho-N2-00405",
+      "ho-N2-00477",
+      "ho-N2-00534",
+      "ho-N2-00576",
+      "ho-N2-00637",
+      "ho-N3-00005",
+      "ho-N3-00007",
+      "ho-N3-00009",
+      "ho-N3-00092",
+      "ho-N3-00151",
+      "ho-N3-00166",
+      "ho-N3-00168",
+      "ho-NC-2-00150",
+      "ho-NC-2-00154",
+      "ho-NC-2-00158",
+      "ho-NC-2-00323",
+      "ho-NC-2-00502",
+      "ho-NC-2-00506",
+      "ho-NC-2-00510",
+      "ho-NC-2-00681",
+      "ho-NC-2-00685",
+      "ho-NC-2-00854",
+      "ho-NC-2-00858",
+      "ho-NC-2-01023",
+      "ho-NC-2-01033",
+      "ho-NC-2-01198",
+      "ho-NC-2-01377",
+      "ho-NC-2-01383",
+      "ho-NC-2-01554",
+      "ho-NC-2-01729",
+      "ho-NC-2-01735",
+      "ho-NC-2-01900",
+      "ho-NC-2-01906",
+      "ho-NC-2-01908",
+      "ho-NC-3-00163",
+      "ho-NC-3-00338",
+      "ho-NC-3-00513",
+      "ho-NC-3-01038",
+      "ho-NC-3-01219",
+      "ho-NC-3-01388",
+      "ho-NC-3-01569",
+      "ho-NC-3-01741",
+      "ho-NC-3-01913",
+      "ho-NC-3-02094",
+      "ho-NC-4-00171",
+      "ho-NC-4-00346",
+      "ho-NC-4-00521",
+      "ho-NC-4-00696",
+      "ho-NC-4-00871",
+      "ho-NC-4-01046",
+      "ho-NC-4-01221",
+      "ho-NC-4-01396",
+      "ho-NC-4-01571",
+      "ho-NC-4-01746",
+      "ho-NC-4-01921",
+      "ho-NC-5-02178",
+      "ho-NC-5-02303",
+      "ho-NC-5-02324",
+      "ho-NC-5-02326",
+      "ho-NC-5-02349",
+      "ho-NC-5-02387",
+      "ho-NC-5-02404",
+      "ho-NC-5-02405",
+      "ho3-NC-1-00002",
+      "ho3-NC-1-00004",
+      "ho3-NC-1-00006",
+      "ho3-NC-1-00030",
+      "ho3-NC-1-00058",
+      "ho3-NC-1-00062",
+      "ho3-NC-1-00086",
+      "ho3-NC-1-00114",
+      "ho3-NC-1-00144",
+      "ho3-NC-1-00146",
+      "ho3-NC-1-00170",
+      "ho3-NC-1-00198",
+      "ho3-NC-1-00200",
+      "ho3-NC-1-00202",
+      "ho3-NC-1-00226",
+      "ho3-NC-1-00230",
+      "ho3-NC-1-00282",
+      "ho3-NC-1-00284",
+      "ho3-NC-1-00286",
+      "ho3-NC-1-00310",
+      "ho3-NC-3-00003",
+      "ho3-NC-3-00018",
+      "ho3-NC-3-00027",
+      "ho3-NC-3-00048",
+      "ho3-NC-3-00057",
+      "ho3-NC-3-00060",
+      "ho3-NC-5-00009",
+      "ho3-NC-5-00058",
+      "ho3-NC-5-00071",
+      "ho3-NC-5-00082",
+      "ho3-NC-5-00106",
+      "ho3-NC-5-00171",
+      "ho3-NC-5-00205",
+      "ho3-NC-5-00217",
+      "ho3-NC-5-00224",
+      "ho3-NC-5-00250",
+      "ho3-NC-5-00294",
+      "ho3-NC-5-00303",
+      "ho3-NC-5-00341",
+      "ho3-NC-5-00354",
+      "ho3-NC-5-00363",
+      "ho3-NC-5-00387",
+      "ho3-NC-5-00486"
+    ],
+    "n": 180,
+    "lineage": {
+      "rotation_of": "CD-holdout-v2",
+      "ancestor_holdout_sha256": "c92a2caa283869ce9a7a28baa34c06f8a67de89a4b47b4f6266b0a0383d4b4c2",
+      "ancestor_seal_sha256": "5b95bfd7f2a2be8eecca09b0c98f2deea8806b37ca05924a74f72dfcf21bf909",
+      "ancestor_status": "burned",
+      "burn_reason": "post-read instrument crash (ADDENDUM-5 §1-2): sealed read consumed 2026-11-10 23:41:19.281 (sha c92a2caa…), float32 pair_cos overshoot 1.0000001105987988 escaped to traceback/stdout; zero gate numbers published",
+      "ancestor_gate_state": "verdict NOT REACHED; gate_done absent in run-log (F3 freeze leg re-verified at runtime)",
+      "rotation_rule": "slice rule (fresh generation), NOT corpus amend-once: E13 amend budget NOT spent; train corpus v2 untouched byte-for-byte (F7)",
+      "cut_rule": "SINGLE cut of 180 (SEAL_SHARES_V2 largest remainder, hardest-first within stratum, sha-only culling F6, union scaffold caps, G10 census-gated); one seed family member (hold=6117); no re-cut on this artifact",
+      "universes_extension": "ADDENDUM-6 path B (ratified MLC): NC-1/NC-3/NC-5 drawn from the gen_pool_v3 eval-only fork banks (frozen commit 066eea6377b2, content sha in pin prep); NC-4 old-bank per G7 (classic(old)); new-bank rows are the G3 transfer surface — split per stratum in pin transfer_split / manifest",
+      "disclosure_unseen_scaffold": "holdout v3 carries unseen-scaffold rows of the extended classes (ADDENDUM-6 §2.4/G12); the model card known-limitations must repeat this line verbatim",
+      "characterization_anchor": "E2 pre-cut characterization GREEN (|Delta|=0.0 all strata, run a9ac15d): gate RED would mean model defect, not bank drift",
+      "f1_single_shot": "a red gate v3 is FINAL — no v4 on the same artifact+thresholds (F1)"
+    },
+    "disjointness": {
+      "rule": "sha(text_a/b) ONLY (F6); scenario_id excluded (deterministic template grid id-space)",
+      "checked_against": {
+        "train-v2": "disk train.jsonl text-sha set",
+        "CD-holdout-v2": "seal ids -> holdout-pool.jsonl origin text-shas",
+        "CD-holdout-v1": "seal ids -> holdout-pool.jsonl origin text-shas"
+      },
+      "sealed_content_reads": {
+        "corpus-v1/holdout.jsonl": 0,
+        "corpus-v2/holdout.jsonl": 0
+      }
+    },
+    "archives_digest_intact": {
+      "corpus-v2/holdout.jsonl": true,
+      "seals/CD-holdout-v2.seal.json": true,
+      "corpus-v1/holdout.jsonl": true
+    },
+    "note": "content NOT read after this event"
+  },
+  "asserts": {
+    "A-share-table(F9)": {
+      "ok": true,
+      "detail": {
+        "classic": {
+          "CD-1": 17,
+          "CD-2": 8,
+          "CD-3": 11,
+          "CD-4": 7,
+          "CD-5": 7,
+          "CD-6": 11,
+          "NC-1": 20,
+          "NC-2": 22,
+          "NC-3": 16,
+          "NC-4": 11,
+          "NC-5": 25
+        },
+        "N1_hosts": {
+          "CD-1": 5,
+          "CD-2": 3,
+          "CD-4": 3
+        },
+        "N1_k": {
+          "1": 7,
+          "2": 4
+        },
+        "N2_k": {
+          "1": 4,
+          "2": 3
+        },
+        "N3": 7,
+        "fold": {
+          "CD-1": 22,
+          "CD-2": 11,
+          "CD-3": 11,
+          "CD-4": 10,
+          "CD-5": 7,
+          "CD-6": 11,
+          "NC-1": 20,
+          "NC-2": 29,
+          "NC-3": 16,
+          "NC-4": 11,
+          "NC-5": 32
+        },
+        "fold_expected": {
+          "CD-1": 22,
+          "CD-2": 11,
+          "CD-3": 11,
+          "CD-4": 10,
+          "CD-5": 7,
+          "CD-6": 11,
+          "NC-1": 20,
+          "NC-2": 29,
+          "NC-3": 16,
+          "NC-4": 11,
+          "NC-5": 32
+        },
+        "total": 180
+      }
+    },
+    "A-silver+len4(F9)": {
+      "ok": true,
+      "detail": "180/180 mechanical pass (N1/N2 benign_pair_ok per-pair); E4 len-channel violations 0"
+    },
+    "A-labels(F9)": {
+      "ok": true,
+      "detail": "bad=0"
+    },
+    "A-guard(F9)": {
+      "ok": true,
+      "detail": "nc3 16/16, cd 0/0"
+    },
+    "A-scaffold-union(F9)": {
+      "ok": true,
+      "detail": {
+        "cap_violations": [],
+        "share_violations": [],
+        "rule": "train-v2 (disk) + seal-v3 <= SCAFFOLD_CAP_V2 per stratum; union max share <= 0.05"
+      }
+    },
+    "A-disjoint-train-v2(F6/F10)": {
+      "ok": true,
+      "detail": "0 sha hits of 360 against a 833-sha set (disk train.jsonl)"
+    },
+    "A-disjoint-v2-seal(F6/F10)": {
+      "ok": true,
+      "detail": "0 sha hits of 360 against a 276-sha set (seal ids -> pool-origin shas; sealed file NOT opened)"
+    },
+    "A-disjoint-v1-seal(F6/F10)": {
+      "ok": true,
+      "detail": "0 sha hits of 360 against a 250-sha set (seal ids -> pool-origin shas; sealed file NOT opened)"
+    },
+    "A-sha-unique(F6)": {
+      "ok": true,
+      "detail": "360 distinct of 360 (dup 0)"
+    },
+    "A-sha-convention(F6)": {
+      "ok": true,
+      "detail": "600/600 v2 pool ids reproduce identical disk shas in-process (embed-convention reconstruction byte-exact; regenerated from the v2 hold SEED, sealed file not touched)"
+    },
+    "A-origin-marking(G3/G7)": {
+      "ok": true,
+      "detail": {
+        "transfer": 43,
+        "indist": 137,
+        "per_stratum": {
+          "CD-1": {
+            "transfer": 0,
+            "indist": 22
+          },
+          "CD-2": {
+            "transfer": 0,
+            "indist": 11
+          },
+          "CD-3": {
+            "transfer": 0,
+            "indist": 11
+          },
+          "CD-4": {
+            "transfer": 0,
+            "indist": 10
+          },
+          "CD-5": {
+            "transfer": 0,
+            "indist": 7
+          },
+          "CD-6": {
+            "transfer": 0,
+            "indist": 11
+          },
+          "NC-1": {
+            "transfer": 20,
+            "indist": 0
+          },
+          "NC-2": {
+            "transfer": 0,
+            "indist": 29
+          },
+          "NC-3": {
+            "transfer": 6,
+            "indist": 10
+          },
+          "NC-4": {
+            "transfer": 0,
+            "indist": 11
+          },
+          "NC-5": {
+            "transfer": 17,
+            "indist": 15
+          }
+        },
+        "nc4": {
+          "bank": "classic(old)",
+          "old_bank_pool": 72,
+          "fallback_rows": 0,
+          "rule": "G7: NC-4 from the OLD bank; v3 axis is fallback-margin only (disclosed)"
+        },
+        "nc1_leg": "G3: NC-1 transfer-only (in-dist leg does not exist) — actual split {'transfer': 20, 'indist': 0}"
+      }
+    },
+    "A-frozen": {
+      "ok": true,
+      "detail": "nano 3b752e0671a5…; cortex features imported; instrument pin verified at Cos init"
+    },
+    "A-archive-integrity": {
+      "ok": true,
+      "detail": {
+        "corpus-v2/holdout.jsonl": "digest-ok",
+        "seals/CD-holdout-v2.seal.json": "digest-ok",
+        "corpus-v1/holdout.jsonl": "digest-ok",
+        "note": "whole-file sha256 digests only — no content parsed"
+      }
+    }
+  },
+  "g10_census": {
+    "CD-1": {
+      "pool": 720,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v2-seal": 26,
+        "v1-seal": 3
+      },
+      "dup_blocked": 494,
+      "clean": 197,
+      "clean_v3": 0,
+      "clean_classic": 197
+    },
+    "CD-2": {
+      "pool": 216,
+      "preflight_attrited": 0,
+      "culled_f10": {},
+      "dup_blocked": 92,
+      "clean": 124,
+      "clean_v3": 0,
+      "clean_classic": 124
+    },
+    "CD-3": {
+      "pool": 96,
+      "preflight_attrited": 0,
+      "culled_f10": {},
+      "dup_blocked": 0,
+      "clean": 96,
+      "clean_v3": 0,
+      "clean_classic": 96
+    },
+    "CD-4": {
+      "pool": 96,
+      "preflight_attrited": 0,
+      "culled_f10": {},
+      "dup_blocked": 0,
+      "clean": 96,
+      "clean_v3": 0,
+      "clean_classic": 96
+    },
+    "CD-5": {
+      "pool": 108,
+      "preflight_attrited": 0,
+      "culled_f10": {},
+      "dup_blocked": 36,
+      "clean": 72,
+      "clean_v3": 0,
+      "clean_classic": 72
+    },
+    "CD-6": {
+      "pool": 180,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "train-v2": 6
+      },
+      "dup_blocked": 69,
+      "clean": 105,
+      "clean_v3": 0,
+      "clean_classic": 105
+    },
+    "NC-1": {
+      "pool": 672,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v2-seal": 191,
+        "v1-seal": 15,
+        "train-v2": 117
+      },
+      "dup_blocked": 192,
+      "clean": 157,
+      "clean_v3": 156,
+      "clean_classic": 1
+    },
+    "NC-2": {
+      "pool": 168,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v1-seal": 11,
+        "v2-seal": 13
+      },
+      "dup_blocked": 70,
+      "clean": 74,
+      "clean_v3": 0,
+      "clean_classic": 74
+    },
+    "NC-3": {
+      "pool": 180,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v1-seal": 9,
+        "v2-seal": 6
+      },
+      "dup_blocked": 62,
+      "clean": 103,
+      "clean_v3": 72,
+      "clean_classic": 31
+    },
+    "NC-4": {
+      "pool": 108,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v2-seal": 33,
+        "v1-seal": 3
+      },
+      "dup_blocked": 24,
+      "clean": 48,
+      "clean_v3": 36,
+      "clean_classic": 12
+    },
+    "NC-5": {
+      "pool": 1128,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v2-seal": 34,
+        "train-v2": 255
+      },
+      "dup_blocked": 782,
+      "clean": 57,
+      "clean_v3": 46,
+      "clean_classic": 11
+    },
+    "N1": {
+      "pool": 2400,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "train-v2": 479,
+        "v2-seal": 57
+      },
+      "dup_blocked": 1256,
+      "clean": 608,
+      "clean_v3": 0,
+      "clean_classic": 608,
+      "hosts": {
+        "CD-1": 319,
+        "CD-2": 192,
+        "CD-4": 97
+      },
+      "k": {
+        "1": 580,
+        "2": 28
+      }
+    },
+    "N2": {
+      "pool": 504,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "train-v2": 255,
+        "v2-seal": 22
+      },
+      "dup_blocked": 123,
+      "clean": 104,
+      "clean_v3": 0,
+      "clean_classic": 104,
+      "k": {
+        "1": 91,
+        "2": 13
+      }
+    },
+    "N3": {
+      "pool": 216,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "train-v2": 63,
+        "v2-seal": 7
+      },
+      "dup_blocked": 0,
+      "clean": 146,
+      "clean_v3": 0,
+      "clean_classic": 146
+    }
+  },
+  "transfer_split": {
+    "rule": "G3: rows from the NEW banks (id prefix ho3-) are the transfer surface; rows from the OLD bank are in-dist; the v3 gate report splits g_spec_indist / g_spec_transfer by this marking; thresholds unchanged",
+    "per_stratum": {
+      "CD-1": {
+        "transfer": 0,
+        "indist": 22
+      },
+      "CD-2": {
+        "transfer": 0,
+        "indist": 11
+      },
+      "CD-3": {
+        "transfer": 0,
+        "indist": 11
+      },
+      "CD-4": {
+        "transfer": 0,
+        "indist": 10
+      },
+      "CD-5": {
+        "transfer": 0,
+        "indist": 7
+      },
+      "CD-6": {
+        "transfer": 0,
+        "indist": 11
+      },
+      "NC-1": {
+        "transfer": 20,
+        "indist": 0
+      },
+      "NC-2": {
+        "transfer": 0,
+        "indist": 29
+      },
+      "NC-3": {
+        "transfer": 6,
+        "indist": 10
+      },
+      "NC-4": {
+        "transfer": 0,
+        "indist": 11
+      },
+      "NC-5": {
+        "transfer": 17,
+        "indist": 15
+      }
+    },
+    "nc1_disclosure": "NC-1 transfer-only (in-dist leg does not exist per G3)",
+    "nc4": {
+      "bank": "classic(old)",
+      "old_bank_pool": 72,
+      "fallback_rows": 0,
+      "rule": "G7: NC-4 from the OLD bank; v3 axis is fallback-margin only (disclosed)"
+    }
+  },
+  "seal_fold_strata": {
+    "CD-1": 22,
+    "CD-2": 11,
+    "CD-3": 11,
+    "CD-4": 10,
+    "CD-5": 7,
+    "CD-6": 11,
+    "NC-1": 20,
+    "NC-2": 29,
+    "NC-3": 16,
+    "NC-4": 11,
+    "NC-5": 32
+  },
+  "bands_seal": {
+    "razor": 166,
+    "b85": 0,
+    "b70": 14,
+    "b55": 0,
+    "b40": 0
+  },
+  "measured_holdout_floor": 0.7832,
+  "pool_sizes": {
+    "classic": 2694,
+    "v3_banks": 978,
+    "merged": 3672,
+    "N1": 2400,
+    "N2": 504,
+    "N3": 216
+  },
+  "cut_depth": {
+    "CD-1": {
+      "pool": 720,
+      "want": 17,
+      "got": 17,
+      "blocked": {
+        "dup": 8,
+        "cap": 1
+      }
+    },
+    "CD-2": {
+      "pool": 216,
+      "want": 8,
+      "got": 8,
+      "blocked": {
+        "cap": 4,
+        "dup": 2
+      }
+    },
+    "CD-3": {
+      "pool": 96,
+      "want": 11,
+      "got": 11,
+      "blocked": {}
+    },
+    "CD-4": {
+      "pool": 96,
+      "want": 7,
+      "got": 7,
+      "blocked": {}
+    },
+    "CD-5": {
+      "pool": 108,
+      "want": 7,
+      "got": 7,
+      "blocked": {
+        "cap": 1
+      }
+    },
+    "CD-6": {
+      "pool": 180,
+      "want": 11,
+      "got": 11,
+      "blocked": {}
+    },
+    "NC-1": {
+      "pool": 672,
+      "want": 20,
+      "got": 20,
+      "blocked": {}
+    },
+    "NC-2": {
+      "pool": 168,
+      "want": 22,
+      "got": 22,
+      "blocked": {
+        "dup": 13
+      }
+    },
+    "NC-3": {
+      "pool": 180,
+      "want": 16,
+      "got": 16,
+      "blocked": {
+        "dup": 4
+      }
+    },
+    "NC-4": {
+      "pool": 108,
+      "want": 11,
+      "got": 11,
+      "blocked": {
+        "dup": 20
+      }
+    },
+    "NC-5": {
+      "pool": 1128,
+      "want": 25,
+      "got": 25,
+      "blocked": {
+        "dup": 282
+      }
+    }
+  },
+  "banks_v3_frozen": {
+    "banks_commit": "066eea6377b254a0580902203907467ec5fc4ee6",
+    "file_sha256": "9df6550cb3e7ac10d683bd6c27cffbc79d2b5ec4fdca099ccc621b52fce548b0",
+    "content_sha256": "31861e0ded7b1f10f49ac18b682eb3c5c0011be1e662ab12787825de013fcc3b",
+    "runtime_verified": true
+  },
+  "train_v2_untouched": {
+    "train.jsonl_sha256_start": "a549dc0c2a32fe0ff6cc4035f95c8c9e888813e24430b67ac71f272ea06ec115"
+  },
+  "note": "metadata-only versioned trail of the seal emission; corpus artifacts live under data/ (outside git); holdout v1/v2/v3 content never read by this lane (digests only)"
+}

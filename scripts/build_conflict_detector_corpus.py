@@ -1503,6 +1503,24 @@ SEAL3_REPORTING_RULE = {
                            "rest on an eval cell with n < 10",
 }
 
+# ADDENDUM-6 §5 (path B): the NC template universes are EXTENDED via the
+# gen_pool_v3 eval-only fork banks (scripts/conflict_corpus_banks_v3.py,
+# frozen 066eea6, sha pinned in pin-v3.json#prep.banks_v3). The v3 cut
+# draws NC-1/NC-3/NC-5 from the MERGED pool (classic + new banks); NC-4
+# stays OLD-bank only (G7: the v3 axis is fallback-margin, engaged only
+# if post-preflight attrition kills the old-bank supply — disclosed,
+# never silent). New-bank rows are the G3 transfer surface.
+SEAL3_V3_PREFIX = "ho3"  # lane-distinct id prefix (same as census/char2 lanes)
+
+# G10 census quotas (mirror of banks_v3_lane.CENSUS_QUOTAS NC legs — the
+# ratified 2x depth on clean-after-preflight supply; NC-4 strict 11 has
+# the 2x WAIVED per G7 and must clear 11 to cut). Carriers keep their
+# E9-mini 2x legs (N1 22 / N2 14 / N3 14 + hosts + k) computed on CLEAN
+# rows. A census failure is a BuildStop + NEW addendum (G1) — never a
+# bank iteration.
+SEAL3_G10_QUOTAS = {"NC-1": 40, "NC-2": 44, "NC-3": 32, "NC-4": 11,
+                    "NC-5": 50}
+
 
 def log3(event: str, **fields) -> None:
     """Append a seal3 event to the run-log (own slice tag)."""
@@ -1667,6 +1685,28 @@ def cmd_seal3() -> int:
     print(f"preconditions: F3 gate_done=0; train-v2 fp {train_fp_start[:16]} "
           f"== manifest; v1/v2 archives digest-intact (bytes hashed, NOT parsed)")
 
+    # --- G1: the banks freeze must hold BEFORE anything observes a census --
+    # static guards fail-closed at import (G9); file+content shas must match
+    # the pin-v3.json prep pin (commit 066eea6). A violation is an incident,
+    # not an iteration: banks stay frozen, the lane BuildStops.
+    import conflict_corpus_banks_v3 as banks_v3
+    prep = {}
+    if PIN_V3_PATH.exists():
+        prep = json.loads(PIN_V3_PATH.read_text(encoding="utf-8")).get("prep", {})
+    bv = prep.get("banks_v3")
+    if not bv:
+        die("G1: pin-v3.json has no banks_v3 prep pin — freeze first")
+    banks_file_sha = file_sha256(REPO / "scripts" / "conflict_corpus_banks_v3.py")
+    if banks_file_sha != bv["file_sha256"]:
+        die(f"G1 LOCK VIOLATION: banks module sha {banks_file_sha[:16]} != "
+            f"frozen {bv['file_sha256'][:16]} — bank edited after freeze")
+    banks_content_sha = lib.sha(lib.json_dumps_sorted(banks_v3.bank_content()))
+    if banks_content_sha != bv["content_sha256"]:
+        die(f"G1 LOCK VIOLATION (content): banks content sha "
+            f"{banks_content_sha[:16]} != frozen {bv['content_sha256'][:16]}")
+    print(f"G1 banks freeze: commit {bv['banks_commit'][:12]}, file "
+          f"{banks_file_sha[:16]}, content {banks_content_sha[:16]} — LOCKED")
+
     # --- F8: seed pin FIRST, before any generation ---------------------------
     scan, prior_v3 = pinned_seeds_from_runlog()
     observed = sorted({s for seeds in scan.values() for s in seeds})
@@ -1764,9 +1804,15 @@ def cmd_seal3() -> int:
     print("census E9-mini PASS: 2x depth on every seal quota "
           f"(N1 {need_n1_total}, N2 {need_n2}, N3 {need_n3})")
 
-    print("== classic hold pool (F7: rotate=TRUE EXPLICIT — gen_pool trap) ==")
-    hold_pool = gen_pool(SEED_HOLD_V3, "ho", rotate=True)
-    print(f"holdout pool: {len(hold_pool)}")
+    print("== classic hold pool + v3 banks (F7: rotate=TRUE EXPLICIT — "
+          "gen_pool trap; ADDENDUM-6 path B merged pool) ==")
+    hold_pool = gen_pool(SEED_HOLD_V3, "ho", rotate=True) \
+        + banks_v3.gen_banks_v3_pool(SEED_HOLD_V3, SEAL3_V3_PREFIX, rotate=True)
+    pool_classic_n = sum(1 for x in hold_pool
+                         if not x.scenario_id.startswith(SEAL3_V3_PREFIX + "-"))
+    pool_v3_n = len(hold_pool) - pool_classic_n
+    print(f"holdout pool: {len(hold_pool)} (classic {pool_classic_n}, "
+          f"v3 banks {pool_v3_n})")
     measure_all(hold_pool, cos)
     print(f"embedded {cos.n} unique texts in {time.time()-t0:.0f}s")
 
@@ -1832,6 +1878,133 @@ def cmd_seal3() -> int:
             "pool ids reproduce identical disk shas — disk-side sha sets "
             "untrustworthy, refusing the whole lane")
 
+    # --- G10 census (ADDENDUM-6 §5): E9-mini over clean-after-preflight
+    # supply — preflight/mechanical attrition -> F10 sha cull vs ALL three
+    # sealed generations -> within-count side-text uniqueness. FRESH RUN on
+    # every invocation (never cached); because seed, banks and instrument
+    # are pinned, the fresh numbers must REPRODUCE the census-lane report
+    # (artifacts/runs/banks_v3_census.json) exactly — divergence is an
+    # instrument abort, not a bank defect and not a silent pass.
+    print("== G10 census: clean-after-preflight supply vs 2x quotas ==")
+
+    def _clean(cells: list, mech_fn) -> dict:
+        live = [x for x in cells if mech_fn(x)]
+        live.sort(key=lambda x: (-x._cos, x.scenario_id))
+        seen: set[str] = set()
+        culled: Counter = Counter()
+        dups = 0
+        rows = []
+        for x in live:
+            ha, hb = lib.sha(x.text_a()), lib.sha(x.text_b())
+            src = _forbidden_source(ha, hb, sources)
+            if src:
+                culled[src] += 1
+                continue
+            if ha in seen or hb in seen:
+                dups += 1
+                continue
+            seen.update((ha, hb))
+            rows.append(x)
+        origin = Counter("v3" if x.scenario_id.startswith(SEAL3_V3_PREFIX + "-")
+                         else "classic" for x in rows)
+        return {"pool": len(cells),
+                "preflight_attrited": len(cells) - len(live),
+                "culled_f10": dict(culled), "dup_blocked": dups,
+                "clean": len(rows), "clean_v3": origin.get("v3", 0),
+                "clean_classic": origin.get("classic", 0), "_rows": rows}
+
+    g10: dict = {}
+    red10 = []
+    by_s_g10: dict[str, list] = {}
+    for x in hold_pool:
+        by_s_g10.setdefault(x.stratum, []).append(x)
+    for s in ORDER:
+        row = _clean(by_s_g10.get(s, []), lib.mechanical_ok)
+        g10[s] = {k: v for k, v in row.items() if k != "_rows"}
+        want = SEAL3_G10_QUOTAS.get(s)
+        if want is not None:
+            mark = "OK" if row["clean"] >= want else "RED"
+            if row["clean"] < want:
+                red10.append(f"{s} clean {row['clean']} < {want}")
+            print(f"  {s}: clean {row['clean']} (v3 {row['clean_v3']} / "
+                  f"classic {row['clean_classic']}) vs {want} [{mark}]")
+        else:
+            print(f"  {s}: clean {row['clean']} (v3 {row['clean_v3']} / "
+                  f"classic {row['clean_classic']}) (informational)")
+    # carriers: the same G10 methodology, gated on CLEAN rows (the honest
+    # depth a sha-disjoint cut can consume) — host/k legs at the 2x needs
+    cen_n1c = _clean(hn1, carrier_suitable)
+    cen_n2c = _clean(hn2, carrier_suitable)
+    cen_n3c = _clean(hn3, lib.mechanical_ok)
+    n1_hosts_c = Counter(x.stratum for x in cen_n1c["_rows"])
+    n1_k_c = Counter(len(x.benign) for x in cen_n1c["_rows"])
+    n2_k_c = Counter(len(x.benign) for x in cen_n2c["_rows"])
+    g10["N1"] = {**{k: v for k, v in cen_n1c.items() if k != "_rows"},
+                 "hosts": dict(n1_hosts_c), "k": dict(n1_k_c)}
+    g10["N2"] = {**{k: v for k, v in cen_n2c.items() if k != "_rows"},
+                 "k": dict(n2_k_c)}
+    g10["N3"] = {k: v for k, v in cen_n3c.items() if k != "_rows"}
+    for name, got, need in (
+            ("N1", cen_n1c["clean"], need_n1_total),
+            ("N1/CD-1", n1_hosts_c.get("CD-1", 0), need_n1_host["CD-1"]),
+            ("N1/CD-2", n1_hosts_c.get("CD-2", 0), need_n1_host["CD-2"]),
+            ("N1/CD-4", n1_hosts_c.get("CD-4", 0), need_n1_host["CD-4"]),
+            ("N1/k1", n1_k_c.get(1, 0), need_n1_k[1]),
+            ("N1/k2", n1_k_c.get(2, 0), need_n1_k[2]),
+            ("N2", cen_n2c["clean"], need_n2),
+            ("N2/k1", n2_k_c.get(1, 0), need_n2_k[1]),
+            ("N2/k2", n2_k_c.get(2, 0), need_n2_k[2]),
+            ("N3", cen_n3c["clean"], need_n3)):
+        mark = "OK" if got >= need else "RED"
+        if got < need:
+            red10.append(f"{name} clean {got} < {need}")
+        print(f"  {name}: clean {got} vs {need} [{mark}]")
+    # determinism: reproduce the frozen census-lane numbers (same seed,
+    # same banks sha, same pinned nano) — any drift aborts the instrument
+    cen_ref_path = REPO / "artifacts" / "runs" / "banks_v3_census.json"
+    reproduced_census = None
+    if cen_ref_path.exists():
+        ref = json.loads(cen_ref_path.read_text(encoding="utf-8"))
+        dev = []
+        for s, exp in ((s, ref.get("strata", {}).get(s, {}).get("clean"))
+                       for s in ORDER):
+            if exp is not None and g10[s]["clean"] != exp:
+                dev.append(f"{s}: fresh {g10[s]['clean']} != census-lane {exp}")
+        for name, key, exp in (("N1", "n1", ref.get("carriers", {})
+                                .get("n1", {}).get("clean")),
+                               ("N2", "n2", ref.get("carriers", {})
+                                .get("n2", {}).get("clean")),
+                               ("N3", "n3", ref.get("carriers", {})
+                                .get("n3", {}).get("clean"))):
+            if exp is not None and g10[name]["clean"] != exp:
+                dev.append(f"{name}: fresh {g10[name]['clean']} != "
+                           f"census-lane {exp}")
+        if dev:
+            die("G10 census determinism RED (fresh run diverges from the "
+                "frozen census-lane report — instrument abort, NOT a bank "
+                "defect, nothing written): " + "; ".join(dev))
+        reproduced_census = True
+        print("G10 determinism: fresh census reproduces the census-lane "
+              "numbers exactly (strata + carriers)")
+    if red10:
+        die("census G10 RED (clean-after-preflight, fresh run): "
+            + "; ".join(red10)
+            + " — rotation lane BuildStop, NOTHING sealed (G1: a census "
+              "failure is a new addendum, not a bank iteration)")
+    log3("census_v3_g10", verdict="pass", g10=g10,
+         quotas=SEAL3_G10_QUOTAS, fresh_run=True,
+         reproduced_census_banks=reproduced_census)
+    log3_md("census_v3_g10", verdict="pass",
+            clean={s: g10[s]["clean"] for s in ORDER},
+            carriers={c: g10[c]["clean"] for c in ("N1", "N2", "N3")},
+            nc4_clean_classic=g10["NC-4"]["clean_classic"],
+            fresh_run=True, reproduced_census_banks=reproduced_census,
+            note="G10: E9-mini over clean-after-preflight supply "
+                 "(attrition -> F10 cull -> within-count dedup); fresh "
+                 "run, not cached")
+    print("census G10 PASS: clean-after-preflight depth verified on every "
+          "seal quota (strata 2x, NC-4 strict, carriers 2x incl. host/k)")
+
     # --- classic supply census (E9 philosophy over the WIDE pool): per
     # stratum, how many candidates are sha-clean against ALL three
     # generations (F10) under within-cut uniqueness. The classic cut has
@@ -1887,6 +2060,7 @@ def cmd_seal3() -> int:
     taken_shas: set[str] = set()
     seal_ids: list[str] = []
     seal_taken: set[str] = set()
+    origin_of: dict[str, str] = {}   # G3: transfer surface marking
     culled = 0
     cull_by_src: Counter = Counter()
     cull_diag: dict[str, str] = {}
@@ -1916,20 +2090,56 @@ def cmd_seal3() -> int:
             return "cap"
         seal_ids.append(x.scenario_id)
         seal_taken.add(x.scenario_id)
+        origin_of[x.scenario_id] = (
+            "transfer:v3" if x.scenario_id.startswith(SEAL3_V3_PREFIX + "-")
+            else "indist:classic")
         scaf_ho[x.scaffold_id] = scaf_ho.get(x.scaffold_id, 0) + 1
         taken_shas.update((ha, hb))
         return "taken"
 
     depth_report = {}
+    nc4_decision: dict = {}
     for s in ORDER:
         blocked.clear()
         cands = by_stratum.get(s, [])
         got = 0
-        for x in cands:
-            if got >= want_classic[s]:
-                break
-            if cut_one(x) == "taken":
-                got += 1
+        if s == "NC-4":
+            # G7: NC-4 is cut from the OLD bank (the only honest in-dist
+            # knife leg); the v3 non-tech axis serves ONLY as fallback
+            # margin if post-preflight attrition kills the old-bank
+            # supply — any fallback engagement is disclosed, never silent.
+            classic_c = [x for x in cands
+                         if not x.scenario_id.startswith(SEAL3_V3_PREFIX + "-")]
+            v3_c = [x for x in cands
+                    if x.scenario_id.startswith(SEAL3_V3_PREFIX + "-")]
+            for x in classic_c:
+                if got >= want_classic[s]:
+                    break
+                if cut_one(x) == "taken":
+                    got += 1
+            fallback_n = 0
+            if got < want_classic[s]:
+                for x in v3_c:
+                    if got >= want_classic[s]:
+                        break
+                    if cut_one(x) == "taken":
+                        got += 1
+                        fallback_n += 1
+            nc4_decision = {
+                "bank": "classic(old)" if not fallback_n
+                        else f"fallback:v3 ({fallback_n} rows)",
+                "old_bank_pool": len(classic_c),
+                "fallback_rows": fallback_n,
+                "rule": "G7: NC-4 from the OLD bank; v3 axis is "
+                        "fallback-margin only (disclosed)"}
+            print(f"NC-4 G7: {nc4_decision['bank']} (old-bank pool "
+                  f"{nc4_decision['old_bank_pool']})")
+        else:
+            for x in cands:
+                if got >= want_classic[s]:
+                    break
+                if cut_one(x) == "taken":
+                    got += 1
         depth_report[s] = {"pool": len(cands), "want": want_classic[s],
                            "got": got, "blocked": dict(blocked)}
         if got < want_classic[s]:
@@ -1988,12 +2198,18 @@ def cmd_seal3() -> int:
     ho_by_id = {x.scenario_id: x for x in hold_pool}
     ho_by_id.update({x.scenario_id: x for x in hn1 + hn2 + hn3})
     assert set(seal_ids) <= set(ho_by_id), "seal id outside generated pools"
+    origins_total = Counter(origin_of[i] for i in seal_ids)
     log3("cut_v3", n=len(seal_ids), culled=culled,
-         cull_by_src=dict(cull_by_src), depth=depth_report)
+         cull_by_src=dict(cull_by_src), depth=depth_report,
+         origins=dict(origins_total), nc4=nc4_decision)
     log3_md("cut_v3", n=len(seal_ids), culled=culled,
-            cull_by_src=dict(cull_by_src), depth=depth_report,
-            note="sha-only culling (F6) over the WIDE pool (F7 pool-only "
-                 "lane); sealed v1/v2 content not opened")
+            cull_by_src=dict(cull_by_src),
+            nc4_bank=nc4_decision.get("bank"),
+            origins_transfer=origins_total.get("transfer:v3", 0),
+            origins_indist=origins_total.get("indist:classic", 0),
+            depth_got={s: d["got"] for s, d in depth_report.items()},
+            note="sha-only culling (F6) over the WIDE pool (classic + v3 "
+                 "banks, ADDENDUM-6 path B); sealed v1/v2 content not opened")
     print(f"cut: {len(seal_ids)} pairs ({culled} culled: "
           f"{dict(cull_by_src)})")
 
@@ -2084,6 +2300,29 @@ def cmd_seal3() -> int:
         f"{conv_n}/{len(disk_pool_by_id)} v2 pool ids reproduce identical "
         "disk shas in-process (embed-convention reconstruction byte-exact; "
         "regenerated from the v2 hold SEED, sealed file not touched)")
+    # G3/G7: transfer surface marking — every seal row's origin matches its
+    # id prefix; the per-stratum split feeds the gate's g_spec_indist /
+    # g_spec_transfer legs; NC-4 G7 discipline (old bank, fallback only
+    # if disclosed).
+    transfer_split = {}
+    for s in ORDER:
+        ids_s = [i for i in seal_ids if ho_by_id[i].stratum == s]
+        transfer_split[s] = {
+            "transfer": sum(1 for i in ids_s
+                            if origin_of[i] == "transfer:v3"),
+            "indist": sum(1 for i in ids_s
+                          if origin_of[i] == "indist:classic")}
+    mark_ok = all((i.startswith(SEAL3_V3_PREFIX + "-"))
+                  == (origin_of[i] == "transfer:v3") for i in seal_ids)
+    nc4_ids = [i for i in seal_ids if ho_by_id[i].stratum == "NC-4"]
+    nc4_ok = (nc4_decision.get("fallback_rows", 0)
+              == sum(1 for i in nc4_ids if origin_of[i] == "transfer:v3"))
+    rec("A-origin-marking(G3/G7)", mark_ok and nc4_ok,
+        {"transfer": origins_total.get("transfer:v3", 0),
+         "indist": origins_total.get("indist:classic", 0),
+         "per_stratum": transfer_split, "nc4": nc4_decision,
+         "nc1_leg": "G3: NC-1 transfer-only (in-dist leg does not exist) "
+                    f"— actual split {transfer_split.get('NC-1')}"})
     rec("A-frozen", True, f"nano {lib.EMBEDDER_PIN[:12]}…; cortex features "
         "imported; instrument pin verified at Cos init")
     rec("A-archive-integrity", all(archives_intact.values()),
@@ -2123,6 +2362,25 @@ def cmd_seal3() -> int:
         "rotation_rule": "slice rule (fresh generation), NOT corpus amend-once: "
                          "E13 amend budget NOT spent; train corpus v2 untouched "
                          "byte-for-byte (F7)",
+        "cut_rule": "SINGLE cut of 180 (SEAL_SHARES_V2 largest remainder, "
+                    "hardest-first within stratum, sha-only culling F6, "
+                    "union scaffold caps, G10 census-gated); one seed family "
+                    "member (hold=6117); no re-cut on this artifact",
+        "universes_extension": "ADDENDUM-6 path B (ratified MLC): NC-1/NC-3/"
+                               "NC-5 drawn from the gen_pool_v3 eval-only fork "
+                               f"banks (frozen commit {bv['banks_commit'][:12]}, "
+                               "content sha in pin prep); NC-4 old-bank per G7 "
+                               f"({nc4_decision.get('bank')}); new-bank rows "
+                               "are the G3 transfer surface — split per "
+                               "stratum in pin transfer_split / manifest",
+        "disclosure_unseen_scaffold": "holdout v3 carries unseen-scaffold rows "
+                                      "of the extended classes (ADDENDUM-6 §2.4/"
+                                      "G12); the model card known-limitations "
+                                      "must repeat this line verbatim",
+        "characterization_anchor": "E2 pre-cut characterization GREEN "
+                                   "(|Delta|=0.0 all strata, run a9ac15d): "
+                                   "gate RED would mean model defect, not "
+                                   "bank drift",
         "f1_single_shot": "a red gate v3 is FINAL — no v4 on the same "
                           "artifact+thresholds (F1)",
     }
@@ -2149,10 +2407,20 @@ def cmd_seal3() -> int:
     SEAL_V3_PATH.write_text(json.dumps(seal_payload, ensure_ascii=False, indent=2),
                             encoding="utf-8")
     fp_seal = lib.sha(SEAL_V3_PATH.read_text(encoding="utf-8"))
-    pin = {
+    # EXTEND the existing pin (the G1 freeze prep section is history —
+    # never rewritten), then merge the seal3 main section.
+    pin = {}
+    if PIN_V3_PATH.exists():
+        pin = json.loads(PIN_V3_PATH.read_text(encoding="utf-8"))
+    if pin.get("prep", {}).get("banks_v3", {}).get("content_sha256") \
+            not in (None, banks_content_sha):
+        die("pin-v3.json prep pins a DIFFERENT bank content than the "
+            "runtime-verified banks — G1 inconsistency, refusing")
+    pin.update({
         "ts": now(), "version": 3,
-        "lane": "seal3 pool-only (F7): fresh hold-seed generation -> cut 180 "
-                "from the wide pool -> seal; train.jsonl/sheet ABSENT BY "
+        "lane": "seal3 pool-only (F7, ADDENDUM-6 path B): fresh hold-seed "
+                "generation over classic + v3 bank universes -> G10 census "
+                "-> single cut of 180 -> seal; train.jsonl/sheet ABSENT BY "
                 "CONSTRUCTION; measure2/build2 untouched byte-for-byte",
         "instrument": {"pin": lib.EMBEDDER_PIN,
                        "guard_version": lib.GUARD_VERSION},
@@ -2164,12 +2432,31 @@ def cmd_seal3() -> int:
                              "run-log events",
         "runlog_seed_scan": {"events": len(scan),
                              "distinct_seeds": len(observed), "seeds": observed},
+        "banks_v3_frozen": {
+            "banks_commit": bv["banks_commit"],
+            "file_sha256": bv["file_sha256"],
+            "content_sha256": banks_content_sha,
+            "lock": "G1: bank edits forbidden; census/gate failure = "
+                    "BuildStop + new addendum",
+            "runtime_verified": True},
         "hard_window": [HARD_WIN_LO, HARD_WIN_HI],
         "measured_holdout_floor": floor3,
         "census": cen,
+        "g10_census": {s: g10[s] for s in list(ORDER) + ["N1", "N2", "N3"]},
         "seal_shares": {**{s: SEAL_SHARES_V2[s] for s in ORDER},
                         "N1": sum(SEAL_N1_HOSTS.values()),
                         "N2": SEAL_SHARES_V2["N2"], "N3": N3_SEAL},
+        "cut_rule": lineage["cut_rule"],
+        "transfer_split": {
+            "rule": "G3: rows from the NEW banks (id prefix "
+                    f"{SEAL3_V3_PREFIX}-) are the transfer surface; rows "
+                    "from the OLD bank are in-dist; the v3 gate report "
+                    "splits g_spec_indist / g_spec_transfer by this "
+                    "marking; thresholds unchanged",
+            "per_stratum": transfer_split,
+            "nc1_disclosure": "NC-1 transfer-only (in-dist leg does not "
+                              "exist per G3)",
+            "nc4": nc4_decision},
         "seal_fold_strata": dict(cnt),
         "seal_ids": seal_ids,
         "bands_seal": {b: sum(1 for x in seal_sc if x._band == b)
@@ -2177,22 +2464,29 @@ def cmd_seal3() -> int:
         "reporting_rule": SEAL3_REPORTING_RULE,
         "lineage": lineage,
         "train_v2_untouched": {"train.jsonl_sha256_start": train_fp_start},
-    }
+    })
     CORPUS_DIR_V3.mkdir(parents=True, exist_ok=True)
     PIN_V3_PATH.write_text(json.dumps(pin, ensure_ascii=False, indent=2),
                            encoding="utf-8")
     manifest = {
         "ts": now(),
-        "version": "corpus-v3-holdout (ADDENDUM-5 seal rotation, B6-conflict seal3)",
+        "version": "corpus-v3-holdout (ADDENDUM-5 seal rotation + ADDENDUM-6 "
+                   "path B universes extension, B6-conflict seal3)",
         "guard_version": lib.GUARD_VERSION,
         "instrument": {"provider": "vesma.embeddings.NanoProvider",
                        "nano_pin": lib.EMBEDDER_PIN},
         "design": ["docs/experiments/conflict-detector-gate-incident-2026-11-10.md "
                    "(ADDENDUM-5 RATIFIED, §4 F6-F12)",
+                   "docs/experiments/conflict-detector-corpus-design-ADDENDUM-6.md "
+                   "(RATIFIED MLC, path B, G1-G12)",
                    "docs/experiments/conflict-detector-corpus-design.md (RATIFIED MLC-9)",
                    "docs/experiments/conflict-detector-corpus-design-ADDENDUM-1.md",
                    "docs/experiments/conflict-detector-corpus-design-ADDENDUM-2.md",
                    "docs/experiments/conflict-detector-corpus-design-ADDENDUM-3.md"],
+        "banks_v3_frozen": {"banks_commit": bv["banks_commit"],
+                            "file_sha256": bv["file_sha256"],
+                            "content_sha256": banks_content_sha,
+                            "runtime_verified": True},
         "pin_sha256": lib.sha(PIN_V3_PATH.read_text(encoding="utf-8")),
         "seeds": {"hold": SEED_HOLD_V3},
         "seed_family_check": pin["seed_family_check"],
@@ -2202,12 +2496,19 @@ def cmd_seal3() -> int:
                     "seals/CD-holdout-v3.seal.json"],
         "absent_by_construction": ["train.jsonl", "sheet/*"],
         "pool_scope": "the full generated hold-side pools (classic "
+                      f"{pool_classic_n} + v3 banks {pool_v3_n} = "
                       f"{len(hold_pool)}, N1 {len(hn1)}, N2 {len(hn2)}, "
                       f"N3 {len(hn3)} scenarios) — the v2-era registered-600 "
                       "window does not exist in the pool-only lane; every "
                       "seal id resolves in this pool file",
-        "pool_sizes": {"classic": len(hold_pool), "N1": len(hn1),
+        "pool_sizes": {"classic": pool_classic_n, "v3_banks": pool_v3_n,
+                       "merged": len(hold_pool), "N1": len(hn1),
                        "N2": len(hn2), "N3": len(hn3)},
+        "transfer_split": {
+            "rule": "G3: new-bank rows (prefix " + SEAL3_V3_PREFIX +
+                    "-) = transfer surface; the gate report splits "
+                    "g_spec_indist / g_spec_transfer by this marking",
+            "per_stratum": transfer_split, "nc4": nc4_decision},
         "cut_depth": depth_report,
         "strata_seal": {s: {"classic": classic_cnt[s],
                             "carrier": {"N1": sum(1 for x in n1_sc
@@ -2231,6 +2532,7 @@ def cmd_seal3() -> int:
                                            for k, v in sources.items()},
                          "sealed_files_opened": 0},
         "census": cen,
+        "g10_census": {s: g10[s] for s in list(ORDER) + ["N1", "N2", "N3"]},
         "asserts": A,
         "lineage": lineage,
         "reporting_rule": SEAL3_REPORTING_RULE,
