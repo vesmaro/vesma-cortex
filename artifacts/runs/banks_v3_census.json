@@ -1,0 +1,467 @@
+{
+  "ts": "2026-11-10T01:37:13.919582+00:00",
+  "frozen_banks": "31861e0ded7b1f10f49ac18b682eb3c5c0011be1e662ab12787825de013fcc3b",
+  "quotas": {
+    "NC-1": 40,
+    "NC-2": 44,
+    "NC-3": 32,
+    "NC-4": 11,
+    "NC-5": 50,
+    "N1": 22,
+    "N2": 14,
+    "N3": 14
+  },
+  "strata": {
+    "CD-1": {
+      "pool": 720,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v2-seal": 26,
+        "v1-seal": 3
+      },
+      "dup_blocked": 494,
+      "clean": 197,
+      "clean_v3": 0,
+      "clean_classic": 197
+    },
+    "CD-2": {
+      "pool": 216,
+      "preflight_attrited": 0,
+      "culled_f10": {},
+      "dup_blocked": 92,
+      "clean": 124,
+      "clean_v3": 0,
+      "clean_classic": 124
+    },
+    "CD-3": {
+      "pool": 96,
+      "preflight_attrited": 0,
+      "culled_f10": {},
+      "dup_blocked": 0,
+      "clean": 96,
+      "clean_v3": 0,
+      "clean_classic": 96
+    },
+    "CD-4": {
+      "pool": 96,
+      "preflight_attrited": 0,
+      "culled_f10": {},
+      "dup_blocked": 0,
+      "clean": 96,
+      "clean_v3": 0,
+      "clean_classic": 96
+    },
+    "CD-5": {
+      "pool": 108,
+      "preflight_attrited": 0,
+      "culled_f10": {},
+      "dup_blocked": 36,
+      "clean": 72,
+      "clean_v3": 0,
+      "clean_classic": 72
+    },
+    "CD-6": {
+      "pool": 180,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "train-v2": 6
+      },
+      "dup_blocked": 69,
+      "clean": 105,
+      "clean_v3": 0,
+      "clean_classic": 105
+    },
+    "NC-1": {
+      "pool": 672,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v2-seal": 191,
+        "v1-seal": 15,
+        "train-v2": 117
+      },
+      "dup_blocked": 192,
+      "clean": 157,
+      "clean_v3": 156,
+      "clean_classic": 1
+    },
+    "NC-2": {
+      "pool": 168,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v1-seal": 11,
+        "v2-seal": 13
+      },
+      "dup_blocked": 70,
+      "clean": 74,
+      "clean_v3": 0,
+      "clean_classic": 74
+    },
+    "NC-3": {
+      "pool": 180,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v1-seal": 9,
+        "v2-seal": 6
+      },
+      "dup_blocked": 62,
+      "clean": 103,
+      "clean_v3": 72,
+      "clean_classic": 31
+    },
+    "NC-4": {
+      "pool": 108,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v2-seal": 33,
+        "v1-seal": 3
+      },
+      "dup_blocked": 24,
+      "clean": 48,
+      "clean_v3": 36,
+      "clean_classic": 12
+    },
+    "NC-5": {
+      "pool": 1128,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v2-seal": 34,
+        "train-v2": 255
+      },
+      "dup_blocked": 782,
+      "clean": 57,
+      "clean_v3": 46,
+      "clean_classic": 11
+    }
+  },
+  "carriers": {
+    "n1": {
+      "pool": 2400,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "train-v2": 479,
+        "v2-seal": 57
+      },
+      "dup_blocked": 1256,
+      "clean": 608,
+      "clean_v3": 0,
+      "clean_classic": 608
+    },
+    "n2": {
+      "pool": 504,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "train-v2": 255,
+        "v2-seal": 22
+      },
+      "dup_blocked": 123,
+      "clean": 104,
+      "clean_v3": 0,
+      "clean_classic": 104
+    },
+    "n3": {
+      "pool": 216,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "train-v2": 63,
+        "v2-seal": 7
+      },
+      "dup_blocked": 0,
+      "clean": 146,
+      "clean_v3": 0,
+      "clean_classic": 146
+    },
+    "n1_hosts": {
+      "CD-1": 1440,
+      "CD-2": 720,
+      "CD-4": 240
+    },
+    "n1_k": {
+      "1": 1440,
+      "2": 960
+    },
+    "n2_k": {
+      "1": 336,
+      "2": 168
+    }
+  },
+  "style": {
+    "ts": "2026-11-10T01:37:14.444699+00:00",
+    "per_stratum": {
+      "NC-1": {
+        "classic": {
+          "n": 336,
+          "cos": {
+            "n": 336,
+            "min": 0.81,
+            "p10": 0.8425,
+            "p50": 0.9457,
+            "p90": 0.9817,
+            "max": 0.9907,
+            "mean": 0.9259
+          },
+          "char5_jaccard": {
+            "n": 336,
+            "min": 0.2176,
+            "p10": 0.2861,
+            "p50": 0.4815,
+            "p90": 0.8021,
+            "max": 0.8264,
+            "mean": 0.5082
+          },
+          "channels": {
+            "medium": 0.536,
+            "short": 0.464
+          },
+          "a_len_indep_max_dev_n_ge_30": {
+            "short": 0.131,
+            "medium": 0.202
+          },
+          "bands": {
+            "razor": 150,
+            "b85": 139,
+            "b70": 47
+          }
+        },
+        "v3": {
+          "n": 336,
+          "cos": {
+            "n": 336,
+            "min": 0.8128,
+            "p10": 0.8636,
+            "p50": 0.9317,
+            "p90": 0.9701,
+            "max": 0.9833,
+            "mean": 0.9232
+          },
+          "char5_jaccard": {
+            "n": 336,
+            "min": 0.21,
+            "p10": 0.2614,
+            "p50": 0.4903,
+            "p90": 0.7481,
+            "max": 0.8035,
+            "mean": 0.4872
+          },
+          "channels": {
+            "long": 0.071,
+            "medium": 0.393,
+            "short": 0.536
+          },
+          "a_len_indep_max_dev_n_ge_30": {
+            "short": 0.202,
+            "medium": 0.06
+          },
+          "bands": {
+            "b85": 221,
+            "razor": 101,
+            "b70": 14
+          }
+        }
+      },
+      "NC-3": {
+        "classic": {
+          "n": 108,
+          "cos": {
+            "n": 108,
+            "min": 0.9876,
+            "p10": 0.9905,
+            "p50": 0.9964,
+            "p90": 0.9987,
+            "max": 0.999,
+            "mean": 0.9958
+          },
+          "char5_jaccard": {
+            "n": 108,
+            "min": 0.8898,
+            "p10": 0.8971,
+            "p50": 0.9512,
+            "p90": 0.9845,
+            "max": 0.9849,
+            "mean": 0.9475
+          },
+          "channels": {
+            "long": 0.333,
+            "medium": 0.333,
+            "short": 0.333
+          },
+          "a_len_indep_max_dev_n_ge_30": {
+            "short": 0.0,
+            "medium": 0.0,
+            "long": 0.0
+          },
+          "bands": {
+            "razor": 108
+          }
+        },
+        "v3": {
+          "n": 72,
+          "cos": {
+            "n": 72,
+            "min": 0.9863,
+            "p10": 0.9915,
+            "p50": 0.9958,
+            "p90": 0.9985,
+            "max": 0.999,
+            "mean": 0.9956
+          },
+          "char5_jaccard": {
+            "n": 72,
+            "min": 0.875,
+            "p10": 0.888,
+            "p50": 0.9453,
+            "p90": 0.9837,
+            "max": 0.9841,
+            "mean": 0.9438
+          },
+          "channels": {
+            "long": 0.333,
+            "medium": 0.333,
+            "short": 0.333
+          },
+          "a_len_indep_max_dev_n_ge_30": {},
+          "bands": {
+            "razor": 72
+          }
+        }
+      },
+      "NC-4": {
+        "classic": {
+          "n": 72,
+          "cos": {
+            "n": 72,
+            "min": 0.9887,
+            "p10": 0.9916,
+            "p50": 1.0,
+            "p90": 1.0,
+            "max": 1.0,
+            "mean": 0.9985
+          },
+          "char5_jaccard": {
+            "n": 72,
+            "min": 1.0,
+            "p10": 1.0,
+            "p50": 1.0,
+            "p90": 1.0,
+            "max": 1.0,
+            "mean": 1.0
+          },
+          "channels": {
+            "long": 0.5,
+            "medium": 0.5
+          },
+          "a_len_indep_max_dev_n_ge_30": {
+            "medium": 0.167,
+            "long": 0.167
+          },
+          "bands": {
+            "razor": 72
+          }
+        },
+        "v3": {
+          "n": 36,
+          "cos": {
+            "n": 36,
+            "min": 0.9907,
+            "p10": 0.9918,
+            "p50": 1.0,
+            "p90": 1.0,
+            "max": 1.0,
+            "mean": 0.9986
+          },
+          "char5_jaccard": {
+            "n": 36,
+            "min": 1.0,
+            "p10": 1.0,
+            "p50": 1.0,
+            "p90": 1.0,
+            "max": 1.0,
+            "mean": 1.0
+          },
+          "channels": {
+            "long": 0.5,
+            "medium": 0.5
+          },
+          "a_len_indep_max_dev_n_ge_30": {},
+          "bands": {
+            "razor": 36
+          }
+        }
+      },
+      "NC-5": {
+        "classic": {
+          "n": 594,
+          "cos": {
+            "n": 594,
+            "min": 0.5181,
+            "p10": 0.6434,
+            "p50": 0.6969,
+            "p90": 0.9922,
+            "max": 0.9947,
+            "mean": 0.7591
+          },
+          "char5_jaccard": {
+            "n": 594,
+            "min": 0.0,
+            "p10": 0.0,
+            "p50": 0.0,
+            "p90": 0.6676,
+            "max": 0.6973,
+            "mean": 0.1628
+          },
+          "channels": {
+            "long": 0.242,
+            "short": 0.758
+          },
+          "a_len_indep_max_dev_n_ge_30": {
+            "short": 0.424,
+            "long": 0.091
+          },
+          "bands": {
+            "b55": 306,
+            "razor": 144,
+            "b70": 142,
+            "b40": 2
+          }
+        },
+        "v3": {
+          "n": 534,
+          "cos": {
+            "n": 534,
+            "min": 0.4198,
+            "p10": 0.5719,
+            "p50": 0.7033,
+            "p90": 0.9932,
+            "max": 0.9963,
+            "mean": 0.7469
+          },
+          "char5_jaccard": {
+            "n": 534,
+            "min": 0.0,
+            "p10": 0.0,
+            "p50": 0.0,
+            "p90": 0.6744,
+            "max": 0.6901,
+            "mean": 0.1817
+          },
+          "channels": {
+            "long": 0.27,
+            "short": 0.73
+          },
+          "a_len_indep_max_dev_n_ge_30": {
+            "short": 0.397,
+            "long": 0.064
+          },
+          "bands": {
+            "b55": 223,
+            "razor": 144,
+            "b40": 38,
+            "b70": 129
+          }
+        }
+      }
+    }
+  },
+  "verdict": "pass",
+  "red": [],
+  "elapsed_s": 114.4
+}
