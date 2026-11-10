@@ -1,0 +1,897 @@
+{
+  "ts": "2026-11-10T14:04:52.767736+00:00",
+  "version": "corpus-v4 (ADDENDUM-7 cycle-2: C1 orbit carriers + C2/C3 bank refresh + seal CD-holdout-v4, B6-conflict build4)",
+  "guard_version": "cg-guard-v1",
+  "instrument": {
+    "provider": "vesma.embeddings.NanoProvider",
+    "nano_pin": "3b752e0671a50da5c108cb50e49630a66c160f7683afedcf879e1880d84317ba"
+  },
+  "design": [
+    "docs/experiments/conflict-detector-corpus-design-ADDENDUM-7.md (RATIFIED, C1-C9, commit 154f7af)",
+    "docs/experiments/conflict-detector-corpus-design-ADDENDUM-6.md (RATIFIED, path B, G1-G12)",
+    "docs/experiments/conflict-detector-corpus-design.md (RATIFIED MLC-9)",
+    "docs/experiments/conflict-detector-corpus-design-ADDENDUM-1.md",
+    "docs/experiments/conflict-detector-corpus-design-ADDENDUM-3.md"
+  ],
+  "banks_v4_frozen": {
+    "banks_commit": "a01837a213a8693939feb18438461b99905002bd",
+    "file_sha256": "806d49c368e52f2192dcf80a2245022c19390ecdf0f744f410a43366003b7708",
+    "content_sha256": "43781829573c5f612833f7fae08528bd868fb2639fc70b0d7d631ddc762fdf29"
+  },
+  "carriers_c1_frozen": {
+    "banks_commit": "a01837a213a8693939feb18438461b99905002bd",
+    "file_sha256": "b197ed715843861bb7c680fb77c90ab597137f7c2c627356694a40ffabffee11",
+    "content_sha256": "7436ae7f665c8602383d652ca6b2717034c989e4ff7b1a83bbb2da0f05470cd5"
+  },
+  "pin_sha256": "e8fb9f04df95e84f3c7073b002c4815eda4a96797231e3ef5b5973207782d44f",
+  "seeds": {
+    "hold": 7047
+  },
+  "seed_family_check": "single-member family (hold only; the C1 train-side carriers derive from train-v2 + the frozen PARA dial, not from a train seed); != [42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 777, 2113, 4242, 6117, 7919, 9377], != all 17 seeds seen in seeds_pinned* run-log events",
+  "strata_v4": {
+    "CD-1": {
+      "classic_v2": 72,
+      "carriers_c1": 0,
+      "train_v4_total": 72,
+      "seal": 22
+    },
+    "CD-2": {
+      "classic_v2": 36,
+      "carriers_c1": 0,
+      "train_v4_total": 36,
+      "seal": 11
+    },
+    "CD-3": {
+      "classic_v2": 36,
+      "carriers_c1": 66,
+      "train_v4_total": 102,
+      "seal": 11
+    },
+    "CD-4": {
+      "classic_v2": 36,
+      "carriers_c1": 0,
+      "train_v4_total": 36,
+      "seal": 10
+    },
+    "CD-5": {
+      "classic_v2": 24,
+      "carriers_c1": 16,
+      "train_v4_total": 40,
+      "seal": 7
+    },
+    "CD-6": {
+      "classic_v2": 36,
+      "carriers_c1": 13,
+      "train_v4_total": 49,
+      "seal": 11
+    },
+    "NC-1": {
+      "classic_v2": 66,
+      "carriers_c1": 79,
+      "train_v4_total": 145,
+      "seal": 20
+    },
+    "NC-2": {
+      "classic_v2": 96,
+      "carriers_c1": 0,
+      "train_v4_total": 96,
+      "seal": 29
+    },
+    "NC-3": {
+      "classic_v2": 54,
+      "carriers_c1": 94,
+      "train_v4_total": 148,
+      "seal": 16
+    },
+    "NC-4": {
+      "classic_v2": 36,
+      "carriers_c1": 72,
+      "train_v4_total": 108,
+      "seal": 11
+    },
+    "NC-5": {
+      "classic_v2": 108,
+      "carriers_c1": 44,
+      "train_v4_total": 152,
+      "seal": 32
+    }
+  },
+  "carriers_c1": {
+    "quotas": {
+      "CD-3": 66,
+      "CD-5": 16,
+      "CD-6": 13,
+      "NC-1": 79,
+      "NC-3": 94,
+      "NC-4": 72,
+      "NC-5": 44
+    },
+    "rungs": {
+      "CD-3": 66,
+      "CD-5": 12,
+      "CD-6": 13,
+      "NC-1": 79,
+      "NC-3": 94,
+      "NC-4": 72,
+      "NC-5": 44
+    },
+    "total": 384,
+    "orbit_shape": "base + cosmetic (verified, not emitted) + para1 + para2; NC-4 symmetric; fresh CD-5 orbits = base + para1 (8)",
+    "label_invariance": "NA constraint: pair + perturbed variants carry ONE label",
+    "cull_ledger": {
+      "razor_loss": 9
+    },
+    "per_stratum": {
+      "CD-3": {
+        "carriers": 66,
+        "class_total_v4": 102,
+        "cap_v4": 5,
+        "scaffold_cap_red": [],
+        "scaffolds": 33,
+        "full_orbits": 33
+      },
+      "CD-5": {
+        "carriers": 16,
+        "class_total_v4": 40,
+        "cap_v4": 2,
+        "scaffold_cap_red": [],
+        "scaffolds": 12,
+        "full_orbits": 0
+      },
+      "CD-6": {
+        "carriers": 13,
+        "class_total_v4": 49,
+        "cap_v4": 3,
+        "scaffold_cap_red": [],
+        "scaffolds": 13,
+        "full_orbits": 0
+      },
+      "NC-1": {
+        "carriers": 79,
+        "class_total_v4": 145,
+        "cap_v4": 8,
+        "scaffold_cap_red": [],
+        "scaffolds": 44,
+        "full_orbits": 33
+      },
+      "NC-3": {
+        "carriers": 94,
+        "class_total_v4": 148,
+        "cap_v4": 8,
+        "scaffold_cap_red": [],
+        "scaffolds": 54,
+        "full_orbits": 40
+      },
+      "NC-4": {
+        "carriers": 72,
+        "class_total_v4": 108,
+        "cap_v4": 5,
+        "scaffold_cap_red": [],
+        "scaffolds": 36,
+        "full_orbits": 36
+      },
+      "NC-5": {
+        "carriers": 44,
+        "class_total_v4": 152,
+        "cap_v4": 9,
+        "scaffold_cap_red": [],
+        "scaffolds": 37,
+        "full_orbits": 7
+      }
+    }
+  },
+  "transfer_split": {
+    "rule": "G3 carried forward: ho4- rows = transfer:v4bank, ho3- rows = transfer:v3bank, ho- rows = indist; the v4 gate report splits by this marking; thresholds unchanged",
+    "per_stratum": {
+      "CD-1": {
+        "transfer_v4bank": 0,
+        "transfer_v3bank": 0,
+        "indist": 22
+      },
+      "CD-2": {
+        "transfer_v4bank": 0,
+        "transfer_v3bank": 0,
+        "indist": 11
+      },
+      "CD-3": {
+        "transfer_v4bank": 0,
+        "transfer_v3bank": 0,
+        "indist": 11
+      },
+      "CD-4": {
+        "transfer_v4bank": 0,
+        "transfer_v3bank": 0,
+        "indist": 10
+      },
+      "CD-5": {
+        "transfer_v4bank": 0,
+        "transfer_v3bank": 0,
+        "indist": 7
+      },
+      "CD-6": {
+        "transfer_v4bank": 0,
+        "transfer_v3bank": 0,
+        "indist": 11
+      },
+      "NC-1": {
+        "transfer_v4bank": 0,
+        "transfer_v3bank": 20,
+        "indist": 0
+      },
+      "NC-2": {
+        "transfer_v4bank": 0,
+        "transfer_v3bank": 0,
+        "indist": 29
+      },
+      "NC-3": {
+        "transfer_v4bank": 7,
+        "transfer_v3bank": 4,
+        "indist": 5
+      },
+      "NC-4": {
+        "transfer_v4bank": 0,
+        "transfer_v3bank": 6,
+        "indist": 5
+      },
+      "NC-5": {
+        "transfer_v4bank": 12,
+        "transfer_v3bank": 10,
+        "indist": 10
+      }
+    },
+    "nc4_promotion": {
+      "old_bank": 5,
+      "promoted_axis_v3": 6,
+      "rule": "C3: merged hardest-first (old bank + promoted v3 axis); the v3 G7 fallback-only rule is dead"
+    },
+    "carrier_split": {
+      "N1": 11,
+      "N2": 7,
+      "N3": 7
+    }
+  },
+  "g10_census": {
+    "CD-1": {
+      "pool": 720,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v1-seal": 6,
+        "v2-seal": 27
+      },
+      "dup_blocked": 495,
+      "clean": 192,
+      "clean_v4": 0,
+      "clean_v3": 0,
+      "clean_classic": 192
+    },
+    "CD-2": {
+      "pool": 216,
+      "preflight_attrited": 0,
+      "culled_f10": {},
+      "dup_blocked": 92,
+      "clean": 124,
+      "clean_v4": 0,
+      "clean_v3": 0,
+      "clean_classic": 124
+    },
+    "CD-3": {
+      "pool": 96,
+      "preflight_attrited": 0,
+      "culled_f10": {},
+      "dup_blocked": 0,
+      "clean": 96,
+      "clean_v4": 0,
+      "clean_v3": 0,
+      "clean_classic": 96
+    },
+    "CD-4": {
+      "pool": 96,
+      "preflight_attrited": 0,
+      "culled_f10": {},
+      "dup_blocked": 0,
+      "clean": 96,
+      "clean_v4": 0,
+      "clean_v3": 0,
+      "clean_classic": 96
+    },
+    "CD-5": {
+      "pool": 108,
+      "preflight_attrited": 0,
+      "culled_f10": {},
+      "dup_blocked": 36,
+      "clean": 72,
+      "clean_v4": 0,
+      "clean_v3": 0,
+      "clean_classic": 72
+    },
+    "CD-6": {
+      "pool": 180,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "train-v2": 6
+      },
+      "dup_blocked": 69,
+      "clean": 105,
+      "clean_v4": 0,
+      "clean_v3": 0,
+      "clean_classic": 105
+    },
+    "NC-1": {
+      "pool": 672,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v2-seal": 191,
+        "v1-seal": 15,
+        "v3-seal": 40,
+        "train-v2": 117
+      },
+      "dup_blocked": 172,
+      "clean": 137,
+      "clean_v4": 0,
+      "clean_v3": 136,
+      "clean_classic": 1
+    },
+    "NC-2": {
+      "pool": 360,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v1-seal": 24,
+        "v2-seal": 21
+      },
+      "dup_blocked": 114,
+      "clean": 201,
+      "clean_v4": 137,
+      "clean_v3": 0,
+      "clean_classic": 64
+    },
+    "NC-3": {
+      "pool": 252,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v1-seal": 9,
+        "v2-seal": 6
+      },
+      "dup_blocked": 62,
+      "clean": 175,
+      "clean_v4": 72,
+      "clean_v3": 72,
+      "clean_classic": 31
+    },
+    "NC-4": {
+      "pool": 108,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v2-seal": 33,
+        "v1-seal": 3
+      },
+      "dup_blocked": 24,
+      "clean": 48,
+      "clean_v4": 0,
+      "clean_v3": 36,
+      "clean_classic": 12
+    },
+    "NC-5": {
+      "pool": 1662,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "v3-seal": 348,
+        "v2-seal": 34,
+        "train-v2": 255
+      },
+      "dup_blocked": 960,
+      "clean": 65,
+      "clean_v4": 30,
+      "clean_v3": 30,
+      "clean_classic": 5
+    },
+    "N1": {
+      "pool": 2400,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "train-v2": 478,
+        "v3-seal": 61,
+        "v2-seal": 51
+      },
+      "dup_blocked": 1222,
+      "clean": 588,
+      "clean_v4": 0,
+      "clean_v3": 0,
+      "clean_classic": 588,
+      "hosts": {
+        "CD-1": 305,
+        "CD-2": 189,
+        "CD-4": 94
+      },
+      "k": {
+        "1": 559,
+        "2": 29
+      }
+    },
+    "N2": {
+      "pool": 504,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "train-v2": 258,
+        "v3-seal": 21,
+        "v2-seal": 22
+      },
+      "dup_blocked": 104,
+      "clean": 99,
+      "clean_v4": 0,
+      "clean_v3": 0,
+      "clean_classic": 99,
+      "k": {
+        "1": 86,
+        "2": 13
+      }
+    },
+    "N3": {
+      "pool": 216,
+      "preflight_attrited": 0,
+      "culled_f10": {
+        "train-v2": 63,
+        "v2-seal": 7,
+        "v3-seal": 7
+      },
+      "dup_blocked": 0,
+      "clean": 139,
+      "clean_v4": 0,
+      "clean_v3": 0,
+      "clean_classic": 139
+    }
+  },
+  "asserts": {
+    "A-share-table": {
+      "ok": true,
+      "detail": {
+        "classic": {
+          "CD-1": 17,
+          "CD-2": 8,
+          "CD-3": 11,
+          "CD-4": 7,
+          "CD-5": 7,
+          "CD-6": 11,
+          "NC-1": 20,
+          "NC-2": 22,
+          "NC-3": 16,
+          "NC-4": 11,
+          "NC-5": 25
+        },
+        "N1_hosts": {
+          "CD-1": 5,
+          "CD-2": 3,
+          "CD-4": 3
+        },
+        "N1_k": {
+          "1": 7,
+          "2": 4
+        },
+        "N2_k": {
+          "1": 4,
+          "2": 3
+        },
+        "N3": 7,
+        "fold": {
+          "CD-1": 22,
+          "CD-2": 11,
+          "CD-3": 11,
+          "CD-4": 10,
+          "CD-5": 7,
+          "CD-6": 11,
+          "NC-1": 20,
+          "NC-2": 29,
+          "NC-3": 16,
+          "NC-4": 11,
+          "NC-5": 32
+        },
+        "fold_expected": {
+          "CD-1": 22,
+          "CD-2": 11,
+          "CD-3": 11,
+          "CD-4": 10,
+          "CD-5": 7,
+          "CD-6": 11,
+          "NC-1": 20,
+          "NC-2": 29,
+          "NC-3": 16,
+          "NC-4": 11,
+          "NC-5": 32
+        }
+      }
+    },
+    "A-silver+len4": {
+      "ok": true,
+      "detail": "180/180 mechanical pass; E4 len violations 0"
+    },
+    "A-labels": {
+      "ok": true,
+      "detail": "bad=0"
+    },
+    "A-guard": {
+      "ok": true,
+      "detail": "nc3 16/16, cd 0/0"
+    },
+    "A-scaffold-union": {
+      "ok": true,
+      "detail": {
+        "cap_violations": [],
+        "share_violations": [],
+        "rule": "train-v4 (classic v2 + C1 carriers) + seal-v4 <= cap; union max share <= 5%; >= 20 scaffolds per class"
+      }
+    },
+    "A-disjoint-train-v2": {
+      "ok": true,
+      "detail": "0 sha hits of 360 against a 833-sha set (disk)"
+    },
+    "A-disjoint-c1-carriers": {
+      "ok": true,
+      "detail": "0 sha hits of 360 against a 367-sha set (substituted/fresh sides)"
+    },
+    "A-disjoint-v3-seal": {
+      "ok": true,
+      "detail": "0 sha hits of 360 against a 360-sha set (seal ids -> pool-origin shas; sealed file NOT opened)"
+    },
+    "A-disjoint-v2-seal": {
+      "ok": true,
+      "detail": "0 sha hits of 360 against a 276-sha set (seal ids -> pool-origin shas; sealed file NOT opened)"
+    },
+    "A-disjoint-v1-seal": {
+      "ok": true,
+      "detail": "0 sha hits of 360 against a 250-sha set (seal ids -> pool-origin shas; sealed file NOT opened)"
+    },
+    "A-sha-unique": {
+      "ok": true,
+      "detail": {
+        "unique_pairs": 180,
+        "of": 180,
+        "cross_pair_sha_shares": 0,
+        "within_pair_a_eq_b": 4,
+        "side_list_dup": 4,
+        "note": "pair-level + cross-pair side uniqueness is the gate; within-pair a==b is the NC-4 metadata-delta semantics (embed-text convention excludes language/record_type; the v3-literal 360-form assumed no promoted-axis rows; C3 changes that) — disclosed, counted separately"
+      }
+    },
+    "A-sha-convention": {
+      "ok": true,
+      "detail": "600/600 v2 pool ids reproduce identical disk shas in-process (F6 mechanics; sealed file untouched)"
+    },
+    "A-origin-marking": {
+      "ok": true,
+      "detail": {
+        "origins": {
+          "indist:classic": 121,
+          "transfer:v3bank": 40,
+          "transfer:v4bank": 19
+        },
+        "per_stratum": {
+          "CD-1": {
+            "transfer_v4bank": 0,
+            "transfer_v3bank": 0,
+            "indist": 22
+          },
+          "CD-2": {
+            "transfer_v4bank": 0,
+            "transfer_v3bank": 0,
+            "indist": 11
+          },
+          "CD-3": {
+            "transfer_v4bank": 0,
+            "transfer_v3bank": 0,
+            "indist": 11
+          },
+          "CD-4": {
+            "transfer_v4bank": 0,
+            "transfer_v3bank": 0,
+            "indist": 10
+          },
+          "CD-5": {
+            "transfer_v4bank": 0,
+            "transfer_v3bank": 0,
+            "indist": 7
+          },
+          "CD-6": {
+            "transfer_v4bank": 0,
+            "transfer_v3bank": 0,
+            "indist": 11
+          },
+          "NC-1": {
+            "transfer_v4bank": 0,
+            "transfer_v3bank": 20,
+            "indist": 0
+          },
+          "NC-2": {
+            "transfer_v4bank": 0,
+            "transfer_v3bank": 0,
+            "indist": 29
+          },
+          "NC-3": {
+            "transfer_v4bank": 7,
+            "transfer_v3bank": 4,
+            "indist": 5
+          },
+          "NC-4": {
+            "transfer_v4bank": 0,
+            "transfer_v3bank": 6,
+            "indist": 5
+          },
+          "NC-5": {
+            "transfer_v4bank": 12,
+            "transfer_v3bank": 10,
+            "indist": 10
+          }
+        },
+        "nc4": {
+          "old_bank": 5,
+          "promoted_axis_v3": 6,
+          "rule": "C3: merged hardest-first (old bank + promoted v3 axis); the v3 G7 fallback-only rule is dead"
+        },
+        "carriers_seal": {
+          "N1": 11,
+          "N2": 7,
+          "N3": 7
+        },
+        "nc1_note": "NC-1 draws from merged (classic+v3-bank) — the classic universe is exhausted at clean 0-1",
+        "rule": "ho4- -> transfer:v4bank, ho3- -> transfer:v3bank, ho- -> indist:classic; carrier field marks N1/N2/N3"
+      }
+    },
+    "A-indep+len": {
+      "ok": true,
+      "detail": {
+        "P(a_older)": 0.565,
+        "dated": 108,
+        "gate": "|P - 0.5| <= 0.10",
+        "channels_report": {
+          "long": 132,
+          "medium": 40,
+          "short": 8
+        },
+        "len_note": "the 1/3 length balance is a TRAIN-side design axis (4.4 A-len-indep, asserted on train-v4 carriers); the seal is hardest-first by cos and the razor band is long-channel physics — the RATIFIED v3 seal shipped long 128 / medium 38 / short 14; a v4 long-dominated shape is v3-parity, reported not gated"
+      }
+    },
+    "A-frozen": {
+      "ok": true,
+      "detail": "nano 3b752e0671a5…; cortex features imported; instrument pin verified at Cos init"
+    },
+    "A-archive-integrity": {
+      "ok": true,
+      "detail": {
+        "corpus-v2/holdout.jsonl": "digest-ok",
+        "seals/CD-holdout-v2.seal.json": "digest-ok",
+        "corpus-v1/holdout.jsonl": "digest-ok",
+        "corpus-v3/holdout.jsonl": "digest-ok",
+        "seals/CD-holdout-v3.seal.json": "digest-ok"
+      }
+    },
+    "T-carrier-quota": {
+      "ok": true,
+      "detail": {
+        "pinned": {
+          "CD-3": 66,
+          "CD-5": 16,
+          "CD-6": 13,
+          "NC-1": 79,
+          "NC-3": 94,
+          "NC-4": 72,
+          "NC-5": 44
+        },
+        "emitted": {
+          "CD-3": 66,
+          "CD-5": 16,
+          "CD-6": 13,
+          "NC-1": 79,
+          "NC-3": 94,
+          "NC-4": 72,
+          "NC-5": 44
+        },
+        "total": 384,
+        "note": "measure-then-fix: emission == census pin (exact)"
+      }
+    },
+    "T-carrier-silver": {
+      "ok": true,
+      "detail": {
+        "pred_bad": [],
+        "below_razor": [],
+        "channel_shift": [],
+        "note": "orbit_ok on rungs (sentence-pinned substitution), mechanical_ok on fresh bases; razor retention; E4 channel"
+      }
+    },
+    "T-labels+invariance": {
+      "ok": true,
+      "detail": {
+        "bad": [],
+        "note": "label derivable from stratum AND == base label (NA label-invariance constraint)"
+      }
+    },
+    "T-cosmetic-proof": {
+      "ok": true,
+      "detail": {
+        "bad": [],
+        "note": "case-flip variant leaves embed-text sha byte-identical on every orbit base (the cosmetic rung, verified not emitted)"
+      }
+    },
+    "T-carrier-disjoint": {
+      "ok": true,
+      "detail": {
+        "seal_hits": [],
+        "train_side_hits": [],
+        "note": "substituted/fresh side shas are new vs ALL sealed generations and vs train-v2 sides (F10 leakage guard); the UNCHANGED side legitimately shares its own base (orbit structure)"
+      }
+    },
+    "T-carrier-shape": {
+      "ok": true,
+      "detail": {
+        "pair_dups": 0,
+        "sha_pair_collisions_meta_distinguished": 2,
+        "mixed_null": 0,
+        "e7_both_fit": 347,
+        "side_a": 144,
+        "null_share_carriers": 0.315,
+        "note": "gate = no FULL-ROW duplicates (sha-pair collisions count only when the rows are metadata-IDENTICAL); sha-pair collisions between rows differing in record_type/language/tags are the NC-4 metadata-delta semantics (embed-text convention excludes those fields) — disclosed; 0 mixed-null; E7 side balance over both-side-fit rungs"
+      }
+    }
+  },
+  "bands_seal": {
+    "razor": 172,
+    "b85": 0,
+    "b70": 8,
+    "b55": 0,
+    "b40": 0
+  },
+  "lineage": {
+    "rotation_of": "CD-holdout-v3",
+    "ancestor_holdout_sha256": "548eae2a9655c57f482255da8f40fbf947b57ed3f589ecdbe6c6762611d05377",
+    "ancestor_seal_sha256": "8e90729cf66005f7859b6150abb73c8cdb4a2acdb6c256a056a173d14ad5bed2",
+    "ancestor_status": "red-gate-DECLINE",
+    "ancestor_gate_state": "single legal read consumed (sealed_read_once 2026-11-10T02:50:06Z, sha 548eae2a…, n=180/360); verdict DECLINE (g_stab 0.5833 — 35/60 pairs invariant, threshold 1.0, floor_inv=0); 10 other gates GREEN",
+    "cycle2_authorization": "ADDENDUM-7 RATIFIED (MLC-7 three-leg convergence, commit 154f7af): retrain wave with orbit carriers (C1), bank refresh (C2), NC-4 promotion (C3); anchor G4: characterization GREEN + gate RED = model defect — the corpus was not the defect, the uncovered carrier cell was the amplificator",
+    "rotation_rule": "slice rule (fresh generation), NOT corpus amend-once: E13 amend budget NOT spent; train-v2 stays byte-frozen; train-v4 = train-v2 verbatim + C1 carrier rows (declared in this manifest)",
+    "cut_rule": "SINGLE cut of 180 (SEAL_SHARES_V2 largest remainder, hardest-first within stratum, sha-only culling F6 vs ALL FOUR generations + C1 carriers, union scaffold caps, G10 census-gated); one seed family member (hold=7047); no re-cut on this artifact",
+    "universes_extension": "C2 (G11): banks_v4 eval-only fork — NC-5 6 new SPEC subjects, NC-2 8 fresh refine combos, NC-3 2 new version families; C3: the banks_v3 NC-4 non-tech axis PROMOTED to the main bank (merged hardest-first, transfer-marked)",
+    "carriers_extension": "C1: para-orbits into train for the 7 razor-uncovered strata (base + cosmetic + para1 + para2, label-invariance); carrier quotas pinned from the census before emission (measure-then-fix); classic shares untouched",
+    "disclosure_unseen_scaffold": "holdout v4 carries unseen-scaffold rows of the extended classes (ADDENDUM-6 §2.4/G12 lineage rule carried forward); the model card known-limitations must repeat this line verbatim",
+    "f1_single_shot": "a red gate v4 is FINAL on this artifact + thresholds; any next attempt is a new cycle with a fresh seal (F1/F3)"
+  },
+  "para_dict_sha256": {
+    "ru": "02c4179bdaad90cba93ed716d7b22b9827554a671c4ea34996f4c7ed57b5119d",
+    "en": "35ef0cd75ffc5882bf7190d67461914a1bb6669cbf284745150b1006effdef69"
+  },
+  "known_uncovered": {
+    "cos_below": 0.7793,
+    "note": "measured floor over the emitted v4 seal"
+  },
+  "disjointness": {
+    "rule": "sha(text_a/b) only (F6)",
+    "culled": 298,
+    "cull_by_src": {
+      "v2-seal": 111,
+      "v1-seal": 8,
+      "v3-seal": 73,
+      "train-v2": 106
+    },
+    "sha_set_sizes": {
+      "train-v2": 833,
+      "v3-seal": 360,
+      "v2-seal": 276,
+      "v1-seal": 250
+    },
+    "sealed_files_opened": 0
+  },
+  "cut_depth": {
+    "CD-1": {
+      "pool": 720,
+      "want": 17,
+      "got": 17,
+      "blocked": {
+        "dup": 7,
+        "cap": 2
+      },
+      "classic_pool": 720
+    },
+    "CD-2": {
+      "pool": 216,
+      "want": 8,
+      "got": 8,
+      "blocked": {
+        "cap": 8,
+        "dup": 3
+      },
+      "classic_pool": 216
+    },
+    "CD-3": {
+      "pool": 96,
+      "want": 11,
+      "got": 11,
+      "blocked": {
+        "cap": 12
+      },
+      "classic_pool": 96
+    },
+    "CD-4": {
+      "pool": 96,
+      "want": 7,
+      "got": 7,
+      "blocked": {},
+      "classic_pool": 96
+    },
+    "CD-5": {
+      "pool": 108,
+      "want": 7,
+      "got": 7,
+      "blocked": {
+        "cap": 2
+      },
+      "classic_pool": 108
+    },
+    "CD-6": {
+      "pool": 180,
+      "want": 11,
+      "got": 11,
+      "blocked": {
+        "cap": 6
+      },
+      "classic_pool": 180
+    },
+    "NC-1": {
+      "pool": 672,
+      "want": 20,
+      "got": 20,
+      "blocked": {},
+      "classic_pool": 336
+    },
+    "NC-2": {
+      "pool": 360,
+      "want": 22,
+      "got": 22,
+      "blocked": {
+        "dup": 17
+      },
+      "classic_pool": 168
+    },
+    "NC-3": {
+      "pool": 252,
+      "want": 16,
+      "got": 16,
+      "blocked": {
+        "cap": 5,
+        "dup": 4
+      },
+      "classic_pool": 108
+    },
+    "NC-4": {
+      "pool": 108,
+      "want": 11,
+      "got": 11,
+      "blocked": {
+        "cap": 21,
+        "dup": 10
+      },
+      "classic_pool": 72
+    },
+    "NC-5": {
+      "pool": 1662,
+      "want": 25,
+      "got": 25,
+      "blocked": {
+        "dup": 408
+      },
+      "classic_pool": 594
+    }
+  },
+  "emitted": [
+    "train.jsonl (600 classic verbatim + 384 C1 carriers)",
+    "holdout.jsonl (180 pairs, sealed)",
+    "holdout-pool.jsonl (15180 rows, wide generation provenance)",
+    "pin-v4.json",
+    "seals/CD-holdout-v4.seal.json"
+  ],
+  "absent_by_construction": [
+    "sheet/* (cycle-2 sheet lane is separate)"
+  ],
+  "regime": "synthetic-only; no store texts; no LLM in construction; labels by construction",
+  "fingerprints": {
+    "train.jsonl": "7645ae4601f25b8bd0cfc30dcd95ef0a6646b6f98adfd66029cee83563e794bf",
+    "holdout.jsonl": "c293643f5169217cf9a3321c72f98f0924e710e7c5a2092502bc298eddc8be08",
+    "holdout-pool.jsonl": "a8f2ba07fc945ab0999a5556516a423c466556ca5f5af390fc05b5411ddbd076",
+    "seal": "76c12ad1947aaf7856541cd72745adbc8a0e77536527e67120d64382b7ce986f"
+  }
+}

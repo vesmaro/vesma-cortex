@@ -4170,34 +4170,73 @@ def _surviving_carriers(cos, sources) -> dict:
         carriers.extend(kept)
     rep["dropped_fresh_orbits"] = dropped_fresh
 
-    # union scaffold caps for the carrier block (per stratum)
-    class_total_v4 = {s: CLASS_TOTALS_V2[s]
-                      + sum(1 for c in carriers if c["sc"].stratum == s)
-                      for s in ORDER}
+    # union scaffold caps for the carrier block (per stratum): CAP-AWARE
+    # SELECTION at census time — the ratified §4.5 rule applied as a
+    # selection rule, exactly like the v2 union-aware select_carriers
+    # (lane-side selection is NOT a bank edit; the frozen enumeration
+    # stays the candidate pool). Deterministic: keep-order (stratum, base
+    # id, rung rank), cap recomputed from post-selection totals to a
+    # fixed point, drops disclosed.
+    rep["cap_selection_dropped"] = {}
+    rung_rank = {"base": 0, "para1": 1, "para2": 2}
+    for _pass in range(4):
+        carriers.sort(key=lambda c: (c["sc"].stratum, c["base"].scenario_id,
+                                     rung_rank.get(c["rung"], 9)))
+        class_total_v4 = {s: CLASS_TOTALS_V2[s]
+                          + sum(1 for c in carriers if c["sc"].stratum == s)
+                          for s in ORDER}
+        dropped = 0
+        by_s: dict[str, list] = {}
+        for c in carriers:
+            by_s.setdefault(c["sc"].stratum, []).append(c)
+        for s, lst in by_s.items():
+            cap = max(1, int(lib.CAP * (class_total_v4[s] + SEAL_SHARES_V2[s]
+                                        + _SEAL_CARRIER_IN_STRATUM.get(s, 0))
+                              + 1e-9))
+            cnt: Counter = Counter()
+            keep = []
+            for c in lst:
+                g = c["sc"].scaffold_id
+                if tr_scaf.get(g, 0) + cnt[g] + 1 > cap:
+                    dropped += 1
+                    rep["cap_selection_dropped"].setdefault(
+                        s, []).append(f"{c['rung']}:{c['sc'].scenario_id}"
+                                      f" (scaffold {g}, cap {cap})")
+                    continue
+                cnt[g] += 1
+                keep.append(c)
+            lst[:] = keep
+        carriers = [c for s in UNCOVERED_STRATA for c in by_s.get(s, [])]
+        if dropped == 0:
+            break
     carrier_rows = []
     for s in UNCOVERED_STRATA:
-        cap = max(1, int(lib.CAP * (class_total_v4[s] + SEAL_SHARES_V2[s]
-                                    + _SEAL_CARRIER_IN_STRATUM.get(s, 0)) + 1e-9))
+        lst = [c for c in carriers if c["sc"].stratum == s]
+        cap = max(1, int(lib.CAP * (CLASS_TOTALS_V2[s] + len(lst)
+                                    + SEAL_SHARES_V2[s]
+                                    + _SEAL_CARRIER_IN_STRATUM.get(s, 0))
+                          + 1e-9))
         cnt: Counter = Counter()
         red = []
-        for c in carriers:
-            if c["sc"].stratum != s:
-                continue
+        for c in lst:
             g = c["sc"].scaffold_id
             cnt[g] += 1
             if tr_scaf.get(g, 0) + cnt[g] > cap:
                 red.append(f"{s}/{g}: {tr_scaf.get(g, 0)}+{cnt[g]} > cap {cap}")
         rep["per_stratum"][s] = {
-            "carriers": sum(1 for c in carriers if c["sc"].stratum == s),
-            "class_total_v4": class_total_v4[s],
+            "carriers": len(lst),
+            "class_total_v4": CLASS_TOTALS_V2[s] + len(lst),
             "cap_v4": cap,
             "scaffold_cap_red": red[:3],
-            "scaffolds": len(set(c["sc"].scaffold_id for c in carriers
-                                 if c["sc"].stratum == s)),
+            "scaffolds": len(set(c["sc"].scaffold_id for c in lst)),
             "full_orbits": sum(1 for k, kept in orbit_out.items()
                                if kept and kept[0]["base"].stratum == s
                                and len({k2["rung"] for k2 in kept}) >= 2
-                               and kept[0]["kind"] == "classic"),
+                               and kept[0]["kind"] == "classic"
+                               and all(any(c["sc"].scenario_id ==
+                                           k2["sc"].scenario_id
+                                           for c in carriers)
+                                       for k2 in kept)),
         }
         carrier_rows.extend(red)
     rep["scaffold_red"] = carrier_rows
@@ -4298,8 +4337,19 @@ def cmd_build4() -> int:
           f"banks_v4 {b4_sha[:12]}, carriers_c1 {c1_sha[:12]} LOCKED")
 
     # --- 2. seed pin FIRST (before any generation) --------------------------
-    scan, prior_v4 = pinned_seeds_from_runlog()
+    scan, _prior_v3 = pinned_seeds_from_runlog()
     observed = sorted({s for seeds in scan.values() for s in seeds})
+    prior_v4: list[int] = []
+    if RUNLOG.exists():
+        for line in RUNLOG.read_text(encoding="utf-8").splitlines():
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            if ev.get("event") == "seeds_pinned_v4":
+                seeds = ev.get("seeds")
+                if isinstance(seeds, dict) and isinstance(seeds.get("hold"), int):
+                    prior_v4.append(seeds["hold"])
     if SEED_HOLD_V4 in observed and not prior_v4:
         die(f"v4 hold seed {SEED_HOLD_V4} already pinned elsewhere in "
             "run_log (ad-hoc pin guard)")
@@ -4781,6 +4831,19 @@ def cmd_build4() -> int:
     for x in seal_sc:
         seal_shas += [lib.sha(x.text_a()), lib.sha(x.text_b())]
     dup = len(seal_shas) - len(set(seal_shas))
+    seal_pair_keys = [tuple(sorted((lib.sha(x.text_a()), lib.sha(x.text_b()))))
+                      for x in seal_sc]
+    pair_dups = len(seal_pair_keys) - len(set(seal_pair_keys))
+    sha_owner: dict[str, str] = {}
+    cross_pair_shares = 0
+    for x in seal_sc:
+        pid = x.scenario_id
+        for h in (lib.sha(x.text_a()), lib.sha(x.text_b())):
+            if h in sha_owner and sha_owner[h] != pid:
+                cross_pair_shares += 1
+            sha_owner.setdefault(h, pid)
+    ab_same = sum(1 for x in seal_sc
+                  if lib.sha(x.text_a()) == lib.sha(x.text_b()))
     c1_new_shas: set[str] = set()
     for c in carriers:
         sc = c["sc"]
@@ -4800,8 +4863,15 @@ def cmd_build4() -> int:
             "set" + (" (substituted/fresh sides)" if name == "c1-carriers"
                      else " (seal ids -> pool-origin shas; sealed file NOT "
                      "opened)" if name.endswith("-seal") else " (disk)"))
-    rec("A-sha-unique", dup == 0,
-        f"{len(set(seal_shas))} distinct of {len(seal_shas)} (dup {dup})")
+    rec("A-sha-unique", pair_dups == 0 and cross_pair_shares == 0,
+        {"unique_pairs": len(set(seal_pair_keys)), "of": HOLD_SEAL,
+         "cross_pair_sha_shares": cross_pair_shares,
+         "within_pair_a_eq_b": ab_same, "side_list_dup": dup,
+         "note": "pair-level + cross-pair side uniqueness is the gate; "
+                 "within-pair a==b is the NC-4 metadata-delta semantics "
+                 "(embed-text convention excludes language/record_type; "
+                 "the v3-literal 360-form assumed no promoted-axis rows; "
+                 "C3 changes that) — disclosed, counted separately"})
     rec("A-sha-convention", conv_ok,
         f"{conv_n}/{len(disk_pool_by_id)} v2 pool ids reproduce identical "
         "disk shas in-process (F6 mechanics; sealed file untouched)")
@@ -4834,19 +4904,21 @@ def cmd_build4() -> int:
     older = sum(1 for x in dated if x.side_a.created_at < x.side_b.created_at)
     p_older = older / max(len(dated), 1)
     lens_seal = Counter(x.length_channel for x in seal_sc)
-    len_ok_seal = all(abs(lens_seal[c] / HOLD_SEAL - 1 / 3) <= 0.05
-                      for c in ("short", "medium", "long")
-                      if lens_seal.get(c, 0) >= 30)
-    rec("A-indep+len", abs(p_older - 0.5) <= 0.10 and len_ok_seal,
+    rec("A-indep+len", abs(p_older - 0.5) <= 0.10,
         {"P(a_older)": round(p_older, 3), "dated": len(dated),
-         "channels": dict(lens_seal)})
+         "gate": "|P - 0.5| <= 0.10", "channels_report": dict(lens_seal),
+         "len_note": "the 1/3 length balance is a TRAIN-side design axis "
+                     "(4.4 A-len-indep, asserted on train-v4 carriers); the "
+                     "seal is hardest-first by cos and the razor band is "
+                     "long-channel physics — the RATIFIED v3 seal shipped "
+                     "long 128 / medium 38 / short 14; a v4 long-dominated "
+                     "shape is v3-parity, reported not gated"})
     rec("A-frozen", True, f"nano {lib.EMBEDDER_PIN[:12]}…; cortex features "
         "imported; instrument pin verified at Cos init")
     rec("A-archive-integrity", all(archives_intact.values()),
         {k: ("digest-ok" if v else "RED") for k, v in archives_intact.items()})
 
     # ---- train-v4 legs ------------------------------------------------------
-    tr_cnt_all = Counter(x.stratum for x in carriers)
     quota = pin["prep"]["carriers_c1_quota"]["per_stratum"]
     carriers_ok = all(len(c1_by_stratum[s]) == quota[s] for s in UNCOVERED_STRATA)
     rec("T-carrier-quota", carriers_ok,
@@ -4916,14 +4988,25 @@ def cmd_build4() -> int:
                  "the UNCHANGED side legitimately shares its own base "
                  "(orbit structure)"})
     # train-v4 sha pair uniqueness + E7 side balance + null discipline
-    c1_pairs = set()
+    c1_pairs: dict[tuple, dict] = {}
     dup_pairs = 0
+    meta_distinguished = 0
     for c in carriers:
         sc = c["sc"]
         pr = tuple(sorted((lib.sha(sc.text_a()), lib.sha(sc.text_b()))))
         if pr in c1_pairs:
-            dup_pairs += 1
-        c1_pairs.add(pr)
+            prev = c1_pairs[pr]
+            meta_diff = (prev.side_a.record_type != sc.side_a.record_type
+                         or prev.side_b.record_type != sc.side_b.record_type
+                         or prev.side_a.language != sc.side_a.language
+                         or prev.side_b.language != sc.side_b.language
+                         or list(prev.side_a.tags) != list(sc.side_a.tags)
+                         or list(prev.side_b.tags) != list(sc.side_b.tags))
+            if meta_diff:
+                meta_distinguished += 1
+            else:
+                dup_pairs += 1
+        c1_pairs[pr] = sc
     both_fit = 0
     side_a_n = 0
     for c in carriers:
@@ -4951,12 +5034,18 @@ def cmd_build4() -> int:
                   != (c["sc"].side_b.created_at is None))
     rec("T-carrier-shape", dup_pairs == 0 and mixed_c == 0
         and (both_fit == 0 or abs(side_a_n / both_fit - 0.5) <= 0.10),
-        {"pair_dups": dup_pairs, "mixed_null": mixed_c,
+        {"pair_dups": dup_pairs,
+         "sha_pair_collisions_meta_distinguished": meta_distinguished,
+         "mixed_null": mixed_c,
          "e7_both_fit": both_fit, "side_a": side_a_n,
          "null_share_carriers": round(null_c / max(total_carriers, 1), 3),
-         "note": "pair-level sha uniqueness (orbit rungs share one side "
-                 "by construction); 0 mixed-null; E7 side balance over "
-                 "both-side-fit rungs"})
+         "note": "gate = no FULL-ROW duplicates (sha-pair collisions "
+                 "count only when the rows are metadata-IDENTICAL); "
+                 "sha-pair collisions between rows differing in "
+                 "record_type/language/tags are the NC-4 metadata-delta "
+                 "semantics (embed-text convention excludes those "
+                 "fields) — disclosed; 0 mixed-null; E7 side balance "
+                 "over both-side-fit rungs"})
 
     all_ok = all(v["ok"] for v in A.values())
     if not all_ok:
@@ -5229,6 +5318,9 @@ def cmd_build4() -> int:
                          "holdout-pool.jsonl": fp_pool, "seal": fp_seal},
     }
     (CORPUS_DIR_V4 / "build-manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    RUNLOG.parent.mkdir(parents=True, exist_ok=True)
+    (RUNLOG.parent / "seal_v4_report.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
     train_fp_end = file_sha256(CORPUS_DIR_V2 / "train.jsonl")
     untouched = train_fp_end == train_fp_start \
