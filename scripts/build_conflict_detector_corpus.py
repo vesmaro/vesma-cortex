@@ -14,6 +14,10 @@ Subcommands (the ratified lane order):
   sheet      48-block gold sheet, blind render, fp frozen (TL format
              gate BEFORE any owner hand-off)
   card       dataset card + fingerprints (glossary mandatory)
+  seal3      CD-holdout-v3 rotation (ADDENDUM-5 §4 F6-F12): POOL-ONLY
+             lane — fresh hold seed -> census E9-mini -> cut 180 ->
+             seal + pin-v3; train/sheet absent by construction;
+             measure2/build2 untouched byte-for-byte (F7)
 
 Instrument: engine venv python (vesma.embeddings); pin
 nano:sha256:3b752e06... verified at every entry — wrong provider refuses
@@ -1459,6 +1463,820 @@ def cmd_build2() -> int:
     return 0
 
 
+# --- seal3: CD-holdout-v3 rotation (ADDENDUM-5 §4 F6-F12, ratified 10.11) ------
+# POOL-ONLY lane (F7): measure2/build2 stay byte-for-byte untouched; a fresh
+# hold-seed generation is cut to 180 and sealed as CD-holdout-v3. train.jsonl
+# and the sheet are ABSENT BY CONSTRUCTION here. This is the slice rule
+# (fresh eval surface), NOT a corpus rebuild and NOT amend-once: the E13
+# amend budget is NOT spent, the train-v2 artifact (train sha a549dc0c…,
+# model 2534fcbe…) stays frozen (F3 legs re-checked at runtime).
+
+CORPUS_DIR_V3 = DATA / "corpus-v3"
+PIN_V3_PATH = DATA / "pin-v3.json"
+SEAL_V3_PATH = SEALS_DIR / "CD-holdout-v3.seal.json"
+SEAL_V1_PATH = SEALS_DIR / "CD-holdout-v1.seal.json"
+SEAL3_SLICE = "conflict-detector-corpus-v2-seal3"
+
+# F8: the v3 seed family is a SINGLE-MEMBER family (hold only) — the train
+# and sheet members are absent by construction in the pool-only lane. The
+# seed must differ from the v2 family {2113,7919,9377}, the v1 family
+# {42,777,4242} ∪ {43..52} (FORBIDDEN_SEEDS pins the v1 sets), and from
+# EVERY seed recorded by any seeds_pinned* run-log event of any slice
+# (ad-hoc pin guard — re-scanned at runtime BEFORE the pin event).
+SEED_HOLD_V3 = 6117
+SEEDS_FORBIDDEN_V3 = set(FORBIDDEN_SEEDS) | set(SEEDS_V2.values())
+assert SEED_HOLD_V3 not in SEEDS_FORBIDDEN_V3, "v3 hold seed collides with a pinned family"
+
+# F9: seal-slice k targets. The ratified k totals SEAL_N1_K=(7,4) spread over
+# the host split SEAL_N1_HOSTS={CD-1:5, CD-2:3, CD-4:3}; N2 uses SEAL_N2_K.
+SEAL_N1_K_TARGETS = {"CD-1": (3, 2), "CD-2": (2, 1), "CD-4": (2, 1)}
+assert (sum(t[0] for t in SEAL_N1_K_TARGETS.values()),
+        sum(t[1] for t in SEAL_N1_K_TARGETS.values())) == SEAL_N1_K
+assert {h: t[0] + t[1] for h, t in SEAL_N1_K_TARGETS.items()} == SEAL_N1_HOSTS
+
+# F9: NO CV minimums on eval cells (the train-CV rule stays a train-side
+# instrument); small eval strata are reported descriptively, and no gate
+# verdict may rest on an eval cell with n < 10.
+SEAL3_REPORTING_RULE = {
+    "cv_minimums": "none on eval cells (F9: train-CV rule is train-side)",
+    "per_stratum_n_lt_10": "Wilson CI + descriptive-only; no verdict may "
+                           "rest on an eval cell with n < 10",
+}
+
+
+def log3(event: str, **fields) -> None:
+    """Append a seal3 event to the run-log (own slice tag)."""
+    RUNLOG.parent.mkdir(parents=True, exist_ok=True)
+    with RUNLOG.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"ts": now(), "event": event,
+                             "slice": SEAL3_SLICE, **fields},
+                            ensure_ascii=False) + "\n")
+
+
+def log3_md(event: str, **fields) -> None:
+    """E11 dual format: the same event into the COMMITTED md run-log."""
+    RUNLOG_MD.parent.mkdir(parents=True, exist_ok=True)
+    with RUNLOG_MD.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"ts": now(), "event": event,
+                             "slice": SEAL3_SLICE, **fields},
+                            ensure_ascii=False) + "\n")
+
+
+def pinned_seeds_from_runlog() -> tuple[dict[str, list[int]], list[int]]:
+    """F8 ad-hoc pin guard: every integer recorded under a seed-ish key in
+    ANY seeds_pinned* run-log event (any slice, any generation). Returns
+    (per-event map, prior seeds_pinned_v3 hold-seed pins)."""
+    found: dict[str, list[int]] = {}
+    prior_v3: list[int] = []
+    if not RUNLOG.exists():
+        return found, prior_v3
+    ints: list[int] = []
+
+    def walk(v) -> None:
+        if isinstance(v, bool):
+            return
+        if isinstance(v, int):
+            ints.append(v)
+        elif isinstance(v, list):
+            for x in v:
+                walk(x)
+        elif isinstance(v, dict):
+            for x in v.values():
+                walk(x)
+
+    for line in RUNLOG.read_text(encoding="utf-8").splitlines():
+        try:
+            ev = json.loads(line)
+        except ValueError:
+            continue
+        name = str(ev.get("event", ""))
+        if not name.startswith("seeds_pinned"):
+            continue
+        ints.clear()
+        for k, v in ev.items():
+            if "seed" in k.lower() or k == "per_substratum":
+                walk(v)
+        if ints:
+            found[str(ev.get("ts", "?"))] = sorted(set(ints))
+        if name == "seeds_pinned_v3":
+            seeds = ev.get("seeds")
+            if isinstance(seeds, dict) and isinstance(seeds.get("hold"), int):
+                prior_v3.append(seeds["hold"])
+    return found, prior_v3
+
+
+def file_sha256(path: Path) -> str:
+    """Whole-file digest. Used ONLY as an integrity seal on archived
+    artifacts (byte digest, no parsing — sealed content stays unopened)."""
+    h = hashlib.sha256()
+    with path.open("rb") as fh:
+        for chunk in iter(lambda: fh.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _disk_env_sha(env: dict) -> str:
+    """sha over the PINNED embed-text convention (lib.embed_text) rebuilt
+    from a jsonl envelope — the F6 disk-side identity."""
+    return lib.sha(f"{lib.n1(env['title'])}\n{lib.n1(env['body'])}\n"
+                   f"{lib.n1(' '.join(env['tags']))}")
+
+
+def disk_text_shas(jsonl_path: Path, ids: set[str] | None = None
+                   ) -> tuple[set[str], set[str]]:
+    """sha(text_a/b) set over jsonl rows (both orientations, deduped). With
+    `ids`, restrict to those pair ids (id->pool-origin disjointness) and
+    return the requested ids NOT found on disk. NEVER pointed at a sealed
+    holdout.jsonl — sealed content is only reached through its pool origin
+    (ADDENDUM-5 F6/F10)."""
+    out: set[str] = set()
+    seen_ids: set[str] = set()
+    with jsonl_path.open(encoding="utf-8") as fh:
+        for line in fh:
+            row = json.loads(line)
+            pid = row.get("pair_id") or row.get("scenario_id")
+            if ids is not None and pid not in ids:
+                continue
+            seen_ids.add(pid)
+            out.add(_disk_env_sha(row["envelope_a"]))
+            out.add(_disk_env_sha(row["envelope_b"]))
+    missing = (ids - seen_ids) if ids is not None else set()
+    return out, missing
+
+
+def sealed_generation_sha_set(seal_path: Path, pool_path: Path
+                              ) -> set[str]:
+    """F10: text-sha set of a SEALED generation WITHOUT opening the sealed
+    holdout.jsonl — seal-manifest ids -> pool-origin rows on disk -> shas.
+    Fail-closed on manifest/pool divergence."""
+    seal = json.loads(seal_path.read_text(encoding="utf-8"))
+    ids = set(seal["ids"])
+    if seal.get("n") is not None and len(ids) != seal["n"]:
+        die(f"seal manifest {seal_path.name}: {len(ids)} unique ids != n={seal['n']}")
+    shas, missing = disk_text_shas(pool_path, ids)
+    if missing:
+        die(f"seal manifest {seal_path.name}: {len(missing)} ids absent from "
+            f"pool origin {pool_path.name} (provenance broken)")
+    return shas
+
+
+def _forbidden_source(ha: str, hb: str,
+                      sources: dict[str, set[str]]) -> str | None:
+    for name, sha_set in sources.items():
+        if ha in sha_set or hb in sha_set:
+            return name
+    return None
+
+
+def cmd_seal3() -> int:
+    """CD-holdout-v3 rotation (ADDENDUM-5 §4, F6-F12): pool-only lane,
+    stop-first (any RED assert writes NOTHING and seals NOTHING)."""
+    t0 = time.time()
+
+    # --- legality preconditions (F3/F7 legs DE owns) ------------------------
+    gate_done = 0
+    if RUNLOG.exists():
+        for line in RUNLOG.read_text(encoding="utf-8").splitlines():
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            if ev.get("event") == "gate_done" \
+                    and ev.get("slice") == "conflict-detector-v2-gate":
+                gate_done += 1
+    if gate_done:
+        die(f"F3 freeze violated: v2 gate already reached a verdict "
+            f"({gate_done} gate_done events) — rotation is illegal")
+    man2 = json.loads((CORPUS_DIR_V2 / "build-manifest.json")
+                      .read_text(encoding="utf-8"))
+    train_fp_start = file_sha256(CORPUS_DIR_V2 / "train.jsonl")
+    if train_fp_start != man2["fingerprints"]["train.jsonl"]:
+        die("train-v2 artifact integrity RED: disk train.jsonl digest != "
+            "build-manifest fingerprint — F7 forbids the whole lane")
+    hold2_fp = file_sha256(CORPUS_DIR_V2 / "holdout.jsonl")
+    seal2_fp = file_sha256(SEAL_V2_PATH)
+    hold1_fp = file_sha256(CORPUS_DIR / "holdout.jsonl")
+    archives_intact = {
+        "corpus-v2/holdout.jsonl": hold2_fp == man2["fingerprints"]["holdout.jsonl"],
+        "seals/CD-holdout-v2.seal.json": seal2_fp == man2["fingerprints"]["seal"],
+        "corpus-v1/holdout.jsonl": hold1_fp == json.loads(
+            SEAL_V1_PATH.read_text(encoding="utf-8"))["holdout_jsonl_sha256"],
+    }
+    if not all(archives_intact.values()):
+        die(f"archive integrity RED: {dict(archives_intact)} — someone touched a seal")
+    print(f"preconditions: F3 gate_done=0; train-v2 fp {train_fp_start[:16]} "
+          f"== manifest; v1/v2 archives digest-intact (bytes hashed, NOT parsed)")
+
+    # --- F8: seed pin FIRST, before any generation ---------------------------
+    scan, prior_v3 = pinned_seeds_from_runlog()
+    observed = sorted({s for seeds in scan.values() for s in seeds})
+    observed_elsewhere = sorted(set(observed) - set(prior_v3))
+    if SEED_HOLD_V3 in observed_elsewhere:
+        die(f"v3 hold seed {SEED_HOLD_V3} already pinned elsewhere in run_log "
+            f"(ad-hoc pin guard)")
+    sealed_v3 = 0
+    for line in RUNLOG.read_text(encoding="utf-8").splitlines():
+        try:
+            ev = json.loads(line)
+        except ValueError:
+            continue
+        if ev.get("event") == "seal_v3":
+            sealed_v3 += 1
+    if sealed_v3:
+        die(f"rotation already consumed: {sealed_v3} seal_v3 events in run_log "
+            "— a burned v3 would be a NEW incident, not a retry")
+    for p in prior_v3:
+        if p != SEED_HOLD_V3:
+            die(f"seed-family shopping RED: prior seeds_pinned_v3 hold={p}, "
+                f"this run pins {SEED_HOLD_V3}")
+    reaffirm = len(prior_v3) > 0
+    log3("seeds_pinned_v3", seeds={"hold": SEED_HOLD_V3},
+         family="single-member (hold only; train/sheet absent by construction)",
+         forbidden="2113/7919/9377 + 42/777/4242 + 43..52 + every seeds_pinned* seed",
+         reaffirmed=bool(reaffirm),
+         runlog_scan={"events": len(scan), "distinct_seeds": len(observed),
+                      "seeds": observed})
+    log3_md("seeds_pinned_v3", seeds={"hold": SEED_HOLD_V3},
+            family="single-member (hold only)",
+            forbidden_sets=sorted(SEEDS_FORBIDDEN_V3),
+            reaffirmed=bool(reaffirm),
+            runlog_scan_events=len(scan), runlog_scan_seeds=len(observed))
+    print(f"seed v3 pinned: hold={SEED_HOLD_V3} "
+          f"({'RE-AFFIRMED, ' + str(len(prior_v3)) + ' prior pin(s)' if reaffirm else 'fresh'}; "
+          f"run-log scan: {len(scan)} seeds_pinned events, "
+          f"{len(observed)} distinct seeds — no collision)")
+
+    cos = Cos()
+    print("== mini-census E9: hold-side carrier pools (fresh v3 seed) ==")
+    hn1 = gen_n1_pool(SEED_HOLD_V3, "ho")
+    hn2 = gen_n2_pool(SEED_HOLD_V3, "ho")
+    hn3 = gen_n3_pool(SEED_HOLD_V3, "ho")
+    for sc in hn1 + hn2 + hn3:
+        sc._cos = round(cos.pair(sc.text_a(), sc.text_b()), 4)
+        sc._band = band_of(sc._cos)
+    cen_n1 = [x for x in hn1 if carrier_suitable(x)]
+    cen_n2 = [x for x in hn2 if carrier_suitable(x)]
+    cen = {
+        "n1": {"pool": len(hn1), "suitable": len(cen_n1),
+               "by_host": {h: sum(1 for x in cen_n1 if x.stratum == h)
+                           for h in ("CD-1", "CD-2", "CD-4")},
+               "by_k": {k: sum(1 for x in cen_n1 if len(x.benign) == k)
+                        for k in (1, 2)}},
+        "n2": {"pool": len(hn2), "suitable": len(cen_n2),
+               "by_k": {k: sum(1 for x in cen_n2 if len(x.benign) == k)
+                        for k in (1, 2)}},
+        "n3": {"pool": len(hn3),
+               "mech_ok": sum(1 for x in hn3 if lib.mechanical_ok(x))},
+    }
+    print("census:", json.dumps(cen))
+    # E9-mini gate: every SEAL-slice quota needs 2x suitability depth
+    need_n1_total = 2 * (SEAL_N1_K[0] + SEAL_N1_K[1])
+    need_n1_host = {h: 2 * q for h, q in SEAL_N1_HOSTS.items()}
+    need_n1_k = {1: 2 * SEAL_N1_K[0], 2: 2 * SEAL_N1_K[1]}
+    need_n2 = 2 * SEAL_SHARES_V2["N2"]
+    need_n2_k = {1: 2 * SEAL_N2_K[0], 2: 2 * SEAL_N2_K[1]}
+    need_n3 = 2 * N3_SEAL
+    red = []
+    if len(cen_n1) < need_n1_total:
+        red.append(f"N1 suitable {len(cen_n1)} < {need_n1_total}")
+    for h, need in need_n1_host.items():
+        if cen["n1"]["by_host"][h] < need:
+            red.append(f"N1/{h} {cen['n1']['by_host'][h]} < {need}")
+    for k, need in need_n1_k.items():
+        if cen["n1"]["by_k"][k] < need:
+            red.append(f"N1 k={k} {cen['n1']['by_k'][k]} < {need}")
+    if len(cen_n2) < need_n2:
+        red.append(f"N2 suitable {len(cen_n2)} < {need_n2}")
+    for k, need in need_n2_k.items():
+        if cen["n2"]["by_k"][k] < need:
+            red.append(f"N2 k={k} {cen['n2']['by_k'][k]} < {need}")
+    if cen["n3"]["mech_ok"] < need_n3:
+        red.append(f"N3 mech_ok {cen['n3']['mech_ok']} < {need_n3}")
+    if red:
+        die("census E9-mini RED: " + "; ".join(red))
+    log3("census_v3", verdict="pass",
+         need={"n1_total": need_n1_total, "n1_host": need_n1_host,
+               "n1_k": need_n1_k, "n2": need_n2, "n2_k": need_n2_k,
+               "n3": need_n3})
+    log3_md("census_v3", verdict="pass", n1_suitable=cen["n1"]["suitable"],
+            n2_suitable=cen["n2"]["suitable"], n3_mech_ok=cen["n3"]["mech_ok"],
+            note="E9-mini: 2x depth verified on every seal-slice quota")
+    print("census E9-mini PASS: 2x depth on every seal quota "
+          f"(N1 {need_n1_total}, N2 {need_n2}, N3 {need_n3})")
+
+    print("== classic hold pool (F7: rotate=TRUE EXPLICIT — gen_pool trap) ==")
+    hold_pool = gen_pool(SEED_HOLD_V3, "ho", rotate=True)
+    print(f"holdout pool: {len(hold_pool)}")
+    measure_all(hold_pool, cos)
+    print(f"embedded {cos.n} unique texts in {time.time()-t0:.0f}s")
+
+    # --- union-cap prior = REAL train-v2 scaffold counts from disk --------
+    # (the §4.5 union cap is honored against the frozen artifact during
+    # picking, not only at assert time)
+    tr_scaf: dict[str, int] = {}
+    tr_scaf_by_s: dict[str, dict[str, int]] = {}
+    seen_pairs: set[str] = set()
+    with (CORPUS_DIR_V2 / "train.jsonl").open(encoding="utf-8") as fh:
+        for line in fh:
+            row = json.loads(line)
+            pid = row["pair_id"]
+            if pid in seen_pairs:
+                continue
+            seen_pairs.add(pid)
+            tr_scaf[row["scaffold_id"]] = tr_scaf.get(row["scaffold_id"], 0) + 1
+            tr_scaf_by_s.setdefault(row["stratum"], {})
+            tr_scaf_by_s[row["stratum"]][row["scaffold_id"]] = \
+                tr_scaf_by_s[row["stratum"]].get(row["scaffold_id"], 0) + 1
+    print(f"train-v2 artifact on disk: {len(seen_pairs)} pairs, "
+          f"{len(tr_scaf)} scaffold classes (union-cap prior)")
+
+    # --- disjointness sources (F6/F10); sealed content NEVER opened --------
+    print("== disjointness sources (F6/F10) ==")
+    tr_texts, _ = disk_text_shas(CORPUS_DIR_V2 / "train.jsonl")
+    v2_shas = sealed_generation_sha_set(SEAL_V2_PATH,
+                                        CORPUS_DIR_V2 / "holdout-pool.jsonl")
+    v1_shas = sealed_generation_sha_set(SEAL_V1_PATH,
+                                        CORPUS_DIR / "holdout-pool.jsonl")
+    sources = {"train-v2": tr_texts, "v2-seal": v2_shas, "v1-seal": v1_shas}
+    print(f"sha sets: train-v2 {len(tr_texts)}, v2-seal {len(v2_shas)} "
+          f"(ids->pool-origin), v1-seal {len(v1_shas)} (ids->pool-origin); "
+          "holdout.jsonl v1/v2 NOT opened")
+
+    # F6 mechanics check (fail-fast, BEFORE anything depends on the disk
+    # sha sets): the embed-convention reconstruction must be byte-exact.
+    # Regenerate the v2 hold pool in-process (no embedding, sealed file
+    # untouched) and compare per-id shas.
+    disk_pool_by_id: dict[str, set[str]] = {}
+    with (CORPUS_DIR_V2 / "holdout-pool.jsonl").open(encoding="utf-8") as fh:
+        for line in fh:
+            row = json.loads(line)
+            disk_pool_by_id.setdefault(row["pair_id"], set()).update(
+                {_disk_env_sha(row["envelope_a"]),
+                 _disk_env_sha(row["envelope_b"])})
+    conv_pool = list(gen_pool(SEEDS_V2["hold"], "ho", rotate=True)) \
+        + gen_n1_pool(SEEDS_V2["hold"], "ho") \
+        + gen_n2_pool(SEEDS_V2["hold"], "ho") \
+        + gen_n3_pool(SEEDS_V2["hold"], "ho")
+    conv_n = 0
+    for x in conv_pool:
+        want = disk_pool_by_id.get(x.scenario_id)
+        if want is None:
+            continue  # candidate was not registered into the v2 pool file
+        if {lib.sha(x.text_a()), lib.sha(x.text_b())} != want:
+            die(f"sha convention RED at {x.scenario_id}: in-process texts "
+                "diverge from the v2 pool-origin rows on disk")
+        conv_n += 1
+    conv_ok = conv_n == len(disk_pool_by_id)
+    if not conv_ok:
+        die(f"sha convention RED: only {conv_n}/{len(disk_pool_by_id)} v2 "
+            "pool ids reproduce identical disk shas — disk-side sha sets "
+            "untrustworthy, refusing the whole lane")
+
+    # --- classic supply census (E9 philosophy over the WIDE pool): per
+    # stratum, how many candidates are sha-clean against ALL three
+    # generations (F10) under within-cut uniqueness. The classic cut has
+    # NO ratified census gate of its own (the ratified E9-mini covers the
+    # carrier careers), but a starved stratum would die mid-cut — the
+    # census fails fast with the FULL table so a red run leaves complete
+    # numbers, not a one-line die.
+    print("== classic supply census (sha-clean depth vs seal shares) ==")
+    by_stratum: dict[str, list] = {}
+    for x in hold_pool:
+        by_stratum.setdefault(x.stratum, []).append(x)
+    for s in by_stratum:
+        by_stratum[s].sort(key=lambda x: (-x._cos, x.scenario_id))
+    supply = {}
+    starved = []
+    for s in ORDER:
+        cands = by_stratum.get(s, [])
+        seen: set[str] = set()
+        clean = 0
+        for x in cands:
+            ha, hb = lib.sha(x.text_a()), lib.sha(x.text_b())
+            if _forbidden_source(ha, hb, sources):
+                continue
+            if ha in seen or hb in seen:
+                continue
+            seen.update((ha, hb))
+            clean += 1
+        want = SEAL_SHARES_V2[s]
+        supply[s] = {"pool": len(cands), "want": want, "clean": clean}
+        if clean < want:
+            starved.append(f"{s} clean {clean} < share {want}")
+    log3("supply_census_v3", supply=supply, starved=starved)
+    log3_md("supply_census_v3", supply=supply, starved=starved,
+            note="classic sha-clean depth (F6/F10) vs ratified seal shares; "
+                 "seed-independent text universes do not replenish")
+    print("supply:", json.dumps(supply))
+    if starved:
+        die("classic supply RED (F10 sha-disjointness vs seed-independent "
+            "universes): " + "; ".join(starved)
+            + " — the ratified share table is not fillable from a fresh "
+              "generation; rotation lane BuildStop, NOTHING sealed")
+
+    # --- cut 180 (F7 pool-only: the cut draws from the WIDE generated
+    # pool, hardest-first, union scaffold caps, sha-only culling; F6
+    # excludes scenario_id checks). The v2-era registered-516 window is a
+    # train+hold joint-emission artifact that does not exist in this lane;
+    # with three generations of sha culling it is starved by design
+    # (NC-1 texts are largely seed-INDEPENDENT — the top of ANY window
+    # collides with the sealed tops of v1/v2). Depth discipline comes
+    # from the supply census above + BuildStop on exhaustion.
+    print("== cut: 180 per SEAL_SHARES_V2 from the wide pool (sha-only) ==")
+    scaf_ho: dict[str, int] = dict(tr_scaf)
+    taken_shas: set[str] = set()
+    seal_ids: list[str] = []
+    seal_taken: set[str] = set()
+    culled = 0
+    cull_by_src: Counter = Counter()
+    cull_diag: dict[str, str] = {}
+    want_classic = {s: SEAL_SHARES_V2[s] for s in ORDER}
+
+    blocked: Counter = Counter()
+
+    def cut_one(x: lib.Scenario) -> str | None:
+        """Shared cut predicate. Returns 'taken' | 'culled:<src>' |
+        'cap' | 'dup' | 'dup-id'."""
+        nonlocal culled
+        if x.scenario_id in seal_taken:
+            blocked["dup-id"] += 1
+            return "dup-id"
+        ha, hb = lib.sha(x.text_a()), lib.sha(x.text_b())
+        src = _forbidden_source(ha, hb, sources)
+        if src:
+            cull_diag.setdefault(x.scenario_id, f"text sha in {src}")
+            cull_by_src[src] += 1
+            culled += 1
+            return f"culled:{src}"
+        if ha in taken_shas or hb in taken_shas:
+            blocked["dup"] += 1
+            return "dup"
+        if scaf_ho.get(x.scaffold_id, 0) >= SCAFFOLD_CAP_V2[x.stratum]:
+            blocked["cap"] += 1
+            return "cap"
+        seal_ids.append(x.scenario_id)
+        seal_taken.add(x.scenario_id)
+        scaf_ho[x.scaffold_id] = scaf_ho.get(x.scaffold_id, 0) + 1
+        taken_shas.update((ha, hb))
+        return "taken"
+
+    depth_report = {}
+    for s in ORDER:
+        blocked.clear()
+        cands = by_stratum.get(s, [])
+        got = 0
+        for x in cands:
+            if got >= want_classic[s]:
+                break
+            if cut_one(x) == "taken":
+                got += 1
+        depth_report[s] = {"pool": len(cands), "want": want_classic[s],
+                           "got": got, "blocked": dict(blocked)}
+        if got < want_classic[s]:
+            examples = {k: cull_diag[k] for k in list(cull_diag)[:5]}
+            die(f"seal3 disjointness: classic {s} exhausted "
+                f"({got}/{want_classic[s]}) over the WIDE pool "
+                f"({depth_report[s]}); cull examples {examples}")
+    print("depth:", json.dumps(depth_report))
+    # N1 slice: hosts 5/3/3 with per-host k targets meeting (7,4)
+    n1_ho = sorted([x for x in hn1 if carrier_suitable(x)],
+                   key=lambda x: (-x._cos, x.scenario_id))
+    n1_host_got = {h: 0 for h in SEAL_N1_HOSTS}
+    for h, want_h in SEAL_N1_HOSTS.items():
+        for k, want_k in zip((1, 2), SEAL_N1_K_TARGETS[h]):
+            got_k = 0
+            for x in n1_ho:
+                if got_k >= want_k:
+                    break
+                if x.stratum != h or len(x.benign) != k:
+                    continue
+                if cut_one(x) == "taken":
+                    got_k += 1
+                    n1_host_got[h] += 1
+            if got_k < want_k:
+                die(f"seal3 disjointness: N1/{h} k={k} exhausted "
+                    f"({got_k}/{want_k})")
+        if n1_host_got[h] < want_h:
+            die(f"seal3 disjointness: N1/{h} exhausted "
+                f"({n1_host_got[h]}/{want_h})")
+    # N2 slice: 7 with k 4/3
+    n2_ho = sorted([x for x in hn2 if carrier_suitable(x)],
+                   key=lambda x: (-x._cos, x.scenario_id))
+    n2_k_got = {1: 0, 2: 0}
+    for k, want_k in zip((1, 2), SEAL_N2_K):
+        for x in n2_ho:
+            if n2_k_got[k] >= want_k:
+                break
+            if len(x.benign) != k:
+                continue
+            if cut_one(x) == "taken":
+                n2_k_got[k] += 1
+        if n2_k_got[k] < want_k:
+            die(f"seal3 disjointness: N2 k={k} exhausted ({n2_k_got[k]}/{want_k})")
+    # N3 slice: 7
+    n3_ho = sorted([x for x in hn3 if lib.mechanical_ok(x)],
+                   key=lambda x: (-x._cos, x.scenario_id))
+    got_n3 = 0
+    for x in n3_ho:
+        if got_n3 >= N3_SEAL:
+            break
+        if cut_one(x) == "taken":
+            got_n3 += 1
+    if got_n3 < N3_SEAL:
+        die(f"seal3 disjointness: N3 exhausted ({got_n3}/{N3_SEAL})")
+    assert len(seal_ids) == HOLD_SEAL, len(seal_ids)
+    ho_by_id = {x.scenario_id: x for x in hold_pool}
+    ho_by_id.update({x.scenario_id: x for x in hn1 + hn2 + hn3})
+    assert set(seal_ids) <= set(ho_by_id), "seal id outside generated pools"
+    log3("cut_v3", n=len(seal_ids), culled=culled,
+         cull_by_src=dict(cull_by_src), depth=depth_report)
+    log3_md("cut_v3", n=len(seal_ids), culled=culled,
+            cull_by_src=dict(cull_by_src), depth=depth_report,
+            note="sha-only culling (F6) over the WIDE pool (F7 pool-only "
+                 "lane); sealed v1/v2 content not opened")
+    print(f"cut: {len(seal_ids)} pairs ({culled} culled: "
+          f"{dict(cull_by_src)})")
+
+    # --- asserts (F6/F9/F10), stop-first ------------------------------------
+    print("== asserts (ADDENDUM-5 F6/F9/F10), stop-first ==")
+    A: dict[str, dict] = {}
+
+    def rec(name: str, ok, detail) -> bool:
+        A[name] = {"ok": bool(ok), "detail": detail}
+        print(f"{'PASS' if ok else 'RED'}  {name}: {detail}")
+        return bool(ok)
+
+    seal_sc = [ho_by_id[i] for i in seal_ids]
+    cnt = Counter(x.stratum for x in seal_sc)
+    classic_cnt = Counter(x.stratum for x in seal_sc if x.carrier is None)
+    n1_sc = [x for x in seal_sc if x.carrier == "N1"]
+    n2_sc = [x for x in seal_sc if x.carrier == "N2"]
+    n3_sc = [x for x in seal_sc if x.carrier == "N3"]
+    fold_expected = Counter()
+    for s in ORDER:
+        fold_expected[s] += SEAL_SHARES_V2[s]
+    for h, q in SEAL_N1_HOSTS.items():
+        fold_expected[h] += q
+    fold_expected["NC-2"] += SEAL_SHARES_V2["N2"]
+    fold_expected["NC-5"] += N3_SEAL
+    classic_ok = all(classic_cnt[s] == SEAL_SHARES_V2[s] for s in ORDER)
+    n1_ok = (Counter(x.stratum for x in n1_sc) == Counter(SEAL_N1_HOSTS)
+             and Counter(len(x.benign) for x in n1_sc) ==
+             Counter({1: SEAL_N1_K[0], 2: SEAL_N1_K[1]}))
+    n2_ok = (len(n2_sc) == SEAL_SHARES_V2["N2"]
+             and Counter(len(x.benign) for x in n2_sc) ==
+             Counter({1: SEAL_N2_K[0], 2: SEAL_N2_K[1]}))
+    n3_ok = len(n3_sc) == N3_SEAL
+    rec("A-share-table(F9)", classic_ok and n1_ok and n2_ok and n3_ok
+        and dict(cnt) == dict(fold_expected) and sum(cnt.values()) == HOLD_SEAL,
+        {"classic": dict(classic_cnt),
+         "N1_hosts": dict(Counter(x.stratum for x in n1_sc)),
+         "N1_k": dict(Counter(len(x.benign) for x in n1_sc)),
+         "N2_k": dict(Counter(len(x.benign) for x in n2_sc)),
+         "N3": len(n3_sc), "fold": dict(cnt),
+         "fold_expected": dict(fold_expected), "total": sum(cnt.values())})
+    bad = [x.scenario_id for x in seal_sc if not lib.mechanical_ok(x)]
+    len_bad = [x.scenario_id for x in seal_sc
+               if x.carrier in ("N1", "N2") and not lib.len_channel_ok(x)]
+    rec("A-silver+len4(F9)", not bad and not len_bad,
+        f"{len(seal_sc)-len(bad)}/{len(seal_sc)} mechanical pass "
+        f"(N1/N2 benign_pair_ok per-pair); E4 len-channel violations {len(len_bad)}")
+    badl = [x.scenario_id for x in seal_sc
+            if x.label != ("contradicts" if x.stratum.startswith("CD")
+                           else "not-contradicts")]
+    rec("A-labels(F9)", not badl, f"bad={len(badl)}")
+    g_nc3 = sum(1 for x in seal_sc if x.stratum == "NC-3" and lib.version_guard(x))
+    n_nc3 = sum(1 for x in seal_sc if x.stratum == "NC-3")
+    g_cd = sum(1 for x in seal_sc if x.stratum.startswith("CD")
+               and lib.version_guard(x))
+    rec("A-guard(F9)", g_nc3 == n_nc3 and g_cd == 0,
+        f"nc3 {g_nc3}/{n_nc3}, cd {g_cd}/0")
+    scaf_bad, share_bad = [], []
+    for s in ORDER:
+        v3_cls = Counter(x.scaffold_id for x in seal_sc if x.stratum == s)
+        for g, c in v3_cls.items():
+            if tr_scaf.get(g, 0) + c > SCAFFOLD_CAP_V2[s]:
+                scaf_bad.append(f"{s}/{g}: {tr_scaf.get(g, 0)}+{c} > cap "
+                                f"{SCAFFOLD_CAP_V2[s]}")
+        tr_cls = tr_scaf_by_s.get(s, {})
+        total = sum(tr_cls.values()) + sum(v3_cls.values())
+        mx = max([tr_cls.get(g, 0) + c for g, c in v3_cls.items()] + [0])
+        if total and mx / total > lib.CAP + 1e-9:
+            share_bad.append(f"{s}: max union share {mx/total:.3f} > {lib.CAP}")
+    rec("A-scaffold-union(F9)", not scaf_bad and not share_bad,
+        {"cap_violations": scaf_bad[:5], "share_violations": share_bad[:5],
+         "rule": "train-v2 (disk) + seal-v3 <= SCAFFOLD_CAP_V2 per stratum; "
+                 f"union max share <= {lib.CAP}"})
+    seal_shas = []
+    for x in seal_sc:
+        seal_shas += [lib.sha(x.text_a()), lib.sha(x.text_b())]
+    dup = len(seal_shas) - len(set(seal_shas))
+    for name in ("train-v2", "v2-seal", "v1-seal"):
+        hits = sum(1 for h in seal_shas if h in sources[name])
+        rec(f"A-disjoint-{name}(F6/F10)", hits == 0,
+            f"{hits} sha hits of {len(seal_shas)} against a "
+            f"{len(sources[name])}-sha set"
+            + (" (seal ids -> pool-origin shas; sealed file NOT opened)"
+               if name.endswith("-seal") else " (disk train.jsonl)"))
+    rec("A-sha-unique(F6)", dup == 0,
+        f"{len(set(seal_shas))} distinct of {len(seal_shas)} (dup {dup})")
+    rec("A-sha-convention(F6)", conv_ok,
+        f"{conv_n}/{len(disk_pool_by_id)} v2 pool ids reproduce identical "
+        "disk shas in-process (embed-convention reconstruction byte-exact; "
+        "regenerated from the v2 hold SEED, sealed file not touched)")
+    rec("A-frozen", True, f"nano {lib.EMBEDDER_PIN[:12]}…; cortex features "
+        "imported; instrument pin verified at Cos init")
+    rec("A-archive-integrity", all(archives_intact.values()),
+        {**{k: ("digest-ok" if v else "RED") for k, v in archives_intact.items()},
+         "note": "whole-file sha256 digests only — no content parsed"})
+
+    all_ok = all(v["ok"] for v in A.values())
+    if not all_ok:
+        reds = [k for k, v in A.items() if not v["ok"]]
+        log3("build_stop", reason=f"asserts RED: {reds}")
+        log3_md("build_stop", reds=reds,
+                note="stop-first: NOTHING written or sealed")
+        print(f"BUILD-STOP: asserts RED: {reds}", file=sys.stderr)
+        return 1
+
+    # --- stop-first passed: emit (pool-only: NO train, NO sheet) -----------
+    rows_h = []
+    for sc in seal_sc:
+        rows_h += rows_of(sc, "holdout", f"seed:{SEED_HOLD_V3}")
+    fp_hold = write_jsonl(CORPUS_DIR_V3 / "holdout.jsonl", rows_h)
+    pool_rows = []
+    for sc in list(hold_pool) + list(hn1) + list(hn2) + list(hn3):
+        pool_rows += rows_of(sc, "holdout-pool", f"seed:{SEED_HOLD_V3}")
+    fp_pool = write_jsonl(CORPUS_DIR_V3 / "holdout-pool.jsonl", pool_rows)
+    floor3 = min(x._cos for x in seal_sc)
+    lineage = {
+        "rotation_of": "CD-holdout-v2",
+        "ancestor_holdout_sha256": man2["fingerprints"]["holdout.jsonl"],
+        "ancestor_seal_sha256": man2["fingerprints"]["seal"],
+        "ancestor_status": "burned",
+        "burn_reason": "post-read instrument crash (ADDENDUM-5 §1-2): sealed "
+                       "read consumed 2026-11-10 23:41:19.281 (sha c92a2caa…), "
+                       "float32 pair_cos overshoot 1.0000001105987988 escaped "
+                       "to traceback/stdout; zero gate numbers published",
+        "ancestor_gate_state": "verdict NOT REACHED; gate_done absent in "
+                               "run-log (F3 freeze leg re-verified at runtime)",
+        "rotation_rule": "slice rule (fresh generation), NOT corpus amend-once: "
+                         "E13 amend budget NOT spent; train corpus v2 untouched "
+                         "byte-for-byte (F7)",
+        "f1_single_shot": "a red gate v3 is FINAL — no v4 on the same "
+                          "artifact+thresholds (F1)",
+    }
+    seal_payload = {"ts": now(), "version": "CD-holdout-v3",
+                    "holdout_jsonl_sha256": fp_hold,
+                    "ids": sorted(set(seal_ids)), "n": len(seal_sc),
+                    "lineage": lineage,
+                    "disjointness": {
+                        "rule": "sha(text_a/b) ONLY (F6); scenario_id excluded "
+                                "(deterministic template grid id-space)",
+                        "checked_against": {
+                            "train-v2": "disk train.jsonl text-sha set",
+                            "CD-holdout-v2": "seal ids -> holdout-pool.jsonl "
+                                             "origin text-shas",
+                            "CD-holdout-v1": "seal ids -> holdout-pool.jsonl "
+                                             "origin text-shas"},
+                        "sealed_content_reads": {
+                            "corpus-v1/holdout.jsonl": 0,
+                            "corpus-v2/holdout.jsonl": 0}},
+                    "archives_digest_intact": {k: bool(v) for k, v
+                                               in archives_intact.items()},
+                    "note": "content NOT read after this event"}
+    SEALS_DIR.mkdir(parents=True, exist_ok=True)
+    SEAL_V3_PATH.write_text(json.dumps(seal_payload, ensure_ascii=False, indent=2),
+                            encoding="utf-8")
+    fp_seal = lib.sha(SEAL_V3_PATH.read_text(encoding="utf-8"))
+    pin = {
+        "ts": now(), "version": 3,
+        "lane": "seal3 pool-only (F7): fresh hold-seed generation -> cut 180 "
+                "from the wide pool -> seal; train.jsonl/sheet ABSENT BY "
+                "CONSTRUCTION; measure2/build2 untouched byte-for-byte",
+        "instrument": {"pin": lib.EMBEDDER_PIN,
+                       "guard_version": lib.GUARD_VERSION},
+        "seeds": {"hold": SEED_HOLD_V3},
+        "seed_family_check": "single-member family (hold only; train/sheet members "
+                             "absent by construction, F8); != {2113,7919,9377}, "
+                             "!= {42,777,4242} ∪ {43..52}, != all "
+                             f"{len(observed)} seeds seen in seeds_pinned* "
+                             "run-log events",
+        "runlog_seed_scan": {"events": len(scan),
+                             "distinct_seeds": len(observed), "seeds": observed},
+        "hard_window": [HARD_WIN_LO, HARD_WIN_HI],
+        "measured_holdout_floor": floor3,
+        "census": cen,
+        "seal_shares": {**{s: SEAL_SHARES_V2[s] for s in ORDER},
+                        "N1": sum(SEAL_N1_HOSTS.values()),
+                        "N2": SEAL_SHARES_V2["N2"], "N3": N3_SEAL},
+        "seal_fold_strata": dict(cnt),
+        "seal_ids": seal_ids,
+        "bands_seal": {b: sum(1 for x in seal_sc if x._band == b)
+                       for b, _, _ in BANDS},
+        "reporting_rule": SEAL3_REPORTING_RULE,
+        "lineage": lineage,
+        "train_v2_untouched": {"train.jsonl_sha256_start": train_fp_start},
+    }
+    CORPUS_DIR_V3.mkdir(parents=True, exist_ok=True)
+    PIN_V3_PATH.write_text(json.dumps(pin, ensure_ascii=False, indent=2),
+                           encoding="utf-8")
+    manifest = {
+        "ts": now(),
+        "version": "corpus-v3-holdout (ADDENDUM-5 seal rotation, B6-conflict seal3)",
+        "guard_version": lib.GUARD_VERSION,
+        "instrument": {"provider": "vesma.embeddings.NanoProvider",
+                       "nano_pin": lib.EMBEDDER_PIN},
+        "design": ["docs/experiments/conflict-detector-gate-incident-2026-11-10.md "
+                   "(ADDENDUM-5 RATIFIED, §4 F6-F12)",
+                   "docs/experiments/conflict-detector-corpus-design.md (RATIFIED MLC-9)",
+                   "docs/experiments/conflict-detector-corpus-design-ADDENDUM-1.md",
+                   "docs/experiments/conflict-detector-corpus-design-ADDENDUM-2.md",
+                   "docs/experiments/conflict-detector-corpus-design-ADDENDUM-3.md"],
+        "pin_sha256": lib.sha(PIN_V3_PATH.read_text(encoding="utf-8")),
+        "seeds": {"hold": SEED_HOLD_V3},
+        "seed_family_check": pin["seed_family_check"],
+        "emitted": ["holdout.jsonl (180 pairs, sealed)",
+                    f"holdout-pool.jsonl ({len(pool_rows)} rows, wide "
+                    "generation provenance)", "pin-v3.json",
+                    "seals/CD-holdout-v3.seal.json"],
+        "absent_by_construction": ["train.jsonl", "sheet/*"],
+        "pool_scope": "the full generated hold-side pools (classic "
+                      f"{len(hold_pool)}, N1 {len(hn1)}, N2 {len(hn2)}, "
+                      f"N3 {len(hn3)} scenarios) — the v2-era registered-600 "
+                      "window does not exist in the pool-only lane; every "
+                      "seal id resolves in this pool file",
+        "pool_sizes": {"classic": len(hold_pool), "N1": len(hn1),
+                       "N2": len(hn2), "N3": len(hn3)},
+        "cut_depth": depth_report,
+        "strata_seal": {s: {"classic": classic_cnt[s],
+                            "carrier": {"N1": sum(1 for x in n1_sc
+                                                   if x.stratum == s),
+                                        "N2": sum(1 for x in n2_sc
+                                                  if x.stratum == s),
+                                        "N3": sum(1 for x in n3_sc
+                                                  if x.stratum == s)},
+                            "fold": cnt[s]} for s in ORDER if cnt[s]},
+        "carrier_slices": {"N1": {"hosts": dict(Counter(x.stratum
+                                                        for x in n1_sc)),
+                                  "k_mix": dict(Counter(len(x.benign)
+                                                        for x in n1_sc))},
+                           "N2": {"quota": len(n2_sc),
+                                  "k_mix": dict(Counter(len(x.benign)
+                                                        for x in n2_sc))},
+                           "N3": {"quota": len(n3_sc)}},
+        "disjointness": {"rule": "sha(text_a/b) only (F6)",
+                         "culled": culled, "cull_by_src": dict(cull_by_src),
+                         "sha_set_sizes": {k: len(v)
+                                           for k, v in sources.items()},
+                         "sealed_files_opened": 0},
+        "census": cen,
+        "asserts": A,
+        "lineage": lineage,
+        "reporting_rule": SEAL3_REPORTING_RULE,
+        "para_dict_sha256": lib.PARA_DICT_SHA,
+        "bands_seal": pin["bands_seal"],
+        "known_uncovered": {"cos_below": floor3,
+                            "note": "measured floor over the emitted v3 seal"},
+        "seal_intact_inputs": {"v1_archive": "untouched (F2: permanent "
+                                             "archive, digest-verified, "
+                                             "0 content reads)",
+                               "v2_archive": "burned; sealed file unopened "
+                                             "by this lane (digest-verified "
+                                             "only)"},
+        "regime": "synthetic-only; no store texts; no LLM in construction; "
+                  "labels by construction",
+        "fingerprints": {"holdout.jsonl": fp_hold,
+                         "holdout-pool.jsonl": fp_pool, "seal": fp_seal},
+    }
+    (CORPUS_DIR_V3 / "build-manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    # byte-identity tail check: the lane proves it did not touch build2 outputs
+    train_fp_end = file_sha256(CORPUS_DIR_V2 / "train.jsonl")
+    untouched = train_fp_end == train_fp_start \
+        == man2["fingerprints"]["train.jsonl"]
+    n_pass = sum(1 for v in A.values() if v["ok"])
+    log3("seal_v3", seal="CD-holdout-v3", n=len(seal_sc), sha=fp_seal,
+         holdout_sha=fp_hold, pool_sha=fp_pool,
+         lineage_ancestor="CD-holdout-v2 (c92a2caa…, burned)",
+         holdout_content_reads=0)
+    log3_md("seal_v3", seal="CD-holdout-v3", n=len(seal_sc), sha=fp_seal,
+            holdout_sha=fp_hold, seal_n=len(seal_sc),
+            asserts=f"{n_pass}/{len(A)} PASS", holdout_content_reads=0)
+    log3("seal3_done", ok=True, train_v2_untouched=bool(untouched),
+         elapsed_s=round(time.time() - t0, 1),
+         asserts=f"{n_pass}/{len(A)} PASS")
+    log3_md("seal3_done", ok=True, train_v2_untouched=bool(untouched),
+            elapsed_s=round(time.time() - t0, 1),
+            asserts=f"{n_pass}/{len(A)} PASS")
+    print(f"train-v2 byte-identity after run: {'OK' if untouched else 'RED'} "
+          f"({train_fp_end[:16]})")
+    print(f"\nSEAL3: ALL ASSERTS PASS in {time.time()-t0:.0f}s\n"
+          f"pin: {PIN_V3_PATH}\nseal: {SEAL_V3_PATH}\n"
+          f"corpus: {CORPUS_DIR_V3} (holdout + pool only)")
+    return 0
+
+
 # --- rows --------------------------------------------------------------------
 
 def side_dict(side: lib.Side) -> dict:
@@ -2583,6 +3401,8 @@ def main() -> int:
         return cmd_build2()
     if cmd == "gold2":
         return cmd_gold2()
+    if cmd == "seal3":
+        return cmd_seal3()
     print(__doc__)
     return 2
 
