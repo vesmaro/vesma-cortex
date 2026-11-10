@@ -1,0 +1,53 @@
+{
+  "ts": "2026-11-10T13:46:40.295621+00:00",
+  "slice": "conflict-detector-corpus-v2-build4-banks",
+  "event": "banks4_frozen",
+  "G1": "bank/carrier edits FORBIDDEN after this pin; census or assert failure = BuildStop + NEW addendum",
+  "banks_commit": "a01837a213a8693939feb18438461b99905002bd",
+  "banks_v3_continuity": {
+    "pin_source": "pin-v3.json#prep.banks_v3",
+    "banks_commit": "066eea6377b254a0580902203907467ec5fc4ee6",
+    "file_sha256": "9df6550cb3e7ac10d683bd6c27cffbc79d2b5ec4fdca099ccc621b52fce548b0",
+    "runtime_verified": true
+  },
+  "banks_v4": {
+    "banks_commit": "a01837a213a8693939feb18438461b99905002bd",
+    "module": "scripts/conflict_corpus_banks_v4.py",
+    "file_sha256": "806d49c368e52f2192dcf80a2245022c19390ecdf0f744f410a43366003b7708",
+    "content_sha256": "43781829573c5f612833f7fae08528bd868fb2639fc70b0d7d631ddc762fdf29",
+    "counts": {
+      "nc2": 192,
+      "nc3": 72,
+      "nc5": 534
+    },
+    "ratification": "ADDENDUM-7 §2 C2 (G11 refresh) + §2 C3 (NC-4 promotion record)",
+    "lock": "bank edits FORBIDDEN after this pin (G1); a census or assert failure is a BuildStop + NEW addendum"
+  },
+  "carriers_c1": {
+    "banks_commit": "a01837a213a8693939feb18438461b99905002bd",
+    "module": "scripts/conflict_corpus_carriers_v4.py",
+    "file_sha256": "b197ed715843861bb7c680fb77c90ab597137f7c2c627356694a40ffabffee11",
+    "content_sha256": "7436ae7f665c8602383d652ca6b2717034c989e4ff7b1a83bbb2da0f05470cd5",
+    "counts": {
+      "orbits": 264,
+      "rungs": 393,
+      "fresh_cd5": 8,
+      "by_stratum": {
+        "CD-3": 33,
+        "CD-5": 30,
+        "CD-6": 25,
+        "NC-1": 49,
+        "NC-3": 54,
+        "NC-4": 36,
+        "NC-5": 37
+      }
+    },
+    "ratification": "ADDENDUM-7 §2 C1 (orbit carriers, label-invariance; measure-then-fix quotas)",
+    "lock": "carrier edits FORBIDDEN after this pin (G1)"
+  },
+  "seeds": {
+    "hold": 7047,
+    "status": "pinned (seeds_pinned_v4)"
+  },
+  "pin_local_path": "data/conflict-detector/pin-v4.json (gitignored, local; the sha goes into the run-log and the seal commit message)"
+}
