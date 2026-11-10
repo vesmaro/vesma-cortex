@@ -1,0 +1,430 @@
+{
+  "ts": "2026-11-10T01:55:34.178154+00:00",
+  "slice": "conflict-detector-v2-char2",
+  "head": "c5efe0e536c01b528b90447cc52f29bb52928cef",
+  "ratification": "ADDENDUM-6 §5 G4",
+  "artifact": {
+    "dir": "models/conflict-detector-v2",
+    "sha256": "2534fcbec2b7872a196838ffb4df6c2167d98d3d2404f2c7fe470153c956cde0"
+  },
+  "band_pin": "|Delta| <= 0.15 AND delta CI95 covers 0",
+  "scope": [
+    "NC-1",
+    "NC-3",
+    "NC-5"
+  ],
+  "per_stratum": {
+    "NC-1": {
+      "cells_v3": {
+        "b85/long": {
+          "n": 24,
+          "k": 0
+        },
+        "b85/medium": {
+          "n": 17,
+          "k": 0
+        },
+        "b85/short": {
+          "n": 37,
+          "k": 0
+        },
+        "razor/medium": {
+          "n": 67,
+          "k": 0
+        },
+        "razor/short": {
+          "n": 11,
+          "k": 0
+        }
+      },
+      "cells_classic": {
+        "razor/short": {
+          "n": 1,
+          "k": 0
+        }
+      },
+      "match_cells": [
+        {
+          "band": "razor",
+          "len": "short",
+          "v3": {
+            "k": 0,
+            "n": 11
+          },
+          "classic": {
+            "k": 0,
+            "n": 1
+          }
+        }
+      ],
+      "v3_only_cells": [
+        "b85/long",
+        "b85/medium",
+        "b85/short",
+        "razor/medium"
+      ],
+      "classic_only_cells": [],
+      "leg_v3": {
+        "model": 156
+      },
+      "leg_classic": {
+        "model": 1
+      },
+      "match": true,
+      "stats": {
+        "delta": 0.0,
+        "p_new": 0.0,
+        "k_new": 0,
+        "n_new": 11,
+        "p_old": 0.0,
+        "k_old": 0,
+        "n_old": 1,
+        "wilson95_new": [
+          0.0,
+          0.2588
+        ],
+        "wilson95_old": [
+          0.0,
+          0.7935
+        ],
+        "delta_ci95_newcombe": [
+          -0.7935,
+          0.2588
+        ],
+        "covers_zero": true
+      },
+      "gate": {
+        "band": "|Delta| <= 0.15 AND delta CI95 covers 0",
+        "abs_delta_ok": true,
+        "ci_covers_zero": true,
+        "verdict": "GREEN"
+      }
+    },
+    "NC-3": {
+      "cells_v3": {
+        "razor/long": {
+          "n": 24,
+          "k": 0
+        },
+        "razor/medium": {
+          "n": 24,
+          "k": 0
+        },
+        "razor/short": {
+          "n": 24,
+          "k": 0
+        }
+      },
+      "cells_classic": {
+        "razor/long": {
+          "n": 12,
+          "k": 0
+        },
+        "razor/medium": {
+          "n": 10,
+          "k": 0
+        },
+        "razor/short": {
+          "n": 9,
+          "k": 0
+        }
+      },
+      "match_cells": [
+        {
+          "band": "razor",
+          "len": "long",
+          "v3": {
+            "k": 0,
+            "n": 24
+          },
+          "classic": {
+            "k": 0,
+            "n": 12
+          }
+        },
+        {
+          "band": "razor",
+          "len": "medium",
+          "v3": {
+            "k": 0,
+            "n": 24
+          },
+          "classic": {
+            "k": 0,
+            "n": 10
+          }
+        },
+        {
+          "band": "razor",
+          "len": "short",
+          "v3": {
+            "k": 0,
+            "n": 24
+          },
+          "classic": {
+            "k": 0,
+            "n": 9
+          }
+        }
+      ],
+      "v3_only_cells": [],
+      "classic_only_cells": [],
+      "leg_v3": {
+        "guard": 72
+      },
+      "leg_classic": {
+        "guard": 31
+      },
+      "match": true,
+      "stats": {
+        "delta": 0.0,
+        "p_new": 0.0,
+        "k_new": 0,
+        "n_new": 72,
+        "p_old": 0.0,
+        "k_old": 0,
+        "n_old": 31,
+        "wilson95_new": [
+          0.0,
+          0.0507
+        ],
+        "wilson95_old": [
+          0.0,
+          0.1103
+        ],
+        "delta_ci95_newcombe": [
+          -0.1103,
+          0.0507
+        ],
+        "covers_zero": true
+      },
+      "gate": {
+        "band": "|Delta| <= 0.15 AND delta CI95 covers 0",
+        "abs_delta_ok": true,
+        "ci_covers_zero": true,
+        "verdict": "GREEN"
+      }
+    },
+    "NC-5": {
+      "cells_v3": {
+        "b40/short": {
+          "n": 2,
+          "k": 0
+        },
+        "b55/short": {
+          "n": 13,
+          "k": 0
+        },
+        "b70/short": {
+          "n": 19,
+          "k": 0
+        },
+        "razor/long": {
+          "n": 12,
+          "k": 0
+        }
+      },
+      "cells_classic": {
+        "b55/short": {
+          "n": 1,
+          "k": 0
+        },
+        "b70/short": {
+          "n": 4,
+          "k": 0
+        },
+        "razor/long": {
+          "n": 6,
+          "k": 0
+        }
+      },
+      "match_cells": [
+        {
+          "band": "b55",
+          "len": "short",
+          "v3": {
+            "k": 0,
+            "n": 13
+          },
+          "classic": {
+            "k": 0,
+            "n": 1
+          }
+        },
+        {
+          "band": "b70",
+          "len": "short",
+          "v3": {
+            "k": 0,
+            "n": 19
+          },
+          "classic": {
+            "k": 0,
+            "n": 4
+          }
+        },
+        {
+          "band": "razor",
+          "len": "long",
+          "v3": {
+            "k": 0,
+            "n": 12
+          },
+          "classic": {
+            "k": 0,
+            "n": 6
+          }
+        }
+      ],
+      "v3_only_cells": [
+        "b40/short"
+      ],
+      "classic_only_cells": [],
+      "leg_v3": {
+        "model": 46
+      },
+      "leg_classic": {
+        "model": 11
+      },
+      "match": true,
+      "stats": {
+        "delta": 0.0,
+        "p_new": 0.0,
+        "k_new": 0,
+        "n_new": 44,
+        "p_old": 0.0,
+        "k_old": 0,
+        "n_old": 11,
+        "wilson95_new": [
+          0.0,
+          0.0803
+        ],
+        "wilson95_old": [
+          0.0,
+          0.2588
+        ],
+        "delta_ci95_newcombe": [
+          -0.2588,
+          0.0803
+        ],
+        "covers_zero": true
+      },
+      "gate": {
+        "band": "|Delta| <= 0.15 AND delta CI95 covers 0",
+        "abs_delta_ok": true,
+        "ci_covers_zero": true,
+        "verdict": "GREEN"
+      }
+    }
+  },
+  "no_match_strata": [],
+  "band_verdict": "GREEN",
+  "probes_verdict": "GREEN",
+  "probes": {
+    "NC-1": {
+      "fixture": "nc1-single",
+      "scaffold_id": "NC-1:cache:sib:v3x0",
+      "cos_target": 0.9402,
+      "para_lang": "ru",
+      "para1_changed_body": true,
+      "ladder": {
+        "raw": {
+          "verdict": "not-contradicts",
+          "leg": "model",
+          "p": 0.000205
+        },
+        "cosmetic": {
+          "verdict": "not-contradicts",
+          "leg": "model",
+          "p": 0.000205,
+          "cos": 0.9402
+        },
+        "para1": {
+          "verdict": "not-contradicts",
+          "leg": "model",
+          "p": 0.000698,
+          "cos": 0.9183
+        }
+      },
+      "swap_verdict": "not-contradicts",
+      "checks": {
+        "raw_not_contradicts": true,
+        "ladder_invariant": true,
+        "cosmetic_twin_not": true,
+        "swap_invariant": true
+      },
+      "ok": true
+    },
+    "NC-3": {
+      "fixture": "nc3-fam0-fl0",
+      "scaffold_id": "NC-3:recs:v0.9.0:v1.0.0",
+      "cos_target": 0.9889,
+      "para_lang": "ru",
+      "para1_changed_body": false,
+      "ladder": {
+        "raw": {
+          "verdict": "not-contradicts",
+          "leg": "guard",
+          "p": null
+        },
+        "cosmetic": {
+          "verdict": "not-contradicts",
+          "leg": "guard",
+          "p": null,
+          "cos": 0.9889
+        },
+        "para1": {
+          "verdict": "not-contradicts",
+          "leg": "guard",
+          "p": null,
+          "cos": 0.9889
+        }
+      },
+      "swap_verdict": "not-contradicts",
+      "checks": {
+        "raw_not_contradicts": true,
+        "ladder_invariant": true,
+        "cosmetic_twin_not": true,
+        "swap_invariant": true
+      },
+      "ok": true
+    },
+    "NC-5": {
+      "fixture": "nc5-garden-cross",
+      "scaffold_id": "nc5:garden:s3conn:v3",
+      "cos_target": 0.5654,
+      "para_lang": "en",
+      "para1_changed_body": false,
+      "ladder": {
+        "raw": {
+          "verdict": "not-contradicts",
+          "leg": "model",
+          "p": 0.000108
+        },
+        "cosmetic": {
+          "verdict": "not-contradicts",
+          "leg": "model",
+          "p": 0.000108,
+          "cos": 0.5654
+        },
+        "para1": {
+          "verdict": "not-contradicts",
+          "leg": "model",
+          "p": 0.000108,
+          "cos": 0.5654
+        }
+      },
+      "swap_verdict": "not-contradicts",
+      "checks": {
+        "raw_not_contradicts": true,
+        "ladder_invariant": true,
+        "cosmetic_twin_not": true,
+        "swap_invariant": true
+      },
+      "ok": true
+    }
+  },
+  "verdict": "GREEN",
+  "anchor": "char GREEN + v3 gate RED = model defect; char RED + v3 gate RED = bank drift (G4)",
+  "elapsed_s": 22.6
+}
