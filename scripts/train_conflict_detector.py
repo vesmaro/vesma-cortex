@@ -2837,6 +2837,11 @@ def _fail_closed_post_read(phase: str, exc: BaseException) -> int:
         if frames
         else "traceback unavailable"
     )
+    # Self-sufficient on purpose: the fail-closed handler must not depend on
+    # state that only apply_input_params sets (SEAL_NAME is preset-resolved).
+    seal_name = globals().get("SEAL_NAME") or (
+        SEAL_JSON.name[: -len("".join(SEAL_JSON.suffixes))] or SEAL_JSON.stem
+    )
     log(
         "instrument_abort",
         reason=f"{type(exc).__name__} in post-read phase '{phase}' "
@@ -2845,7 +2850,7 @@ def _fail_closed_post_read(phase: str, exc: BaseException) -> int:
         abort_class="instrument",
         post_read=True,
         seal_burned=bool(_SEAL_STATE["opened"]),
-        seal_name=SEAL_NAME,
+        seal_name=seal_name,
         tb_pointer=pointer,
         cos_clamp_count=COS_CLAMP_LEDGER["count"],
         cos_clamp_max_overshoot=COS_CLAMP_LEDGER["max_overshoot"],
