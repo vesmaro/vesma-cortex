@@ -29,6 +29,7 @@ from __future__ import annotations
 import hashlib
 import json
 import random
+import subprocess
 import re
 import sys
 import time
@@ -3705,8 +3706,1557 @@ def main() -> int:
         return cmd_gold2()
     if cmd == "seal3":
         return cmd_seal3()
+    if cmd == "banks4":
+        return cmd_banks4()
+    if cmd == "freeze4":
+        return cmd_freeze4()
+    if cmd == "build4":
+        return cmd_build4()
     print(__doc__)
     return 2
+
+
+
+# --- build4: C1 orbit carriers + C2/C3 bank refresh + CD-holdout-v4 -----------
+# ADDENDUM-7 §2 C1-C9 (RATIFIED 10.11, commit 154f7af): cycle-2 corpus lane.
+# C1 — orbit carriers into TRAIN (7 uncovered strata, label-invariance);
+# C2 — eval bank refresh (NC-5/NC-2/NC-3, G11); C3 — NC-4 axis promotion.
+# Slice rule (fresh generation), NOT amend-once: train-v2 stays byte-frozen,
+# train-v4 = train-v2 (verbatim) + C1 carrier rows; seal v4 = fresh cut of
+# 180 from the seed4 merged pool. Stop-first: any RED assert writes nothing.
+
+CORPUS_DIR_V4 = DATA / "corpus-v4"
+PIN_V4_PATH = DATA / "pin-v4.json"
+SEAL_V4_PATH = SEALS_DIR / "CD-holdout-v4.seal.json"
+V4_GATE_RECORD = DATA / "measure" / "gate-v3-single-shot-2026-11-10.json"
+BANKS4_SLICE = "conflict-detector-corpus-v2-build4-banks"
+BUILD4_SLICE = "conflict-detector-corpus-v2-build4"
+
+SEED_HOLD_V4 = 7047
+SEEDS_FORBIDDEN_V4 = set(FORBIDDEN_SEEDS) | set(SEEDS_V2.values()) \
+    | {SEED_HOLD_V3}
+assert SEED_HOLD_V4 not in SEEDS_FORBIDDEN_V4, "v4 hold seed collides with a pinned family"
+V3_PREFIX = SEAL3_V3_PREFIX          # "ho3" — banks_v3 rows keep their prefix
+V4_PREFIX = "ho4"                    # banks_v4 rows (C2 refresh)
+
+#: G10 census quotas for v4 (2x the ratified rotation depth on
+#: clean-after-preflight supply). NC-2 = 2x the NC-2 SEAL FOLD (29;
+#: the brief's G11 arithmetic, stricter than the 2x22 classic-only form).
+#: NC-4 = 2x11 — the G7 waiver dies with the C3 promotion.
+G10_QUOTAS_V4 = {"NC-1": 40, "NC-2": 58, "NC-3": 32, "NC-4": 22, "NC-5": 50}
+
+UNCOVERED_STRATA = ("CD-3", "CD-5", "CD-6", "NC-1", "NC-3", "NC-4", "NC-5")
+
+
+def log4(event: str, **fields) -> None:
+    RUNLOG.parent.mkdir(parents=True, exist_ok=True)
+    with RUNLOG.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"ts": now(), "event": event,
+                             "slice": BUILD4_SLICE, **fields},
+                            ensure_ascii=False) + "\n")
+
+
+def log4_md(event: str, **fields) -> None:
+    RUNLOG_MD.parent.mkdir(parents=True, exist_ok=True)
+    with RUNLOG_MD.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"ts": now(), "event": event,
+                             "slice": BUILD4_SLICE, **fields},
+                            ensure_ascii=False) + "\n")
+
+
+def log4b(event: str, **fields) -> None:
+    RUNLOG.parent.mkdir(parents=True, exist_ok=True)
+    with RUNLOG.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"ts": now(), "event": event,
+                             "slice": BANKS4_SLICE, **fields},
+                            ensure_ascii=False) + "\n")
+
+
+def _c1_content_sha(seed: int) -> str:
+    import conflict_corpus_carriers_v4 as c1m
+    return lib.sha(lib.json_dumps_sorted({
+        "tag": c1m.TAG, "uncovered": list(c1m.UNCOVERED),
+        "expected_razor_bases": c1m.EXPECTED_RAZOR_BASES,
+        "fresh_cd5_n": c1m.FRESH_CD5_N, "razor_lo": c1m.RAZOR_LO,
+        "seed": seed}))
+
+
+def _module_sha(relpath: str) -> str:
+    return file_sha256(REPO / relpath)
+
+
+def _frozen_module_check(name: str, relpath: str, prep: dict) -> str:
+    """G1: the module on disk must match the freeze pin byte-for-byte."""
+    fsha = _module_sha(relpath)
+    pin = prep.get(name)
+    if not pin:
+        die(f"G1: pin-v4.json prep has no {name} — run freeze4 first")
+    if fsha != pin["file_sha256"]:
+        die(f"G1 LOCK VIOLATION: {name} sha {fsha[:16]} != frozen "
+            f"{pin['file_sha256'][:16]} — module edited after freeze")
+    return fsha
+
+
+def cmd_banks4() -> int:
+    """C2/C3/C1 preflight (П3-style, fixtures only; runs BEFORE the banks
+    freeze commit — G2 line: authorship -> preflight -> freeze -> census ->
+    single cut). Writes artifacts/runs/banks_v4_preflight.json."""
+    t0 = time.time()
+    import conflict_corpus_banks_v4 as b4
+    import conflict_corpus_carriers_v4 as c1m
+    cos = Cos()
+    report: dict = {"ts": now(), "slice": BANKS4_SLICE}
+
+    # -- banks_v3 continuity: the frozen module must import byte-identical --
+    prep3 = {}
+    if PIN_V3_PATH.exists():
+        prep3 = json.loads(PIN_V3_PATH.read_text(encoding="utf-8")).get("prep", {})
+    bv3 = prep3.get("banks_v3")
+    b3_sha = _module_sha("scripts/conflict_corpus_banks_v3.py")
+    if not bv3 or b3_sha != bv3["file_sha256"]:
+        die(f"banks_v3 continuity RED: file sha {b3_sha[:16]} != pin-v3 prep "
+            f"{(bv3 or {}).get('file_sha256', '?')[:16]}")
+    print(f"banks_v3 continuity OK ({b3_sha[:16]})")
+
+    # -- fixture cells: one per NEW bank class ------------------------------
+    fx = []
+    with b4.v4_bank_context():
+        r = random.Random(0)
+        fx.append(b4.build_nc2_v4("fx4-NC-2", "pay", "lim", 3000, 1500, 1))
+        fx.append(b4.build_nc3_v4("fx4-NC-3", "logs", b4.VERSION_PAIRS_V4[0],
+                                  b4._nc3_body(0, 3, "fl1"), 0))
+        fx.append(b4.build_nc5_v4("fx4-NC-5", "herbs", "retry", "cross", 0, 0))
+    fx_ok = True
+    print("| fixture | mechanical | label |")
+    print("|---|---|---|")
+    for sc in fx:
+        mech = lib.mechanical_ok(sc)
+        want = "not-contradicts"
+        row_ok = mech and sc.label == want
+        fx_ok &= row_ok
+        print(f"| {sc.stratum} (v4) | {mech} | {sc.label} |"
+              + ("" if row_ok else "  <-- FAIL"))
+    report["fixtures"] = {"ok": fx_ok,
+                          "cells": [x.scenario_id for x in fx]}
+
+    # -- NC-2 refresh: checker truth over the whole combo table -------------
+    chk = []
+    for axis, c, v in b4.NC2_COMBOS_V4:
+        chk.append(bool(lib.REFINE_RU[axis][2](v, c)))
+    report["nc2_checker_truth"] = {"ok": all(chk), "combos": len(chk)}
+    print(f"NC-2 v4 checker truth: {sum(chk)}/{len(chk)}")
+
+    # -- NC-5 refresh: measured cross envelope over TRUE cross legs --------
+    # (RU content vs EN content; the v3-parity "long"/"same" legs carry
+    # RU bodies with lang flags — the v3 seal itself ships that shape,
+    # see ho3-NC-5 transfer rows — they are NOT the G8 cross envelope)
+    def _is_ascii(t: str) -> bool:
+        return all(ord(c) < 128 for c in t)
+
+    # same-subject RU/EN phrase pairs (the G8/G9 "knowingly not
+    # translations" invariant) must stay inside the OLD-bank cross envelope
+    # [0.486, 0.8024] (v3 declared bounds, banks_v3_preflight.json); the
+    # cross-DOMAIN cell distribution is informational (feeds b70/b55)
+    pairs = {}
+    with b4.v4_bank_context():
+        for subj, (ru0, ru1, en0, en1) in b4.SPEC_V4.items():
+            s_ru = lib.make_side("ru", subj, ru0)
+            s_ru1 = lib.make_side("ru", subj, ru1)
+            s_en = lib.make_side("en", subj, en0)
+            s_en1 = lib.make_side("en", subj, en1)
+            pairs[f"{subj}:ru0-en0"] = round(cos.pair(lib.embed_text(s_ru), lib.embed_text(s_en)), 4)
+            pairs[f"{subj}:ru0-en1"] = round(cos.pair(lib.embed_text(s_ru), lib.embed_text(s_en1)), 4)
+            pairs[f"{subj}:ru1-en0"] = round(cos.pair(lib.embed_text(s_ru1), lib.embed_text(s_en)), 4)
+            pairs[f"{subj}:ru1-en1"] = round(cos.pair(lib.embed_text(s_ru1), lib.embed_text(s_en1)), 4)
+    band_lo, band_hi = 0.486, 0.8024
+    out_band = {k: v for k, v in pairs.items()
+                if not (band_lo <= v <= band_hi)}
+    ok_env = not out_band
+    cross_cells = []
+    with b4.v4_bank_context():
+        pool5 = b4.gen_nc5_v4(7047, "fx", rotate=False)
+    for sc in pool5:
+        if sc.cross_lang and _is_ascii(sc.side_b.body) \
+                and not _is_ascii(sc.side_a.body):
+            cross_cells.append(round(cos.pair(sc.text_a(), sc.text_b()), 4))
+    report["nc5_cross_envelope"] = {
+        "same_subject_pairs": pairs, "declared_band": [band_lo, band_hi],
+        "out_of_band": out_band, "ok": bool(ok_env),
+        "cross_cells_info": {"n": len(cross_cells),
+                             "min": min(cross_cells),
+                             "max": max(cross_cells),
+                             "note": "cross-DOMAIN legs feed the b70/b55 "
+                                     "bands; informational here"},
+        "note": "v3 declared bounds [0.486, 0.8024] (old-bank envelope, "
+                "banks_v3_preflight.json)"}
+    print(f"NC-5 v4 same-subject RU/EN pairs: {len(pairs)}, out-of-band "
+          f"{len(out_band)} (band [{band_lo}, {band_hi}]) "
+          f"{'OK' if ok_env else 'RED'}; range "
+          f"[{min(pairs.values())}, {max(pairs.values())}]; cross cells "
+          f"[{min(cross_cells)}, {max(cross_cells)}] n={len(cross_cells)}")
+    fx_ok &= ok_env
+
+    # -- pool-wide mechanical attrition + anti-collapse (bank-level) --------
+    with b4.v4_bank_context():
+        pool4 = b4.gen_banks_v4_pool(7047, "fx", rotate=False)
+    mech_ok = sum(1 for x in pool4 if lib.mechanical_ok(x))
+    report["pool_attrition"] = {"pool": len(pool4), "mech_ok": mech_ok,
+                                "ok": mech_ok == len(pool4)}
+    print(f"banks_v4 pool: {len(pool4)} cells, mechanical {mech_ok}/{len(pool4)}")
+    fx_ok &= mech_ok == len(pool4)
+    scaf_by_class: dict[str, Counter] = {}
+    for x in pool4:
+        scaf_by_class.setdefault(x.stratum, Counter())[x.scaffold_id] += 1
+    scaf_rep = {}
+    for s, cnt in scaf_by_class.items():
+        total = sum(cnt.values())
+        mx = max(cnt.values())
+        scaf_rep[s] = {"scaffolds": len(cnt), "max_share": round(mx / total, 4)}
+        ok = len(cnt) >= 20 and mx / total <= lib.CAP + 1e-9
+        scaf_rep[s]["ok"] = bool(ok)
+        fx_ok &= ok
+    report["anti_collapse"] = scaf_rep
+    print("anti-collapse:", json.dumps(scaf_rep))
+
+    # -- C1 fixture orbits: reconstruction fidelity + rung predicates -------
+    bases = c1m.load_razor_bases()
+    fid = 0
+    total = 0
+    for s, lst in bases.items():
+        for base in lst:
+            total += 1
+            if lib.mechanical_ok(base):
+                fid += 1
+    report["c1_base_fidelity"] = {"bases": total, "mech_ok": fid,
+                                  "ok": fid == total}
+    print(f"C1 base reconstruction: mechanical {fid}/{total}")
+    fx_ok &= fid == total
+    enu = c1m.enumerate_orbits(SEED_HOLD_V4)
+    rung_ok = sum(1 for o in enu["orbits"] for rg in o.rungs
+                  if c1m.orbit_ok(rg, o.base))
+    rung_n = sum(len(o.rungs) for o in enu["orbits"])
+    lab_ok = all(rg.label == o.base.label
+                 for o in enu["orbits"] for rg in o.rungs)
+    scf_ok = all(rg.scaffold_id == o.base.scaffold_id
+                 for o in enu["orbits"] for rg in o.rungs)
+    cp_ok = all(c1m.cosmetic_proof(o.base.side_a)
+                and c1m.cosmetic_proof(o.base.side_b) for o in enu["orbits"])
+    report["c1_orbits"] = {
+        "orbits": len(enu["orbits"]), "rungs": rung_n, "pred_ok": rung_ok,
+        "label_invariance": bool(lab_ok), "scaffold_inheritance": bool(scf_ok),
+        "cosmetic_proof": bool(cp_ok),
+        "by_stratum": {s: sum(1 for o in enu["orbits"] if o.stratum == s)
+                       for s in UNCOVERED_STRATA},
+        "ok": rung_ok == rung_n and lab_ok and scf_ok and cp_ok}
+    fx_ok &= rung_ok == rung_n and lab_ok and scf_ok and cp_ok
+    print(f"C1 orbits: {len(enu['orbits'])}, rungs {rung_n}, pred {rung_ok}, "
+          f"label/scaffold/cosmetic {lab_ok}/{scf_ok}/{cp_ok}")
+
+    ok = bool(fx_ok)
+    report["verdict"] = "PASS" if ok else "RED"
+    RUNLOG.parent.mkdir(parents=True, exist_ok=True)
+    (RUNLOG.parent / "banks_v4_preflight.json").write_text(
+        json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8")
+    log4b("banks4_preflight", ok=ok, verdict=report["verdict"],
+          fixtures=report["fixtures"]["ok"],
+          nc5_envelope=report["nc5_cross_envelope"],
+          pool=f"{mech_ok}/{len(pool4)}",
+          c1_rungs=f"{rung_ok}/{rung_n}")
+    RUNLOG_MD.parent.mkdir(parents=True, exist_ok=True)
+    with RUNLOG_MD.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"ts": now(), "event": "banks4_preflight",
+                             "slice": BANKS4_SLICE, "ok": ok,
+                             "verdict": report["verdict"],
+                             "nc5_cross_envelope": report["nc5_cross_envelope"],
+                             "c1_rungs": f"{rung_ok}/{rung_n}"},
+                            ensure_ascii=False) + "\n")
+    print(f"\nBANKS4 PREFLIGHT: {report['verdict']} ({time.time()-t0:.0f}s)")
+    return 0 if ok else 1
+
+
+def cmd_freeze4() -> int:
+    """G1 freeze: pin the NEW module shas (banks_v4 + carriers_c1) and the
+    v4 seed into pin-v4.json prep — AFTER the banks commit, BEFORE any
+    census observation. Re-freeze or post-freeze edits are incidents."""
+    if PIN_V4_PATH.exists():
+        die("pin-v4.json already exists — freeze is one-shot; a re-freeze "
+            "is an incident (G1)")
+    import conflict_corpus_banks_v4 as b4
+    import conflict_corpus_carriers_v4 as c1m
+    prep3 = json.loads(PIN_V3_PATH.read_text(encoding="utf-8")).get("prep", {})
+    bv3 = prep3.get("banks_v3")
+    b3_sha = _module_sha("scripts/conflict_corpus_banks_v3.py")
+    if not bv3 or b3_sha != bv3["file_sha256"]:
+        die("banks_v3 continuity RED at freeze — G1 chain broken")
+    head = subprocess.run(["git", "rev-parse", "HEAD"], cwd=REPO,
+                          capture_output=True, text=True).stdout.strip()
+    if not head:
+        die("git rev-parse failed — cannot record the banks commit")
+    banks_commit = head
+    file_b4 = _module_sha("scripts/conflict_corpus_banks_v4.py")
+    file_c1 = _module_sha("scripts/conflict_corpus_carriers_v4.py")
+    content_b4 = lib.sha(lib.json_dumps_sorted(b4.bank_content()))
+    content_c1 = _c1_content_sha(SEED_HOLD_V4)
+    with b4.v4_bank_context():
+        n2 = b4.gen_nc2_v4(SEED_HOLD_V4, "smoke", rotate=False)
+        n3 = b4.gen_nc3_v4(SEED_HOLD_V4, "smoke", rotate=False)
+        n5 = b4.gen_nc5_v4(SEED_HOLD_V4, "smoke", rotate=False)
+    bank_counts = {"nc2": len(n2), "nc3": len(n3), "nc5": len(n5)}
+    enu = c1m.enumerate_orbits(SEED_HOLD_V4)
+    carrier_counts = {
+        "orbits": len(enu["orbits"]),
+        "rungs": sum(len(o.rungs) for o in enu["orbits"]),
+        "fresh_cd5": sum(1 for o in enu["orbits"] if o.kind == "fresh"),
+        "by_stratum": {s: sum(1 for o in enu["orbits"] if o.stratum == s)
+                       for s in UNCOVERED_STRATA}}
+    pin = {
+        "prep": {
+            "banks_v3_continuity": {
+                "pin_source": "pin-v3.json#prep.banks_v3",
+                "banks_commit": bv3["banks_commit"],
+                "file_sha256": bv3["file_sha256"],
+                "runtime_verified": True},
+            "banks_v4": {
+                "frozen_at": now(),
+                "banks_commit": banks_commit,
+                "module": "scripts/conflict_corpus_banks_v4.py",
+                "file_sha256": file_b4,
+                "content_sha256": content_b4,
+                "counts": bank_counts,
+                "ratification": "ADDENDUM-7 §2 C2 (G11 refresh) + §2 C3 "
+                                "(NC-4 promotion record)",
+                "lock": "bank edits FORBIDDEN after this pin (G1); a census "
+                        "or assert failure is a BuildStop + NEW addendum"},
+            "carriers_c1": {
+                "frozen_at": now(),
+                "banks_commit": banks_commit,
+                "module": "scripts/conflict_corpus_carriers_v4.py",
+                "file_sha256": file_c1,
+                "content_sha256": content_c1,
+                "counts": carrier_counts,
+                "ratification": "ADDENDUM-7 §2 C1 (orbit carriers, "
+                                "label-invariance; measure-then-fix quotas)",
+                "lock": "carrier edits FORBIDDEN after this pin (G1)"},
+            "seeds": {
+                "hold": SEED_HOLD_V4,
+                "status": "pinned (seeds_pinned_v4)",
+            },
+        },
+        "ts": now(),
+    }
+    PIN_V4_PATH.parent.mkdir(parents=True, exist_ok=True)
+    PIN_V4_PATH.write_text(json.dumps(pin, ensure_ascii=False, indent=2),
+                           encoding="utf-8")
+    pin_sha = lib.sha(PIN_V4_PATH.read_text(encoding="utf-8"))
+    log4b("banks4_frozen", ok=True, banks_commit=banks_commit[:12],
+          banks_v4={"file": file_b4[:16], "content": content_b4[:16]},
+          carriers_c1={"file": file_c1[:16], "content": content_c1[:16]},
+          seed=SEED_HOLD_V4, pin_sha=pin_sha[:16],
+          counts={"banks_v4": bank_counts, "carriers_c1": carrier_counts})
+    RUNLOG_MD.parent.mkdir(parents=True, exist_ok=True)
+    with RUNLOG_MD.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps({"ts": now(), "event": "banks4_frozen",
+                             "slice": BANKS4_SLICE, "ok": True,
+                             "banks_commit": banks_commit[:12],
+                             "seed": SEED_HOLD_V4,
+                             "lock": "G1 (banks_v4 + carriers_c1)"},
+                            ensure_ascii=False) + "\n")
+    print(f"FREEZE4: G1 LOCKED (commit {banks_commit[:12]})\n"
+          f"  banks_v4    file {file_b4[:16]} content {content_b4[:16]} {bank_counts}\n"
+          f"  carriers_c1 file {file_c1[:16]} content {content_c1[:16]} "
+          f"{carrier_counts['orbits']} orbits / {carrier_counts['rungs']} rungs\n"
+          f"  seed hold={SEED_HOLD_V4}\n  pin: {PIN_V4_PATH} ({pin_sha[:16]})")
+    return 0
+
+
+def _v3_verdict_on_record() -> dict:
+    """Cycle-2 authorization: the v3 single-shot record must exist and carry
+    the final DECLINE verdict (F1: red v3 is FINAL; ADDENDUM-7 §4 order)."""
+    if not V4_GATE_RECORD.exists():
+        die(f"cycle-2 authorization RED: no v3 gate record at {V4_GATE_RECORD}")
+    rec = json.loads(V4_GATE_RECORD.read_text(encoding="utf-8"))
+    done = [e for e in rec if e.get("event") == "gate_done"]
+    if not done:
+        die("cycle-2 authorization RED: v3 gate record has no gate_done")
+    v = done[-1]
+    if v.get("verdict") != "DECLINE":
+        die(f"cycle-2 authorization RED: v3 verdict {v.get('verdict')!r} "
+            "is not DECLINE — no cycle-2 lane is legal")
+    return v
+
+
+def _surviving_carriers(cos, sources) -> dict:
+    """C1 census (dry): enumerate orbits, measure, apply the survival rules
+    (mechanical predicate, razor retention, E4 channel preservation, F10
+    sha cleanliness vs ALL sealed generations + train-v2 pair identity,
+    union scaffold caps). Returns the surviving carrier block + report."""
+    import conflict_corpus_carriers_v4 as c1m
+    enu = c1m.enumerate_orbits(SEED_HOLD_V4)
+    for o in enu["orbits"]:
+        if o.kind == "fresh":
+            o.base._cos = round(cos.pair(o.base.text_a(), o.base.text_b()), 4)
+        for rg in o.rungs:
+            rg._cos = round(cos.pair(rg.text_a(), rg.text_b()), 4)
+
+    tr_pair_shas: set[tuple[str, str]] = set()
+    with (CORPUS_DIR_V2 / "train.jsonl").open(encoding="utf-8") as fh:
+        for line in fh:
+            row = json.loads(line)
+            tr_pair_shas.add(tuple(sorted((
+                _disk_env_sha(row["envelope_a"]),
+                _disk_env_sha(row["envelope_b"])))))
+    tr_scaf: dict[str, int] = {}
+    tr_scaf_by_s: dict[str, dict[str, int]] = {}
+    seen: set[str] = set()
+    with (CORPUS_DIR_V2 / "train.jsonl").open(encoding="utf-8") as fh:
+        for line in fh:
+            row = json.loads(line)
+            if row["pair_id"] in seen:
+                continue
+            seen.add(row["pair_id"])
+            tr_scaf[row["scaffold_id"]] = tr_scaf.get(row["scaffold_id"], 0) + 1
+            tr_scaf_by_s.setdefault(row["stratum"], {})
+            tr_scaf_by_s[row["stratum"]][row["scaffold_id"]] = \
+                tr_scaf_by_s[row["stratum"]].get(row["scaffold_id"], 0) + 1
+
+    seal_names = ("v1-seal", "v2-seal", "v3-seal")
+    survivors: list[dict] = []
+    rep: dict = {"orbits": len(enu["orbits"]),
+                 "cull": Counter(), "per_stratum": {}}
+    orbit_out: dict[str, list] = {}
+    for o in enu["orbits"]:
+        kept = []
+        for rg in o.rungs:
+            rung_name = "para1" if len(rg.benign) == 1 else "para2"
+            if not c1m.orbit_ok(rg, o.base):
+                rep["cull"]["pred"] += 1
+                continue
+            if rg._cos < c1m.RAZOR_LO:
+                rep["cull"]["razor_loss"] += 1
+                continue
+            if rg.length_channel != o.base.length_channel:
+                rep["cull"]["channel"] += 1
+                continue
+            ha, hb = lib.sha(rg.text_a()), lib.sha(rg.text_b())
+            src = _forbidden_source(ha, hb, {n: sources[n] for n in seal_names})
+            if src:
+                rep["cull"][f"f10:{src}"] += 1
+                continue
+            pair = tuple(sorted((ha, hb)))
+            if pair in tr_pair_shas:
+                rep["cull"]["train_pair_dup"] += 1
+                continue
+            kept.append({"sc": rg, "rung": rung_name, "base": o.base,
+                         "kind": o.kind, "sha_new": hb if rg.text_a() ==
+                         o.base.text_a() else ha})
+        if kept:
+            orbit_out[f"{o.stratum}:{o.base.scenario_id}"] = kept
+            survivors.extend(kept)
+
+    # fresh CD-5 bases ride their orbit: a fresh orbit emits its base iff
+    # its para1 rung survived (the orbit is the carrier unit)
+    carriers = []
+    dropped_fresh = 0
+    for key, kept in orbit_out.items():
+        o_kind = kept[0]["kind"]
+        o_stratum = kept[0]["base"].stratum
+        if o_kind == "fresh":
+            if not any(k["rung"] == "para1" for k in kept):
+                dropped_fresh += 1
+                continue
+            carriers.append({"sc": kept[0]["base"], "rung": "base",
+                             "base": kept[0]["base"], "kind": "fresh",
+                             "sha_new": None})
+        carriers.extend(kept)
+    rep["dropped_fresh_orbits"] = dropped_fresh
+
+    # union scaffold caps for the carrier block (per stratum)
+    class_total_v4 = {s: CLASS_TOTALS_V2[s]
+                      + sum(1 for c in carriers if c["sc"].stratum == s)
+                      for s in ORDER}
+    carrier_rows = []
+    for s in UNCOVERED_STRATA:
+        cap = max(1, int(lib.CAP * (class_total_v4[s] + SEAL_SHARES_V2[s]
+                                    + _SEAL_CARRIER_IN_STRATUM.get(s, 0)) + 1e-9))
+        cnt: Counter = Counter()
+        red = []
+        for c in carriers:
+            if c["sc"].stratum != s:
+                continue
+            g = c["sc"].scaffold_id
+            cnt[g] += 1
+            if tr_scaf.get(g, 0) + cnt[g] > cap:
+                red.append(f"{s}/{g}: {tr_scaf.get(g, 0)}+{cnt[g]} > cap {cap}")
+        rep["per_stratum"][s] = {
+            "carriers": sum(1 for c in carriers if c["sc"].stratum == s),
+            "class_total_v4": class_total_v4[s],
+            "cap_v4": cap,
+            "scaffold_cap_red": red[:3],
+            "scaffolds": len(set(c["sc"].scaffold_id for c in carriers
+                                 if c["sc"].stratum == s)),
+            "full_orbits": sum(1 for k, kept in orbit_out.items()
+                               if kept and kept[0]["base"].stratum == s
+                               and len({k2["rung"] for k2 in kept}) >= 2
+                               and kept[0]["kind"] == "classic"),
+        }
+        carrier_rows.extend(red)
+    rep["scaffold_red"] = carrier_rows
+    return {"carriers": carriers, "orbit_out": orbit_out, "report": rep,
+            "tr_scaf": tr_scaf, "tr_scaf_by_s": tr_scaf_by_s}
+
+
+def _carrier_rows4(sc: lib.Scenario, rung: str, base_id: str,
+                   kind: str) -> list[dict]:
+    ch5 = lib.pair_char5_jaccard(sc.side_a, sc.side_b, sc._cos)
+    base_decl = {"slots": sc.slots, "subject_a": sc.subject_a,
+                 "subject_b": sc.subject_b, "polar_op": sc.polar_op,
+                 "refine_ok": sc.refine_ok, "benign_regions": sc.benign,
+                 "rung": rung, "base_id": base_id, "orbit_kind": kind}
+    row = {"pair_id": sc.scenario_id, "scenario_id": sc.scenario_id,
+           "stratum": sc.stratum, "label": sc.label, "carrier": sc.carrier,
+           "declaration": base_decl,
+           "measured": {"cos_target": sc._cos,
+                        "char5_jaccard": round(ch5, 4),
+                        "len_channel": sc.length_channel},
+           "scaffold_id": sc.scaffold_id,
+           "seed_pin": f"seed:{SEED_HOLD_V4}:c1", "split": "train"}
+    r1 = dict(row, orientation="a>b", envelope_a=side_dict(sc.side_a),
+              envelope_b=side_dict(sc.side_b))
+    r2 = dict(row, orientation="b>a", envelope_a=side_dict(sc.side_b),
+              envelope_b=side_dict(sc.side_a))
+    return [r1, r2]
+
+
+def cmd_build4() -> int:
+    """Cycle-2 corpus lane (ADDENDUM-7 §4): C1 carriers into train-v4 +
+    C2/C3 eval refresh -> censuses -> SINGLE cut of 180 -> seal
+    CD-holdout-v4. Stop-first: any RED census or assert writes NOTHING."""
+    t0 = time.time()
+
+    # --- 1. legality (F1/F3/F7 legs of cycle-2) ---------------------------
+    verdict3 = _v3_verdict_on_record()
+    print(f"cycle-2 authorization: v3 gate verdict DECLINE on record "
+          f"(red={verdict3.get('red')}) — ADDENDUM-7 §4 order is legal")
+    seal4_done = 0
+    if RUNLOG.exists():
+        for line in RUNLOG.read_text(encoding="utf-8").splitlines():
+            try:
+                ev = json.loads(line)
+            except ValueError:
+                continue
+            if ev.get("event") == "seal_v4":
+                seal4_done += 1
+    if seal4_done:
+        die(f"rotation already consumed: {seal4_done} seal_v4 events — "
+            "a second v4 would be an incident, not a retry")
+    man2 = json.loads((CORPUS_DIR_V2 / "build-manifest.json")
+                      .read_text(encoding="utf-8"))
+    man3 = json.loads((CORPUS_DIR_V3 / "build-manifest.json")
+                      .read_text(encoding="utf-8"))
+    train_fp_start = file_sha256(CORPUS_DIR_V2 / "train.jsonl")
+    if train_fp_start != man2["fingerprints"]["train.jsonl"]:
+        die("train-v2 integrity RED: disk digest != manifest fingerprint")
+    archives_intact = {
+        "corpus-v2/holdout.jsonl": file_sha256(CORPUS_DIR_V2 / "holdout.jsonl")
+        == man2["fingerprints"]["holdout.jsonl"],
+        "seals/CD-holdout-v2.seal.json": file_sha256(SEAL_V2_PATH)
+        == man2["fingerprints"]["seal"],
+        "corpus-v1/holdout.jsonl": file_sha256(CORPUS_DIR / "holdout.jsonl")
+        == json.loads(SEAL_V1_PATH.read_text(encoding="utf-8"))
+        ["holdout_jsonl_sha256"],
+        "corpus-v3/holdout.jsonl": file_sha256(CORPUS_DIR_V3 / "holdout.jsonl")
+        == man3["fingerprints"]["holdout.jsonl"],
+        "seals/CD-holdout-v3.seal.json": file_sha256(SEAL_V3_PATH)
+        == man3["fingerprints"]["seal"],
+    }
+    if not all(archives_intact.values()):
+        die(f"archive integrity RED: {dict(archives_intact.values())}")
+
+    # --- G1 freeze verification (banks_v3 continuity + new modules) -------
+    import conflict_corpus_banks_v3 as banks_v3
+    import conflict_corpus_banks_v4 as banks_v4
+    import conflict_corpus_carriers_v4 as c1m
+    prep3 = json.loads(PIN_V3_PATH.read_text(encoding="utf-8")).get("prep", {})
+    bv3 = prep3.get("banks_v3")
+    b3_sha = _module_sha("scripts/conflict_corpus_banks_v3.py")
+    if not bv3 or b3_sha != bv3["file_sha256"]:
+        die("G1 banks_v3 continuity RED at build4")
+    b3_content = lib.sha(lib.json_dumps_sorted(banks_v3.bank_content()))
+    if b3_content != bv3["content_sha256"]:
+        die("G1 banks_v3 content RED at build4")
+    prep4 = json.loads(PIN_V4_PATH.read_text(encoding="utf-8")).get("prep", {}) \
+        if PIN_V4_PATH.exists() else {}
+    b4_sha = _frozen_module_check("banks_v4", "scripts/conflict_corpus_banks_v4.py", prep4)
+    c1_sha = _frozen_module_check("carriers_c1", "scripts/conflict_corpus_carriers_v4.py", prep4)
+    b4_content = lib.sha(lib.json_dumps_sorted(banks_v4.bank_content()))
+    if b4_content != prep4["banks_v4"]["content_sha256"]:
+        die("G1 banks_v4 content RED (disk content != freeze pin)")
+    c1_content = _c1_content_sha(SEED_HOLD_V4)
+    if c1_content != prep4["carriers_c1"]["content_sha256"]:
+        die("G1 carriers_c1 content RED (config snapshot != freeze pin)")
+    print(f"G1 freeze verified: banks_v3 {b3_sha[:12]} (byte-frozen), "
+          f"banks_v4 {b4_sha[:12]}, carriers_c1 {c1_sha[:12]} LOCKED")
+
+    # --- 2. seed pin FIRST (before any generation) --------------------------
+    scan, prior_v4 = pinned_seeds_from_runlog()
+    observed = sorted({s for seeds in scan.values() for s in seeds})
+    if SEED_HOLD_V4 in observed and not prior_v4:
+        die(f"v4 hold seed {SEED_HOLD_V4} already pinned elsewhere in "
+            "run_log (ad-hoc pin guard)")
+    for p in prior_v4:
+        if p != SEED_HOLD_V4:
+            die(f"seed-family shopping RED: prior seeds_pinned_v4 hold={p}, "
+                f"this run pins {SEED_HOLD_V4}")
+    reaffirm = len(prior_v4) > 0
+    log4("seeds_pinned_v4", seeds={"hold": SEED_HOLD_V4},
+         family="single-member (hold only; train/sheet members absent by "
+                "construction — C1 carriers derive from train-v2 + the "
+                "frozen PARA dial, not from a train seed)",
+         forbidden="2113/7919/9377/6117 + 42/777/4242 + 43..52 + every "
+                   "seeds_pinned* seed",
+         reaffirmed=bool(reaffirm),
+         runlog_scan={"events": len(scan), "distinct_seeds": len(observed),
+                      "seeds": observed})
+    log4_md("seeds_pinned_v4", seeds={"hold": SEED_HOLD_V4},
+            family="single-member (hold only)",
+            forbidden_sets=sorted(SEEDS_FORBIDDEN_V4 | {SEED_HOLD_V3}),
+            reaffirmed=bool(reaffirm))
+    print(f"seed v4 pinned: hold={SEED_HOLD_V4} "
+          f"({'RE-AFFIRMED' if reaffirm else 'fresh'}; run-log scan: "
+          f"{len(scan)} events, {len(observed)} distinct seeds)")
+
+    cos = Cos()
+
+    # --- 3. disjointness sources (F6/F10; sealed content NEVER opened) -----
+    print("== disjointness sources (4 generations + carriers) ==")
+    tr_texts, _ = disk_text_shas(CORPUS_DIR_V2 / "train.jsonl")
+    v3_shas = sealed_generation_sha_set(SEAL_V3_PATH,
+                                        CORPUS_DIR_V3 / "holdout-pool.jsonl")
+    v2_shas = sealed_generation_sha_set(SEAL_V2_PATH,
+                                        CORPUS_DIR_V2 / "holdout-pool.jsonl")
+    v1_shas = sealed_generation_sha_set(SEAL_V1_PATH,
+                                        CORPUS_DIR / "holdout-pool.jsonl")
+    sources = {"train-v2": tr_texts, "v3-seal": v3_shas, "v2-seal": v2_shas,
+               "v1-seal": v1_shas}
+    print(f"sha sets: train-v2 {len(tr_texts)}, v3-seal {len(v3_shas)}, "
+          f"v2-seal {len(v2_shas)}, v1-seal {len(v1_shas)} "
+          "(seal ids -> pool-origin shas; holdout.jsonl files NOT opened)")
+
+    # --- 4. C1 census (dry) + measure-then-fix quota pin -------------------
+    print("== C1 census: orbit carriers (survival: pred+razor+channel+F10+caps) ==")
+    c1 = _surviving_carriers(cos, sources)
+    c1_rep = c1["report"]
+    carriers = c1["carriers"]
+    if c1_rep["scaffold_red"]:
+        die("C1 census RED (scaffold union caps): "
+            + "; ".join(c1_rep["scaffold_red"][:4]))
+    c1_by_stratum = {s: [c for c in carriers if c["sc"].stratum == s]
+                     for s in UNCOVERED_STRATA}
+    red_c1 = [s for s in UNCOVERED_STRATA if not c1_by_stratum[s]]
+    if red_c1:
+        die(f"C1 census RED: strata with zero surviving carriers: {red_c1}")
+    quotas_c1 = {s: len(c1_by_stratum[s]) for s in UNCOVERED_STRATA}
+    rungs_c1 = {s: sum(1 for c in c1_by_stratum[s] if c["rung"] != "base")
+                for s in UNCOVERED_STRATA}
+    total_carriers = len(carriers)
+    print("C1 carriers per stratum:",
+          json.dumps({s: len(c1_by_stratum[s]) for s in UNCOVERED_STRATA}))
+    print(f"C1 cull ledger: {dict(c1_rep['cull'])}; fresh-orbit drops "
+          f"{c1_rep['dropped_fresh_orbits']}")
+    # measure-then-fix: pin the census numbers BEFORE emission (the pin is
+    # a quota write, not a bank edit — G1 untouched)
+    pin = json.loads(PIN_V4_PATH.read_text(encoding="utf-8"))
+    if "carriers_c1_quota" in pin.get("prep", {}):
+        if pin["prep"]["carriers_c1_quota"]["per_stratum"] != quotas_c1:
+            die("C1 quota pin diverges from a prior pin — measure-then-fix "
+                "is one-shot per freeze; diverging census is an instrument "
+                "abort")
+    else:
+        pin["prep"]["carriers_c1_quota"] = {
+            "pinned_at": now(),
+            "per_stratum": quotas_c1,
+            "per_stratum_rungs": rungs_c1,
+            "total": total_carriers,
+            "note": "measure-then-fix (ADDENDUM-7 C1): census-achieved "
+                    "counts pinned BEFORE emission; emission asserts "
+                    "equality; classic shares untouched"}
+        PIN_V4_PATH.write_text(json.dumps(pin, ensure_ascii=False, indent=2),
+                               encoding="utf-8")
+    log4("census_v4_c1", verdict="pass", quotas=quotas_c1, rungs=rungs_c1,
+         total=total_carriers, cull=dict(c1_rep["cull"]),
+         per_stratum={s: c1_rep["per_stratum"][s] for s in UNCOVERED_STRATA})
+    log4_md("census_v4_c1", verdict="pass", quotas=quotas_c1,
+            total=total_carriers, cull=dict(c1_rep["cull"]))
+    print("C1 census PASS (quotas pinned pre-emission)")
+
+    # --- 5. eval pool (fresh seed4 generation over all universes) ----------
+    print("== eval pool: classic + banks_v3 (ho3) + banks_v4 (ho4) + carriers ==")
+    hold_pool = gen_pool(SEED_HOLD_V4, "ho", rotate=True) \
+        + banks_v3.gen_banks_v3_pool(SEED_HOLD_V4, V3_PREFIX, rotate=True) \
+        + banks_v4.gen_banks_v4_pool(SEED_HOLD_V4, V4_PREFIX, rotate=True)
+    pool_classic_n = sum(1 for x in hold_pool if "-" not in x.scenario_id
+                         or x.scenario_id.startswith("ho-"))
+    pool_v3_n = sum(1 for x in hold_pool
+                    if x.scenario_id.startswith(V3_PREFIX + "-"))
+    pool_v4_n = sum(1 for x in hold_pool
+                    if x.scenario_id.startswith(V4_PREFIX + "-"))
+    hn1 = gen_n1_pool(SEED_HOLD_V4, "ho")
+    hn2 = gen_n2_pool(SEED_HOLD_V4, "ho")
+    hn3 = gen_n3_pool(SEED_HOLD_V4, "ho")
+    print(f"holdout pool: {len(hold_pool)} (classic {pool_classic_n}, "
+          f"v3 banks {pool_v3_n}, v4 banks {pool_v4_n}); carriers "
+          f"N1 {len(hn1)} N2 {len(hn2)} N3 {len(hn3)}")
+    measure_all(hold_pool, cos)
+    for sc in hn1 + hn2 + hn3:
+        sc._cos = round(cos.pair(sc.text_a(), sc.text_b()), 4)
+        sc._band = band_of(sc._cos)
+    print(f"embedded {cos.n} unique texts in {time.time()-t0:.0f}s")
+
+    # --- 6. G10 census (clean-after-preflight vs 2x quotas) ----------------
+    print("== G10 census: clean-after-preflight supply vs 2x quotas ==")
+    tr_scaf_all: dict[str, int] = dict(c1["tr_scaf"])
+    for c in carriers:
+        g = c["sc"].scaffold_id
+        tr_scaf_all[g] = tr_scaf_all.get(g, 0) + 1
+
+    def _clean(cells: list, mech_fn) -> dict:
+        live = [x for x in cells if mech_fn(x)]
+        live.sort(key=lambda x: (-x._cos, x.scenario_id))
+        seen: set[str] = set()
+        culled: Counter = Counter()
+        dups = 0
+        rows = []
+        for x in live:
+            ha, hb = lib.sha(x.text_a()), lib.sha(x.text_b())
+            src = _forbidden_source(ha, hb, sources)
+            if src:
+                culled[src] += 1
+                continue
+            if ha in seen or hb in seen:
+                dups += 1
+                continue
+            seen.update((ha, hb))
+            rows.append(x)
+        origin = Counter("v4" if x.scenario_id.startswith(V4_PREFIX + "-")
+                         else ("v3" if x.scenario_id.startswith(V3_PREFIX + "-")
+                               else "classic") for x in rows)
+        return {"pool": len(cells),
+                "preflight_attrited": len(cells) - len(live),
+                "culled_f10": dict(culled), "dup_blocked": dups,
+                "clean": len(rows), "clean_v4": origin.get("v4", 0),
+                "clean_v3": origin.get("v3", 0),
+                "clean_classic": origin.get("classic", 0), "_rows": rows}
+
+    g10: dict = {}
+    red10 = []
+    by_s_g10: dict[str, list] = {}
+    for x in hold_pool:
+        by_s_g10.setdefault(x.stratum, []).append(x)
+    for s in ORDER:
+        row = _clean(by_s_g10.get(s, []), lib.mechanical_ok)
+        g10[s] = {k: v for k, v in row.items() if k != "_rows"}
+        want = G10_QUOTAS_V4.get(s)
+        if want is not None:
+            mark = "OK" if row["clean"] >= want else "RED"
+            if row["clean"] < want:
+                red10.append(f"{s} clean {row['clean']} < {want}")
+            print(f"  {s}: clean {row['clean']} (v4 {row['clean_v4']} / "
+                  f"v3 {row['clean_v3']} / classic {row['clean_classic']}) "
+                  f"vs {want} [{mark}]")
+    cen_n1c = _clean(hn1, carrier_suitable)
+    cen_n2c = _clean(hn2, carrier_suitable)
+    cen_n3c = _clean(hn3, lib.mechanical_ok)
+    n1_hosts_c = Counter(x.stratum for x in cen_n1c["_rows"])
+    n1_k_c = Counter(len(x.benign) for x in cen_n1c["_rows"])
+    n2_k_c = Counter(len(x.benign) for x in cen_n2c["_rows"])
+    g10["N1"] = {**{k: v for k, v in cen_n1c.items() if k != "_rows"},
+                 "hosts": dict(n1_hosts_c), "k": dict(n1_k_c)}
+    g10["N2"] = {**{k: v for k, v in cen_n2c.items() if k != "_rows"},
+                 "k": dict(n2_k_c)}
+    g10["N3"] = {k: v for k, v in cen_n3c.items() if k != "_rows"}
+    need_n1_total = 2 * (SEAL_N1_K[0] + SEAL_N1_K[1])
+    need_n1_host = {h: 2 * q for h, q in SEAL_N1_HOSTS.items()}
+    need_n1_k = {1: 2 * SEAL_N1_K[0], 2: 2 * SEAL_N1_K[1]}
+    need_n2 = 2 * SEAL_SHARES_V2["N2"]
+    need_n2_k = {1: 2 * SEAL_N2_K[0], 2: 2 * SEAL_N2_K[1]}
+    need_n3 = 2 * N3_SEAL
+    for name, got, need in (
+            ("N1", cen_n1c["clean"], need_n1_total),
+            ("N1/CD-1", n1_hosts_c.get("CD-1", 0), need_n1_host["CD-1"]),
+            ("N1/CD-2", n1_hosts_c.get("CD-2", 0), need_n1_host["CD-2"]),
+            ("N1/CD-4", n1_hosts_c.get("CD-4", 0), need_n1_host["CD-4"]),
+            ("N1/k1", n1_k_c.get(1, 0), need_n1_k[1]),
+            ("N1/k2", n1_k_c.get(2, 0), need_n1_k[2]),
+            ("N2", cen_n2c["clean"], need_n2),
+            ("N2/k1", n2_k_c.get(1, 0), need_n2_k[1]),
+            ("N2/k2", n2_k_c.get(2, 0), need_n2_k[2]),
+            ("N3", cen_n3c["clean"], need_n3)):
+        mark = "OK" if got >= need else "RED"
+        if got < need:
+            red10.append(f"{name} clean {got} < {need}")
+        print(f"  {name}: clean {got} vs {need} [{mark}]")
+    if red10:
+        die("census G10 RED (clean-after-preflight, fresh run): "
+            + "; ".join(red10)
+            + " — build4 lane BuildStop, NOTHING sealed (G1: a census "
+              "failure is a new addendum, not a bank iteration)")
+    log4("census_v4_g10", verdict="pass", g10={s: g10[s] for s in list(ORDER)
+                                               + ["N1", "N2", "N3"]},
+         quotas=G10_QUOTAS_V4)
+    log4_md("census_v4_g10", verdict="pass",
+            clean={s: g10[s]["clean"] for s in ORDER},
+            carriers={c: g10[c]["clean"] for c in ("N1", "N2", "N3")})
+    print("census G10 PASS")
+
+    # --- classic supply census (CD strata draw classic-only) ---------------
+    print("== supply census: classic depth vs seal shares ==")
+    supply = {}
+    starved = []
+    for s in ORDER:
+        cands = by_s_g10.get(s, [])
+        seen: set[str] = set()
+        clean = 0
+        for x in cands:
+            ha, hb = lib.sha(x.text_a()), lib.sha(x.text_b())
+            if _forbidden_source(ha, hb, sources):
+                continue
+            if ha in seen or hb in seen:
+                continue
+            seen.update((ha, hb))
+            clean += 1
+        want = SEAL_SHARES_V2[s]
+        supply[s] = {"pool": len(cands), "want": want, "clean": clean}
+        if clean < want:
+            starved.append(f"{s} clean {clean} < share {want}")
+    log4("supply_census_v4", supply=supply, starved=starved)
+    log4_md("supply_census_v4", supply=supply, starved=starved)
+    if starved:
+        die("supply census RED: " + "; ".join(starved)
+            + " — BuildStop, NOTHING sealed")
+
+    # --- F6 sha-convention mechanics (v2 pool reconstruction) --------------
+    disk_pool_by_id: dict[str, set[str]] = {}
+    with (CORPUS_DIR_V2 / "holdout-pool.jsonl").open(encoding="utf-8") as fh:
+        for line in fh:
+            row = json.loads(line)
+            disk_pool_by_id.setdefault(row["pair_id"], set()).update(
+                {_disk_env_sha(row["envelope_a"]),
+                 _disk_env_sha(row["envelope_b"])})
+    conv_pool = list(gen_pool(SEEDS_V2["hold"], "ho", rotate=True)) \
+        + gen_n1_pool(SEEDS_V2["hold"], "ho") \
+        + gen_n2_pool(SEEDS_V2["hold"], "ho") \
+        + gen_n3_pool(SEEDS_V2["hold"], "ho")
+    conv_n = 0
+    for x in conv_pool:
+        want = disk_pool_by_id.get(x.scenario_id)
+        if want is None:
+            continue
+        if {lib.sha(x.text_a()), lib.sha(x.text_b())} != want:
+            die(f"sha convention RED at {x.scenario_id}")
+        conv_n += 1
+    conv_ok = conv_n == len(disk_pool_by_id)
+    if not conv_ok:
+        die(f"sha convention RED: {conv_n}/{len(disk_pool_by_id)} reproduce")
+
+    # --- 7. cut 180 (SEAL_SHARES_V2; merged sources; C3 promotion) ---------
+    print("== cut: 180 per SEAL_SHARES_V2 (sha-only culling, hardest-first) ==")
+    scaf_ho: dict[str, int] = dict(tr_scaf_all)
+    taken_shas: set[str] = set()
+    seal_ids: list[str] = []
+    seal_taken: set[str] = set()
+    origin_of: dict[str, str] = {}
+    carrier_of: dict[str, str] = {}
+    culled = 0
+    cull_by_src: Counter = Counter()
+    blocked: Counter = Counter()
+    want_classic = {s: SEAL_SHARES_V2[s] for s in ORDER}
+
+    def cut_one(x: lib.Scenario) -> str | None:
+        nonlocal culled
+        if x.scenario_id in seal_taken:
+            blocked["dup-id"] += 1
+            return "dup-id"
+        ha, hb = lib.sha(x.text_a()), lib.sha(x.text_b())
+        src = _forbidden_source(ha, hb, sources)
+        if src:
+            cull_by_src[src] += 1
+            culled += 1
+            return f"culled:{src}"
+        if ha in taken_shas or hb in taken_shas:
+            blocked["dup"] += 1
+            return "dup"
+        if scaf_ho.get(x.scaffold_id, 0) >= SCAFFOLD_CAP_V2[x.stratum]:
+            blocked["cap"] += 1
+            return "cap"
+        seal_ids.append(x.scenario_id)
+        seal_taken.add(x.scenario_id)
+        if x.scenario_id.startswith(V4_PREFIX + "-"):
+            origin_of[x.scenario_id] = "transfer:v4bank"
+        elif x.scenario_id.startswith(V3_PREFIX + "-"):
+            origin_of[x.scenario_id] = "transfer:v3bank"
+        else:
+            origin_of[x.scenario_id] = "indist:classic"
+        if x.carrier:
+            carrier_of[x.scenario_id] = x.carrier
+        scaf_ho[x.scaffold_id] = scaf_ho.get(x.scaffold_id, 0) + 1
+        taken_shas.update((ha, hb))
+        return "taken"
+
+    def merged_candidates(s: str) -> list[lib.Scenario]:
+        cands = sorted(by_s_g10.get(s, []), key=lambda x: (-x._cos, x.scenario_id))
+        if s in ("CD-1", "CD-2", "CD-3", "CD-4", "CD-5", "CD-6"):
+            return cands
+        return cands  # NC strata draw merged (the pool IS merged)
+
+    depth_report = {}
+    nc4_split = {}
+    for s in ORDER:
+        blocked.clear()
+        cands = merged_candidates(s)
+        got = 0
+        classic_n = sum(1 for x in cands if not x.scenario_id.startswith((V3_PREFIX + "-", V4_PREFIX + "-")))
+        for x in cands:
+            if got >= want_classic[s]:
+                break
+            if cut_one(x) == "taken":
+                got += 1
+        depth_report[s] = {"pool": len(cands), "want": want_classic[s],
+                           "got": got, "blocked": dict(blocked),
+                           "classic_pool": classic_n}
+        if got < want_classic[s]:
+            die(f"build4 disjointness: {s} exhausted "
+                f"({got}/{want_classic[s]}) over the merged pool")
+    print("depth:", json.dumps(depth_report))
+    # N1 slice: per-host k targets (mirror of the ratified v2 spread)
+    n1_ho = sorted([x for x in hn1 if carrier_suitable(x)],
+                   key=lambda x: (-x._cos, x.scenario_id))
+    n1_host_got = {h: 0 for h in SEAL_N1_HOSTS}
+    for h, want_h in SEAL_N1_HOSTS.items():
+        for k, want_k in zip((1, 2), SEAL_N1_K_TARGETS[h]):
+            got_k = 0
+            for x in n1_ho:
+                if got_k >= want_k:
+                    break
+                if x.stratum != h or len(x.benign) != k:
+                    continue
+                if cut_one(x) == "taken":
+                    got_k += 1
+                    n1_host_got[h] += 1
+            if got_k < want_k:
+                die(f"build4 disjointness: N1/{h} k={k} exhausted ({got_k}/{want_k})")
+        if n1_host_got[h] < want_h:
+            die(f"build4 disjointness: N1/{h} exhausted ({n1_host_got[h]}/{want_h})")
+    n2_ho = sorted([x for x in hn2 if carrier_suitable(x)],
+                   key=lambda x: (-x._cos, x.scenario_id))
+    n2_k_got = {1: 0, 2: 0}
+    for k, want_k in zip((1, 2), SEAL_N2_K):
+        for x in n2_ho:
+            if n2_k_got[k] >= want_k:
+                break
+            if len(x.benign) != k:
+                continue
+            if cut_one(x) == "taken":
+                n2_k_got[k] += 1
+        if n2_k_got[k] < want_k:
+            die(f"build4 disjointness: N2 k={k} exhausted ({n2_k_got[k]}/{want_k})")
+    n3_ho = sorted([x for x in hn3 if lib.mechanical_ok(x)],
+                   key=lambda x: (-x._cos, x.scenario_id))
+    got_n3 = 0
+    for x in n3_ho:
+        if got_n3 >= N3_SEAL:
+            break
+        if cut_one(x) == "taken":
+            got_n3 += 1
+    if got_n3 < N3_SEAL:
+        die(f"build4 disjointness: N3 exhausted ({got_n3}/{N3_SEAL})")
+    assert len(seal_ids) == HOLD_SEAL, len(seal_ids)
+    ho_by_id = {x.scenario_id: x for x in hold_pool}
+    ho_by_id.update({x.scenario_id: x for x in hn1 + hn2 + hn3})
+    assert set(seal_ids) <= set(ho_by_id), "seal id outside generated pools"
+    nc4_split = {
+        "old_bank": sum(1 for i in seal_ids
+                        if ho_by_id[i].stratum == "NC-4"
+                        and origin_of[i] == "indist:classic"),
+        "promoted_axis_v3": sum(1 for i in seal_ids
+                                if ho_by_id[i].stratum == "NC-4"
+                                and origin_of[i] == "transfer:v3bank"),
+        "rule": "C3: merged hardest-first (old bank + promoted v3 axis); "
+                "the v3 G7 fallback-only rule is dead"}
+    origins_total = Counter(origin_of[i] for i in seal_ids)
+    log4("cut_v4", n=len(seal_ids), culled=culled,
+         cull_by_src=dict(cull_by_src), depth=depth_report,
+         origins=dict(origins_total), nc4=nc4_split,
+         carriers=dict(Counter(carrier_of.values())))
+    log4_md("cut_v4", n=len(seal_ids), culled=culled,
+            cull_by_src=dict(cull_by_src),
+            origins={k: v for k, v in origins_total.items()},
+            nc4=nc4_split, carriers=dict(Counter(carrier_of.values())))
+    print(f"cut: {len(seal_ids)} pairs ({culled} culled: {dict(cull_by_src)})")
+
+    # --- 8. asserts (stop-first) -------------------------------------------
+    print("== asserts (ADDENDUM-7 C1-C3 map), stop-first ==")
+    A: dict[str, dict] = {}
+
+    def rec(name: str, ok, detail) -> bool:
+        A[name] = {"ok": bool(ok), "detail": detail}
+        print(f"{'PASS' if ok else 'RED'}  {name}: {str(detail)[:200]}")
+        return bool(ok)
+
+    seal_sc = [ho_by_id[i] for i in seal_ids]
+    cnt = Counter(x.stratum for x in seal_sc)
+    n1_sc = [x for x in seal_sc if x.carrier == "N1"]
+    n2_sc = [x for x in seal_sc if x.carrier == "N2"]
+    n3_sc = [x for x in seal_sc if x.carrier == "N3"]
+    fold_expected = Counter()
+    for s in ORDER:
+        fold_expected[s] += SEAL_SHARES_V2[s]
+    for h, q in SEAL_N1_HOSTS.items():
+        fold_expected[h] += q
+    fold_expected["NC-2"] += SEAL_SHARES_V2["N2"]
+    fold_expected["NC-5"] += N3_SEAL
+    classic_cnt = Counter(x.stratum for x in seal_sc if x.carrier is None)
+    classic_ok = all(classic_cnt[s] == SEAL_SHARES_V2[s] for s in ORDER)
+    n1_ok = (Counter(x.stratum for x in n1_sc) == Counter(SEAL_N1_HOSTS)
+             and Counter(len(x.benign) for x in n1_sc) ==
+             Counter({1: SEAL_N1_K[0], 2: SEAL_N1_K[1]}))
+    n2_ok = (len(n2_sc) == SEAL_SHARES_V2["N2"]
+             and Counter(len(x.benign) for x in n2_sc) ==
+             Counter({1: SEAL_N2_K[0], 2: SEAL_N2_K[1]}))
+    n3_ok = len(n3_sc) == N3_SEAL
+    rec("A-share-table", classic_ok and n1_ok and n2_ok and n3_ok
+        and dict(cnt) == dict(fold_expected) and sum(cnt.values()) == HOLD_SEAL,
+        {"classic": dict(classic_cnt),
+         "N1_hosts": dict(Counter(x.stratum for x in n1_sc)),
+         "N1_k": dict(Counter(len(x.benign) for x in n1_sc)),
+         "N2_k": dict(Counter(len(x.benign) for x in n2_sc)),
+         "N3": len(n3_sc), "fold": dict(cnt),
+         "fold_expected": dict(fold_expected)})
+    bad = [x.scenario_id for x in seal_sc if not lib.mechanical_ok(x)]
+    len_bad = [x.scenario_id for x in seal_sc
+               if x.carrier in ("N1", "N2") and not lib.len_channel_ok(x)]
+    rec("A-silver+len4", not bad and not len_bad,
+        f"{len(seal_sc)-len(bad)}/{len(seal_sc)} mechanical pass; "
+        f"E4 len violations {len(len_bad)}")
+    badl = [x.scenario_id for x in seal_sc
+            if x.label != ("contradicts" if x.stratum.startswith("CD")
+                           else "not-contradicts")]
+    rec("A-labels", not badl, f"bad={len(badl)}")
+    g_nc3 = sum(1 for x in seal_sc if x.stratum == "NC-3" and lib.version_guard(x))
+    n_nc3 = sum(1 for x in seal_sc if x.stratum == "NC-3")
+    g_cd = sum(1 for x in seal_sc if x.stratum.startswith("CD")
+               and lib.version_guard(x))
+    rec("A-guard", g_nc3 == n_nc3 and g_cd == 0,
+        f"nc3 {g_nc3}/{n_nc3}, cd {g_cd}/0")
+
+    # union scaffold caps (train-v4 + seal) per stratum
+    scaf_bad, share_bad = [], []
+    tr_scaf_v4: dict[str, int] = dict(c1["tr_scaf"])
+    tr_scaf_v4_by_s: dict[str, dict[str, int]] = {s: dict(v) for s, v
+                                                  in c1["tr_scaf_by_s"].items()}
+    for c in carriers:
+        g = c["sc"].scaffold_id
+        s = c["sc"].stratum
+        tr_scaf_v4[g] = tr_scaf_v4.get(g, 0) + 1
+        tr_scaf_v4_by_s.setdefault(s, {})
+        tr_scaf_v4_by_s[s][g] = tr_scaf_v4_by_s[s].get(g, 0) + 1
+    for s in ORDER:
+        v4_cls = Counter(x.scaffold_id for x in seal_sc if x.stratum == s)
+        for g, c in v4_cls.items():
+            if tr_scaf_v4.get(g, 0) + c > SCAFFOLD_CAP_V2[s]:
+                scaf_bad.append(f"{s}/{g}: {tr_scaf_v4.get(g, 0)}+{c} > cap "
+                                f"{SCAFFOLD_CAP_V2[s]}")
+        tr_cls = tr_scaf_v4_by_s.get(s, {})
+        total = sum(tr_cls.values()) + sum(v4_cls.values())
+        mx = max([tr_cls.get(g, 0) + c for g, c in v4_cls.items()] + [0])
+        if total and mx / total > lib.CAP + 1e-9:
+            share_bad.append(f"{s}: union share {mx/total:.3f} > {lib.CAP}")
+        if total and len(tr_cls) < 20:
+            scaf_bad.append(f"{s}: train-v4 scaffolds {len(tr_cls)} < 20")
+    rec("A-scaffold-union", not scaf_bad and not share_bad,
+        {"cap_violations": scaf_bad[:4], "share_violations": share_bad[:4],
+         "rule": "train-v4 (classic v2 + C1 carriers) + seal-v4 <= cap; "
+                 "union max share <= 5%; >= 20 scaffolds per class"})
+
+    seal_shas = []
+    for x in seal_sc:
+        seal_shas += [lib.sha(x.text_a()), lib.sha(x.text_b())]
+    dup = len(seal_shas) - len(set(seal_shas))
+    c1_new_shas: set[str] = set()
+    for c in carriers:
+        sc = c["sc"]
+        base = c["base"]
+        if sc.text_a() != base.text_a():
+            c1_new_shas.add(lib.sha(sc.text_a()))
+        if sc.text_b() != base.text_b():
+            c1_new_shas.add(lib.sha(sc.text_b()))
+    for name, sha_set in (("train-v2", sources["train-v2"]),
+                          ("c1-carriers", c1_new_shas),
+                          ("v3-seal", sources["v3-seal"]),
+                          ("v2-seal", sources["v2-seal"]),
+                          ("v1-seal", sources["v1-seal"])):
+        hits = sum(1 for h in seal_shas if h in sha_set)
+        rec(f"A-disjoint-{name}", hits == 0,
+            f"{hits} sha hits of {len(seal_shas)} against a {len(sha_set)}-sha "
+            "set" + (" (substituted/fresh sides)" if name == "c1-carriers"
+                     else " (seal ids -> pool-origin shas; sealed file NOT "
+                     "opened)" if name.endswith("-seal") else " (disk)"))
+    rec("A-sha-unique", dup == 0,
+        f"{len(set(seal_shas))} distinct of {len(seal_shas)} (dup {dup})")
+    rec("A-sha-convention", conv_ok,
+        f"{conv_n}/{len(disk_pool_by_id)} v2 pool ids reproduce identical "
+        "disk shas in-process (F6 mechanics; sealed file untouched)")
+
+    # G3/G7 marking + C3 promotion disclosure + carrier marking
+    transfer_split = {}
+    for s in ORDER:
+        ids_s = [i for i in seal_ids if ho_by_id[i].stratum == s]
+        transfer_split[s] = {
+            "transfer_v4bank": sum(1 for i in ids_s
+                                   if origin_of[i] == "transfer:v4bank"),
+            "transfer_v3bank": sum(1 for i in ids_s
+                                   if origin_of[i] == "transfer:v3bank"),
+            "indist": sum(1 for i in ids_s
+                          if origin_of[i] == "indist:classic")}
+    mark_ok = all(
+        (i.startswith(V4_PREFIX + "-"))
+        == (origin_of[i] == "transfer:v4bank")
+        and (i.startswith(V3_PREFIX + "-"))
+        == (origin_of[i] == "transfer:v3bank")
+        for i in seal_ids)
+    rec("A-origin-marking", mark_ok,
+        {"origins": dict(origins_total), "per_stratum": transfer_split,
+         "nc4": nc4_split, "carriers_seal": dict(Counter(carrier_of.values())),
+         "nc1_note": "NC-1 draws from merged (classic+v3-bank) — the "
+                     "classic universe is exhausted at clean 0-1",
+         "rule": "ho4- -> transfer:v4bank, ho3- -> transfer:v3bank, "
+                 "ho- -> indist:classic; carrier field marks N1/N2/N3"})
+    dated = [x for x in seal_sc if x.side_a.created_at and x.side_b.created_at]
+    older = sum(1 for x in dated if x.side_a.created_at < x.side_b.created_at)
+    p_older = older / max(len(dated), 1)
+    lens_seal = Counter(x.length_channel for x in seal_sc)
+    len_ok_seal = all(abs(lens_seal[c] / HOLD_SEAL - 1 / 3) <= 0.05
+                      for c in ("short", "medium", "long")
+                      if lens_seal.get(c, 0) >= 30)
+    rec("A-indep+len", abs(p_older - 0.5) <= 0.10 and len_ok_seal,
+        {"P(a_older)": round(p_older, 3), "dated": len(dated),
+         "channels": dict(lens_seal)})
+    rec("A-frozen", True, f"nano {lib.EMBEDDER_PIN[:12]}…; cortex features "
+        "imported; instrument pin verified at Cos init")
+    rec("A-archive-integrity", all(archives_intact.values()),
+        {k: ("digest-ok" if v else "RED") for k, v in archives_intact.items()})
+
+    # ---- train-v4 legs ------------------------------------------------------
+    tr_cnt_all = Counter(x.stratum for x in carriers)
+    quota = pin["prep"]["carriers_c1_quota"]["per_stratum"]
+    carriers_ok = all(len(c1_by_stratum[s]) == quota[s] for s in UNCOVERED_STRATA)
+    rec("T-carrier-quota", carriers_ok,
+        {"pinned": quota, "emitted": {s: len(c1_by_stratum[s])
+                                      for s in UNCOVERED_STRATA},
+         "total": total_carriers,
+         "note": "measure-then-fix: emission == census pin (exact)"})
+    c1_pred_bad = []
+    for c in carriers:
+        if c["rung"] == "base":
+            if not lib.mechanical_ok(c["sc"]):
+                c1_pred_bad.append(c["sc"].scenario_id)
+        elif not c1m.orbit_ok(c["sc"], c["base"]):
+            c1_pred_bad.append(c["sc"].scenario_id)
+    lab_c1 = [c["sc"].scenario_id for c in carriers
+              if c["sc"].label != ("contradicts" if c["sc"].stratum.startswith("CD")
+                                   else "not-contradicts")
+              or c["sc"].label != c["base"].label]
+    raz_c1 = [c["sc"].scenario_id for c in carriers if c["sc"]._cos < c1m.RAZOR_LO]
+    ch_c1 = [c["sc"].scenario_id for c in carriers
+             if c["sc"].length_channel != c["base"].length_channel]
+    cp_bad = [c["base"].scenario_id for c in carriers
+              if not c1m.cosmetic_proof(c["base"].side_a)
+              or not c1m.cosmetic_proof(c["base"].side_b)]
+    rec("T-carrier-silver", not c1_pred_bad and not raz_c1 and not ch_c1,
+        {"pred_bad": c1_pred_bad[:4], "below_razor": raz_c1[:4],
+         "channel_shift": ch_c1[:4],
+         "note": "orbit_ok on rungs (sentence-pinned substitution), "
+                 "mechanical_ok on fresh bases; razor retention; E4 channel"})
+    rec("T-labels+invariance", not lab_c1,
+        {"bad": lab_c1[:4],
+         "note": "label derivable from stratum AND == base label "
+                 "(NA label-invariance constraint)"})
+    rec("T-cosmetic-proof", not cp_bad,
+        {"bad": cp_bad[:4],
+         "note": "case-flip variant leaves embed-text sha byte-identical "
+                 "on every orbit base (the cosmetic rung, verified "
+                 "not emitted)"})
+    # carrier leakage guards: substituted/fresh sides vs seals + train-v2
+    leak_seal = []
+    leak_train = []
+    for c in carriers:
+        sc = c["sc"]
+        new_sides = [t for t in (sc.text_a(), sc.text_b())
+                     if t != c["base"].text_a() and t != c["base"].text_b()]
+        for t in new_sides:
+            h = lib.sha(t)
+            if _forbidden_source(h, h, {k: sources[k] for k in
+                                        ("v1-seal", "v2-seal", "v3-seal")}):
+                leak_seal.append(sc.scenario_id)
+            if h in sources["train-v2"]:
+                leak_train.append(sc.scenario_id)
+    for c in carriers:
+        if c["kind"] == "fresh":
+            sc = c["sc"]
+            for t in (sc.text_a(), sc.text_b()):
+                h = lib.sha(t)
+                if _forbidden_source(h, h, {k: sources[k] for k in
+                                            ("v1-seal", "v2-seal", "v3-seal")}):
+                    leak_seal.append(sc.scenario_id)
+                if h in sources["train-v2"]:
+                    leak_train.append(sc.scenario_id)
+    rec("T-carrier-disjoint", not leak_seal and not leak_train,
+        {"seal_hits": leak_seal[:4], "train_side_hits": leak_train[:4],
+         "note": "substituted/fresh side shas are new vs ALL sealed "
+                 "generations and vs train-v2 sides (F10 leakage guard); "
+                 "the UNCHANGED side legitimately shares its own base "
+                 "(orbit structure)"})
+    # train-v4 sha pair uniqueness + E7 side balance + null discipline
+    c1_pairs = set()
+    dup_pairs = 0
+    for c in carriers:
+        sc = c["sc"]
+        pr = tuple(sorted((lib.sha(sc.text_a()), lib.sha(sc.text_b()))))
+        if pr in c1_pairs:
+            dup_pairs += 1
+        c1_pairs.add(pr)
+    both_fit = 0
+    side_a_n = 0
+    for c in carriers:
+        if c["rung"] not in ("para1", "para2"):
+            continue
+        base = c["base"]
+        k = 1 if c["rung"] == "para1" else 2
+        fit = []
+        for side in ("a", "b"):
+            body = (base.side_a if side == "a" else base.side_b).body
+            try:
+                lib.benign_substitute(body, k, (base.side_a if side == "a"
+                                                else base.side_b).language
+                                      or "ru", random.Random(0))
+                fit.append(side)
+            except ValueError:
+                pass
+        if len(fit) == 2:
+            both_fit += 1
+            d = c["sc"].benign[0]["side"]
+            side_a_n += 1 if d == "a" else 0
+    null_c = sum(1 for c in carriers if c["sc"].both_null)
+    mixed_c = sum(1 for c in carriers
+                  if (c["sc"].side_a.created_at is None)
+                  != (c["sc"].side_b.created_at is None))
+    rec("T-carrier-shape", dup_pairs == 0 and mixed_c == 0
+        and (both_fit == 0 or abs(side_a_n / both_fit - 0.5) <= 0.10),
+        {"pair_dups": dup_pairs, "mixed_null": mixed_c,
+         "e7_both_fit": both_fit, "side_a": side_a_n,
+         "null_share_carriers": round(null_c / max(total_carriers, 1), 3),
+         "note": "pair-level sha uniqueness (orbit rungs share one side "
+                 "by construction); 0 mixed-null; E7 side balance over "
+                 "both-side-fit rungs"})
+
+    all_ok = all(v["ok"] for v in A.values())
+    if not all_ok:
+        reds = [k for k, v in A.items() if not v["ok"]]
+        log4("build_stop", reason=f"asserts RED: {reds}")
+        log4_md("build_stop", reds=reds,
+                note="stop-first: NOTHING written or sealed")
+        print(f"BUILD-STOP: asserts RED: {reds}", file=sys.stderr)
+        return 1
+
+    # --- 9. emit (stop-first passed) ----------------------------------------
+    tr2_lines = (CORPUS_DIR_V2 / "train.jsonl").read_text(encoding="utf-8")
+    carrier_rows = []
+    for c in sorted(carriers, key=lambda c: (c["sc"].stratum,
+                                             c["sc"].scenario_id)):
+        carrier_rows += _carrier_rows4(c["sc"], c["rung"],
+                                       c["base"].scenario_id, c["kind"])
+    CORPUS_DIR_V4.mkdir(parents=True, exist_ok=True)
+    with (CORPUS_DIR_V4 / "train.jsonl").open("w", encoding="utf-8") as fh:
+        fh.write(tr2_lines)
+        for r in carrier_rows:
+            fh.write(json.dumps(r, ensure_ascii=False) + "\n")
+    tr4_text = (CORPUS_DIR_V4 / "train.jsonl").read_text(encoding="utf-8")
+    prefix_ok = tr4_text.startswith(tr2_lines)
+    fp_train = lib.sha(tr4_text)
+    rows_h = []
+    for sc in seal_sc:
+        rows_h += rows_of(sc, "holdout", f"seed:{SEED_HOLD_V4}")
+    fp_hold = write_jsonl(CORPUS_DIR_V4 / "holdout.jsonl", rows_h)
+    pool_rows = []
+    for sc in list(hold_pool) + list(hn1) + list(hn2) + list(hn3):
+        pool_rows += rows_of(sc, "holdout-pool", f"seed:{SEED_HOLD_V4}")
+    fp_pool = write_jsonl(CORPUS_DIR_V4 / "holdout-pool.jsonl", pool_rows)
+    floor4 = min(x._cos for x in seal_sc)
+
+    lineage = {
+        "rotation_of": "CD-holdout-v3",
+        "ancestor_holdout_sha256": man3["fingerprints"]["holdout.jsonl"],
+        "ancestor_seal_sha256": man3["fingerprints"]["seal"],
+        "ancestor_status": "red-gate-DECLINE",
+        "ancestor_gate_state": "single legal read consumed "
+                               "(sealed_read_once 2026-11-10T02:50:06Z, "
+                               "sha 548eae2a…, n=180/360); verdict DECLINE "
+                               "(g_stab 0.5833 — 35/60 pairs invariant, "
+                               "threshold 1.0, floor_inv=0); 10 other "
+                               "gates GREEN",
+        "cycle2_authorization": "ADDENDUM-7 RATIFIED (MLC-7 three-leg "
+                                "convergence, commit 154f7af): retrain "
+                                "wave with orbit carriers (C1), bank "
+                                "refresh (C2), NC-4 promotion (C3); "
+                                "anchor G4: characterization GREEN + "
+                                "gate RED = model defect — the corpus "
+                                "was not the defect, the uncovered "
+                                "carrier cell was the amplificator",
+        "rotation_rule": "slice rule (fresh generation), NOT corpus "
+                         "amend-once: E13 amend budget NOT spent; "
+                         "train-v2 stays byte-frozen; train-v4 = "
+                         "train-v2 verbatim + C1 carrier rows (declared "
+                         "in this manifest)",
+        "cut_rule": "SINGLE cut of 180 (SEAL_SHARES_V2 largest remainder, "
+                    "hardest-first within stratum, sha-only culling F6 vs "
+                    "ALL FOUR generations + C1 carriers, union scaffold "
+                    "caps, G10 census-gated); one seed family member "
+                    "(hold=7047); no re-cut on this artifact",
+        "universes_extension": "C2 (G11): banks_v4 eval-only fork — NC-5 "
+                               "6 new SPEC subjects, NC-2 8 fresh refine "
+                               "combos, NC-3 2 new version families; "
+                               "C3: the banks_v3 NC-4 non-tech axis "
+                               "PROMOTED to the main bank (merged "
+                               "hardest-first, transfer-marked)",
+        "carriers_extension": "C1: para-orbits into train for the 7 "
+                              "razor-uncovered strata (base + cosmetic + "
+                              "para1 + para2, label-invariance); carrier "
+                              "quotas pinned from the census before "
+                              "emission (measure-then-fix); classic "
+                              "shares untouched",
+        "disclosure_unseen_scaffold": "holdout v4 carries unseen-scaffold "
+                                      "rows of the extended classes "
+                                      "(ADDENDUM-6 §2.4/G12 lineage rule "
+                                      "carried forward); the model card "
+                                      "known-limitations must repeat this "
+                                      "line verbatim",
+        "f1_single_shot": "a red gate v4 is FINAL on this artifact + "
+                          "thresholds; any next attempt is a new cycle "
+                          "with a fresh seal (F1/F3)",
+    }
+    seal_payload = {"ts": now(), "version": "CD-holdout-v4",
+                    "holdout_jsonl_sha256": fp_hold,
+                    "ids": sorted(set(seal_ids)), "n": len(seal_sc),
+                    "lineage": lineage,
+                    "disjointness": {
+                        "rule": "sha(text_a/b) ONLY (F6); scenario_id "
+                                "excluded (deterministic template grid "
+                                "id-space)",
+                        "checked_against": {
+                            "train-v2": "disk train.jsonl text-sha set",
+                            "train-v4-carriers": "C1 substituted/fresh "
+                                                 "side shas (this build)",
+                            "CD-holdout-v3": "seal ids -> holdout-pool.jsonl "
+                                             "origin text-shas",
+                            "CD-holdout-v2": "seal ids -> holdout-pool.jsonl "
+                                             "origin text-shas",
+                            "CD-holdout-v1": "seal ids -> holdout-pool.jsonl "
+                                             "origin text-shas"},
+                        "sealed_content_reads": {
+                            "corpus-v1/holdout.jsonl": 0,
+                            "corpus-v2/holdout.jsonl": 0,
+                            "corpus-v3/holdout.jsonl": 0}},
+                    "archives_digest_intact": {k: bool(v) for k, v
+                                               in archives_intact.items()},
+                    "note": "content NOT read after this event"}
+    SEALS_DIR.mkdir(parents=True, exist_ok=True)
+    SEAL_V4_PATH.write_text(json.dumps(seal_payload, ensure_ascii=False,
+                                       indent=2), encoding="utf-8")
+    fp_seal = lib.sha(SEAL_V4_PATH.read_text(encoding="utf-8"))
+
+    pin = json.loads(PIN_V4_PATH.read_text(encoding="utf-8"))
+    if pin.get("prep", {}).get("banks_v4", {}).get("content_sha256") \
+            not in (None, b4_content) or \
+            pin.get("prep", {}).get("carriers_c1", {}).get("content_sha256") \
+            not in (None, c1_content):
+        die("pin-v4 prep pins DIFFERENT module content than the "
+            "runtime-verified modules — G1 inconsistency, refusing")
+    pin.update({
+        "ts": now(), "version": 4,
+        "lane": "build4 (ADDENDUM-7 §4, cycle-2): train-v4 = train-v2 "
+                "verbatim + C1 orbit carriers; eval pool = fresh seed4 "
+                "generation over classic + banks_v3 + banks_v4 (C2) + "
+                "promoted NC-4 axis (C3) -> G10 census -> single cut of "
+                "180 -> seal CD-holdout-v4",
+        "instrument": {"pin": lib.EMBEDDER_PIN,
+                       "guard_version": lib.GUARD_VERSION},
+        "seeds": {"hold": SEED_HOLD_V4},
+        "seed_family_check": "single-member family (hold only; the C1 "
+                             "train-side carriers derive from train-v2 + "
+                             "the frozen PARA dial, not from a train seed); "
+                             f"!= {sorted(SEEDS_FORBIDDEN_V4 | {SEED_HOLD_V3})}, "
+                             f"!= all {len(observed)} seeds seen in "
+                             "seeds_pinned* run-log events",
+        "runlog_seed_scan": {"events": len(scan),
+                             "distinct_seeds": len(observed),
+                             "seeds": observed},
+        "banks_v3_frozen": {"banks_commit": bv3["banks_commit"],
+                            "file_sha256": b3_sha,
+                            "content_sha256": b3_content,
+                            "runtime_verified": True,
+                            "note": "byte-frozen continuity from v3"},
+        "banks_v4_frozen": {"banks_commit": prep4["banks_v4"]["banks_commit"],
+                            "file_sha256": b4_sha,
+                            "content_sha256": b4_content,
+                            "counts": prep4["banks_v4"]["counts"],
+                            "runtime_verified": True,
+                            "lock": "G1: bank edits forbidden; census/"
+                                    "assert failure = BuildStop + new "
+                                    "addendum"},
+        "carriers_c1_frozen": {"banks_commit":
+                               prep4["carriers_c1"]["banks_commit"],
+                               "file_sha256": c1_sha,
+                               "content_sha256": c1_content,
+                               "runtime_verified": True,
+                               "lock": "G1: carrier edits forbidden"},
+        "carriers_c1": {
+            "quotas": quotas_c1,
+            "rungs": rungs_c1,
+            "total": total_carriers,
+            "orbit_shape": "base + cosmetic (verified, not emitted) + "
+                           "para1 + para2; NC-4 symmetric; fresh CD-5 "
+                           "orbits = base + para1 (8)",
+            "label_invariance": "NA constraint: pair + perturbed variants "
+                                "carry ONE label",
+            "cull_ledger": dict(c1_rep["cull"]),
+            "per_stratum": c1_rep["per_stratum"]},
+        "hard_window": [HARD_WIN_LO, HARD_WIN_HI],
+        "measured_holdout_floor": floor4,
+        "g10_census": {s: g10[s] for s in list(ORDER) + ["N1", "N2", "N3"]},
+        "seal_shares": {**{s: SEAL_SHARES_V2[s] for s in ORDER},
+                        "N1": sum(SEAL_N1_HOSTS.values()),
+                        "N2": SEAL_SHARES_V2["N2"], "N3": N3_SEAL},
+        "cut_rule": lineage["cut_rule"],
+        "transfer_split": {
+            "rule": "G3 carried forward: ho4- rows = transfer:v4bank, "
+                    "ho3- rows = transfer:v3bank, ho- rows = indist; "
+                    "the v4 gate report splits by this marking; "
+                    "thresholds unchanged",
+            "per_stratum": transfer_split,
+            "nc4_promotion": nc4_split,
+            "carrier_split": dict(Counter(carrier_of.values()))},
+        "seal_fold_strata": dict(cnt),
+        "seal_ids": seal_ids,
+        "bands_seal": {b: sum(1 for x in seal_sc if x._band == b)
+                       for b, _, _ in BANDS},
+        "reporting_rule": SEAL3_REPORTING_RULE,
+        "lineage": lineage,
+        "train_v4": {"classic": "train-v2 verbatim (600 pairs, byte-identical "
+                                "prefix)",
+                     "carriers": {s: len(c1_by_stratum[s])
+                                  for s in UNCOVERED_STRATA},
+                     "total_pairs": 600 + total_carriers,
+                     "train_v2_sha_unchanged": train_fp_start},
+        "train_v2_untouched": {"train.jsonl_sha256_start": train_fp_start},
+    })
+    PIN_V4_PATH.write_text(json.dumps(pin, ensure_ascii=False, indent=2),
+                           encoding="utf-8")
+
+    manifest = {
+        "ts": now(),
+        "version": "corpus-v4 (ADDENDUM-7 cycle-2: C1 orbit carriers + "
+                   "C2/C3 bank refresh + seal CD-holdout-v4, B6-conflict "
+                   "build4)",
+        "guard_version": lib.GUARD_VERSION,
+        "instrument": {"provider": "vesma.embeddings.NanoProvider",
+                       "nano_pin": lib.EMBEDDER_PIN},
+        "design": ["docs/experiments/conflict-detector-corpus-design-"
+                   "ADDENDUM-7.md (RATIFIED, C1-C9, commit 154f7af)",
+                   "docs/experiments/conflict-detector-corpus-design-"
+                   "ADDENDUM-6.md (RATIFIED, path B, G1-G12)",
+                   "docs/experiments/conflict-detector-corpus-design.md "
+                   "(RATIFIED MLC-9)",
+                   "docs/experiments/conflict-detector-corpus-design-"
+                   "ADDENDUM-1.md",
+                   "docs/experiments/conflict-detector-corpus-design-"
+                   "ADDENDUM-3.md"],
+        "banks_v4_frozen": {"banks_commit":
+                            prep4["banks_v4"]["banks_commit"],
+                            "file_sha256": b4_sha,
+                            "content_sha256": b4_content},
+        "carriers_c1_frozen": {"banks_commit":
+                               prep4["carriers_c1"]["banks_commit"],
+                               "file_sha256": c1_sha,
+                               "content_sha256": c1_content},
+        "pin_sha256": lib.sha(PIN_V4_PATH.read_text(encoding="utf-8")),
+        "seeds": {"hold": SEED_HOLD_V4},
+        "seed_family_check": pin["seed_family_check"],
+        "strata_v4": {s: {"classic_v2": CLASS_TOTALS_V2[s],
+                          "carriers_c1": len(c1_by_stratum.get(s, []))
+                          if s in UNCOVERED_STRATA else 0,
+                          "train_v4_total": CLASS_TOTALS_V2[s]
+                          + (len(c1_by_stratum.get(s, []))
+                             if s in UNCOVERED_STRATA else 0),
+                          "seal": cnt[s]}
+                      for s in ORDER},
+        "carriers_c1": pin["carriers_c1"],
+        "transfer_split": pin["transfer_split"],
+        "g10_census": {s: g10[s] for s in list(ORDER) + ["N1", "N2", "N3"]},
+        "asserts": A,
+        "bands_seal": pin["bands_seal"],
+        "lineage": lineage,
+        "para_dict_sha256": lib.PARA_DICT_SHA,
+        "known_uncovered": {"cos_below": floor4,
+                            "note": "measured floor over the emitted v4 "
+                                    "seal"},
+        "disjointness": {"rule": "sha(text_a/b) only (F6)",
+                         "culled": culled,
+                         "cull_by_src": dict(cull_by_src),
+                         "sha_set_sizes": {k: len(v) for k, v
+                                           in sources.items()},
+                         "sealed_files_opened": 0},
+        "cut_depth": depth_report,
+        "emitted": ["train.jsonl (600 classic verbatim + "
+                    f"{total_carriers} C1 carriers)",
+                    "holdout.jsonl (180 pairs, sealed)",
+                    f"holdout-pool.jsonl ({len(pool_rows)} rows, wide "
+                    "generation provenance)", "pin-v4.json",
+                    "seals/CD-holdout-v4.seal.json"],
+        "absent_by_construction": ["sheet/* (cycle-2 sheet lane is separate)"],
+        "regime": "synthetic-only; no store texts; no LLM in construction; "
+                  "labels by construction",
+        "fingerprints": {"train.jsonl": fp_train,
+                         "holdout.jsonl": fp_hold,
+                         "holdout-pool.jsonl": fp_pool, "seal": fp_seal},
+    }
+    (CORPUS_DIR_V4 / "build-manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+    train_fp_end = file_sha256(CORPUS_DIR_V2 / "train.jsonl")
+    untouched = train_fp_end == train_fp_start \
+        == man2["fingerprints"]["train.jsonl"]
+    n_pass = sum(1 for v in A.values() if v["ok"])
+    log4("seal_v4", seal="CD-holdout-v4", n=len(seal_sc), sha=fp_seal,
+         holdout_sha=fp_hold, pool_sha=fp_pool,
+         train_v4_sha=fp_train, train_carriers=total_carriers,
+         lineage_ancestor="CD-holdout-v3 (red-gate-DECLINE)",
+         holdout_content_reads=0)
+    log4_md("seal_v4", seal="CD-holdout-v4", n=len(seal_sc), sha=fp_seal,
+            holdout_sha=fp_hold, train_sha=fp_train,
+            seal_n=len(seal_sc),
+            asserts=f"{n_pass}/{len(A)} PASS", holdout_content_reads=0)
+    log4("build4_done", ok=True, train_v2_untouched=bool(untouched),
+         classic_prefix_ok=bool(prefix_ok),
+         elapsed_s=round(time.time() - t0, 1),
+         asserts=f"{n_pass}/{len(A)} PASS")
+    log4_md("build4_done", ok=True, train_v2_untouched=bool(untouched),
+            elapsed_s=round(time.time() - t0, 1),
+            asserts=f"{n_pass}/{len(A)} PASS")
+    print(f"train-v2 byte-identity after run: {'OK' if untouched else 'RED'} "
+          f"({train_fp_end[:16]}); train-v4 classic prefix byte-identical: "
+          f"{'OK' if prefix_ok else 'RED'}")
+    print(f"\nBUILD4: ALL ASSERTS PASS in {time.time()-t0:.0f}s\n"
+          f"pin: {PIN_V4_PATH}\nseal: {SEAL_V4_PATH}\n"
+          f"corpus: {CORPUS_DIR_V4} (train-v4 + holdout + pool)")
+    return 0
 
 
 if __name__ == "__main__":
