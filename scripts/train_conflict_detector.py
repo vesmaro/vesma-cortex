@@ -48,6 +48,7 @@ import random
 import re
 import subprocess
 import sys
+import traceback
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -453,6 +454,91 @@ def runlog_events(event_names: tuple[str, ...], slice_name: str | None = None) -
     return out
 
 
+# --- D1/F5 cosine hardening (ADDENDUM-5 §4.2 F5; runner leg ONLY — the
+# --- frozen pair.py / _validate_similarity contract is NOT touched) -----------
+
+
+#: float32 machine epsilon. The pinned provider normalizes inside its ONNX
+#: graph in float32, so embedded vectors carry norm = 1 ± eps32 (measured
+#: ~2.2e-7 on the fixtures) — the primary cause of the incident's escaped
+#: scalar 1.0000001105987988 (ADDENDUM-5 §4.1, ML-а / F11).
+EPS32 = float(np.finfo(np.float32).eps)
+
+
+def cos_clamp_tolerance(n_dims: int) -> float:
+    """ADDENDUM-5 F5 fail-closed band: 1 + max(1e-3, 64*n_dims*eps32).
+
+    Overshoots inside the band are clamped to [-1, 1] WITH a visible
+    cos_clamp event; beyond the band — or any NaN — they are an instrument
+    anomaly -> InstrumentAbort. Clamp never silently masks an anomaly."""
+    return max(1e-3, 64 * n_dims * EPS32)
+
+
+#: Per-run clamp ledger (one process = one run). Every clamp is recorded
+#: here AND logged as an immediate cos_clamp event; green paths assert the
+#: ledger stayed empty (assert_cos_clamp_green).
+COS_CLAMP_LEDGER: dict = {"count": 0, "max_overshoot": 0.0, "sites": []}
+
+
+def cos_clamp_guard(cos: float, *, n_dims: int, site: str) -> float:
+    """Fail-closed similarity guard — the LAST stop before any frozen API.
+
+    Applied at EVERY runner similarity call-site: all of them funnel
+    through NanoLeg.pair_cos, so the guard sits ahead of the frozen
+    cortex.features.pair contract (whose _validate_similarity is strict,
+    no epsilon — deliberately unchanged per ADDENDUM-5 §3.3).
+
+    NaN or |cos| > 1 + max(1e-3, 64*n_dims*eps32)  -> InstrumentAbort;
+    smaller overshoot -> clamp to [-1, 1] + visible cos_clamp event."""
+    tol = cos_clamp_tolerance(n_dims)
+    if np.isnan(cos):
+        raise InstrumentAbort(
+            f"NaN cosine at {site} — instrument anomaly, NOT clamped "
+            "(ADDENDUM-5 F5)"
+        )
+    overshoot = abs(cos) - 1.0
+    if overshoot > tol:
+        raise InstrumentAbort(
+            f"|cos|={abs(cos):.12f} at {site} exceeds the fail-closed band "
+            f"1 + {tol:.6f} — instrument anomaly, NOT clamped (ADDENDUM-5 F5)"
+        )
+    if overshoot > 0.0:
+        COS_CLAMP_LEDGER["count"] += 1
+        COS_CLAMP_LEDGER["max_overshoot"] = max(
+            COS_CLAMP_LEDGER["max_overshoot"], overshoot
+        )
+        COS_CLAMP_LEDGER["sites"].append(site)
+        log(
+            "cos_clamp",
+            count=COS_CLAMP_LEDGER["count"],
+            max_overshoot=COS_CLAMP_LEDGER["max_overshoot"],
+            overshoot=overshoot,
+            site=site,
+            band=tol,
+            kind="clamp",
+            note="visible clamp event — never a silent tolerance (F5/NA-б)",
+        )
+        return 1.0 if cos > 0.0 else -1.0
+    return cos
+
+
+def assert_cos_clamp_green(where: str) -> None:
+    """ADDENDUM-5 F5 (NA-б): green-path assert — clamp fired 0 times.
+
+    On pre-sealed green legs (sanity suite §6.3, standalone or inside the
+    gate) a clamp is NOT absorbed silently: the ledger makes it visible and
+    this assert makes it fatal — an overshoot there is an instrument
+    anomaly to investigate, never a tolerance."""
+    if COS_CLAMP_LEDGER["count"] > 0:
+        raise InstrumentAbort(
+            f"green-path clamp assert RED at {where}: cos clamp fired "
+            f"{COS_CLAMP_LEDGER['count']} time(s), max overshoot "
+            f"{COS_CLAMP_LEDGER['max_overshoot']:.3e} at "
+            f"{COS_CLAMP_LEDGER['sites'][:10]} — expected 0 clamps "
+            "(ADDENDUM-5 F5)"
+        )
+
+
 # --- embedder leg (A-frozen: wrong provider refuses loudly) -------------------
 
 
@@ -460,10 +546,12 @@ class NanoLeg:
     """Pinned nano embedder over the FROZEN surface convention.
 
     Surface: ``lib.embed_text`` (n1(title)\n+n1(body)\n+n1(space-joined
-    tags)) truncated to [:4096]; cosine = dot product of the normalized
-    384-dim vectors — the SAME computation as the corpus build's ``Cos``
-    (the trainer imports the frozen lib functions instead of re-deriving).
-    A pin mismatch is a loud instrument abort.
+    tags)) truncated to [:4096]; cosine over the 384-dim vectors with the
+    ADDENDUM-5 D1/F5 hardening: the provider normalizes in float32 (norm
+    = 1 ± eps32), so both vectors are UPCAST to float64 and the cosine is
+    computed as dot/(|a|*|b|) in float64 — root-cause hygiene — then the
+    fail-closed guard (see cos_clamp_guard). A pin mismatch is a loud
+    instrument abort.
     """
 
     def __init__(self) -> None:
@@ -486,10 +574,26 @@ class NanoLeg:
             self.n += 1
         return self.cache[t]
 
-    def pair_cos(self, side_a, side_b) -> float:
+    def pair_cos(self, side_a, side_b, *, site: str = "pair_cos") -> float:
+        """Cosine with the ADDENDUM-5 D1/F5 runner-leg hardening.
+
+        Primary-cause hygiene (F5): upcast to float64 BEFORE
+        normalize/dot — the raw float32-normalized dot could land at
+        1 + 1.1e-7 (the incident's escaped scalar); the float64
+        dot/(|a|*|b|) form leaves residual overshoot at float64 rounding
+        scale (~1e-16, measured below 1 on self-pairs). The result passes
+        the fail-closed guard before any frozen API sees it."""
         a = np.asarray(self.vec(lib.embed_text(side_a)), dtype=np.float64)
         b = np.asarray(self.vec(lib.embed_text(side_b)), dtype=np.float64)
-        return float(np.dot(a, b))
+        na = float(np.linalg.norm(a))
+        nb = float(np.linalg.norm(b))
+        if not (np.isfinite(na) and np.isfinite(nb)) or na <= 0.0 or nb <= 0.0:
+            raise InstrumentAbort(
+                f"zero/NaN vector norm in the runner cosine leg ({site}) — "
+                "instrument anomaly, fail-closed"
+            )
+        cos = float(np.dot(a, b) / (na * nb))
+        return cos_clamp_guard(cos, n_dims=int(a.shape[0]), site=site)
 
 
 # --- prologue (ML-STD-0003 П1-П6, П9) -----------------------------------------
@@ -1484,7 +1588,9 @@ def floor_draw_rows(seed: int, nano: NanoLeg) -> list[dict]:
             f"{FLOOR_DRAW_PAIRS}"
         )
     for sc in picked:
-        sc._cos = round(nano.pair_cos(sc.side_a, sc.side_b), 4)
+        sc._cos = round(
+            nano.pair_cos(sc.side_a, sc.side_b, site=f"floor_draw:seed{seed}"), 4
+        )
         sc._band = cb.band_of(sc._cos)
     rows = []
     for sc in picked:
@@ -2118,7 +2224,7 @@ def sc_row(fx: dict, key: str, orientation: str = "a>b") -> dict:
     """A fixture pair as a row dict (cb.side_dict + measured by NanoLeg)."""
     sc = fx[key]
     nano = fx["_nano"]
-    cos = round(nano.pair_cos(sc.side_a, sc.side_b), 4)
+    cos = round(nano.pair_cos(sc.side_a, sc.side_b, site=f"fixture:{key}"), 4)
     return {
         "pair_id": sc.scenario_id,
         "stratum": sc.stratum,
@@ -2505,6 +2611,9 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
             "sanity suite RED (§6.3) — sealed surfaces stay sealed; "
             "STOP + report (abort class 'instrument')"
         )
+    # ADDENDUM-5 F5 (NA-б): the green path asserts the clamp ledger stayed
+    # EMPTY — a clamp here is a visible anomaly, never a silent tolerance.
+    assert_cos_clamp_green("sanity suite §6.3 (pre-sealed green leg)")
     return results
 
 
@@ -2879,7 +2988,7 @@ def _eval_gates_on_holdout(
     nano = NanoLeg()
 
     def cos_measure(rec_a, rec_b) -> float:
-        return nano.pair_cos(rec_a, rec_b)
+        return nano.pair_cos(rec_a, rec_b, site="cos_measure")
 
     # razor-collision exclusions (note 2): strata CD-1/CD-2 (razor positives)
     # vs NC-2/NC-3 (razor negatives) INSIDE the razor band [0.95, 1.0] —
@@ -2970,7 +3079,7 @@ def _eval_gates_on_holdout(
         rec_a, rec_b = row_records(r)
         base = decide_pipeline(rec_a, rec_b, float(r["measured"]["cos_target"]), booster)
         verdicts = [base["verdict"]]
-        cos = nano.pair_cos(rec_a, rec_b)
+        cos = nano.pair_cos(rec_a, rec_b, site="g_stab:base")
         for step in ("cosmetic", "para1", "para2"):
             pert = row_with_body(
                 r, "envelope_b",
@@ -2980,7 +3089,7 @@ def _eval_gates_on_holdout(
                               "ru", rng),
             )
             prec_a, prec_b = row_records(pert)
-            c = nano.pair_cos(prec_a, prec_b)
+            c = nano.pair_cos(prec_a, prec_b, site=f"g_stab:{step}")
             d = decide_pipeline(prec_a, prec_b, c, booster)
             verdicts.append(d["verdict"])
         total += 1
