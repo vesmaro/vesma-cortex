@@ -423,6 +423,60 @@ def _disk_sha_text(embed_text_str: str) -> str:
     return lib.sha(embed_text_str)
 
 
+def _shared_namespace_rekey(orbits: list, rungs: list,
+                            bases_fresh: list) -> dict:
+    """build4.1 (ADDENDUM-7 §6, TL verdict @ d61f2de): ONE shared tr4-C1
+    namespace across BOTH id lanes of this module.
+
+    The two emission lanes (fresh_cd5_bases and enumerate_orbits) each held
+    a private ctr=[0] under the SAME prefix tr4-C1: their number spaces
+    overlapped and 4 emitted pair_ids carried rows of TWO different pairs
+    (trainer P5: duplicate (pair_id, orientation)). This pass enforces
+    global uniqueness without any content delta:
+
+    - fresh-base-lane ids are IMMUTABLE — a fresh rung's rng stream is
+      keyed by its base scenario_id ("<seed>:C1:CD5F:<base_id>:…"), so
+      re-keying a base would change rung CONTENT (§6 forbids any content
+      delta; the re-emission must be content-identical);
+    - collisions are therefore resolved on the RUNG lane (classic + fresh
+      rungs are content-keyed by their train-v2 BASE id, never by their
+      own id): a colliding rung is re-keyed to the next free number beyond
+      the namespace max, in enumeration order (deterministic, idempotent).
+
+    Fail-closed: the rung lane's own counter must be duplicate-free, and
+    the post-state must be globally unique over bases + rungs."""
+    base_ids = [b.scenario_id for b in bases_fresh]
+    seen: dict[str, int] = {}
+    for sc in rungs:
+        seen[sc.scenario_id] = seen.get(sc.scenario_id, 0) + 1
+    intra = sorted(i for i, n in seen.items() if n > 1)
+    if intra:
+        raise AssertionError(
+            f"rung-lane counter duplicated its own ids: {intra[:4]}")
+    cross = sorted(set(base_ids).intersection(seen))
+    if not cross:
+        return {"renamed": {}, "collisions": 0, "scheme": "tr4-C1-shared"}
+    nxt = max(int(i.rsplit("-", 1)[1])
+              for i in set(base_ids) | set(seen)) + 1
+    renamed: dict[str, str] = {}
+    for o in orbits:
+        for rg in o.rungs:
+            old = rg.scenario_id
+            if old in cross:
+                new = f"tr4-C1-{nxt:05d}"
+                nxt += 1
+                rg.scenario_id = new
+                renamed[old] = new
+    ids = base_ids + [sc.scenario_id for sc in rungs]
+    if len(ids) != len(set(ids)):
+        raise AssertionError(
+            "shared tr4-C1 namespace still colliding after rekey")
+    return {"renamed": renamed, "collisions": len(renamed),
+            "scheme": "tr4-C1-shared: lane-1 (fresh base) ids immutable "
+                      "(rng contract), lane-2 colliding rung ids rekeyed "
+                      "beyond namespace max"}
+
+
 def enumerate_orbits(seed: int) -> dict:
     """The deterministic C1 candidate set (census input; NOTHING emitted).
 
@@ -432,9 +486,11 @@ def enumerate_orbits(seed: int) -> dict:
     (the dial raises ValueError). NC-4 uses the symmetric builder. Fresh
     CD-5 orbits emit base (rung "base") + para1.
 
-    Returns {"orbits": [Orbit...], "rungs": flat list, "bases_fresh": [...]}.
-    Razor-retention / F10 / channel checks are the CENSUS's job (they need
-    the embedder and the sealed-generation sha sets)."""
+    Returns {"orbits": [Orbit...], "rungs": flat list, "bases_fresh": [...],
+    "id_rekey": build4.1 shared-namespace report}. Ids live in ONE shared
+    tr4-C1 namespace (build4.1, ADDENDUM-7 §6). Razor-retention / F10 /
+    channel checks are the CENSUS's job (they need the embedder and the
+    sealed-generation sha sets)."""
     bases = load_razor_bases()
     orbits: list[Orbit] = []
     rungs: list[lib.Scenario] = []
@@ -501,5 +557,10 @@ def enumerate_orbits(seed: int) -> dict:
         orbits.append(Orbit(stratum="CD-5", base=fb, rungs=fr, kind="fresh"))
         rungs.extend(fr)
 
+    rekey = _shared_namespace_rekey(orbits, rungs,
+                                    [o.base for o in orbits
+                                     if o.kind == "fresh"])
+
     return {"orbits": orbits, "rungs": rungs,
-            "bases_fresh": [o.base for o in orbits if o.kind == "fresh"]}
+            "bases_fresh": [o.base for o in orbits if o.kind == "fresh"],
+            "id_rekey": rekey}

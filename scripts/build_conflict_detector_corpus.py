@@ -5046,6 +5046,20 @@ def cmd_build4() -> int:
                  "semantics (embed-text convention excludes those "
                  "fields) — disclosed; 0 mixed-null; E7 side balance "
                  "over both-side-fit rungs"})
+    # build4.1 (ADDENDUM-7 §6): GLOBAL pair_id uniqueness — the gap the
+    # trainer's P5 caught. pair_id must be unique OUTSIDE orientations
+    # (one pair per id over the whole carrier block, fresh bases and
+    # rungs in one shared tr4-C1 namespace); (pair_id, orientation)
+    # uniqueness is structural in _carrier_rows4 (exactly 2 rows: a>b,
+    # b>a) and is re-asserted on the disk artifact by the build4.1 lane.
+    c1_ids = Counter(c["sc"].scenario_id for c in carriers)
+    id_dups = sorted(i for i, n in c1_ids.items() if n > 1)
+    rec("T-id-unique", not id_dups,
+        {"dups": id_dups[:6], "distinct_pair_ids": len(c1_ids),
+         "note": "build4.1 (ADDENDUM-7 §6): GLOBAL pair_id uniqueness "
+                 "over the carrier block (fresh bases + rungs, ONE shared "
+                 "tr4-C1 namespace) — pair_id unique outside orientations; "
+                 "the classic train-v2 prefix is disjoint by id prefix"})
 
     all_ok = all(v["ok"] for v in A.values())
     if not all_ok:

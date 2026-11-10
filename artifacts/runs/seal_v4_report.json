@@ -23,7 +23,7 @@
     "file_sha256": "b197ed715843861bb7c680fb77c90ab597137f7c2c627356694a40ffabffee11",
     "content_sha256": "7436ae7f665c8602383d652ca6b2717034c989e4ff7b1a83bbb2da0f05470cd5"
   },
-  "pin_sha256": "e8fb9f04df95e84f3c7073b002c4815eda4a96797231e3ef5b5973207782d44f",
+  "pin_sha256": "32c671687b1bd1346086a54a0769558d1aff478c49fd7e8e507e5fc3a7f1ca6d",
   "seeds": {
     "hold": 7047
   },
@@ -889,9 +889,34 @@
   ],
   "regime": "synthetic-only; no store texts; no LLM in construction; labels by construction",
   "fingerprints": {
-    "train.jsonl": "7645ae4601f25b8bd0cfc30dcd95ef0a6646b6f98adfd66029cee83563e794bf",
+    "train.jsonl": "e5c57138af47f35889d315b15c5ee64031e848e1d419e53e742e43a2e130cd4c",
     "holdout.jsonl": "c293643f5169217cf9a3321c72f98f0924e710e7c5a2092502bc298eddc8be08",
     "holdout-pool.jsonl": "a8f2ba07fc945ab0999a5556516a423c466556ca5f5af390fc05b5411ddbd076",
     "seal": "76c12ad1947aaf7856541cd72745adbc8a0e77536527e67120d64382b7ce986f"
+  },
+  "correction_build4_1": {
+    "verdict": "ADDENDUM-7 §6 (build4.1, TL verdict @ d61f2de)",
+    "old_train_sha256": "7645ae4601f25b8bd0cfc30dcd95ef0a6646b6f98adfd66029cee83563e794bf",
+    "new_train_sha256": "e5c57138af47f35889d315b15c5ee64031e848e1d419e53e742e43a2e130cd4c",
+    "id_scheme": "ONE shared tr4-C1 namespace: lane-1 (fresh base) ids immutable (fresh rung rng keyed by base id), lane-2 colliding rung ids rekeyed beyond namespace max ['tr4-C1-00009', 'tr4-C1-00010', 'tr4-C1-00011', 'tr4-C1-00012', 'tr4-C1-00013', 'tr4-C1-00014', 'tr4-C1-00015', 'tr4-C1-00016']",
+    "content_identity_check": "PASS (0 discrepancies)",
+    "changed_pair_ids": {
+      "tr4-C1-00009": "tr4-C1-00394",
+      "tr4-C1-00010": "tr4-C1-00395",
+      "tr4-C1-00011": "tr4-C1-00396",
+      "tr4-C1-00012": "tr4-C1-00397",
+      "tr4-C1-00013": "tr4-C1-00398",
+      "tr4-C1-00014": "tr4-C1-00399",
+      "tr4-C1-00015": "tr4-C1-00400",
+      "tr4-C1-00016": "tr4-C1-00401"
+    },
+    "asserts_build41": {
+      "T-carrier-silver": true,
+      "T-labels+invariance": true,
+      "T-cosmetic-proof": true,
+      "T-carrier-disjoint": true,
+      "T-carrier-shape": true,
+      "T-id-unique": true
+    }
   }
 }
