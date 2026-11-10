@@ -2814,6 +2814,54 @@ def cmd_oof_carriers(args: argparse.Namespace) -> int:
 
 SEALED_EVENTS = ("sealed_read_once", "gate_done")
 
+#: ADDENDUM-5 D2/F4: seal state of the CURRENT process. ``opened`` flips
+#: True the moment the sealed file is opened for reading (after the pin
+#: checks pass) — from that point the seal is treated BURNED on ANY crash
+#: (ML-STD-0003 amend: post-read instrument-crash => burned; re-admission
+#: forbidden regardless of any audit outcome).
+_SEAL_STATE: dict = {"opened": False}
+
+
+def _fail_closed_post_read(phase: str, exc: BaseException) -> int:
+    """ADDENDUM-5 D2/F4: fail-closed post-read abort — exit 4.
+
+    ANY crash after the sealed read becomes a VISIBLE instrument_abort
+    event — never a silently absent gate_done. The exception MESSAGE is
+    suppressed on purpose: the incident's escaped scalar traveled inside
+    an exception message (traceback -> stdout -> lane context), so only
+    the exception TYPE and a traceback POINTER (file:line, function) are
+    published. The seal is reported burned (it was read)."""
+    frames = traceback.extract_tb(exc.__traceback__)
+    pointer = (
+        f"{frames[-1].filename}:{frames[-1].lineno} in {frames[-1].name}"
+        if frames
+        else "traceback unavailable"
+    )
+    log(
+        "instrument_abort",
+        reason=f"{type(exc).__name__} in post-read phase '{phase}' "
+        "(message suppressed: leakage guard F4/ML-а)",
+        phase=phase,
+        abort_class="instrument",
+        post_read=True,
+        seal_burned=bool(_SEAL_STATE["opened"]),
+        seal_name=SEAL_NAME,
+        tb_pointer=pointer,
+        cos_clamp_count=COS_CLAMP_LEDGER["count"],
+        cos_clamp_max_overshoot=COS_CLAMP_LEDGER["max_overshoot"],
+        note="fail-closed (ADDENDUM-5 D2): crash after the sealed read is "
+        "a visible event, not an absent gate_done; the seal is treated "
+        "BURNED (ML-STD-0003 amend: re-admission forbidden regardless of "
+        "audit outcome)",
+    )
+    print(
+        f"INSTRUMENT ABORT (post-read, seal burned): {type(exc).__name__} "
+        f"in phase '{phase}' at {pointer} — message suppressed "
+        "(leakage guard F4)",
+        file=sys.stderr,
+    )
+    return 4
+
 
 def cmd_gate(args: argparse.Namespace) -> int:
     global _SLICE
@@ -2913,32 +2961,57 @@ def _gate_single_shot() -> int:
     )
 
     # ============ SEALED READ — SINGLE-SHOT ==================================
-    holdout = _read_holdout_sealed(manifest)
-    log(
-        "sealed_read_once",
-        n_pairs=holdout["n_pairs"],
-        n_rows=holdout["n_rows"],
-        sha256=holdout["sha256"],
-        note="THE single legal read of CD-holdout-v1 (dispatch §1)",
-    )
-
-    gates = _eval_gates_on_holdout(booster, manifest, floors, holdout)
-    for name, g in gates.items():
-        log("gate_result", gate=name, **g)
-    verdict = "ADOPT" if all(g["ok"] for k, g in gates.items() if not k.startswith("_")) else "DECLINE"
-    log(
-        "gate_done",
-        verdict=verdict,
-        red=[k for k, g in gates.items() if not g["ok"]],
-        wall_s=round((dt.datetime.now(dt.timezone.utc) - started).total_seconds(), 1),
-        discipline="holdout read exactly once; no re-run (П8)",
-    )
-    print(f"VERDICT: {verdict}")
-    return 0
+    # ADDENDUM-5 D2: every phase after the sealed read runs FAIL-CLOSED —
+    # any crash becomes a visible instrument_abort event (message suppressed
+    # per F4: the incident's escaped scalar traveled inside an exception
+    # message) + non-zero exit 4. Absence of gate_done is never silent again.
+    phase = "read_holdout_sealed"
+    try:
+        holdout = _read_holdout_sealed(manifest)
+        log(
+            "sealed_read_once",
+            n_pairs=holdout["n_pairs"],
+            n_rows=holdout["n_rows"],
+            sha256=holdout["sha256"],
+            note="THE single legal read of CD-holdout-v1 (dispatch §1)",
+        )
+        phase = "eval_gates_on_holdout"
+        gates = _eval_gates_on_holdout(booster, manifest, floors, holdout)
+        phase = "gate_result_events"
+        for name, g in gates.items():
+            log("gate_result", gate=name, **g)
+        phase = "verdict_gate_done"
+        verdict = (
+            "ADOPT"
+            if all(g["ok"] for k, g in gates.items() if not k.startswith("_"))
+            else "DECLINE"
+        )
+        log(
+            "gate_done",
+            verdict=verdict,
+            red=[k for k, g in gates.items() if not g["ok"]],
+            wall_s=round(
+                (dt.datetime.now(dt.timezone.utc) - started).total_seconds(), 1
+            ),
+            discipline="holdout read exactly once; no re-run (П8)",
+        )
+        phase = "verdict_print"
+        print(f"VERDICT: {verdict}")
+        return 0
+    except InstrumentAbort as exc:
+        # fail-closed runner abort AFTER the read: same visible accounting
+        return _fail_closed_post_read(phase, exc)
+    except Exception as exc:
+        # ADDENDUM-5 D2: the incident class itself — unexpected post-read crash
+        return _fail_closed_post_read(phase, exc)
+    except BaseException as exc:
+        # interrupt post-read: log honestly (seal burned), then re-raise
+        _fail_closed_post_read(phase, exc)
+        raise
 
 
 def _read_holdout_sealed(manifest: dict) -> dict:
-    """THE single legal read of CD-holdout-v1 (single-shot).
+    """THE single legal read of the resolved holdout seal (single-shot).
 
     Caller contract: full prologue green + prereg asserted + gate_start
     logged + pre-gate sanity green. The bytes are pinned against the seal
@@ -2950,6 +3023,9 @@ def _read_holdout_sealed(manifest: dict) -> dict:
             f"sealed pin mismatch: holdout sha256 {sha[:12]}… does not "
             "reproduce the seal-json/build-manifest pins — file stays sealed"
         )
+    # ADDENDUM-5 D2: from here the bytes are in-process — any later crash
+    # is a POST-READ crash and the seal is burned (fail-closed accounting).
+    _SEAL_STATE["opened"] = True
     rows = [json.loads(line) for line in open(HOLDOUT_JSONL, encoding="utf-8")]
     pairs: dict[str, list[dict]] = {}
     strata: dict[str, int] = {}
@@ -3327,15 +3403,32 @@ def main() -> int:
     try:
         return args.fn(args)
     except InstrumentAbort as exc:
+        opened = bool(_SEAL_STATE["opened"])
         log(
             "instrument_abort",
             reason=str(exc),
             abort_class="instrument",
-            sealed_surfaces_read=0,
-            note="STOP + report to TL (П6 ML-STD-0002); holdout NOT read",
+            sealed_surfaces_read=int(opened),
+            seal_burned=opened,
+            note="STOP + report to TL (П6 ML-STD-0002); "
+            + (
+                "seal WAS read — burned (ADDENDUM-5 D2/F4)"
+                if opened
+                else "holdout NOT read"
+            ),
         )
         print(f"INSTRUMENT ABORT: {exc}", file=sys.stderr)
         return 3
+    finally:
+        # ADDENDUM-5 F5: the per-run clamp ledger is published on EVERY run —
+        # count 0 is the green-path expectation (asserted on sanity legs).
+        log(
+            "cos_clamp",
+            count=COS_CLAMP_LEDGER["count"],
+            max_overshoot=COS_CLAMP_LEDGER["max_overshoot"],
+            kind="run_summary",
+            note="per-run clamp ledger (ADDENDUM-5 F5): green path = count 0",
+        )
 
 
 if __name__ == "__main__":
