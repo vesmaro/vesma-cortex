@@ -2973,7 +2973,7 @@ def _gate_single_shot() -> int:
             n_pairs=holdout["n_pairs"],
             n_rows=holdout["n_rows"],
             sha256=holdout["sha256"],
-            note="THE single legal read of CD-holdout-v1 (dispatch §1)",
+            note=f"THE single legal read of {SEAL_NAME} (dispatch §1)",
         )
         phase = "eval_gates_on_holdout"
         gates = _eval_gates_on_holdout(booster, manifest, floors, holdout)
