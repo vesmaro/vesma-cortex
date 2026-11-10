@@ -198,6 +198,28 @@ V2_FLOOR_DRAW_QUOTA = {
     "CD-1": 12, "CD-2": 6, "CD-3": 6, "CD-4": 6, "CD-5": 4, "CD-6": 6,
     "NC-1": 11, "NC-2": 16, "NC-3": 9, "NC-4": 6, "NC-5": 18,
 }
+# --- v3 rotation (ADDENDUM-5 §4 F1-F12 ratified; ADDENDUM-6 path B) ----------
+#
+# The v3 gate reads a NEW seal (CD-holdout-v3) with the SAME frozen artifact
+# (2534fcbe), floors and §6.2 thresholds (F3 legality conditions). Metadata
+# sources (no sealed surface is read here): seal json CD-holdout-v3.seal.json
+# (sha 8e90729c…, n=180), build-manifest corpus-v3 (fingerprints +
+# transfer_split), pin-v3.json (seal_fold_strata + train_v2_untouched).
+# The train corpus is the v2 train byte-for-byte (F7), so the train-side
+# tables are the v2 tables.
+
+V3_EXPECTED_TRAIN_ROW_COUNTS = dict(V2_EXPECTED_TRAIN_ROW_COUNTS)
+#: Fold counts per stratum = pin-v3 seal_fold_strata (classic + carrier
+#: folded into the host stratum; sums to 180 with the seal n metadata).
+V3_EXPECTED_HOLDOUT_PAIRS = {
+    "CD-1": 22, "CD-2": 11, "CD-3": 11, "CD-4": 10, "CD-5": 7, "CD-6": 11,
+    "NC-1": 20, "NC-2": 29, "NC-3": 16, "NC-4": 11, "NC-5": 32,
+}
+#: The train material is identical (F7), so the TRAIN-phase baseline
+#: reproduction assert keeps the v2 build values. The GATE recomputes the
+#: baselines on the holdout rows (baselines_table) — that recomputation,
+#: not this table, feeds g_ba.
+V3_EXPECTED_BASELINES = dict(V2_EXPECTED_BASELINES)
 _V1_LINEAGE = (
     "mirror of merge_arbiter_train.py per "
     "docs/experiments/conflict-detector-trainer-delta-map.md; "
@@ -254,13 +276,62 @@ INPUT_PRESETS = {
             "addendum": REPO / "docs" / "experiments"
             / "conflict-detector-corpus-design-ADDENDUM-3.md",
             "marker": "РАТИФИЦИРОВАНО (amend-then-ratify)",
-            "corpus_v2_build_commit": "2d9ce88",
+            "corpus_build_commit": "2d9ce88",
         },
         "lineage": _V1_LINEAGE
         + "; corpus v2 per "
         "docs/experiments/conflict-detector-corpus-design-ADDENDUM-3.md §8 "
         "(ratified amend-then-ratify, E1-E13); trainer input params via CLI "
         "(--corpus-dir/--pin/--seal/--artifact-dir), semantics unchanged",
+    },
+    # v3 = seal rotation (ADDENDUM-5 §4 F1-F12 ratified; ADDENDUM-6 path B):
+    # NEW seal CD-holdout-v3 against the SAME frozen artifact 2534fcbe, the
+    # same floors and the same §6.2 thresholds (F3). INPUT PLUMBING ONLY —
+    # features / guard / cut 0.5 / production circuit untouched. The gate
+    # slice carries a -v3 suffix: the v2 gate slice holds a spent
+    # sealed_read_once (instrument abort after read) and П8/prior_single_shot
+    # must stay per-slice fresh; the floors slice is NOT renamed so the
+    # floors_published events stay bound to the artifact.
+    "v3": {
+        "corpus_dir": REPO / "data" / "conflict-detector" / "corpus-v3",
+        # pool-only generation (F7): train.jsonl absent by construction —
+        # the untouched train corpus lives in corpus-v2, byte-for-byte
+        "train_jsonl": REPO / "data" / "conflict-detector" / "corpus-v2"
+        / "train.jsonl",
+        "pin": REPO / "data" / "conflict-detector" / "pin-v3.json",
+        "seal": REPO / "data" / "conflict-detector" / "seals"
+        / "CD-holdout-v3.seal.json",
+        "artifact_dir": REPO / "models" / "conflict-detector-v2",
+        "train_sha256": "a549dc0c2a32fe0ff6cc4035f95c8c9e888813e24430b67ac71f272ea06ec115",
+        "holdout_sha256": "548eae2a9655c57f482255da8f40fbf947b57ed3f589ecdbe6c6762611d05377",
+        "pin_sha256": "6a91d73c166ad08edca8f6aacad49592cf421526b1fddc5e4ccb31895e3dc5a6",
+        "seal_sha256": "8e90729cf66005f7859b6150abb73c8cdb4a2acdb6c256a056a173d14ad5bed2",
+        "expected_train_rows": V3_EXPECTED_TRAIN_ROW_COUNTS,
+        "expected_holdout_pairs": V3_EXPECTED_HOLDOUT_PAIRS,
+        "expected_baselines": V3_EXPECTED_BASELINES,
+        "floor_draw_quota": dict(V2_FLOOR_DRAW_QUOTA),  # same train (F7)
+        "floor_inv_exclude_carriers": ("N1",),  # E12 scoping rides the artifact
+        "canary_para2": {  # E8-iii selection rides the (identical) train pool
+            "seed": 2113,
+            "prefix": "tr",
+            "rotate": False,
+            "expect_count": 7,
+            "expect_verdict": "contradicts",
+        },
+        "para_sweep_words": 5,
+        "gate_slice": "conflict-detector-v2-gate-v3",  # fresh П8 (v2 burned)
+        "activation_extra": {
+            "addendum": REPO / "docs" / "experiments"
+            / "conflict-detector-corpus-design-ADDENDUM-6.md",
+            "marker": "ADDENDUM-6 РАТИФИЦИРОВАН",
+            "corpus_build_commit": "110a699",  # seal3 commit (single cut)
+        },
+        "lineage": _V1_LINEAGE
+        + "; corpus v2 per ADDENDUM-3 §8; seal rotation v3 per ADDENDUM-5 §4 "
+        "(F1-F12 ratified) + ADDENDUM-6 path B (G1-G12): same artifact "
+        "2534fcbe + floors + thresholds (F3), new seal CD-holdout-v3, fresh "
+        "single-shot slice conflict-detector-v2-gate-v3; G3 transfer split "
+        "(ho3- prefix) published per ADDENDUM-6 G3/ML-E1",
     },
 }
 
@@ -308,10 +379,18 @@ def apply_input_params(args: argparse.Namespace) -> None:
     _INPUT_PRESET = preset
 
     CORPUS_DIR = corpus_dir if corpus_dir is not None else preset["corpus_dir"]
+    #: preset override (input plumbing): a pool-only rotation corpus (v3,
+    #: F7) carries NO train.jsonl — the untouched train corpus lives in the
+    #: predecessor corpus dir and is pinned byte-for-byte by the preset and
+    #: the rotation pin (train_v2_untouched).
+    TRAIN_JSONL = (
+        Path(preset["train_jsonl"])
+        if preset.get("train_jsonl")
+        else (CORPUS_DIR / "train.jsonl")
+    )
     PIN_JSON = Path(args.pin) if args.pin else preset["pin"]
     SEAL_JSON = Path(args.seal) if args.seal else preset["seal"]
     ART_DIR = Path(args.artifact_dir) if args.artifact_dir else preset["artifact_dir"]
-    TRAIN_JSONL = CORPUS_DIR / "train.jsonl"
     BUILD_MANIFEST = CORPUS_DIR / "build-manifest.json"
     HOLDOUT_JSONL = CORPUS_DIR / "holdout.jsonl"
     FLOORS_DOC = ART_DIR / "floors.json"
@@ -347,7 +426,11 @@ def apply_input_params(args: argparse.Namespace) -> None:
     SLICE_TRAIN = f"{ART_PREFIX}-train"
     SLICE_FLOOR = f"{ART_PREFIX}-floors"
     SLICE_SANITY = f"{ART_PREFIX}-sanity"
-    SLICE_GATE = f"{ART_PREFIX}-gate"
+    #: preset override (input plumbing): a seal rotation gets a FRESH gate
+    #: slice — the burned generation's slice holds its spent sealed_read_once
+    #: and П8 must stay per-slice. Only the GATE slice is renamed; the floors
+    #: slice keeps its name so floors_published stays bound to the artifact.
+    SLICE_GATE = _INPUT_PRESET.get("gate_slice") or f"{ART_PREFIX}-gate"
     SLICE_OOF = f"{ART_PREFIX}-oof-carriers"
     _SLICE = {
         "train": SLICE_TRAIN,
@@ -696,7 +779,12 @@ def prologue(slice_name: str) -> dict:
         "guard_version": lib.GUARD_VERSION,
     }
     want = {
-        "train_jsonl_sha256": manifest["fingerprints"]["train.jsonl"],
+        # the v3 build manifest does not carry train.jsonl (the train corpus
+        # is the v2 train, F7 — pinned via the preset + pin-v3
+        # train_v2_untouched instead); where the fingerprint exists the hard
+        # bytes-vs-manifest check stays, where it is absent the preset pin
+        # IS the want (bytes vs preset stays fail-closed either way).
+        "train_jsonl_sha256": manifest["fingerprints"].get("train.jsonl", TRAIN_SHA_PIN),
         "pin_json_sha256": manifest["pin_sha256"],
         "conflict_corpus_lib_sha256": None,  # recorded, no external pin
         "build_driver_sha256": None,
@@ -717,20 +805,31 @@ def prologue(slice_name: str) -> dict:
         seal_mism.append("seal_vs_build_manifest")
     if seal["holdout_jsonl_sha256"] != HOLDOUT_SHA_PIN:
         seal_mism.append("seal_vs_dispatch_pin")
-    if TRAIN_SHA_PIN != manifest["fingerprints"]["train.jsonl"]:
+    if (
+        manifest["fingerprints"].get("train.jsonl") is not None
+        and TRAIN_SHA_PIN != manifest["fingerprints"]["train.jsonl"]
+    ):
         seal_mism.append("train_pin_vs_dispatch")
     pins["seal_n_ids"] = seal["n"]
-    # v2 preset (ADDENDUM-3 E11): the NEW v2 pins are hard — the pin-v2 file
-    # bytes and the seal FILE bytes are pinned against the preset and the v2
-    # build manifest. The v1 tripwire keeps its exact F1 shape.
-    v2_tripwire = {}
-    if _INPUT_PRESET_VERSION == "v2":
+    # presets with explicit byte pins (ADDENDUM-3 E11 for v2; ADDENDUM-5 §4
+    # rotation for v3): the pin FILE bytes and the seal FILE bytes are pinned
+    # against the preset and the build manifest. The v1 tripwire (no pin
+    # shas) keeps its exact F1 shape.
+    preset_pins = {}
+    if _INPUT_PRESET.get("pin_sha256") or _INPUT_PRESET.get("seal_sha256"):
         if pins["pin_json_sha256"] != _INPUT_PRESET["pin_sha256"]:
-            seal_mism.append("pin_v2_vs_preset_sha")
+            seal_mism.append("pin_vs_preset_sha")
         if pins["pin_json_sha256"] != manifest["pin_sha256"]:
-            seal_mism.append("pin_v2_vs_build_manifest")
+            seal_mism.append("pin_vs_build_manifest")
         if TRAIN_SHA_PIN != pins["train_jsonl_sha256"]:
             seal_mism.append("train_pin_vs_bytes")
+        # v3 rotation: the pin file records the untouched train's sha start
+        # (train_v2_untouched, F7) — bytes must reproduce it
+        train_start = pin.get("train_v2_untouched", {}).get(
+            "train.jsonl_sha256_start"
+        )
+        if train_start and not pins["train_jsonl_sha256"].startswith(train_start):
+            seal_mism.append("train_bytes_vs_pin_start")
         seal_file_sha = sha256_file(SEAL_JSON)
         if seal_file_sha != _INPUT_PRESET["seal_sha256"]:
             seal_mism.append("seal_file_vs_preset_sha")
@@ -738,8 +837,8 @@ def prologue(slice_name: str) -> dict:
             seal_mism.append("seal_file_vs_build_manifest")
         if seal["n"] != SEAL_N_META:
             seal_mism.append("seal_n_vs_preset")
-        v2_tripwire = {
-            "preset": "v2",
+        preset_pins = {
+            "preset": _INPUT_PRESET_VERSION,
             "pin_sha256_pinned": _INPUT_PRESET["pin_sha256"],
             "seal_sha256_pinned": _INPUT_PRESET["seal_sha256"],
             "seal_file_sha256": seal_file_sha,
@@ -751,7 +850,7 @@ def prologue(slice_name: str) -> dict:
         expected_hard=want,
         mismatch_hard=hard_mism,
         seal_metadata_mismatch=seal_mism,
-        v2_preset_pins=v2_tripwire,
+        preset_pins=preset_pins,
         sealed_file_opened=False,
         note="holdout.jsonl NOT hashed/opened — metadata pins only",
     )
@@ -779,21 +878,22 @@ def prologue(slice_name: str) -> dict:
             capture_output=True,
         )
         ancestry[name] = {"commit": commit, "is_ancestor": r.returncode == 0}
-    # v2 preset: the corpus-v2 ratification (ADDENDUM-3 §8, amend-then-ratify)
-    # and the corpus-v2 build commit join the activation assert.
+    # presets with activation_extra: the corpus ratification addendum (v2:
+    # ADDENDUM-3 §8 amend-then-ratify; v3: ADDENDUM-5 §4 F1-F12 + ADDENDUM-6
+    # path B) and the corpus build commit join the activation assert.
     activation_extra = {}
     ratified_effective = ratified
-    if _INPUT_PRESET_VERSION == "v2":
+    if _INPUT_PRESET.get("activation_extra"):
         extra = _INPUT_PRESET["activation_extra"]
         add_text = extra["addendum"].read_text(encoding="utf-8")
         add_ratified = extra["marker"] in add_text
         r2 = subprocess.run(
-            ["git", "merge-base", "--is-ancestor", extra["corpus_v2_build_commit"], "HEAD"],
+            ["git", "merge-base", "--is-ancestor", extra["corpus_build_commit"], "HEAD"],
             cwd=REPO,
             capture_output=True,
         )
-        ancestry["corpus-v2-build"] = {
-            "commit": extra["corpus_v2_build_commit"],
+        ancestry[f"corpus-{_INPUT_PRESET_VERSION}-build"] = {
+            "commit": extra["corpus_build_commit"],
             "is_ancestor": r2.returncode == 0,
         }
         activation_extra = {
@@ -3027,7 +3127,11 @@ def _gate_single_shot() -> int:
         log(
             "gate_done",
             verdict=verdict,
-            red=[k for k, g in gates.items() if not g["ok"]],
+            red=[
+                k
+                for k, g in gates.items()
+                if not k.startswith("_") and not g["ok"]
+            ],
             wall_s=round(
                 (dt.datetime.now(dt.timezone.utc) - started).total_seconds(), 1
             ),
@@ -3056,11 +3160,35 @@ def _read_holdout_sealed(manifest: dict) -> dict:
     json AND the build manifest BEFORE opening; a divergence is a loud
     instrument abort and the file stays unopened."""
     sha = sha256_file(HOLDOUT_JSONL)
-    if sha != HOLDOUT_SHA_PIN or sha != manifest["corpus"]["holdout_jsonl_sha256_metadata_pin"]:
+    # The read answers to the CURRENT pin set — the dispatch/preset pin and
+    # the build-manifest fingerprint (the prologue already cross-checked
+    # both against the seal json). The artifact manifest's freeze-time
+    # corpus snapshot is logged as a diagnostic only: under a seal rotation
+    # (ADDENDUM-5 §4 F1-F12 — same artifact, new seal generation) it
+    # legitimately names the predecessor holdout.
+    build_pin = json.loads(BUILD_MANIFEST.read_text(encoding="utf-8"))[
+        "fingerprints"
+    ]["holdout.jsonl"]
+    freeze_pin = manifest.get("corpus", {}).get(
+        "holdout_jsonl_sha256_metadata_pin"
+    )
+    if sha != HOLDOUT_SHA_PIN or sha != build_pin:
         raise InstrumentAbort(
             f"sealed pin mismatch: holdout sha256 {sha[:12]}… does not "
             "reproduce the seal-json/build-manifest pins — file stays sealed"
         )
+    log(
+        "seal_verified",
+        seal=SEAL_NAME,
+        sha256=sha,
+        dispatch_pin=HOLDOUT_SHA_PIN,
+        build_manifest_pin=build_pin,
+        artifact_freeze_pin=freeze_pin,
+        artifact_freeze_pin_matches=freeze_pin == sha,
+        note="bytes reproduce the CURRENT pin set (preset + build manifest); "
+        "the artifact freeze-time snapshot is diagnostic only (seal "
+        "rotation ADDENDUM-5 §4 F1-F12)",
+    )
     # ADDENDUM-5 D2: from here the bytes are in-process — any later crash
     # is a POST-READ crash and the seal is burned (fail-closed accounting).
     _SEAL_STATE["opened"] = True
@@ -3113,6 +3241,18 @@ def _eval_gates_on_holdout(
     def excluded(r: dict) -> bool:
         return r["stratum"] in RAZOR_COLLISION_STRATA and r["measured"]["cos_target"] >= 0.95
 
+    def wilson95(hits: int, n: int) -> list[float] | None:
+        """Wilson score interval, two-sided 95% (F9 reporting rule: any
+        eval cell with n < 10 is descriptive-only and carries its CI)."""
+        if n == 0:
+            return None
+        z = 1.959963984540054
+        p = hits / n
+        denom = 1.0 + z * z / n
+        centre = (p + z * z / (2 * n)) / denom
+        half = z * ((p * (1 - p) / n + z * z / (4 * n * n)) ** 0.5) / denom
+        return [round(max(0.0, centre - half), 4), round(min(1.0, centre + half), 4)]
+
     agg_rows = [r for r in rows if not excluded(r)]
     excl_n = len(rows) - len(agg_rows)
 
@@ -3149,6 +3289,44 @@ def _eval_gates_on_holdout(
     acc_base = max(bl["BL-band"], bl["BL-digit"], bl["BL-digit+guard"])
     sens = sens_hits / sens_tot if sens_tot else 0.0
     spec = spec_hits / spec_tot if spec_tot else 0.0
+
+    # G3 split (ADDENDUM-6 §5 G3/ML-E1; pin-v3 transfer_split): the report
+    # PUBLISHES g_spec_indist / g_spec_transfer beside the gates. NOT a
+    # gate — the §6.2 gates evaluate the AGGREGATE (note 1); thresholds
+    # unchanged. Transfer marking = the build's origin marking (pair id
+    # prefix ho3-), read post-read from the sealed rows. Legs inherit the
+    # razor-collision exclusion of the aggregate.
+    transfer_prefix = "ho3-"
+    g3_legs: dict[str, dict] = {}
+    for leg_name, is_transfer in (
+        ("g_spec_indist", False),
+        ("g_spec_transfer", True),
+    ):
+        leg_pairs = [
+            (r, d)
+            for r, d in zip(agg_rows, per)
+            if (r["pair_id"].startswith(transfer_prefix)) == is_transfer
+        ]
+        leg_nc = [(r, d) for r, d in leg_pairs if r["label"] != "contradicts"]
+        leg_per: dict[str, dict[str, float | int]] = {}
+        for r, d in leg_nc:
+            st = leg_per.setdefault(r["stratum"], {"rows": 0, "hits": 0})
+            st["rows"] += 1
+            st["hits"] += int(d["verdict"] == "not-contradicts")
+        for st in leg_per.values():
+            st["spec"] = (
+                round(st["hits"] / st["rows"], 4) if st["rows"] else None
+            )
+            if 0 < st["rows"] < 10:
+                st["wilson95"] = wilson95(int(st["hits"]), int(st["rows"]))
+        leg_nc_n = len(leg_nc)
+        leg_hits = sum(int(st["hits"]) for st in leg_per.values())
+        g3_legs[leg_name] = {
+            "spec": round(leg_hits / leg_nc_n, 4) if leg_nc_n else None,
+            "rows_nc": leg_nc_n,
+            "rows_total": len(leg_pairs),
+            "per_stratum": leg_per,
+        }
 
     # brier over the pipeline probabilities: guard-fired rows have no model P
     # — the pipeline verdict probability for guard rows is 0.0 (certainty of
@@ -3257,6 +3435,19 @@ def _eval_gates_on_holdout(
             "diagnostic": per_stratum,
             "note": "per-stratum table (Wilson CI characterization, "
             "design §6.2 note 2) — not a gate",
+        },
+        "_g3_split": {
+            "rule": "G3 (ADDENDUM-6 §5, pin-v3 transfer_split): new-bank "
+            "rows (pair id prefix ho3-) = transfer surface",
+            "g_spec_indist": g3_legs["g_spec_indist"],
+            "g_spec_transfer": g3_legs["g_spec_transfer"],
+            "nc1_disclosure": "NC-1 transfer-only — the in-dist leg does "
+            "not exist (G3/ML-E1)",
+            "nc4_note": "NC-4 all from the OLD bank per G7 (classic indist)",
+            "thresholds": "unchanged — aggregate gates; the split is "
+            "mandatory publication (ML-E1), interpretation in the report",
+            "ok": None,
+            "object": "publication (not a gate)",
         },
         "g_nc3_exact": {
             "ok": nc3_prop == 0,
