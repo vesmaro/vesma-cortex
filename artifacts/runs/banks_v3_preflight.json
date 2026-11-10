@@ -1,0 +1,789 @@
+{
+  "ts": "2026-11-10T01:34:30.493941+00:00",
+  "slice": "conflict-detector-corpus-v2-seal3-banks",
+  "ratification": "ADDENDUM-6 §5 G6-G9",
+  "static_guards": "PASS",
+  "declarations": [
+    {
+      "class": "NC-1",
+      "fixture": "nc1-single",
+      "checks": {
+        "mechanical_ok": true,
+        "all_regions_insert": true,
+        "slot_bijection_ok": true,
+        "region_is_version_false_truthful": true,
+        "len_channel_ok": true,
+        "version_guard_false": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "label": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-1",
+      "fixture": "nc1-pair",
+      "checks": {
+        "mechanical_ok": true,
+        "all_regions_insert": true,
+        "slot_bijection_ok": true,
+        "region_is_version_false_truthful": true,
+        "len_channel_ok": true,
+        "version_guard_false": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "label": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-1",
+      "fixture": "nc1-triple",
+      "checks": {
+        "mechanical_ok": true,
+        "all_regions_insert": true,
+        "slot_bijection_ok": true,
+        "region_is_version_false_truthful": true,
+        "len_channel_ok": true,
+        "version_guard_false": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "label": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-1",
+      "fixture": "nc1-quad",
+      "checks": {
+        "mechanical_ok": true,
+        "all_regions_insert": true,
+        "slot_bijection_ok": true,
+        "region_is_version_false_truthful": true,
+        "len_channel_ok": true,
+        "version_guard_false": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "label": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-1",
+      "fixture": "nc1-quint",
+      "checks": {
+        "mechanical_ok": true,
+        "all_regions_insert": true,
+        "slot_bijection_ok": true,
+        "region_is_version_false_truthful": true,
+        "len_channel_ok": true,
+        "version_guard_false": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "label": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-1",
+      "fixture": "nc1-long",
+      "checks": {
+        "mechanical_ok": true,
+        "all_regions_insert": true,
+        "slot_bijection_ok": true,
+        "region_is_version_false_truthful": true,
+        "len_channel_ok": true,
+        "version_guard_false": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "label": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-3",
+      "fixture": "nc3-fam0-fl0",
+      "checks": {
+        "mechanical_ok": true,
+        "regions_all_version": true,
+        "slot_is_version_truthful": true,
+        "slot_bijection_ok": true,
+        "len_channel_ok": true,
+        "version_guard_true": true,
+        "label": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-3",
+      "fixture": "nc3-fam0-long",
+      "checks": {
+        "mechanical_ok": true,
+        "regions_all_version": true,
+        "slot_is_version_truthful": true,
+        "slot_bijection_ok": true,
+        "len_channel_ok": true,
+        "version_guard_true": true,
+        "label": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-3",
+      "fixture": "nc3-fam1-fl1",
+      "checks": {
+        "mechanical_ok": true,
+        "regions_all_version": true,
+        "slot_is_version_truthful": true,
+        "slot_bijection_ok": true,
+        "len_channel_ok": true,
+        "version_guard_true": true,
+        "label": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-3",
+      "fixture": "nc3-fam1-long",
+      "checks": {
+        "mechanical_ok": true,
+        "regions_all_version": true,
+        "slot_is_version_truthful": true,
+        "slot_bijection_ok": true,
+        "len_channel_ok": true,
+        "version_guard_true": true,
+        "label": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-4",
+      "fixture": "nc4-tags-fl1",
+      "checks": {
+        "mechanical_ok": true,
+        "identity_body": true,
+        "envelope_delta_present": true,
+        "len_channel_ok": true,
+        "version_guard_false": true,
+        "fallback_role": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-4",
+      "fixture": "nc4-lang-long",
+      "checks": {
+        "mechanical_ok": true,
+        "identity_body": true,
+        "envelope_delta_present": true,
+        "len_channel_ok": true,
+        "version_guard_false": true,
+        "fallback_role": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-4",
+      "fixture": "nc4-type-fl1",
+      "checks": {
+        "mechanical_ok": true,
+        "identity_body": true,
+        "envelope_delta_present": true,
+        "len_channel_ok": true,
+        "version_guard_false": true,
+        "fallback_role": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "garden:same",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "same_language": true,
+        "cross_domain": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "garden:cross",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "languages_differ": true,
+        "b_short_envelope": true,
+        "en_body_is_first_en_sentence": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "garden:long",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "shared_boilerplate_tail": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "garden:cross-rev",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "languages_differ": true,
+        "b_short_envelope": true,
+        "en_body_is_first_en_sentence": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "tools:same",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "same_language": true,
+        "cross_domain": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "tools:cross",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "languages_differ": true,
+        "b_short_envelope": true,
+        "en_body_is_first_en_sentence": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "tools:long",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "shared_boilerplate_tail": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "tools:cross-rev",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "languages_differ": true,
+        "b_short_envelope": true,
+        "en_body_is_first_en_sentence": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "photos:same",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "same_language": true,
+        "cross_domain": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "photos:cross",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "languages_differ": true,
+        "b_short_envelope": true,
+        "en_body_is_first_en_sentence": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "photos:long",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "shared_boilerplate_tail": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "photos:cross-rev",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "languages_differ": true,
+        "b_short_envelope": true,
+        "en_body_is_first_en_sentence": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "tea:same",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "same_language": true,
+        "cross_domain": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "tea:cross",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "languages_differ": true,
+        "b_short_envelope": true,
+        "en_body_is_first_en_sentence": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "tea:long",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "shared_boilerplate_tail": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "tea:cross-rev",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "languages_differ": true,
+        "b_short_envelope": true,
+        "en_body_is_first_en_sentence": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "bikes:same",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "same_language": true,
+        "cross_domain": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "bikes:cross",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "languages_differ": true,
+        "b_short_envelope": true,
+        "en_body_is_first_en_sentence": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "bikes:long",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "shared_boilerplate_tail": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "bikes:cross-rev",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "languages_differ": true,
+        "b_short_envelope": true,
+        "en_body_is_first_en_sentence": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "boardgames:same",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "same_language": true,
+        "cross_domain": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "boardgames:cross",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "languages_differ": true,
+        "b_short_envelope": true,
+        "en_body_is_first_en_sentence": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "boardgames:long",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "shared_boilerplate_tail": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "NC-5",
+      "fixture": "boardgames:cross-rev",
+      "checks": {
+        "mechanical_ok": true,
+        "subjects_differ": true,
+        "slots_empty_truthful": true,
+        "len_channel_ok": true,
+        "benign_pair_absent": true,
+        "n3_ok_absent": true,
+        "languages_differ": true,
+        "b_short_envelope": true,
+        "en_body_is_first_en_sentence": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "CONTROL",
+      "fixture": "ctl-N1-classic",
+      "checks": {
+        "mechanical_ok": true,
+        "benign_pair": true,
+        "n3_ok": true
+      },
+      "ok": true,
+      "fail": ""
+    },
+    {
+      "class": "CONTROL",
+      "fixture": "ctl-N3-classic",
+      "checks": {
+        "mechanical_ok": true,
+        "benign_pair": true,
+        "n3_ok": true
+      },
+      "ok": true,
+      "fail": ""
+    }
+  ],
+  "bank_checks": {},
+  "envelope": {
+    "old_bank_reference": {
+      "cross_cell": {
+        "n": 306,
+        "min": 0.3504,
+        "p10": 0.5779,
+        "p50": 0.659,
+        "p90": 0.7324,
+        "max": 0.8024,
+        "mean": 0.6563
+      },
+      "phrase_pair": {
+        "n": 72,
+        "min": 0.4724,
+        "p10": 0.6649,
+        "p50": 0.7388,
+        "p90": 0.8215,
+        "max": 0.8697,
+        "mean": 0.735
+      }
+    },
+    "declared_bounds": {
+      "cell": [
+        0.486,
+        0.8024
+      ],
+      "phrase": [
+        0.4424,
+        0.8697
+      ],
+      "base_translation_pair": 0.7632
+    },
+    "new_cross_cells": {
+      "n": 138,
+      "stats": {
+        "n": 138,
+        "min": 0.4889,
+        "p10": 0.5408,
+        "p50": 0.6256,
+        "p90": 0.689,
+        "max": 0.7471,
+        "mean": 0.6218
+      },
+      "out_of_band": {}
+    },
+    "same_subject_phrase_pairs": {
+      "garden": {
+        "ru0-en0": 0.6161,
+        "ru0-en1": 0.5966,
+        "ru1-en0": 0.6552,
+        "ru1-en1": 0.6399
+      },
+      "tools": {
+        "ru0-en0": 0.6508,
+        "ru0-en1": 0.704,
+        "ru1-en0": 0.7491,
+        "ru1-en1": 0.6782
+      },
+      "photos": {
+        "ru0-en0": 0.6974,
+        "ru0-en1": 0.6802,
+        "ru1-en0": 0.6372,
+        "ru1-en1": 0.6419
+      },
+      "tea": {
+        "ru0-en0": 0.5874,
+        "ru0-en1": 0.5905,
+        "ru1-en0": 0.6999,
+        "ru1-en1": 0.6603
+      },
+      "bikes": {
+        "ru0-en0": 0.7473,
+        "ru0-en1": 0.661,
+        "ru1-en0": 0.7457,
+        "ru1-en1": 0.6547
+      },
+      "boardgames": {
+        "ru0-en0": 0.6998,
+        "ru0-en1": 0.7149,
+        "ru1-en0": 0.6534,
+        "ru1-en1": 0.7178
+      }
+    }
+  },
+  "attrition": {
+    "NC-1": {
+      "pool": 336,
+      "mech_fail": 0,
+      "len_fail": 0,
+      "post_preflight": 336,
+      "channels": {
+        "long": 0.071,
+        "medium": 0.393,
+        "short": 0.536
+      },
+      "scaffolds": 180,
+      "max_scaffold_share": 0.006,
+      "anti_collapse_ok": true
+    },
+    "NC-3": {
+      "pool": 72,
+      "mech_fail": 0,
+      "len_fail": 0,
+      "post_preflight": 72,
+      "channels": {
+        "long": 0.333,
+        "medium": 0.333,
+        "short": 0.333
+      },
+      "scaffolds": 48,
+      "max_scaffold_share": 0.0278,
+      "anti_collapse_ok": true
+    },
+    "NC-4": {
+      "pool": 36,
+      "mech_fail": 0,
+      "len_fail": 0,
+      "post_preflight": 36,
+      "channels": {
+        "long": 0.5,
+        "medium": 0.5
+      },
+      "scaffolds": 36,
+      "max_scaffold_share": 0.0278,
+      "anti_collapse_ok": true
+    },
+    "NC-5": {
+      "pool": 534,
+      "mech_fail": 0,
+      "len_fail": 0,
+      "post_preflight": 534,
+      "channels": {
+        "long": 0.27,
+        "short": 0.73
+      },
+      "scaffolds": 246,
+      "max_scaffold_share": 0.0056,
+      "anti_collapse_ok": true
+    }
+  },
+  "anti_collapse": {
+    "NC-1": {
+      "scaffolds": 180,
+      "max_share": 0.006,
+      "ok": true
+    },
+    "NC-3": {
+      "scaffolds": 48,
+      "max_share": 0.0278,
+      "ok": true
+    },
+    "NC-4": {
+      "scaffolds": 36,
+      "max_share": 0.0278,
+      "ok": true
+    },
+    "NC-5": {
+      "scaffolds": 246,
+      "max_share": 0.0056,
+      "ok": true
+    }
+  },
+  "preflight_ok": true,
+  "elapsed_s": 2.5
+}
