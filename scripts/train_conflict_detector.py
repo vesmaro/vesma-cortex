@@ -601,6 +601,21 @@ def sha256_file(path: Path) -> str:
     return h.hexdigest()
 
 
+def sha256_file_prefix_lines(path: Path, n_lines: int) -> str:
+    """sha256 over EXACTLY the first ``n_lines`` lines (binary, keepends) —
+    the v4 train-v2-prefix tripwire leg (ADDENDUM-7 §6 build4.1): the v4
+    corpus is the train-v2 verbatim prefix (600 classic pairs = the first
+    1200 lines) + 384 carrier pairs, so the prefix contract is asserted
+    directly, byte-exact."""
+    h = hashlib.sha256()
+    with open(path, "rb") as fh:
+        for i, line in enumerate(fh):
+            if i >= n_lines:
+                break
+            h.update(line)
+    return h.hexdigest()
+
+
 def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
@@ -914,11 +929,21 @@ def prologue(slice_name: str) -> dict:
         if TRAIN_SHA_PIN != pins["train_jsonl_sha256"]:
             seal_mism.append("train_pin_vs_bytes")
         # v3 rotation: the pin file records the untouched train's sha start
-        # (train_v2_untouched, F7) — bytes must reproduce it
+        # (train_v2_untouched, F7) — bytes must reproduce it. v4 (ADDENDUM-7
+        # §6 build4.1) RE-SHAPES this leg: the corpus = the train-v2 verbatim
+        # PREFIX (600 classic pairs = the first 1200 lines) + 384 carrier
+        # pairs, so the whole-file sha is the corrected e5c57138… and the
+        # prefix contract is asserted DIRECTLY — the first 1200 lines must
+        # hash exactly to the pinned train-v2 sha (a549dc0c…). A stricter
+        # byte-exact form of the same contract, disclosed in preset_pins.
         train_start = pin.get("train_v2_untouched", {}).get(
             "train.jsonl_sha256_start"
         )
-        if train_start and not pins["train_jsonl_sha256"].startswith(train_start):
+        if (
+            train_start
+            and _INPUT_PRESET_VERSION != "v4"
+            and not pins["train_jsonl_sha256"].startswith(train_start)
+        ):
             seal_mism.append("train_bytes_vs_pin_start")
         seal_file_sha = sha256_file(SEAL_JSON)
         if seal_file_sha != _INPUT_PRESET["seal_sha256"]:
@@ -934,6 +959,21 @@ def prologue(slice_name: str) -> dict:
             "seal_file_sha256": seal_file_sha,
             "holdout_sha_metadata_pin": HOLDOUT_SHA_PIN,
         }
+        if _INPUT_PRESET_VERSION == "v4" and train_start:
+            prefix_sha = sha256_file_prefix_lines(TRAIN_JSONL, 1200)
+            preset_pins["v4_train_v2_prefix_leg"] = {
+                "lines": 1200,
+                "prefix_sha256": prefix_sha,
+                "want": train_start,
+                "ok": prefix_sha == train_start,
+                "note": "train-v4 = train-v2 verbatim prefix (600 classic "
+                "pairs = the first 1200 lines, byte-identical) + 384 "
+                "carrier pairs; the whole-file sha is the corrected "
+                "e5c57138… (ADDENDUM-7 §6 build4.1, correction_build4_1) — "
+                "the v3-shaped whole-file sha-start leg does not apply",
+            }
+            if prefix_sha != train_start:
+                seal_mism.append("v4_train_v2_prefix_sha")
     log(
         "byte_tripwire",
         pins=pins,
