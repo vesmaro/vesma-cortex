@@ -335,6 +335,89 @@ INPUT_PRESETS = {
     },
 }
 
+# --- v4 cycle-2 retrain (ADDENDUM-7 §2 C1 ratified + §6 build4.1) ------------
+#
+# NEW train corpus corpus-v4 = train-v2 verbatim (600 pairs, byte-identical
+# prefix a549dc0c…) + 384 C1 orbit carriers = 984 pairs / 1968 rows,
+# RE-EMITTED content-identically by build4.1 (carrier id-namespace collision
+# correction: 4 pair_ids were x4, now 984 globally unique pair_ids x 2
+# orientations; correction record in pin-v4.json). Seal CD-holdout-v4 SEALED
+# (76c12ad1…, byte-untouched by the correction; the single legal read belongs
+# to the gate runner). Fresh artifact models/conflict-detector-v4 with the
+# RATIFIED capacity trim (num_leaves 15->8, min_child_samples 10->20) as the
+# ONLY parameter change — seed/objective/guard/cut 0.5/frozen CORE-13
+# unchanged. The v4 build manifests publish NO build-time baseline table ->
+# the trainer computation is the primary baseline publication (disclosed,
+# first_publication_v4 mode).
+
+V4_EXPECTED_TRAIN_ROW_COUNTS = {
+    "CD-1": 144, "CD-2": 72, "CD-3": 204, "CD-4": 72, "CD-5": 80, "CD-6": 98,
+    "NC-1": 290, "NC-2": 192, "NC-3": 296, "NC-4": 216, "NC-5": 304,
+}
+#: pin-v4 seal_fold_strata (metadata; carriers folded into host strata).
+V4_EXPECTED_HOLDOUT_PAIRS = {
+    "CD-1": 22, "CD-2": 11, "CD-3": 11, "CD-4": 10, "CD-5": 7, "CD-6": 11,
+    "NC-1": 20, "NC-2": 29, "NC-3": 16, "NC-4": 11, "NC-5": 32,
+}
+#: ML-STD-0004 draw formula (train class total // 6) on the v4 table
+#: (strata_v4 train_v4_total incl C1 carriers; cross-checked against the
+#: build manifest at floors start) = 162 pairs per draw. NOTE: the frozen
+#: draw recipe regenerates from the CLASSIC generator only (carriers are
+#: authored orbits, not regenerable) — the quota formula rides the v4 train
+#: table verbatim, the classic-only surface is disclosed in the floors lane.
+V4_FLOOR_DRAW_QUOTA = {
+    "CD-1": 12, "CD-2": 6, "CD-3": 17, "CD-4": 6, "CD-5": 6, "CD-6": 8,
+    "NC-1": 24, "NC-2": 16, "NC-3": 24, "NC-4": 18, "NC-5": 25,
+}
+
+INPUT_PRESETS["v4"] = {
+    "corpus_dir": REPO / "data" / "conflict-detector" / "corpus-v4",
+    "pin": REPO / "data" / "conflict-detector" / "pin-v4.json",
+    "seal": REPO / "data" / "conflict-detector" / "seals"
+    / "CD-holdout-v4.seal.json",
+    "artifact_dir": REPO / "models" / "conflict-detector-v4",
+    "train_sha256":
+        "e5c57138af47f35889d315b15c5ee64031e848e1d419e53e742e43a2e130cd4c",
+    "holdout_sha256":
+        "c293643f5169217cf9a3321c72f98f0924e710e7c5a2092502bc298eddc8be08",
+    "pin_sha256":
+        "32c671687b1bd1346086a54a0769558d1aff478c49fd7e8e507e5fc3a7f1ca6d",
+    "seal_sha256":
+        "76c12ad1947aaf7856541cd72745adbc8a0e77536527e67120d64382b7ce986f",
+    "expected_train_rows": V4_EXPECTED_TRAIN_ROW_COUNTS,
+    "expected_holdout_pairs": V4_EXPECTED_HOLDOUT_PAIRS,
+    "expected_baselines": None,  # first-publication_v4 (no build-time table)
+    "floor_draw_quota": V4_FLOOR_DRAW_QUOTA,
+    "floor_inv_exclude_carriers": (),  # no E12-style exclusion ratified for v4
+    "canary_para2": {  # E8-iii selection rides the classic v2 pool (tr- ids
+        # are the byte-identical train-v2 prefix; C1 carriers carry tr4- ids)
+        "seed": 2113,
+        "prefix": "tr",
+        "rotate": False,
+        "expect_count": 7,
+        "expect_verdict": "contradicts",
+    },
+    "para_sweep_words": 5,
+    "lgb_params_override": {  # ADDENDUM-7 §2 C1 capacity trim (RATIFIED)
+        "num_leaves": 8,
+        "min_child_samples": 20,
+    },
+    "c4_razor_probe": True,  # ADDENDUM-7 §2 C4: para-applied razor fixture
+    "activation_extra": {
+        "addendum": REPO / "docs" / "experiments"
+        / "conflict-detector-corpus-design-ADDENDUM-7.md",
+        "marker": "ADDENDUM-7 РАТИФИЦИРОВАН",
+        "corpus_build_commit": "9d70d7f",  # build4.1 re-emission commit
+    },
+    "lineage": _V1_LINEAGE
+    + "; corpus v2 per ADDENDUM-3 §8; cycle-2 retrain per ADDENDUM-7 §2 C1 "
+    "(orbit carriers into train + capacity trim num_leaves 15->8 / "
+    "min_child_samples 10->20, the ONLY parameter change) on corpus-v4 "
+    "= train-v2 verbatim + 384 C1 carriers, content-identically re-emitted "
+    "by build4.1 (ADDENDUM-7 §6 id-namespace correction, commit 9d70d7f); "
+    "seal CD-holdout-v4 (76c12ad1…) SEALED, reads once at the gate runner",
+}
+
 #: Active preset (set by apply_input_params from the CLI input args).
 _INPUT_PRESET_VERSION = "v1"
 _INPUT_PRESET = INPUT_PRESETS["v1"]
@@ -451,6 +534,13 @@ FLOOR_Q_SEEDS = [53, 54, 55]
 #: floor_inv / floor_perm: >= 3 draws each (seeds independent of each other).
 FLOOR_INV_SEEDS = [901, 902, 903]
 FLOOR_PERM_SEEDS = [951, 952, 953]
+#: floor_para (v4 cycle-2, ADDENDUM-7 §2 C5): 3 draws for the EMPIRICAL
+#: paraphrase-perturbation honesty floor on the train-side derivation
+#: surface (outside the seals); seeds independent of the inv/perm/q/seed
+#: families; a HONESTY diagnostic — NOT a gate input (the g_stab threshold
+#: stays the ratified 1 - 2*floor_inv; any transfer needs a TL/MLC ruling
+#: BEFORE gate_start, never a silent swap).
+FLOOR_PARA_SEEDS = [801, 802, 803]
 #: Draw composition = train quota / 6 (exactly 100 pairs per draw —
 #: 72/6=12, 36/6=6 x4, 24/6=4, 90/6=15, 72/6=12, 54/6=9, 36/6=6, 108/6=18).
 FLOOR_DRAW_QUOTA = {s: cb.STRATA_QUOTA[s] // 6 for s in ORDER}
@@ -985,11 +1075,30 @@ def frozen_inputs() -> list[dict]:
         extra_strata=extra,
         label_mismatch=label_mism[:5],
     )
-    if mism or extra or label_mism or len(rows) != 1200 or len(pairs) != 600:
+    if mism or extra or label_mism:
         raise InstrumentAbort(
             f"train frozen-input asserts RED: counts={mism} extra={extra} "
             f"label={label_mism[:5]}"
         )
+    #: totals derived from the ratified per-stratum table (v1/v2: 1200/600
+    #: byte-equivalent; v4: 1968/984 — incl the build4.1 T-id-unique shape:
+    #: every pair_id exactly 2 orientations, no cross-stratum id reuse)
+    want_rows = sum(EXPECTED_TRAIN_ROW_COUNTS.values())
+    odd = [s for s, n in EXPECTED_TRAIN_ROW_COUNTS.items() if n % 2]
+    want_pairs = want_rows // 2
+    id_mult = {pid: n for pid, n in
+               {p: sum(1 for r in rows if r["pair_id"] == p)
+                for p in pairs}.items() if n != 2}
+    if len(rows) != want_rows or len(pairs) != want_pairs or odd or id_mult:
+        raise InstrumentAbort(
+            f"train frozen-input totals RED: rows={len(rows)}/{want_rows} "
+            f"pairs={len(pairs)}/{want_pairs} odd_strata={odd} "
+            f"id_multiplicity={list(id_mult)[:5]}"
+        )
+    log("train_id_uniqueness", pairs=len(pairs), rows=len(rows),
+        pair_ids_with_multiplicity_2=len(pairs),
+        note="every pair_id exactly 2 orientations (build4.1 T-id-unique "
+        "re-asserted train-side)")
     return rows
 
 
@@ -1163,6 +1272,33 @@ def baselines_table(rows: list[dict]) -> dict:
 def check_baselines_vs_build(manifest: dict, mine: dict) -> None:
     """Baseline reproduction assert: same train material + the same frozen
     baseline definitions => exact match with the build manifest."""
+    if EXPECTED_BASELINES is None:
+        #: v4 (first_publication_v4): the build4/4.1 manifests publish no
+        #: build-time baseline table — the trainer computation on the
+        #: corrected train-v4 IS the primary publication. Consistency-only
+        #: asserts + full disclosure; no independent want-table exists.
+        internal = {
+            "bl_band_is_dir0": mine.get("BL-band") == mine.get("BL-band-dir0"),
+            "all_in_unit_interval": all(
+                isinstance(v, (int, float)) and 0.0 <= v <= 1.0
+                for v in mine.values()
+            ),
+        }
+        log(
+            "baseline_reproduction",
+            mode="first_publication_v4",
+            mine=mine,
+            build_manifest=manifest.get("baselines"),
+            internal_consistency=internal,
+            note="no build-time baseline table in the v4 manifest — the "
+            "trainer table is the primary publication (disclosed); "
+            "BL-band direction chosen train-only and published",
+        )
+        if not all(internal.values()):
+            raise InstrumentAbort(
+                f"baseline first-publication consistency RED: {internal}"
+            )
+        return
     diff = {
         k: {"got": mine.get(k), "want": v}
         for k, v in EXPECTED_BASELINES.items()
@@ -1439,7 +1575,12 @@ def freeze_artifact(
         "cv_characterization": cv,
         "in_sample_train_diagnostic": in_sample,
         "baselines_train": baselines,
-        "baselines_target_max_bl": max(EXPECTED_BASELINES.values()),
+        "baselines_target_max_bl": (
+            max(EXPECTED_BASELINES.values())
+            if EXPECTED_BASELINES is not None
+            else max(baselines[k] for k in ("BL-band", "BL-digit",
+                                            "BL-digit+guard"))
+        ),
         "convention": {
             "embed_surface": "n1(title)\\n+n1(body)\\n+n1(space-joined tags), "
             "[:4096]; n1 = lower + whitespace-collapse (frozen "
@@ -1454,8 +1595,8 @@ def freeze_artifact(
             "orientation-symmetric (machine-asserted)",
         },
         "corpus": {
-            "train_rows": 1200,
-            "train_pairs": 600,
+            "train_rows": sum(EXPECTED_TRAIN_ROW_COUNTS.values()),
+            "train_pairs": sum(EXPECTED_TRAIN_ROW_COUNTS.values()) // 2,
             "train_jsonl_sha256": pins["train_jsonl_sha256"],
             "build_manifest_sha256": pins["build_manifest_sha256"],
             "pin_json_sha256": pins["pin_json_sha256"],
@@ -1503,13 +1644,14 @@ def write_model_card(manifest: dict) -> None:
         f"(sha256(names) {manifest['feature_set_sha256'][:16]}…)",
         f"- Embedder: nano {lib.EMBEDDER_PIN[:12]}… (A-frozen), surface "
         "n1(title)\\n+n1(body)\\n+n1(tags) [:4096]",
-        f"- Corpus: 600 pairs x 2 orientations = 1200 rows "
+        f"- Corpus: {manifest['corpus']['train_pairs']} pairs x 2 "
+        f"orientations = {manifest['corpus']['train_rows']} rows "
         f"(sha256 {manifest['corpus']['train_jsonl_sha256'][:16]}…); "
         f"holdout {SEAL_NAME} SEALED (180 pairs), read exactly once by the "
         "gate runner",
         f"- Baselines (train): BL-band {b['BL-band']} / BL-digit "
         f"{b['BL-digit']} / BL-digit+guard {b['BL-digit+guard']} "
-        f"(target max(BL) = {max(EXPECTED_BASELINES.values())})",
+        f"(target max(BL) = {manifest['baselines_target_max_bl']})",
         f"- CV characterization (honesty, no selection): OOF acc "
         f"{manifest['cv_characterization']['oof_acc']}, OOF brier "
         f"{manifest['cv_characterization']['oof_brier']} "
@@ -1757,16 +1899,37 @@ def cmd_train(args: argparse.Namespace) -> int:
     global _SLICE
     _SLICE = SLICE_TRAIN
     started = dt.datetime.now(dt.timezone.utc)
+    want_rows = sum(EXPECTED_TRAIN_ROW_COUNTS.values())
     log(
         "cost_declaration",
         expected_prolog_s=3,
         expected_cycle_s=180,
         expected_peak_ram_gb=1.0,
-        lane="light: LightGBM on 1200x13, direct sequential run "
+        lane=f"light: LightGBM on {want_rows}x13, direct sequential run "
         "(arbiter precedent 57-78 s, <2 GB)",
         run_tag=args.run_tag,
     )
     pro = prologue(SLICE_TRAIN)
+
+    # ADDENDUM-7 §2 C1 capacity trim (v4 preset ONLY): the ratified parameter
+    # pin num_leaves 15->8, min_child_samples 10->20 — the ONLY parameter
+    # change; seed/objective/n_estimators/learning_rate/threads untouched.
+    # Applied BEFORE any fit (CV characterization characterizes the TRIMMED
+    # model); the frozen manifest records the effective params.
+    trim_override = _INPUT_PRESET.get("lgb_params_override")
+    if trim_override:
+        before = dict(LGB_PARAMS)
+        LGB_PARAMS.update(trim_override)
+        log(
+            "capacity_trim_applied",
+            ratification="ADDENDUM-7 §2 C1 (MLC-7 3-leg convergence)",
+            params_before=before,
+            params_after=dict(LGB_PARAMS),
+            changed={k: {"before": before[k], "after": LGB_PARAMS[k]}
+                     for k in trim_override},
+            note="the ONLY parameter change; guard/cut 0.5/frozen CORE-13/"
+            "seed untouched; event pinned in the run-log BEFORE the first fit",
+        )
 
     # corpus embed-surface fits the truncated convention (no-op assertion;
     # keeps measured.cos_target consistent with the [:4096] instrument)
@@ -1907,6 +2070,42 @@ def cmd_floors(args: argparse.Namespace) -> int:
         if quota_mism:
             raise InstrumentAbort(
                 f"floor draw quota diverges from the v2 build manifest: {quota_mism}"
+            )
+    if _INPUT_PRESET_VERSION == "v4":
+        # v4 floor quota cross-check against the build manifest strata_v4
+        # (ML-STD-0004 formula train class total // 6 on the v4 table incl
+        # C1 carriers). The frozen draw recipe regenerates from the CLASSIC
+        # generator only (carriers are authored orbits, not regenerable) —
+        # disclosed: the quota formula rides the v4 train table verbatim,
+        # the draw surface stays the classic exam generator (v1/v2-comparable
+        # recipe; classic pools verified >= quota per stratum).
+        bm_strata = pro["build_manifest"]["strata_v4"]
+        quota_mism = {
+            s: {
+                "quota": FLOOR_DRAW_QUOTA[s],
+                "manifest_train_v4_total_div_6":
+                    bm_strata[s]["train_v4_total"] // 6,
+            }
+            for s in ORDER
+            if FLOOR_DRAW_QUOTA[s]
+            != bm_strata[s]["train_v4_total"] // 6
+        }
+        log(
+            "floor_quota_vs_build_manifest_v4",
+            quota=FLOOR_DRAW_QUOTA,
+            draw_pairs=FLOOR_DRAW_PAIRS,
+            mismatch=quota_mism,
+            ok=not quota_mism,
+            source="v4 build manifest strata_v4.train_v4_total (metadata; "
+            "ML-STD-0004 class_total//6 on the v4 table incl C1 carriers)",
+            surface_note="draws regenerate from the classic generator only "
+            "(cb.gen_pool, frozen recipe); carriers are authored orbits and "
+            "are NOT regenerable — disclosed, floor numbers stay "
+            "train-side-only",
+        )
+        if quota_mism:
+            raise InstrumentAbort(
+                f"floor draw quota diverges from the v4 build manifest: {quota_mism}"
             )
     if FLOORS_DOC.exists():
         raise InstrumentAbort(
@@ -2076,7 +2275,95 @@ def cmd_floors(args: argparse.Namespace) -> int:
         "embed_text are normalization-invariant and lengths unchanged; "
         "see the floor_fixture_defect event — whitespace-len variants are "
         "a published diagnostic, never a floor)",
+        **(dict(
+            c5_disclosure="floor_inv СТРУКТУРНЫЙ (case-only): не несёт "
+            "эмпирики о парафраз-чувствительности; эмпирический пол "
+            "para-возмущений публикуется отдельной диагностикой floor_para "
+            "(ADDENDUM-7 §2 C5) — число честности на train-side, НЕ вход "
+            "гейта; порог g_stab остаётся 1 - 2*floor_inv (структурный, 0); "
+            "перенос порога на floor_para = отдельное TL/MLC-постановление "
+            "ДО gate_start — молчаливая подмена исключена",
+        ) if _INPUT_PRESET_VERSION == "v4" else dict()),
     )
+
+    # --- floor_para: EMPIRICAL paraphrase-perturbation floor (v4 cycle-2,
+    # --- ADDENDUM-7 §2 C5) — honesty diagnostic on the train-side derivation
+    # --- surface (outside the seals), NOT a gate input. para1 (k=1) from the
+    # --- PINNED PARA dict (the same machinery the tr4-C1 orbit carriers
+    # --- ride, rung para1) on envelope_b; cos REMEASURED by the pinned nano
+    # --- per perturbed pair — the corpus para convention (the carriers
+    # --- publish the measured cos of the perturbed pair, not the base cos).
+    floor_para = None
+    if _INPUT_PRESET_VERSION == "v4":
+        pairs_ab = [r for r in train_rows if r["orientation"] == "a>b"]
+        para_draws = []
+        para_rates = []
+        for draw_seed in FLOOR_PARA_SEEDS:
+            rng_sel = random.Random(draw_seed)
+            sample = rng_sel.sample(pairs_ab, min(80, len(pairs_ab)))
+            dis = 0
+            applied = 0
+            noop_ids = []
+            for idx, r in enumerate(sample):
+                rng_p = random.Random(f"floor_para:{draw_seed}:{idx}")
+                body_p = r["envelope_b"]["body"]
+                pb = lib.para(body_p, 1, "ru", rng_p)
+                if pb == body_p:
+                    noop_ids.append(r["pair_id"])
+                    continue
+                applied += 1
+                base_rec_a, base_rec_b = row_records(r)
+                base = decide_pipeline(
+                    base_rec_a, base_rec_b,
+                    float(r["measured"]["cos_target"]), booster,
+                )
+                pert = row_with_body(r, "envelope_b", pb)
+                prec_a, prec_b = row_records(pert)
+                cos_p = round(
+                    nano.pair_cos(
+                        prec_a, prec_b, site=f"floor_para:seed{draw_seed}"
+                    ),
+                    4,
+                )
+                alt = decide_pipeline(prec_a, prec_b, cos_p, booster)
+                dis += int(base["verdict"] != alt["verdict"])
+            rate = round(dis / applied, 4) if applied else 0.0
+            para_draws.append({
+                "seed": draw_seed,
+                "sampled": len(sample),
+                "para_applied": applied,
+                "no_applicable_word": len(noop_ids),
+                "no_applicable_pair_ids": noop_ids[:5],
+                "disagreements": dis,
+                "disagreement_rate": rate,
+            })
+            para_rates.append(rate)
+        floor_para = max(para_rates) if para_rates else 0.0
+        log(
+            "floor_para_measure",
+            draws=FLOOR_PARA_SEEDS,
+            per_draw=para_draws,
+            floor_para=floor_para,
+            para_dict_sha256_ru=lib.PARA_DICT_SHA["ru"],
+            convention="para1 k=1 from the PINNED PARA dict (ru) on "
+            "envelope_b; cos REMEASURED by the pinned nano per perturbed "
+            "pair (corpus para convention — tr4-C1 carriers publish the "
+            "measured cos of the perturbed pair); sample = train a>b pairs",
+            floor_aggregation="max disagreement rate over the 3 draws "
+            "(same form as floor_inv, ML-STD-0001 П1)",
+            no_applicable_note="rows whose body carries NO applicable "
+            "PARA_RU word are counted per draw and EXCLUDED from the "
+            "para-conditional rate (a no-op para is not a paraphrase "
+            "perturbation); counts published, never silently folded into "
+            "the rate",
+            not_a_gate=True,
+            role="honesty diagnostic (ADDENDUM-7 §2 C5): the empirical floor "
+            "of para-perturbation sensitivity on the train-side derivation "
+            "surface, published BEFORE gate_start (П4); the g_stab threshold "
+            "stays 1 - 2*floor_inv (structural, disclosed) — a transfer of "
+            "the threshold onto floor_para is a TL/MLC ruling BEFORE "
+            "gate_start, never a silent swap",
+        )
 
     # --- floor_perm: orientation permutation on train pairs, 3 seeds -------
     # Cascade W2 fix 2a45f28: a DISTINCT permutation per seed (the naive
@@ -2154,6 +2441,23 @@ def cmd_floors(args: argparse.Namespace) -> int:
             "is raw) — see floor_fixture_defect in the run-log",
             "ws_len_diagnostic_rates": ws_diagnostic,
         },
+        **(dict(
+            floor_para={
+                "standard": "ML-STD-0001 aggregation form on the para "
+                "derivation surface (ADDENDUM-7 §2 C5); honesty diagnostic, "
+                "NOT a gate input",
+                "seeds": FLOOR_PARA_SEEDS,
+                "per_draw": para_draws,
+                "floor": floor_para,
+                "convention": "para1 k=1 from the PINNED PARA dict (ru) on "
+                "envelope_b; cos remeasured by the pinned nano per perturbed "
+                "pair (corpus para convention — tr4-C1 carriers)",
+                "para_dict_sha256_ru": lib.PARA_DICT_SHA["ru"],
+                "gate": "NOT a gate input; the g_stab threshold stays "
+                "1 - 2*floor_inv (structural) — a transfer onto floor_para "
+                "is a TL/MLC ruling BEFORE gate_start, never a silent swap",
+            },
+        ) if _INPUT_PRESET_VERSION == "v4" else dict()),
         "floor_perm": {
             "perms": perm_seeds,
             "delta_rates": perm_deltas,
@@ -2178,15 +2482,22 @@ def cmd_floors(args: argparse.Namespace) -> int:
     FLOORS_DOC.write_text(
         json.dumps(floors_doc, ensure_ascii=False, indent=1), encoding="utf-8"
     )
+    floors_list = ["floor_seed", "floor_q", "floor_inv", "floor_perm"]
+    if floor_para is not None:
+        floors_list.append("floor_para")
     log(
         "floors_published",
         path=str(FLOORS_DOC),
-        floors=["floor_seed", "floor_q", "floor_inv", "floor_perm"],
+        floors=floors_list,
         delta_acc_declared=round(delta_acc, 4),
         floor_inv=floor_inv,
         floor_perm=floor_perm,
         floor_q=floor_q,
         artifact_sha256=model_sha,
+        **(dict(floor_para=floor_para,
+                floor_para_role="honesty diagnostic (ADDENDUM-7 §2 C5), "
+                "NOT a gate input")
+           if floor_para is not None else dict()),
         p4_note="ALL floor publication fields written to the run-log BEFORE "
         "gate_start (П4); the gate asserts this event + the floors doc "
         "prior to gate_start",
@@ -2604,6 +2915,91 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
         "number for the owner/MLC, never a gate or a probe",
     )
 
+    # --- C4 para-razor ladder (v4 cycle-2, ADDENDUM-7 §2 C4): probe-6-class
+    # --- ladder on the RAZOR CD-1 fixture cell (the probe-4 cell) with a
+    # --- REAL para1. The cycle-1 defect: para1 was a no-op on 2/3 ladder
+    # --- fixtures, so the ladders never sampled the razor band where the
+    # --- boundary lives («конфликт + парафраз в razor» interpolation cell).
+    # --- Here the para step is machine-asserted non-no-op (text changed AND
+    # --- the CORE-13 vector moved) and rides the SAME pinned PARA dict as
+    # --- the tr4-C1 orbit carriers (rung para1, razor band). RED = the
+    # --- cycle-2 retrain failed its ratified fixture duty = instrument
+    # --- abort (same class as the §6.3 legs).
+    c4_ok = None
+    if _INPUT_PRESET.get("c4_razor_probe"):
+        r4c = sc_row(fx, "CD-1")
+        cos4c = float(r4c["measured"]["cos_target"])
+        band4c = cb.band_of(cos4c)
+        para_body4c = lib.para(
+            r4c["envelope_b"]["body"], 1, "ru", random.Random(13)
+        )
+        para_word4c = next(
+            (a for a, b in lib.PARA_RU
+             if a in r4c["envelope_b"]["body"] and b in para_body4c),
+            None,
+        )
+        base_vec4c = pair_vector(*row_records(r4c), cos4c)
+        row4p = row_with_body(r4c, "envelope_b", para_body4c)
+        para_vec4c = pair_vector(*row_records(row4p), cos4c)
+        para_real4c = para_body4c != r4c["envelope_b"]["body"]
+        feats_moved4c = not np.array_equal(base_vec4c, para_vec4c)
+        steps4c = []
+        lad4_ok = True
+        for step_name, body4 in (
+            ("raw", r4c["envelope_b"]["body"]),
+            ("cosmetic", cosmetic_variant(
+                r4c["envelope_b"]["body"], random.Random(17))),
+            ("para1", para_body4c),
+        ):
+            row_s = dict(r4c, pair_id=f"fx-c4-{step_name}")
+            row_s["envelope_b"] = dict(r4c["envelope_b"], body=body4)
+            rec_a4, rec_b4 = row_records(row_s)
+            res_s = decide_pipeline(rec_a4, rec_b4, cos4c, booster)
+            steps4c.append({
+                "step": step_name,
+                "verdict": res_s["verdict"],
+                "leg": res_s["leg"],
+                "p": res_s.get("p"),
+            })
+            lad4_ok = lad4_ok and (
+                res_s["verdict"] == "contradicts"
+                and res_s["leg"] == "model"
+                and res_s.get("p") is not None
+                and res_s["p"] >= 0.5
+            )
+        inv4c = len({s["verdict"] for s in steps4c}) == 1
+        tr4_para1_n = sum(
+            1 for r in load_train()
+            if r["pair_id"].startswith("tr4-")
+            and r["declaration"].get("rung") == "para1"
+        )
+        c4_ok = bool(
+            band4c == "razor" and para_real4c and feats_moved4c
+            and lad4_ok and inv4c
+        )
+        log(
+            "c4_razor_para_ladder",
+            fixture="CD-1 (the probe-4 razor cell; П3 preflight args)",
+            cos_target=round(cos4c, 4),
+            band=band4c,
+            para_word=para_word4c,
+            para_real=para_real4c,
+            features_moved=feats_moved4c,
+            steps=steps4c,
+            verdict_invariant=inv4c,
+            ok=c4_ok,
+            para_dict_sha256_ru=lib.PARA_DICT_SHA["ru"],
+            carriers_rung_para1_train=tr4_para1_n,
+            carriers_linkage="the SAME pinned PARA dict the tr4-C1 orbit "
+            "carriers ride (rung para1, razor band, 0.951-1.0 measured cos) "
+            "— the ladder samples the «конфликт + парафраз в razor» cell "
+            "the cycle-1 ladders missed (para1 no-op on 2/3 fixtures)",
+            cos_convention="probe-6 class: the fixture's measured cos of the "
+            "raw pair rides all steps (para1 moves the text features)",
+            ratification="ADDENDUM-7 §2 C4 (MLC-7 synthesis, РАТИФИЦИРОВАН)",
+        )
+        all_ok = all_ok and c4_ok
+
     # --- E8-iii canary (v2 preset only): the build's para_b=2 CD-1 cells
     # --- must STAY contradicts through the production circuit --------------
     if CANARY_PARA2:
@@ -2731,6 +3127,14 @@ def run_sanity_suite(booster: lgb.Booster, log_it: bool = True) -> list[dict]:
         known_uncovered_legs=len(ku_legs),
         probe7_mode="1-leg",
         probe7_leg1_assert_ok=probe7_leg1_ok,
+        **(dict(
+            c4_cycle2_leg="ok" if c4_ok else "RED",
+            c4_note="ADDENDUM-7 §2 C4 para-razor ladder (razor CD-1 cell, "
+            "real para1, machine-asserted non-no-op) — a cycle-2 addition, "
+            "NOT a §6.3 leg: the E3 count convention below stays 6/7 + 1 "
+            "known-uncovered, the C4 leg is reported separately and folds "
+            "into the abort verdict",
+        ) if c4_ok is not None else dict()),
         marker=KNOWN_UNCOVERED_MARKER,
         amendment=f"ADDENDUM-4 @ {AMENDMENT4_SHORT}",
         expectation="6/7 legs green + 1 known-uncovered + order invariance "
@@ -2759,7 +3163,9 @@ def cmd_sanity(args: argparse.Namespace) -> int:
         expected_peak_ram_gb=1.0,
         lane="sanity lane: 7 fixture probes through the production circuit "
         "(pinned nano embedder, ~30 embeds); ADDENDUM-4: probe 7 ONE-LEG "
-        "(leg-2 known-uncovered, published not asserted)",
+        "(leg-2 known-uncovered, published not asserted)"
+        + ("; ADDENDUM-7 §2 C4 para-razor ladder (v4 cycle-2 leg)"
+           if _INPUT_PRESET.get("c4_razor_probe") else ""),
     )
     # fixture choice fixed BEFORE the run (delta map item 6)
     fx = build_fixtures()
@@ -2771,6 +3177,9 @@ def cmd_sanity(args: argparse.Namespace) -> int:
         "surfaces (self/cosmetic/envelope/translation); primary source "
         "per the dispatch",
         diagnostic_cell="CD-1-cross-eq (published honesty number, not a probe)",
+        **(dict(c4_cell="CD-1 (para-razor ladder cell, ADDENDUM-7 §2 C4: "
+                "the probe-4 razor cell re-laddered raw/cosmetic/para1-real)")
+           if _INPUT_PRESET.get("c4_razor_probe") else dict()),
         sealed_file_opened=False,
     )
     booster, _manifest = load_frozen()
