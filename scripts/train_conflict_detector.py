@@ -1216,31 +1216,92 @@ GUARD_CONSTANTS = {
 
 
 def assert_guard_on_train(rows: list[dict]) -> dict:
-    """Guard-vs-construction assert: cg-guard-v1 must fire on ALL NC-3 rows
-    and on NO other train row (the corpus classes are disjoint on this
-    predicate by construction — design §2.2 rule of priority MLC-9 p.10)."""
+    """Guard-vs-construction assert, carrier-aware for v4 (ADDENDUM-7 §2 C1):
+    cg-guard-v1 must fire on ALL CLASSIC NC-3 rows (the code leg's ratified
+    surface) and on NO other train row. The C1 orbit carriers of NC-3 are
+    para-возмущённые version-bump pairs: the benign para substitution adds
+    non-version differing regions, so the strict ALL-regions-version
+    predicate CANNOT fire on them by mechanics (rung para1 -> 1 benign
+    region, para2 -> 2). Their non-fire is MACHINE-EXPLAINED here: every
+    non-firing carrier must carry >= 1 version region (the bump is intact)
+    and exactly rung-count non-version regions. The classic/carrier split
+    is published (C6 disclosure class: the g_nc3_exact gate leg rides the
+    SEAL — classic pool rows only, A-guard nc3 16/16)."""
     fire_by: dict[str, int] = {}
     total_by: dict[str, int] = {}
+    classic_nc3 = 0
+    classic_nc3_fired = 0
+    carrier_nc3 = 0
+    carrier_nc3_fired = 0
+    carrier_explain_bad = []
+    carrier_rung_regions: dict[str, int] = {}
     for r in rows:
         rec_a, rec_b = row_records(r)
         fired = guard_fire(rec_a.body, rec_b.body)
         total_by[r["stratum"]] = total_by.get(r["stratum"], 0) + 1
         if fired:
             fire_by[r["stratum"]] = fire_by.get(r["stratum"], 0) + 1
-    nc3 = EXPECTED_TRAIN_ROW_COUNTS["NC-3"]
-    ok = fire_by.get("NC-3", 0) == nc3 and all(
-        fire_by.get(s, 0) == 0 for s in ORDER if s != "NC-3"
+        if r["stratum"] == "NC-3" and r["pair_id"].startswith("tr4-"):
+            carrier_nc3 += 1
+            carrier_nc3_fired += int(fired)
+            if not fired:
+                regs = lib.regions(rec_a.body, rec_b.body)
+                nv = [t for _, t, _, _ in regs if not lib.region_is_version(t)]
+                has_version = any(lib.region_is_version(t) for _, t, _, _ in regs)
+                rung = (r.get("declaration") or {}).get("rung")
+                carrier_rung_regions[f"{rung}/regions={len(regs)}"] = (
+                    carrier_rung_regions.get(f"{rung}/regions={len(regs)}", 0) + 1
+                )
+                want_nv = {"para1": 1, "para2": 2}.get(rung)
+                if want_nv is None or not has_version or len(nv) != want_nv:
+                    carrier_explain_bad.append({
+                        "pair_id": r["pair_id"], "rung": rung,
+                        "regions": len(regs), "nv_regions": len(nv),
+                        "has_version_region": has_version,
+                    })
+        elif r["stratum"] == "NC-3":
+            classic_nc3 += 1
+            classic_nc3_fired += int(fired)
+    ok = (
+        classic_nc3_fired == classic_nc3
+        and all(fire_by.get(s, 0) == 0 for s in ORDER if s != "NC-3")
+        and carrier_nc3_fired == 0
+        and not carrier_explain_bad
     )
     log(
         "guard_train_assert",
         fired=fire_by,
         totals=total_by,
-        expect="NC-3 108/108, others 0",
+        expect="classic NC-3 all fire, others 0; C1 NC-3 carriers 0 fires "
+        "with the non-fire machine-explained (version region intact + "
+        "exactly rung-count benign regions)",
+        classic_nc3=f"{classic_nc3_fired}/{classic_nc3}",
+        carrier_nc3=f"{carrier_nc3_fired}/{carrier_nc3}",
+        carrier_rung_region_counts=carrier_rung_regions,
+        carrier_explain_bad=carrier_explain_bad[:5],
+        disclosure="C1 carriers intentionally carry benign para regions "
+        "(ADDENDUM-7 §2 C1: para-носители для страт без покрытия) — the "
+        "strict guard predicate does not fire on them BY MECHANICS; the "
+        "code leg's NC-3 surface stays the classic rows + the SEAL "
+        "(build A-guard nc3 16/16); g_nc3_exact at the gate rides classic "
+        "pool rows only (C6 disclosure)",
         ok=ok,
     )
     if not ok:
-        raise InstrumentAbort(f"guard-vs-construction assert RED: fired={fire_by}")
-    return {"fired": fire_by, "totals": total_by}
+        raise InstrumentAbort(
+            f"guard-vs-construction assert RED: fired={fire_by} "
+            f"classic={classic_nc3_fired}/{classic_nc3} "
+            f"explain_bad={carrier_explain_bad[:3]}"
+        )
+    return {
+        "fired": fire_by,
+        "totals": total_by,
+        "classic_nc3": f"{classic_nc3_fired}/{classic_nc3}",
+        "carrier_nc3": f"{carrier_nc3_fired}/{carrier_nc3}",
+        "carrier_rung_region_counts": carrier_rung_regions,
+        "expect": "carrier-aware v4 shape (ADDENDUM-7 §2 C1): classic NC-3 "
+        "all fire, others 0, C1 NC-3 carriers 0 fires machine-explained",
+    }
 
 
 # --- baselines (§6.1; definitions byte-identical to the build driver) ---------
