@@ -1,0 +1,270 @@
+{
+ "standard": "ML-STD-0001 (tolerance noise floors) + ML-STD-0004 (declared floor, stage 2)",
+ "formula": "delta_acc = max(p95 - p5; 0.10)",
+ "artifact_sha256": "0dc1d88b60ae6eda0c49b88359188a3aaed06c0a606268d2747b4d901a5d8a91",
+ "measured_at": "2026-11-22T05:04:20.124+00:00",
+ "remeasure_after_single_shot": "FORBIDDEN",
+ "floor_seed": {
+  "seeds": [
+   43,
+   44,
+   45,
+   46,
+   47,
+   48,
+   49,
+   50,
+   51,
+   52
+  ],
+  "per_seed": [
+   {
+    "seed": 43,
+    "n_rows": 324,
+    "acc_model": 0.8642,
+    "acc_baseline_max": 0.6728,
+    "delta": 0.1914,
+    "contradicts_rate": 0.2407
+   },
+   {
+    "seed": 44,
+    "n_rows": 324,
+    "acc_model": 0.8765,
+    "acc_baseline_max": 0.6728,
+    "delta": 0.2037,
+    "contradicts_rate": 0.2407
+   },
+   {
+    "seed": 45,
+    "n_rows": 324,
+    "acc_model": 0.8889,
+    "acc_baseline_max": 0.6728,
+    "delta": 0.2161,
+    "contradicts_rate": 0.2531
+   },
+   {
+    "seed": 46,
+    "n_rows": 324,
+    "acc_model": 0.8642,
+    "acc_baseline_max": 0.6728,
+    "delta": 0.1914,
+    "contradicts_rate": 0.2531
+   },
+   {
+    "seed": 47,
+    "n_rows": 324,
+    "acc_model": 0.8827,
+    "acc_baseline_max": 0.6728,
+    "delta": 0.2099,
+    "contradicts_rate": 0.2593
+   },
+   {
+    "seed": 48,
+    "n_rows": 324,
+    "acc_model": 0.8642,
+    "acc_baseline_max": 0.6728,
+    "delta": 0.1914,
+    "contradicts_rate": 0.2407
+   },
+   {
+    "seed": 49,
+    "n_rows": 324,
+    "acc_model": 0.8951,
+    "acc_baseline_max": 0.6728,
+    "delta": 0.2223,
+    "contradicts_rate": 0.2346
+   },
+   {
+    "seed": 50,
+    "n_rows": 324,
+    "acc_model": 0.8951,
+    "acc_baseline_max": 0.6728,
+    "delta": 0.2223,
+    "contradicts_rate": 0.2469
+   },
+   {
+    "seed": 51,
+    "n_rows": 324,
+    "acc_model": 0.8765,
+    "acc_baseline_max": 0.6728,
+    "delta": 0.2037,
+    "contradicts_rate": 0.2407
+   },
+   {
+    "seed": 52,
+    "n_rows": 324,
+    "acc_model": 0.8889,
+    "acc_baseline_max": 0.6728,
+    "delta": 0.2161,
+    "contradicts_rate": 0.2407
+   }
+  ],
+  "distribution": {
+   "n": 10,
+   "median": 0.2068,
+   "p5": 0.1914,
+   "p95": 0.2223,
+   "max_pairwise": 0.0309,
+   "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+  },
+  "delta_acc_declared": 0.1,
+  "delta_acc_recheck": 0.1,
+  "formula": "delta_acc = max(p95 - p5; 0.10)"
+ },
+ "floor_q": {
+  "seeds": [
+   53,
+   54,
+   55
+  ],
+  "rates": [
+   0.2469,
+   0.2469,
+   0.2346
+  ],
+  "distribution": {
+   "n": 3,
+   "median": 0.2469,
+   "p5": 0.23583,
+   "p95": 0.2469,
+   "max_pairwise": 0.0123,
+   "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+  },
+  "floor": 0.0123
+ },
+ "floor_inv": {
+  "draws": [
+   901,
+   902,
+   903
+  ],
+  "disagreement_rates": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "distribution": {
+   "n": 3,
+   "median": 0.0,
+   "p5": 0.0,
+   "p95": 0.0,
+   "max_pairwise": 0.0,
+   "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+  },
+  "floor": 0.0,
+  "delta_inv": 0.0,
+  "formula": "delta_inv := 2*floor_inv",
+  "fix_set": {
+   "exclude_carriers": [],
+   "eligible_rows": 1968,
+   "total_train_rows": 1968
+  },
+  "gate_e12": "floor_inv(v2) <= floor_inv(v1 measured) (v2 preset)",
+  "transform": "case-only cosmetic variant (surface-invariant by construction, machine-asserted per row); whitespace-len perturbation is NOT cosmetic on this surface (body_len_delta is raw) — see floor_fixture_defect in the run-log",
+  "ws_len_diagnostic_rates": [
+   0.025,
+   0.0375,
+   0.025
+  ]
+ },
+ "floor_para": {
+  "standard": "ML-STD-0001 aggregation form on the para derivation surface (ADDENDUM-7 §2 C5); honesty diagnostic, NOT a gate input",
+  "seeds": [
+   801,
+   802,
+   803
+  ],
+  "per_draw": [
+   {
+    "seed": 801,
+    "sampled": 80,
+    "para_applied": 64,
+    "no_applicable_word": 16,
+    "no_applicable_pair_ids": [
+     "tr-NC-5-02425",
+     "tr-NC-5-02280",
+     "tr-NC-5-02427",
+     "tr-CD-5-00799",
+     "tr-N3-00099"
+    ],
+    "disagreements": 17,
+    "disagreement_rate": 0.2656
+   },
+   {
+    "seed": 802,
+    "sampled": 80,
+    "para_applied": 70,
+    "no_applicable_word": 10,
+    "no_applicable_pair_ids": [
+     "tr-CD-5-00799",
+     "tr-CD-6-00636",
+     "tr-NC-5-02195",
+     "tr-CD-2-01115",
+     "tr-NC-5-02515"
+    ],
+    "disagreements": 22,
+    "disagreement_rate": 0.3143
+   },
+   {
+    "seed": 803,
+    "sampled": 80,
+    "para_applied": 69,
+    "no_applicable_word": 11,
+    "no_applicable_pair_ids": [
+     "tr-CD-6-00811",
+     "tr-NC-5-02444",
+     "tr-CD-5-00621",
+     "tr-CD-5-00796",
+     "tr-CD-1-01783"
+    ],
+    "disagreements": 11,
+    "disagreement_rate": 0.1594
+   }
+  ],
+  "floor": 0.3143,
+  "convention": "para1 k=1 from the PINNED PARA dict (ru) on envelope_b; cos remeasured by the pinned nano per perturbed pair (corpus para convention — tr4-C1 carriers)",
+  "para_dict_sha256_ru": "02c4179bdaad90cba93ed716d7b22b9827554a671c4ea34996f4c7ed57b5119d",
+  "gate": "NOT a gate input; the g_stab threshold stays 1 - 2*floor_inv (structural) — a transfer onto floor_para is a TL/MLC ruling BEFORE gate_start, never a silent swap"
+ },
+ "floor_perm": {
+  "perms": [
+   951,
+   952,
+   953
+  ],
+  "delta_rates": [
+   0.0,
+   0.0,
+   0.0
+  ],
+  "distribution": {
+   "n": 3,
+   "median": 0.0,
+   "p5": 0.0,
+   "p95": 0.0,
+   "max_pairwise": 0.0,
+   "method": "numpy.percentile linear interpolation (numpy 2.5.3)"
+  },
+  "floor": 0.0,
+  "fix": "2a45f28 distinct permutation per seed"
+ },
+ "draw_recipe": {
+  "quota": {
+   "CD-1": 12,
+   "CD-2": 6,
+   "CD-3": 17,
+   "CD-4": 6,
+   "CD-5": 6,
+   "CD-6": 8,
+   "NC-1": 24,
+   "NC-2": 16,
+   "NC-3": 24,
+   "NC-4": 18,
+   "NC-5": 25
+  },
+  "pairs_per_draw": 162,
+  "prefix": "cdf",
+  "recipe": "cb.gen_pool + cb.rows_of (frozen build code path); rotate_pair makes floor texts byte-differ from train",
+  "disjointness": "draw ids vs train ids = 0 (asserted per draw)"
+ }
+}
